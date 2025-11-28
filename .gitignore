@@ -1,0 +1,69 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Binary outputs
+/bin/
+/dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+
+# Dependency directories (vendor is optional, depends on your strategy)
+vendor/
+
+# IDE-specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Database files (SQLite, if used locally)
+*.db
+*.sqlite
+*.sqlite3
+
+# OS-specific files
+Thumbs.db
+.DS_Store
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Air live reload (if used)
+tmp/
+.air.toml
+
+# Build artifacts
+hauslet-api
+hauslet-worker
+hauslet
+
+# Compiled Object files
+*.o
+*.a
+
+# Debug files
+debug
+__debug_bin
