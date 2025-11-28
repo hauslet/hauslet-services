@@ -19,7 +19,7 @@ const (
 )
 
 type User struct {
-	ID uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 
 	Name string `gorm:"column:name;not null"`
 
@@ -38,7 +38,7 @@ type User struct {
 }
 
 type UserIdentity struct {
-	ID     uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
+	ID     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	UserID uuid.UUID `gorm:"type:uuid;uniqueIndex:idx_user_provider;not null"`
 	User   User      `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 

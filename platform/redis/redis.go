@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"hauslet/config"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -34,7 +33,9 @@ var (
 )
 
 // InitRedis initializes the Redis client
-func InitRedis(cfg *config.RedisConfig, ctx context.Context) {
+func InitRedis(cfg *config.RedisConfig, ctx context.Context) error {
+	var initErr error // 1. Declare error variable outside the closure
+
 	once.Do(func() {
 		var opt *redis.Options
 		var err error
@@ -43,7 +44,9 @@ func InitRedis(cfg *config.RedisConfig, ctx context.Context) {
 			// Use full redis:// URL
 			opt, err = redis.ParseURL(cfg.Addr)
 			if err != nil {
-				panic(fmt.Sprintf("failed to parse Redis URL: %v", err))
+				// 2. Assign to the outer variable instead of returning
+				initErr = fmt.Errorf("failed to parse Redis URL: %v", err)
+				return
 			}
 		} else {
 			// Fallback to plain host:port (local dev)
@@ -54,19 +57,22 @@ func InitRedis(cfg *config.RedisConfig, ctx context.Context) {
 
 		// Test connection
 		if err := redisClient.Ping(ctx).Err(); err != nil {
-			panic(fmt.Sprintf("failed to connect to Redis: %v", err))
+			// 2. Assign to the outer variable
+			initErr = fmt.Errorf("failed to connect to Redis: %v", err)
+			return
 		}
-
-		log.Println("Redis is up and running")
 	})
+
+	// 3. Return the captured error
+	return initErr
 }
 
 // GetRedis returns the singleton Redis client
-func GetRedis() RedisClient {
+func GetRedis() (RedisClient, error) {
 	if redisClient == nil {
-		panic("Redis client is not initialized. Call InitRedis() first.")
+		return nil, fmt.Errorf("Redis client is not initialized. Call InitRedis() first.")
 	}
-	return redisClient
+	return redisClient, nil
 }
 
 // SetRedis sets the Redis client (for testing)
@@ -75,12 +81,13 @@ func SetRedis(client RedisClient) {
 }
 
 // CloseRedis closes the Redis client connection
-func CloseRedis() {
+func CloseRedis() error {
 	if redisClient != nil {
 		if r, ok := redisClient.(*redis.Client); ok {
 			if err := r.Close(); err != nil {
-				log.Printf("failed to close Redis client: %v", err)
+				return fmt.Errorf("failed to close Redis client: %v", err)
 			}
 		}
 	}
+	return nil
 }

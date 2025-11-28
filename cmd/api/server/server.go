@@ -24,16 +24,18 @@ func NewHTTPServer(
 	r := chi.NewRouter()
 
 	// Middleware setup
-	r.Use(securitymiddleware.SecurityHeaders)
-	r.Use(securitymiddleware.CORSMiddleware(&cfg.App))
-	r.Use(chimiddleware.Heartbeat("/health"))
+	// Heartbeat must be first to intercept before any other middleware
+	r.Use(chimiddleware.Heartbeat("/ping"))
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
+	r.Use(chimiddleware.CleanPath)
+	r.Use(securitymiddleware.SecurityHeaders)
+	r.Use(securitymiddleware.CORSMiddleware(&cfg.App))
 
 	// Set up routes
-	setupRoutes(r, ctx, db, log, cfg)
+	setupRoutes(r, ctx, db, rds, log, cfg)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.App.Port,
@@ -43,6 +45,5 @@ func NewHTTPServer(
 		IdleTimeout:  120 * time.Second,
 	}
 
-	log.Logf("INFO 🌐 HTTP server ready %s, env %s", srv.Addr, cfg.App.Env)
 	return srv
 }

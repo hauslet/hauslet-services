@@ -1,0 +1,318 @@
+{
+  "info": {
+    "name": "Hauslet Auth API",
+    "description": "Complete authentication API for Hauslet platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Public Endpoints",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"securePassword123\",\n  \"name\": \"John Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/register",
+              "host": ["{{base_url}}"],
+              "path": ["register"]
+            },
+            "description": "Create a new user account. Email must be unique, password minimum 8 characters."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "originalRequest": {
+                "method": "POST",
+                "url": {
+                  "raw": "{{base_url}}/register"
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"john.doe@example.com\",\n  \"name\": \"John Doe\",\n  \"message\": \"Registration successful. Please verify your email to activate your account.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login (Password)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "user",
+                  "value": "john.doe@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "passwd",
+                  "value": "securePassword123",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with email and password. Returns JWT token as HTTP-only cookie."
+          }
+        },
+        {
+          "name": "Login (Google OAuth)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/auth/google/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "google", "login"]
+            },
+            "description": "Initiates Google OAuth flow. Open this in a browser to login with Google."
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout and clear JWT cookie."
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": ["{{base_url}}"],
+              "path": ["me"]
+            },
+            "description": "Get authenticated user's profile. Requires JWT cookie from login."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"john.doe@example.com\",\n  \"name\": \"John Doe\",\n  \"role\": \"user\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/me",
+              "host": ["{{base_url}}"],
+              "path": ["me"]
+            },
+            "description": "Update user profile. Both fields are optional but at least one must be provided."
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"securePassword123\",\n  \"new_password\": \"newSecurePassword456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["change-password"]
+            },
+            "description": "Change user password. New password must be different and at least 8 characters."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Password changed successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Identity Management",
+      "item": [
+        {
+          "name": "List Identities",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/me/identities",
+              "host": ["{{base_url}}"],
+              "path": ["me", "identities"]
+            },
+            "description": "List all authentication methods (OAuth providers, password) linked to account."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"identity-uuid-1\",\n    \"provider\": \"password\",\n    \"email\": \"user@example.com\",\n    \"email_verified\": false\n  },\n  {\n    \"id\": \"identity-uuid-2\",\n    \"provider\": \"google\",\n    \"email\": \"user@gmail.com\",\n    \"email_verified\": true\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Unlink Identity",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/me/identities?id=identity-uuid-to-remove",
+              "host": ["{{base_url}}"],
+              "path": ["me", "identities"],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "identity-uuid-to-remove",
+                  "description": "UUID of the identity to remove"
+                }
+              ]
+            },
+            "description": "Unlink an authentication method. Cannot remove the last one."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Identity unlinked successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Session Management",
+      "item": [
+        {
+          "name": "List Sessions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/me/sessions",
+              "host": ["{{base_url}}"],
+              "path": ["me", "sessions"]
+            },
+            "description": "List all active sessions for the current user."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  {\n    \"id\": \"session-uuid-1\",\n    \"provider\": \"password\",\n    \"created_at\": \"2025-11-28T10:30:00Z\",\n    \"expires_at\": \"2025-11-29T10:30:00Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Revoke Session",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/me/session?id=session-uuid-to-revoke",
+              "host": ["{{base_url}}"],
+              "path": ["me", "session"],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "session-uuid-to-revoke",
+                  "description": "UUID of the session to revoke"
+                }
+              ]
+            },
+            "description": "Revoke a specific session (logout from specific device)."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"Session revoked successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Revoke All Sessions",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/me/sessions",
+              "host": ["{{base_url}}"],
+              "path": ["me", "sessions"]
+            },
+            "description": "Revoke all sessions (logout everywhere feature)."
+          },
+          "response": [
+            {
+              "name": "Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"message\": \"All sessions revoked successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  }
+}

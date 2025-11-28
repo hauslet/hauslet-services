@@ -4,6 +4,7 @@ import (
 	"context"
 	"hauslet/cmd/api/server"
 	"hauslet/config"
+	"hauslet/internal/auth/repository/schema"
 	"hauslet/pkg/database"
 	"hauslet/pkg/logger"
 	"hauslet/platform/redis"
@@ -44,10 +45,25 @@ func main() {
 
 	log.Logf("INFO ✅ Database connected successfully")
 
-	redis.InitRedis(&cfg.Storage.Redis, initCtx)
+	// Run migrations
+	if err := database.RunMigrations(db, &schema.User{}, &schema.UserIdentity{}); err != nil {
+		log.Logf("ERROR failed to run migrations: %v", err)
+		return
+	}
+	log.Logf("INFO ✅ Database migrations completed")
+
+	err = redis.InitRedis(&cfg.Storage.Redis, initCtx)
+	if err != nil {
+		log.Logf("ERROR failed to initialize Redis: %v", err)
+		return
+	}
 	defer redis.CloseRedis()
 
-	redisClient := redis.GetRedis()
+	redisClient, err := redis.GetRedis()
+	if err != nil {
+		log.Logf("ERROR failed to get Redis client: %v", err)
+		return
+	}
 	_, err = redisClient.Ping(initCtx).Result()
 	if err != nil {
 		log.Logf("ERROR failed to connect to Redis: %v", err)

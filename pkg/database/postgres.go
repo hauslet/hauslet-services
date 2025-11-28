@@ -59,16 +59,6 @@ func NewPostgresWithContext(ctx context.Context, cfg *config.DBConfig, env strin
 		return nil, err
 	}
 
-	// Enable uuid-ossp extension for uuid_generate_v4()
-	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"").Error; err != nil {
-		return nil, fmt.Errorf("failed to enable uuid-ossp extension: %w", err)
-	}
-
-	// Enable postgis extension for geospatial data types
-	if err := db.Exec("CREATE EXTENSION IF NOT EXISTS postgis").Error; err != nil {
-		return nil, fmt.Errorf("failed to enable postgis extension: %w", err)
-	}
-
 	// Test the connection with context
 	sqlDB, err := db.DB()
 	if err != nil {

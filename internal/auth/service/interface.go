@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-pkgz/auth"
+	"github.com/go-pkgz/lgr"
 )
 
 type AuthService interface {
@@ -49,16 +50,23 @@ type AuthService interface {
 	// Role management
 	ChangeUserRole(ctx context.Context, actorID, targetUserID string, newRole domain.UserRole) error
 	GetUsersByRole(ctx context.Context, role domain.UserRole) ([]domain.User, error)
+
+	// Request metadata (for session creation)
+	StoreRequestMetadata(email, ip, userAgent string)
 }
 
 type AuthServiceImpl struct {
-	repository repository.AuthRepository
-	cfg        *config.AuthConfig
+	repository      repository.AuthRepository
+	cfg             *config.AuthConfig
+	log             *lgr.Logger
+	requestMetadata *RequestMetadataStore
 }
 
-func NewAuthService(cfg *config.AuthConfig, repository repository.AuthRepository) AuthService {
+func NewAuthService(cfg *config.AuthConfig, repository repository.AuthRepository, log *lgr.Logger) AuthService {
 	return &AuthServiceImpl{
-		cfg:        cfg,
-		repository: repository,
+		cfg:             cfg,
+		repository:      repository,
+		log:             log,
+		requestMetadata: NewRequestMetadataStore(),
 	}
 }

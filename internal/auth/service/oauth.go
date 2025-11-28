@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 
 func (s *AuthServiceImpl) OAuthService() *auth.Service {
 	options := auth.Opts{
+		Logger: s.log,
 		SecretReader: token.SecretFunc(func(id string) (string, error) {
 			return s.cfg.JWTSecret, nil
 		}),
@@ -33,6 +35,7 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 		Issuer:         "Hauslet",
 		URL:            s.cfg.RedirectURL,
 		AvatarStore:    avatar.NewLocalFS("/tmp"),
+		SendJWTHeader:  false, // send JWT in header to simplify XSRF handling for clients
 
 		// Validate users before allowing access
 		Validator: token.ValidatorFunc(func(_ string, claims token.Claims) bool {
@@ -41,8 +44,33 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 				return false
 			}
 
-			// Check if user is active
-			user, err := s.repository.GetUserByID(ctx, claims.User.ID)
+			// Prefer real user ID stored in attributes (uid); fallback to User.ID
+			userID := claims.User.StrAttr("uid")
+			if userID == "" {
+				userID = claims.User.ID
+			}
+
+			// STEP 1: Validate session exists in Redis
+			sessionID := claims.User.StrAttr("sid")
+			if sessionID == "" {
+				// No session ID in token - reject (all tokens must have sid)
+				log.Printf("WARN: Token rejected - missing session ID for user %s", userID)
+				return false
+			}
+
+			session, err := s.repository.GetSessionByID(ctx, sessionID)
+			if err != nil {
+				// Redis error - log warning and fall back to user check
+				log.Printf("WARN: Session validation failed (Redis error): %v - falling back to user check", err)
+			} else if session == nil {
+				// Session was explicitly deleted/revoked - reject immediately
+				log.Printf("INFO: Token rejected - session %s was revoked for user %s", sessionID, userID)
+				return false
+			}
+			// Session exists - continue to user validation
+
+			// STEP 2: Check if user is active (existing logic)
+			user, err := s.repository.GetUserByID(ctx, userID)
 			if err != nil || user == nil {
 				return false
 			}
@@ -62,6 +90,7 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 
 	// Add Direct (password) authentication provider
 	service.AddDirectProvider("password", provider.CredCheckerFunc(func(user, password string) (ok bool, err error) {
+		fmt.Println("Authenticating user:", user)
 		ctx := context.Background()
 		_, authErr := s.AuthenticatePassword(ctx, user, password)
 		if authErr != nil {
@@ -90,20 +119,23 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 	email := claims.User.Email
 	name := claims.User.Name
 
+	// direct provider sets Name to submitted login; use it if email is missing
+	if email == "" && name != "" {
+		email = name
+	}
+
 	// Check if this is OAuth (format: "google_123456") or password (plain email)
 	if idx := strings.Index(claims.User.ID, "_"); idx > 0 {
 		// OAuth login
 		provider = claims.User.ID[:idx]
-	} else {
-		// Password login - ID is the email
-		provider = "password"
-		email = claims.User.ID
 	}
 
 	var user *schema.User
 	var err error
 
 	if provider == "password" {
+		// Password login - Name is the email
+		email = claims.User.Name
 		// PASSWORD AUTHENTICATION
 		// User already exists and was validated by AuthenticatePassword
 		user, err = s.repository.GetUserByEmail(ctx, email)
@@ -198,6 +230,13 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 	// Update last login timestamp
 	_ = s.repository.UpdateUserLastLogin(ctx, user.ID.String())
 
+	// Retrieve request metadata (IP, User-Agent) if available
+	var ip, userAgent string
+	if metadata := s.requestMetadata.Get(email); metadata != nil {
+		ip = metadata.IP
+		userAgent = metadata.UserAgent
+	}
+
 	// Create session in Redis
 	sessionID := uuid.New().String()
 	session := &domain.Session{
@@ -206,6 +245,8 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 		Provider:  provider,
 		ExpiresAt: time.Now().Add(s.cfg.SessionDuration),
 		CreatedAt: time.Now(),
+		IP:        ip,
+		UserAgent: userAgent,
 	}
 
 	if err := s.repository.CreateSession(ctx, session); err != nil {
@@ -214,15 +255,19 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 		log.Printf("Auth: Created session %s for user %s", sessionID, user.PrimaryEmail)
 	}
 
+	// Link JWT to session for validation
+	claims.User.SetStrAttr("sid", sessionID)
+
 	// Enrich claims with our user data
 	claims.User.ID = user.ID.String()
 	claims.User.Email = user.PrimaryEmail
 	claims.User.Name = user.Name
+	claims.User.SetStrAttr("email", user.PrimaryEmail)
 
 	// Set role for RBAC
 	claims.User.SetStrAttr("role", string(user.Role))
-
-	log.Printf("Auth: Set role '%s' for user %s", user.Role, user.PrimaryEmail)
-
+	claims.User.SetStrAttr("uid", user.ID.String())
+	// keep provider-prefixed ID so middleware provider check passes
+	claims.User.ID = providerUserID
 	return claims
 }

@@ -211,14 +211,20 @@ func (s *AuthServiceImpl) ExtendSession(ctx context.Context, sessionID string, d
 // CreatePasswordUser creates a new user with email/password authentication
 func (s *AuthServiceImpl) CreatePasswordUser(ctx context.Context, email, password, name string) (*domain.User, error) {
 	// Validate inputs
-	if email == "" || password == "" || name == "" {
-		return nil, errors.New("email, password, and name are required")
+	if email == "" {
+		return nil, domain.ErrEmailRequired
+	}
+	if password == "" {
+		return nil, domain.ErrPasswordRequired
+	}
+	if name == "" {
+		return nil, domain.ErrNameRequired
 	}
 
 	// Check if user already exists
 	existingUser, _ := s.repository.GetUserByEmail(ctx, email)
 	if existingUser != nil {
-		return nil, errors.New("user with this email already exists")
+		return nil, domain.ErrUserAlreadyExists
 	}
 
 	// Hash password
