@@ -57,7 +57,7 @@ func isLoginEndpoint(path string) bool {
 	return false
 }
 
-var logRequestHeaders = func(next http.Handler) http.Handler {
+func LogRequestHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("== Incoming Headers ==")
 		for name, values := range r.Header {

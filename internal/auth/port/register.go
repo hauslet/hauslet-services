@@ -60,6 +60,21 @@ func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	h.log.Logf("INFO User registered successfully: %s", user.PrimaryEmail)
 
+	// Generate OTP and send welcome email (non-blocking, fire-and-forget)
+	go func(email, name string) {
+		otpCode, err := h.authService.GenerateEmailOTP(h.ctx, email)
+		if err != nil {
+			h.log.Logf("WARN Failed to generate OTP for %s: %v", email, err)
+			return
+		}
+
+		if err := h.authService.SendWelcomeEmail(h.ctx, email, name, otpCode); err != nil {
+			h.log.Logf("WARN Failed to send welcome email to %s: %v", email, err)
+		} else {
+			h.log.Logf("INFO Welcome email sent to %s", email)
+		}
+	}(user.PrimaryEmail, user.Name)
+
 	// Send success response
 	response := domain.RegisterResponse{
 		ID:      user.ID.String(),

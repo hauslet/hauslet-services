@@ -1,0 +1,18 @@
+# Queue Configuration (NATS JetStream)
+# This file defines queue settings for job processing
+
+queue:
+  # JetStream stream name (storage for all jobs)
+  stream_name: JOBS
+
+  # Subject mappings (key=purpose, value=NATS subject)
+  subjects:
+    email: "email.send"
+    notification: "notification.push"
+    moderation: "moderation.check"
+
+  # Consumer mappings (worker names for each job type)
+  consumers:
+    email: "email-worker"
+    notification: "notification-worker"
+    moderation: "moderation-worker"

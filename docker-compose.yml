@@ -1,0 +1,41 @@
+services:
+  # 1. NATS (The Queue)
+  nats:
+    image: nats:latest
+    container_name: hauslet_nats
+    # Enable JetStream (-js) and debug logging (-DV)
+    command: "-js -DV" 
+    ports:
+      - "4222:4222" # Client port (Go app connects here)
+      - "8222:8222" # HTTP Monitoring Dashboard
+    volumes:
+      - nats_data:/data
+
+  # 2. Postgres (The Database)
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: hauslet_db
+  #   environment:
+  #     POSTGRES_USER: user
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: hauslet
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+  # # 3. Redis (Session & Cache)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: hauslet_redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+
+
+
+volumes:
+  nats_data:
+  # postgres_data:
+  # redis_data:

@@ -16,7 +16,15 @@ func Load() *GlobalConfig {
 	once.Do(func() {
 		_ = godotenv.Load()
 
+		// Load YAML service configurations
+		yamlCfg, err := LoadYAMLConfig()
+		if err != nil {
+			must := func() { panic("Failed to load YAML config: " + err.Error()) }
+			must()
+		}
+
 		cfg = &GlobalConfig{
+			YAML: yamlCfg,
 			App: AppConfig{
 				Env:    must("APP_ENV"),
 				Host:   must("HOST"),
@@ -62,22 +70,23 @@ func Load() *GlobalConfig {
 			},
 			Services: ServicesConfig{
 				Email: EmailConfig{
-					SendgridAPIKey: must("SENDGRID_API_KEY"),
-					SendgridSender: must("SENDGRID_SENDER"),
+					From: must("EMAIL_FROM"),
+					SMTP: SMTPConfig{
+						Host: def("SMTP_HOST", "localhost"),
+						Port: getInt("SMTP_PORT", 1025),
+						User: def("SMTP_USER", ""),
+						Pass: def("SMTP_PASS", ""),
+					},
+					Resend: ResendConfig{
+						APIKey: def("RESEND_API_KEY", ""),
+					},
 				},
 				Claude: ClaudeConfig{
 					APIKey:   must("CLAUDE_API_KEY"),
 					APIURL:   must("CLAUDE_API_URL"),
 					APIModel: must("CLAUDE_API_MODEL"),
 				},
-				Calendar: CalendarConfig{
-					MaintenanceHour:     getInt("CALENDAR_MAINTENANCE_HOUR", 2),
-					WeeklyCheckDay:      getInt("CALENDAR_WEEKLY_CHECK_DAY", 0),
-					CleanupOldDays:      getInt("CALENDAR_CLEANUP_OLD_DAYS", 30),
-					SchedulerEnabled:    getBool("CALENDAR_SCHEDULER_ENABLED", true),
-					ImmediateGeneration: getBool("CALENDAR_IMMEDIATE_GENERATION", true),
-					RetryDelayMinutes:   getInt("CALENDAR_RETRY_DELAY_MINUTES", 10),
-				},
+				// Calendar config moved to YAML (cfg.YAML.Calendar)
 				Payment: PaymentConfig{
 					PaystackSecretKey:    must("PAYSTACK_SECRET_KEY"),
 					PaystackPublicKey:    must("PAYSTACK_PUBLIC_KEY"),
@@ -93,6 +102,10 @@ func Load() *GlobalConfig {
 			Infra: InfraConfig{
 				RabbitMQ: RabbitMQConfig{
 					Addr: must("RABBITMQ_URL"),
+				},
+				NATS: NATSConfig{
+					URL: def("NATS_URL", "nats://localhost:4222"),
+					// StreamName, Subjects, and Consumers moved to YAML (cfg.YAML.Queue)
 				},
 			},
 		}

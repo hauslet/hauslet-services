@@ -52,10 +52,15 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	// Custom registration endpoint (go-pkgz/auth doesn't provide registration)
 	r.Post("/register", h.Register)
 
+	// Email verification endpoints (public)
+	r.Post("/auth/verify-email", h.VerifyEmail)
+	r.Post("/auth/resend-otp", h.ResendOTP)
+
 	// Protected routes (require authentication)
 	authMiddleware := h.authService.OAuthService().Middleware()
 
 	r.Group(func(r chi.Router) {
+		r.Use(authmiddleware.LogRequestHeaders)
 		r.Use(authMiddleware.Auth)
 
 		// User profile management.
@@ -66,6 +71,7 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 		// Identity management (OAuth providers, password)
 		r.Get("/me/identities", h.GetUserIdentities)
 		r.Delete("/me/identities", h.UnlinkIdentity) // Query param: ?id=identity_id
+		r.Get("/auth/link/{provider}", h.InitiateLinking)
 
 		// Session management
 		r.Get("/me/sessions", h.GetUserSessions)
@@ -105,6 +111,18 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient *red
 		Window:   15 * time.Minute,
 	})).Post("/register", h.Register)
 
+	// Email verification: Moderate rate limiting (prevent brute force)
+	r.With(applyRateLimit(middleware.RateLimitConfig{
+		Requests: 5,
+		Window:   10 * time.Minute,
+	})).Post("/auth/verify-email", h.VerifyEmail)
+
+	// Resend OTP: Strict rate limiting (prevent spam)
+	r.With(applyRateLimit(middleware.RateLimitConfig{
+		Requests: 3,
+		Window:   10 * time.Minute,
+	})).Post("/auth/resend-otp", h.ResendOTP)
+
 	// Protected routes
 	authMiddleware := h.authService.OAuthService().Middleware()
 	r.Group(func(r chi.Router) {
@@ -126,6 +144,7 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient *red
 		r.Get("/me", h.GetCurrentUser)
 		r.Get("/me/identities", h.GetUserIdentities)
 		r.Delete("/me/identities", h.UnlinkIdentity)
+		r.Get("/auth/link/{provider}", h.InitiateLinking)
 		r.Get("/me/sessions", h.GetUserSessions)
 		r.Delete("/me/sessions", h.RevokeAllSessions)
 		r.Delete("/me/session", h.RevokeSession)

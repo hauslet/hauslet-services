@@ -58,23 +58,12 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application/x-www-form-urlencoded"
+                "value": "application/json"
               }
             ],
             "body": {
-              "mode": "urlencoded",
-              "urlencoded": [
-                {
-                  "key": "user",
-                  "value": "john.doe@example.com",
-                  "type": "text"
-                },
-                {
-                  "key": "passwd",
-                  "value": "securePassword123",
-                  "type": "text"
-                }
-              ]
+              "mode": "raw",
+              "raw": "{\n  \"user\": \"john.doe@example.com\",\n  \"passwd\": \"securePassword123\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
@@ -107,6 +96,71 @@
             },
             "description": "Logout and clear JWT cookie."
           }
+        },
+        {
+          "name": "Email Verification",
+          "item": [
+            {
+              "name": "Verify Email",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"otp\": \"123456\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/verify-email",
+                  "host": ["{{base_url}}"],
+                  "path": ["auth", "verify-email"]
+                },
+                "description": "Verify a user's email address with an OTP."
+              },
+              "response": [
+                {
+                  "name": "Success",
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\n  \"message\": \"Email verified successfully\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "Resend OTP",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"john.doe@example.com\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/resend-otp",
+                  "host": ["{{base_url}}"],
+                  "path": ["auth", "resend-otp"]
+                },
+                "description": "Resend the email verification OTP."
+              },
+              "response": [
+                {
+                  "name": "Success",
+                  "status": "OK",
+                  "code": 200,
+                  "body": "{\n  \"message\": \"OTP has been resent to your email\"\n}"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -129,7 +183,7 @@
               "name": "Success",
               "status": "OK",
               "code": 200,
-              "body": "{\n  \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"email\": \"john.doe@example.com\",\n  \"name\": \"John Doe\",\n  \"role\": \"user\"\n}"
+              "body": "{\n  \"id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"name\": \"John Doe\",\n  \"primary_email\": \"john.doe@example.com\",\n  \"avatar_url\": \"https://example.com/avatar.png\",\n  \"role\": \"user\",\n  \"is_active\": true\n}"
             }
           ]
         },
@@ -258,7 +312,7 @@
               "name": "Success",
               "status": "OK",
               "code": 200,
-              "body": "[\n  {\n    \"id\": \"session-uuid-1\",\n    \"provider\": \"password\",\n    \"created_at\": \"2025-11-28T10:30:00Z\",\n    \"expires_at\": \"2025-11-29T10:30:00Z\"\n  }\n]"
+              "body": "[\n  {\n    \"id\": \"session-uuid-1\",\n    \"provider\": \"password\",\n    \"created_at\": \"2025-11-28T10:30:00Z\",\n    \"expires_at\": \"2025-11-29T10:30:00Z\",\n    \"user_agent\": \"Chrome/118.0.0.0\",\n    \"ip\": \"192.168.1.1\"\n  }\n]"
             }
           ]
         },

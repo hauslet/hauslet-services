@@ -1,0 +1,12 @@
+# Feature Flags Configuration
+# This file defines feature toggles for the application
+
+features:
+  # Enable email sending via queue (set to false for direct sending)
+  email_queue_enabled: true
+
+  # Enable OAuth authentication (Google, etc.)
+  oauth_enabled: true
+
+  # Enable rate limiting middleware
+  rate_limiting_enabled: true

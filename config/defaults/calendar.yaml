@@ -1,0 +1,21 @@
+# Calendar Service Configuration
+# This file defines settings for calendar operations and scheduling
+
+calendar:
+  # Hour of day (0-23) for maintenance operations
+  maintenance_hour: 2
+
+  # Day of week (0-6, 0=Sunday) for weekly checks
+  weekly_check_day: 0
+
+  # Days to keep old calendar data before cleanup
+  cleanup_old_days: 30
+
+  # Enable/disable calendar scheduler
+  scheduler_enabled: true
+
+  # Generate calendars immediately on creation
+  immediate_generation: true
+
+  # Delay in minutes before retrying failed operations
+  retry_delay_minutes: 10

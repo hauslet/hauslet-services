@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"hauslet/internal/auth/domain"
-	"hauslet/platform/redis"
+	"hauslet/internal/platform/redis"
 	"time"
 )
 
 const (
-	sessionKeyPrefix     = "session:"
+	sessionKeyPrefix      = "session:"
 	userSessionsKeyPrefix = "user:sessions:"
 )
 

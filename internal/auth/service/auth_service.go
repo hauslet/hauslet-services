@@ -161,6 +161,38 @@ func (s *AuthServiceImpl) UnlinkIdentity(ctx context.Context, identityID string)
 	return nil
 }
 
+// UpdateIdentityVerified marks a user's email identity as verified
+func (s *AuthServiceImpl) UpdateIdentityVerified(ctx context.Context, email string) error {
+	// Get user by email
+	user, err := s.repository.GetUserByEmail(ctx, email)
+	if err != nil {
+		return fmt.Errorf("failed to get user by email: %w", err)
+	}
+	if user == nil {
+		return fmt.Errorf("user not found")
+	}
+
+	// Get user identities
+	identities, err := s.repository.ListUserIdentitiesByUserID(ctx, user.ID.String())
+	if err != nil {
+		return fmt.Errorf("failed to get user identities: %w", err)
+	}
+
+	// Find password identity and mark as verified
+	for _, identity := range identities {
+		if identity.Provider == "password" && identity.Email == email {
+			identity.EmailVerified = true
+			if err := s.repository.UpdateUserIdentity(ctx, &identity); err != nil {
+				return fmt.Errorf("failed to update identity: %w", err)
+			}
+			s.log.Logf("INFO Email verified for identity %s (user: %s)", identity.ID, email)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("password identity not found for email: %s", email)
+}
+
 // ============================================================================
 // Session Management
 // ============================================================================
@@ -207,6 +239,67 @@ func (s *AuthServiceImpl) ExtendSession(ctx context.Context, sessionID string, d
 // ============================================================================
 // Password Authentication
 // ============================================================================
+
+// LinkPasswordIdentity links a password identity to an existing user (e.g., after OAuth signup)
+func (s *AuthServiceImpl) LinkPasswordIdentity(ctx context.Context, userID, email, password string) (*domain.UserIdentity, error) {
+	// Validate inputs
+	if email == "" {
+		return nil, domain.ErrEmailRequired
+	}
+	if password == "" {
+		return nil, domain.ErrPasswordRequired
+	}
+
+	// Get user
+	user, err := s.repository.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+	if user == nil {
+		return nil, domain.ErrUserNotFound
+	}
+	if !user.IsActive {
+		return nil, domain.ErrUserDeactivated
+	}
+
+	// Ensure email matches user's primary email to keep login consistent
+	if user.PrimaryEmail != email {
+		return nil, fmt.Errorf("email must match user's primary email")
+	}
+
+	// Check if password identity already exists
+	existingIdentity, err := s.repository.GetUserIdentityByProvider(ctx, "password", user.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to check existing password identity: %w", err)
+	}
+	if existingIdentity != nil {
+		return nil, errors.New("password identity already exists for this user")
+	}
+
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// Create password identity
+	hashedPasswordStr := string(hashedPassword)
+	identity := &schema.UserIdentity{
+		ID:            uuid.New(),
+		UserID:        user.ID,
+		Provider:      "password",
+		ProviderID:    user.ID.String(),
+		Email:         email,
+		EmailVerified: false, // TODO: send verification email before allowing password login
+		PasswordHash:  &hashedPasswordStr,
+	}
+
+	if err := s.repository.CreateUserIdentity(ctx, identity); err != nil {
+		return nil, fmt.Errorf("failed to link password identity: %w", err)
+	}
+
+	return domain.MapUserIdentityFromSchema(identity), nil
+}
 
 // CreatePasswordUser creates a new user with email/password authentication
 func (s *AuthServiceImpl) CreatePasswordUser(ctx context.Context, email, password, name string) (*domain.User, error) {
@@ -303,6 +396,11 @@ func (s *AuthServiceImpl) AuthenticatePassword(ctx context.Context, email, passw
 		return nil, errors.New("invalid email or password")
 	}
 
+	// Check if email is verified (for password logins only)
+	if !passwordIdentity.EmailVerified {
+		return nil, errors.New("please verify your email before logging in")
+	}
+
 	// Update last login
 	_ = s.repository.UpdateUserLastLogin(ctx, user.ID.String())
 
@@ -360,3 +458,5 @@ func (s *AuthServiceImpl) ChangePassword(ctx context.Context, userID, oldPasswor
 
 	return nil
 }
+
+

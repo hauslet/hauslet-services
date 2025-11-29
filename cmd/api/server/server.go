@@ -4,7 +4,9 @@ import (
 	"context"
 	securitymiddleware "hauslet/cmd/api/server/middleware"
 	"hauslet/config"
-	"hauslet/platform/redis"
+	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/queue"
+	"hauslet/internal/platform/redis"
 	"net/http"
 	"time"
 
@@ -20,6 +22,8 @@ func NewHTTPServer(
 	rds *redis.RedisClient,
 	log *lgr.Logger,
 	cfg *config.GlobalConfig,
+	mC *email.Client,
+	q *queue.Client,
 ) *http.Server {
 	r := chi.NewRouter()
 
@@ -35,7 +39,7 @@ func NewHTTPServer(
 	r.Use(securitymiddleware.CORSMiddleware(&cfg.App))
 
 	// Set up routes
-	setupRoutes(r, ctx, db, rds, log, cfg)
+	setupRoutes(r, ctx, db, rds, log, cfg, mC, q)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.App.Port,

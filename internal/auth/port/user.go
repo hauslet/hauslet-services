@@ -2,7 +2,6 @@ package port
 
 import (
 	"encoding/json"
-	"fmt"
 	"hauslet/internal/auth/domain"
 	"net/http"
 
@@ -22,8 +21,6 @@ import (
 func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims (set by auth middleware)
 	userInfo, err := token.GetUserInfo(r)
-	fmt.Println("-------------------------------------")
-	fmt.Println(userInfo.Name)
 	if err != nil {
 		h.log.Logf("ERROR Failed to get user info: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")

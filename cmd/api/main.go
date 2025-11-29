@@ -5,9 +5,11 @@ import (
 	"hauslet/cmd/api/server"
 	"hauslet/config"
 	"hauslet/internal/auth/repository/schema"
-	"hauslet/pkg/database"
-	"hauslet/pkg/logger"
-	"hauslet/platform/redis"
+	"hauslet/internal/platform/database"
+	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/logger"
+	"hauslet/internal/platform/queue"
+	"hauslet/internal/platform/redis"
 	"net/http"
 	"os"
 	"os/signal"
@@ -46,12 +48,13 @@ func main() {
 	log.Logf("INFO ✅ Database connected successfully")
 
 	// Run migrations
-	if err := database.RunMigrations(db, &schema.User{}, &schema.UserIdentity{}); err != nil {
+	if err := database.RunMigrations(db, log, &schema.User{}, &schema.UserIdentity{}); err != nil {
 		log.Logf("ERROR failed to run migrations: %v", err)
 		return
 	}
 	log.Logf("INFO ✅ Database migrations completed")
 
+	// Initialize Redis
 	err = redis.InitRedis(&cfg.Storage.Redis, initCtx)
 	if err != nil {
 		log.Logf("ERROR failed to initialize Redis: %v", err)
@@ -59,6 +62,7 @@ func main() {
 	}
 	defer redis.CloseRedis()
 
+	// Initialize Redis client and ping
 	redisClient, err := redis.GetRedis()
 	if err != nil {
 		log.Logf("ERROR failed to get Redis client: %v", err)
@@ -71,7 +75,43 @@ func main() {
 	}
 	log.Logf("INFO ✅ Redis connected successfully")
 
-	srv := server.NewHTTPServer(initCtx, db, &redisClient, log, cfg)
+	// Define email sender based on configuration
+	var emailSender email.Sender
+	switch cfg.App.Env {
+	case "development", "testing":
+		emailSender = email.NewSMTPAdapter(
+			cfg.Services.Email.SMTP.Host,
+			log,
+			cfg.Services.Email.SMTP.Port,
+			cfg.Services.Email.SMTP.User,
+			cfg.Services.Email.SMTP.Pass,
+			cfg.Services.Email.From,
+		)
+		log.Logf("INFO ✅ SMTP email adapter initialized")
+	default:
+		emailSender = email.NewResendAdapter(
+			cfg.Services.Email.Resend.APIKey,
+			cfg.Services.Email.From,
+		)
+		log.Logf("INFO ✅ Resend email adapter initialized")
+	}
+
+	mailClient := email.New(emailSender)
+	log.Logf("INFO ✅ Email client initialized")
+
+	// Initialize NATS queue (optional fallback to direct send on failure)
+	var queueClient *queue.Client
+	queueSubjects := []string{cfg.YAML.Queue.Subjects["email"]}
+	if q, err := queue.New(initCtx, cfg.Infra.NATS.URL, cfg.YAML.Queue.StreamName, queueSubjects); err != nil {
+		log.Logf("WARN ⚠️ failed to initialize NATS queue, direct send will be used: %v", err)
+	} else {
+		queueClient = q
+		defer queueClient.Close()
+		log.Logf("INFO ✅ NATS queue initialized")
+	}
+
+	// Create and start the HTTP server
+	srv := server.NewHTTPServer(initCtx, db, &redisClient, log, cfg, mailClient, queueClient)
 	handleServerLifecycle(srv, log)
 }
 

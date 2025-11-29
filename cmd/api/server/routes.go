@@ -7,18 +7,26 @@ import (
 	"hauslet/internal/auth/repository"
 	"hauslet/internal/auth/service"
 	authsession "hauslet/internal/auth/session"
-	"hauslet/platform/redis"
+	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/queue"
+	"hauslet/internal/platform/redis"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-pkgz/lgr"
 	"gorm.io/gorm"
 )
 
-func setupRoutes(r chi.Router, ctx context.Context, db *gorm.DB, rds *redis.RedisClient, log *lgr.Logger, cfg *config.GlobalConfig) {
+func setupRoutes(r chi.Router,
+	ctx context.Context,
+	db *gorm.DB, rds *redis.RedisClient,
+	log *lgr.Logger,
+	cfg *config.GlobalConfig,
+	mC *email.Client,
+	q *queue.Client) {
 	// Initialize auth service
 	sessionStore := authsession.NewSessionStore(*rds)
 	authRepo := repository.NewAuthRepositoryImpl(db, sessionStore)
-	authService := service.NewAuthService(&cfg.Auth, authRepo, log)
+	authService := service.NewAuthService(&cfg.Auth, authRepo, log, mC, *rds, q, cfg.YAML.Queue.Subjects["email"])
 
 	// Initialize auth HTTP handler with context
 	authHTTP := port.NewHTTPHandler(ctx, authService, log)

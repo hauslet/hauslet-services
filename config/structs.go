@@ -14,6 +14,7 @@ type GlobalConfig struct {
 	Storage  StorageConfig
 	Services ServicesConfig
 	Infra    InfraConfig
+	YAML     *ServiceConfig // YAML-based service configuration
 }
 
 type AppConfig struct {
@@ -79,8 +80,20 @@ type ServicesConfig struct {
 }
 
 type EmailConfig struct {
-	SendgridAPIKey string
-	SendgridSender string
+	From   string
+	SMTP   SMTPConfig
+	Resend ResendConfig
+}
+
+type SMTPConfig struct {
+	Host string
+	Port int
+	User string
+	Pass string
+}
+
+type ResendConfig struct {
+	APIKey string
 }
 
 type ClaudeConfig struct {
@@ -113,10 +126,16 @@ type FXConfig struct {
 
 type InfraConfig struct {
 	RabbitMQ RabbitMQConfig
+	NATS     NATSConfig
 }
 
 type RabbitMQConfig struct {
 	Addr string
+}
+
+type NATSConfig struct {
+	URL string // NATS connection URL (infrastructure)
+	// StreamName, Subjects, and Consumers moved to YAML config
 }
 
 func must(k string) string {

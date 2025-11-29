@@ -5,6 +5,9 @@ import (
 	"hauslet/config"
 	"hauslet/internal/auth/domain"
 	"hauslet/internal/auth/repository"
+	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/queue"
+	"hauslet/internal/platform/redis"
 	"time"
 
 	"github.com/go-pkgz/auth"
@@ -25,6 +28,8 @@ type AuthService interface {
 	// Identity management
 	ListUserIdentities(ctx context.Context, userID string) ([]domain.UserIdentity, error)
 	UnlinkIdentity(ctx context.Context, identityID string) error
+	UpdateIdentityVerified(ctx context.Context, email string) error
+	InitiateIdentityLinking(userID, provider, redirectURI string) (string, error)
 
 	// Session management
 	GetUserSessions(ctx context.Context, userID string) ([]domain.Session, error)
@@ -33,6 +38,7 @@ type AuthService interface {
 	ExtendSession(ctx context.Context, sessionID string, duration time.Duration) error
 
 	// Password authentication (for email/password login)
+	LinkPasswordIdentity(ctx context.Context, userID, email, password string) (*domain.UserIdentity, error)
 	CreatePasswordUser(ctx context.Context, email, password, name string) (*domain.User, error)
 	AuthenticatePassword(ctx context.Context, email, password string) (*domain.User, error)
 	ChangePassword(ctx context.Context, userID, oldPassword, newPassword string) error
@@ -53,20 +59,44 @@ type AuthService interface {
 
 	// Request metadata (for session creation)
 	StoreRequestMetadata(email, ip, userAgent string)
+
+	// Email operations
+	SendWelcomeEmail(ctx context.Context, email, name string, otpCode string) error
+
+	// OTP Management
+	GenerateEmailOTP(ctx context.Context, email string) (string, error)
+	VerifyEmailOTP(ctx context.Context, email, code string) error
+	DeleteEmailOTP(ctx context.Context, email string) error
 }
 
 type AuthServiceImpl struct {
-	repository      repository.AuthRepository
-	cfg             *config.AuthConfig
-	log             *lgr.Logger
-	requestMetadata *RequestMetadataStore
+	repository       repository.AuthRepository
+	cfg              *config.AuthConfig
+	log              *lgr.Logger
+	requestMetadata  *RequestMetadataStore
+	mailClient       *email.Client
+	redisClient      redis.RedisClient
+	queueClient      *queue.Client
+	queueSubject     string
+	linkStateManager *LinkStateManager
 }
 
-func NewAuthService(cfg *config.AuthConfig, repository repository.AuthRepository, log *lgr.Logger) AuthService {
+func NewAuthService(cfg *config.AuthConfig,
+	repository repository.AuthRepository,
+	log *lgr.Logger,
+	emailClient *email.Client,
+	redisClient redis.RedisClient,
+	queueClient *queue.Client,
+	queueSubject string) AuthService {
 	return &AuthServiceImpl{
-		cfg:             cfg,
-		repository:      repository,
-		log:             log,
-		requestMetadata: NewRequestMetadataStore(),
+		cfg:              cfg,
+		repository:       repository,
+		log:              log,
+		mailClient:       emailClient,
+		redisClient:      redisClient,
+		queueClient:      queueClient,
+		queueSubject:     queueSubject,
+		requestMetadata:  NewRequestMetadataStore(),
+		linkStateManager: NewLinkStateManager(cfg.EncryptAuthCodeKey),
 	}
 }

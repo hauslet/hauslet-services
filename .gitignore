@@ -2,6 +2,9 @@
 .env
 .env.local
 .env.*.local
+.claude
+# Config overrides (user-specific YAML configs)
+config/overrides/
 
 # Binary outputs
 /bin/
@@ -10,7 +13,7 @@
 *.dll
 *.so
 *.dylib
-
+test-client/
 # Test binary, built with `go test -c`
 *.test
 
