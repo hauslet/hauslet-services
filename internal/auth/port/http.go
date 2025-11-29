@@ -10,9 +10,10 @@ import (
 	"net/http"
 	"time"
 
+	"hauslet/internal/platform/redis"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-pkgz/lgr"
-	"github.com/redis/go-redis/v9"
 )
 
 // HTTPHandler handles HTTP requests for authentication
@@ -51,6 +52,8 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 
 	// Custom registration endpoint (go-pkgz/auth doesn't provide registration)
 	r.Post("/register", h.Register)
+	r.Post("/auth/forgot-password", h.ForgotPassword)
+	r.Post("/auth/reset-password", h.ResetPassword)
 
 	// Email verification endpoints (public)
 	r.Post("/auth/verify-email", h.VerifyEmail)
@@ -60,7 +63,7 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	authMiddleware := h.authService.OAuthService().Middleware()
 
 	r.Group(func(r chi.Router) {
-		r.Use(authmiddleware.LogRequestHeaders)
+		// r.Use(authmiddleware.LogRequestHeaders) // Uncomment for debugging header issues
 		r.Use(authMiddleware.Auth)
 
 		// User profile management.
@@ -80,9 +83,8 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	})
 }
 
-// SetupRoutesWithRateLimiting configures auth routes with production rate limiting
-// Rate limiting only applies when env is "production"
-func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient *redis.Client, env string) {
+// SetupRoutesWithRateLimiting configures auth routes with rate limiting (caller decides when to use)
+func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient redis.RedisClient) {
 	// Mount go-pkgz/auth's built-in routes with metadata capture
 	authRoutes, avatarRoutes := h.authService.OAuthService().Handlers()
 
@@ -96,13 +98,7 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient *red
 
 	// Helper to conditionally apply rate limiting
 	applyRateLimit := func(config middleware.RateLimitConfig) func(http.Handler) http.Handler {
-		if env == "production" {
-			return middleware.RateLimit(config, redisClient)
-		}
-		// In development, return a no-op middleware
-		return func(next http.Handler) http.Handler {
-			return next
-		}
+		return middleware.RateLimit(config, redisClient)
 	}
 
 	// Registration: Aggressive rate limiting (prevent bot signups)
@@ -122,6 +118,15 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient *red
 		Requests: 3,
 		Window:   10 * time.Minute,
 	})).Post("/auth/resend-otp", h.ResendOTP)
+	r.With(applyRateLimit(middleware.RateLimitConfig{
+		Requests: 5,
+		Window:   15 * time.Minute,
+	})).Post("/auth/forgot-password", h.ForgotPassword)
+
+	r.With(applyRateLimit(middleware.RateLimitConfig{
+		Requests: 5,
+		Window:   15 * time.Minute,
+	})).Post("/auth/reset-password", h.ResetPassword)
 
 	// Protected routes
 	authMiddleware := h.authService.OAuthService().Middleware()

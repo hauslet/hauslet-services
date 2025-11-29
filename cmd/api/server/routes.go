@@ -26,12 +26,17 @@ func setupRoutes(r chi.Router,
 	// Initialize auth service
 	sessionStore := authsession.NewSessionStore(*rds)
 	authRepo := repository.NewAuthRepositoryImpl(db, sessionStore)
-	authService := service.NewAuthService(&cfg.Auth, authRepo, log, mC, *rds, q, cfg.YAML.Queue.Subjects["email"])
+	authService := service.NewAuthService(&cfg.Auth,
+		authRepo, log, mC, *rds, q, cfg.YAML.Queue.Subjects["email"])
 
 	// Initialize auth HTTP handler with context
 	authHTTP := port.NewHTTPHandler(ctx, authService, log)
 
-	// Setup auth routes
-	authHTTP.SetupRoutes(r)
+	// Setup auth routes with optional rate limiting in production
+	if cfg.App.Env == "production" {
+		authHTTP.SetupRoutesWithRateLimiting(r, *rds)
+	} else {
+		authHTTP.SetupRoutes(r)
+	}
 
 }

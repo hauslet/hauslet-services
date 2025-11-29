@@ -12,6 +12,15 @@ import (
 // Email Operations
 // ============================================================================
 
+// sendEmailAsync runs the provided send function in a goroutine and logs errors.
+func (s *AuthServiceImpl) sendEmailAsync(label string, fn func() error) {
+	go func() {
+		if err := fn(); err != nil && s.log != nil {
+			s.log.Logf("[WARN] %s: %v", label, err)
+		}
+	}()
+}
+
 func (s *AuthServiceImpl) SendWelcomeEmail(ctx context.Context, emailAddr, name string, otpCode string) error {
 
 	// Determine the logic: If there is an OTP, we send the verification version
@@ -48,22 +57,21 @@ func (s *AuthServiceImpl) SendWelcomeEmail(ctx context.Context, emailAddr, name 
 		return err
 	}
 
-	// Prefer queued send if available
-	if s.queueClient != nil && s.queueSubject != "" {
-		job := jobs.EmailJob{
-			To:      emailAddr,
-			Subject: subject,
-			HTML:    htmlBody,
+	s.sendEmailAsync("send welcome email", func() error {
+		if s.queueClient != nil && s.queueSubject != "" {
+			job := jobs.EmailJob{
+				To:      emailAddr,
+				Subject: subject,
+				HTML:    htmlBody,
+			}
+			if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
+				return nil
+			}
 		}
-		if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
-			return nil
-		} else if s.log != nil {
-			s.log.Logf("[WARN] queue publish failed, falling back to direct send: %v", err)
-		}
-	}
+		return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
+	})
 
-	// Fallback: direct send
-	return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
+	return nil
 }
 
 func (s *AuthServiceImpl) SendIdentityLinkedEmail(ctx context.Context, emailAddr, name, provider string) error {
@@ -92,20 +100,80 @@ func (s *AuthServiceImpl) SendIdentityLinkedEmail(ctx context.Context, emailAddr
 		return err
 	}
 
-	// Prefer queued send if available
-	if s.queueClient != nil && s.queueSubject != "" {
-		job := jobs.EmailJob{
-			To:      emailAddr,
-			Subject: subject,
-			HTML:    htmlBody,
+	s.sendEmailAsync("send identity linked email", func() error {
+		if s.queueClient != nil && s.queueSubject != "" {
+			job := jobs.EmailJob{
+				To:      emailAddr,
+				Subject: subject,
+				HTML:    htmlBody,
+			}
+			if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
+				return nil
+			}
 		}
-		if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
-			return nil
-		} else if s.log != nil {
-			s.log.Logf("[WARN] queue publish failed, falling back to direct send: %v", err)
-		}
+		return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
+	})
+
+	return nil
+}
+
+func (s *AuthServiceImpl) SendPasswordResetEmail(ctx context.Context, emailAddr, name, token string, ttlMinutes int) error {
+	subject := "Reset your Hauslet password"
+	preview := "Use this code to reset your Hauslet password"
+
+	emailData := map[string]interface{}{
+		"Name":    name,
+		"Token":   token,
+		"TTL":     ttlMinutes,
+		"Subject": subject,
+		"Preview": preview,
+		"Year":    time.Now().Year(),
 	}
 
-	// Fallback: direct send
-	return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
+	htmlBody, err := s.mailClient.RenderTemplate(authtemplates.FS, "forgot_password.html", emailData)
+	if err != nil {
+		return err
+	}
+
+	s.sendEmailAsync("send password reset email", func() error {
+		if s.queueClient != nil && s.queueSubject != "" {
+			job := jobs.EmailJob{To: emailAddr, Subject: subject, HTML: htmlBody}
+			if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
+				return nil
+			}
+		}
+		return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
+	})
+
+	return nil
+}
+
+func (s *AuthServiceImpl) SendPasswordChangedEmail(ctx context.Context, emailAddr, name string) error {
+	subject := "Your Hauslet password was changed"
+	preview := "We updated your Hauslet password"
+
+	emailData := map[string]interface{}{
+		"Name":      name,
+		"Timestamp": time.Now().Format("Monday, January 2, 2006 at 3:04 PM MST"),
+		"Subject":   subject,
+		"Preview":   preview,
+		"Year":      time.Now().Year(),
+	}
+
+	htmlBody, err := s.mailClient.RenderTemplate(authtemplates.FS, "password_changed.html", emailData)
+	if err != nil {
+		return err
+	}
+
+	s.sendEmailAsync("send password changed email", func() error {
+		if s.queueClient != nil && s.queueSubject != "" {
+			job := jobs.EmailJob{To: emailAddr, Subject: subject, HTML: htmlBody}
+			if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
+				return nil
+			}
+		}
+		return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
+	})
+
+	return nil
 }

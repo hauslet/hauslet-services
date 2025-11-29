@@ -30,6 +30,8 @@ type AuthService interface {
 	UnlinkIdentity(ctx context.Context, identityID string) error
 	UpdateIdentityVerified(ctx context.Context, email string) error
 	InitiateIdentityLinking(userID, provider, redirectURI string) (string, error)
+	RequestPasswordReset(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, email, token, newPassword string) error
 
 	// Session management
 	GetUserSessions(ctx context.Context, userID string) ([]domain.Session, error)
@@ -62,6 +64,9 @@ type AuthService interface {
 
 	// Email operations
 	SendWelcomeEmail(ctx context.Context, email, name string, otpCode string) error
+	SendIdentityLinkedEmail(ctx context.Context, emailAddr string, name string, provider string) error
+	SendPasswordChangedEmail(ctx context.Context, emailAddr string, name string) error
+	SendPasswordResetEmail(ctx context.Context, emailAddr string, name string, token string, ttlMinutes int) error
 
 	// OTP Management
 	GenerateEmailOTP(ctx context.Context, email string) (string, error)

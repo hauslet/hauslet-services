@@ -3,9 +3,10 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
-
 	"net/http"
 	"time"
+
+	platformRedis "hauslet/internal/platform/redis"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -17,7 +18,7 @@ type RateLimitConfig struct {
 }
 
 // RateLimit creates a middleware that limits requests based on IP address using Redis
-func RateLimit(limitConfig RateLimitConfig, redisClient *redis.Client) func(http.Handler) http.Handler {
+func RateLimit(limitConfig RateLimitConfig, redisClient platformRedis.RedisClient) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
