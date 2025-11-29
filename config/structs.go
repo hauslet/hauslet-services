@@ -32,6 +32,12 @@ type AuthConfig struct {
 	GoogleCLSecret     string
 	RedirectURL        string
 	SessionDuration    time.Duration
+
+	// Security settings (configurable via env vars)
+	TokenDuration   time.Duration // JWT token validity
+	CookieDuration  time.Duration // Cookie validity
+	AvatarStorePath string        // Avatar storage location
+	DisableXSRF     bool          // XSRF protection toggle
 }
 
 type StorageConfig struct {
@@ -185,4 +191,17 @@ func mustKey(k string) []byte {
 		log.Fatalf("ENV %s must be a valid 32-byte base64 string", k)
 	}
 	return key
+}
+
+func parseDuration(s string) time.Duration {
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		log.Fatalf("Invalid duration: %s (error: %v)", s, err)
+	}
+	return d
+}
+
+func getDuration(k, defaultVal string) time.Duration {
+	v := def(k, defaultVal)
+	return parseDuration(v)
 }

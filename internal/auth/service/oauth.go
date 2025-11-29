@@ -42,13 +42,13 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 			return s.enrichClaims(claims)
 		}),
 
-		TokenDuration:  time.Minute * 5, // JWT token expires in 5 minutes
-		CookieDuration: time.Hour * 24,  // Cookie expires in 1 day
+		TokenDuration:  s.cfg.TokenDuration,
+		CookieDuration: s.cfg.CookieDuration,
 		Issuer:         "Hauslet",
 		URL:            s.cfg.RedirectURL,
-		AvatarStore:    avatar.NewLocalFS("/tmp"),
+		AvatarStore:    avatar.NewLocalFS(s.cfg.AvatarStorePath),
 		SendJWTHeader:  false, // send JWT in header to simplify XSRF handling for clients
-		DisableXSRF:    true,  // XSRF protection disabled for DEVELOPMENT use case
+		DisableXSRF:    s.cfg.DisableXSRF,
 
 		// Validate users before allowing access
 		Validator: token.ValidatorFunc(func(_ string, claims token.Claims) bool {
@@ -137,6 +137,13 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 		}
 		return true, nil
 	}))
+
+	// Log XSRF protection status
+	if s.cfg.DisableXSRF {
+		s.log.Logf("WARN XSRF protection is DISABLED - only use in development")
+	} else {
+		s.log.Logf("INFO XSRF protection is ENABLED")
+	}
 
 	return service
 }

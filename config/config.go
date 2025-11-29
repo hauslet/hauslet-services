@@ -2,7 +2,6 @@ package config
 
 import (
 	"sync"
-	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -38,7 +37,13 @@ func Load() *GlobalConfig {
 				GoogleClientID:     must("GOOGLE_CLIENT_ID"),
 				GoogleCLSecret:     must("GOOGLE_CLIENT_SECRET"),
 				RedirectURL:        must("REDIRECT_URL"),
-				SessionDuration:    time.Hour * 24, // 24 hours default
+				SessionDuration:    getDuration("SESSION_DURATION", "24h"),
+
+				// Security settings (configurable)
+				TokenDuration:   getDuration("TOKEN_DURATION", "5m"),
+				CookieDuration:  getDuration("COOKIE_DURATION", "24h"),
+				AvatarStorePath: def("AVATAR_STORE_PATH", "/tmp/avatars"),
+				DisableXSRF:     getBool("DISABLE_XSRF", false), // Default: XSRF enabled
 			},
 			Storage: StorageConfig{
 				DB: DBConfig{
