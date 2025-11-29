@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"hauslet/internal/auth/repository/schema"
 
@@ -62,7 +61,7 @@ func (s *AuthServiceImpl) linkIdentityToUser(ctx context.Context, linkState *Lin
 
 	// If already linked to same user, idempotent success
 	if existingIdentity != nil && existingIdentity.UserID.String() == linkState.UserID {
-		log.Printf("Identity Linking: Provider %s already linked to user %s (idempotent)", provider, user.PrimaryEmail)
+		s.log.Logf("INFO Identity Linking: Provider %s already linked to user ID: %s (idempotent)", provider, user.ID)
 		return nil
 	}
 
@@ -80,7 +79,7 @@ func (s *AuthServiceImpl) linkIdentityToUser(ctx context.Context, linkState *Lin
 		return fmt.Errorf("failed to create identity: %w", err)
 	}
 
-	log.Printf("Identity Linking: Linked %s identity to user %s", provider, user.PrimaryEmail)
+	s.log.Logf("INFO Identity Linking: Linked %s identity to user ID: %s", provider, user.ID)
 
 	// Send security notification email
 	go func(userEmail, userName, provider string) {

@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"crypto/sha256"
-
-	"log"
 	"strings"
 	"time"
 
@@ -18,6 +16,18 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 )
+
+// maskEmail masks email addresses for non-debug logs to reduce PII exposure
+// Example: "user@example.com" -> "u***@example.com"
+func maskEmail(email string) string {
+	if email == "" {
+		return "***"
+	}
+	if idx := strings.Index(email, "@"); idx > 0 {
+		return email[:1] + "***@" + email[idx+1:]
+	}
+	return "***"
+}
 
 func (s *AuthServiceImpl) OAuthService() *auth.Service {
 	options := auth.Opts{
@@ -47,30 +57,34 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 				return false
 			}
 
-			// Prefer real user ID stored in attributes (uid); fallback to User.ID
-			userID := claims.User.StrAttr("uid")
+			// Use canonical user ID (real UUID)
+			userID := claims.User.ID
 			if userID == "" {
-				userID = claims.User.ID
+				s.log.Logf("WARN Token rejected - missing user ID")
+				return false
 			}
 
 			// STEP 1: Validate session exists in Redis
 			sessionID := claims.User.StrAttr("sid")
 			if sessionID == "" {
 				// No session ID in token - reject (all tokens must have sid)
-				log.Printf("WARN: Token rejected - missing session ID for user %s", userID)
+				s.log.Logf("WARN Token rejected - missing session ID for user %s", userID)
 				return false
 			}
 
 			session, err := s.repository.GetSessionByID(ctx, sessionID)
 			if err != nil {
-				// Redis error - log warning and fall back to user check
-				log.Printf("WARN: Session validation failed (Redis error): %v - falling back to user check", err)
-			} else if session == nil {
-				// Session was explicitly deleted/revoked - reject immediately
-				log.Printf("INFO: Token rejected - session %s was revoked for user %s", sessionID, userID)
+				// FAIL-CLOSED: Redis is mandatory for session validation
+				// If Redis is unavailable, reject authentication
+				s.log.Logf("ERROR Session validation failed (Redis unavailable): %v - rejecting token", err)
 				return false
 			}
-			// Session exists - continue to user validation
+			if session == nil {
+				// Session was explicitly deleted/revoked - reject immediately
+				s.log.Logf("INFO Token rejected - session %s revoked for user %s", sessionID, userID)
+				return false
+			}
+			// Session exists and valid - continue to user validation
 
 			// STEP 2: Check if user is active (existing logic)
 			user, err := s.repository.GetUserByID(ctx, userID)
@@ -134,7 +148,7 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 
 	// Extract auth info from claims
 	if claims.User == nil {
-		log.Println("Auth: No user in claims")
+		s.log.Logf("WARN Auth: No user in claims")
 		return claims
 	}
 
@@ -147,15 +161,14 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 			var err error
 			linkState, err = s.linkStateManager.ValidateState(stateToken)
 			if err != nil {
-				log.Printf("OAuth Linking: Invalid state token: %v", err)
+				s.log.Logf("ERROR OAuth Linking: Invalid state token: %v", err)
 				return claims // Return empty claims on error
 			}
 			isLinking = true
 		}
 	}
 
-	// Detect provider type
-	provider := "unknown"
+	// Detect provider type with fallback chain for reliability
 	providerUserID := claims.User.ID
 	email := claims.User.Email
 	name := claims.User.Name
@@ -165,10 +178,19 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 		email = name
 	}
 
-	// Check if this is OAuth (format: "google_123456") or password (plain email)
-	if idx := strings.Index(claims.User.ID, "_"); idx > 0 {
-		// OAuth login
-		provider = claims.User.ID[:idx]
+	// Priority 1: Explicit provider attribute (most reliable)
+	provider := claims.User.StrAttr("provider")
+
+	// Priority 2: Parse from ID format for backward compatibility (e.g., "google_123456")
+	if provider == "" {
+		if idx := strings.Index(claims.User.ID, "_"); idx > 0 {
+			provider = claims.User.ID[:idx]
+		}
+	}
+
+	// Priority 3: Default to password (fail-safe for Direct provider)
+	if provider == "" || provider == "unknown" {
+		provider = "password"
 	}
 
 	var user *schema.User
@@ -181,11 +203,11 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 		// User already exists and was validated by AuthenticatePassword
 		user, err = s.repository.GetUserByEmail(ctx, email)
 		if err != nil || user == nil {
-			log.Printf("Auth: Error fetching user for password login: %v", err)
+			s.log.Logf("ERROR Auth: Error fetching user for password login: %v", err)
 			return claims
 		}
 
-		log.Printf("Auth: User %s logged in via password", user.PrimaryEmail)
+		s.log.Logf("INFO Auth: User %s (ID: %s) logged in via password", maskEmail(user.PrimaryEmail), user.ID)
 
 	} else {
 		// OAUTH AUTHENTICATION
@@ -193,31 +215,31 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 		if isLinking && linkState != nil {
 			// Validate provider matches
 			if linkState.Provider != provider {
-				log.Printf("OAuth Linking: Provider mismatch: expected %s, got %s", linkState.Provider, provider)
+				s.log.Logf("ERROR OAuth Linking: Provider mismatch: expected %s, got %s", linkState.Provider, provider)
 				return claims
 			}
 
 			// Link identity to authenticated user
 			if err := s.linkIdentityToUser(ctx, linkState, provider, providerUserID, email); err != nil {
-				log.Printf("OAuth Linking: Failed to link identity: %v", err)
+				s.log.Logf("ERROR OAuth Linking: Failed to link identity: %v", err)
 				return claims
 			}
 
 			// Get user and continue with session creation
 			user, err = s.repository.GetUserByID(ctx, linkState.UserID)
 			if err != nil || user == nil {
-				log.Printf("OAuth Linking: Error fetching user after linking: %v", err)
+				s.log.Logf("ERROR OAuth Linking: Error fetching user after linking: %v", err)
 				return claims
 			}
 
-			log.Printf("OAuth Linking: Successfully linked %s to user %s", provider, user.PrimaryEmail)
+			s.log.Logf("INFO OAuth Linking: Successfully linked %s to user %s (ID: %s)", provider, maskEmail(user.PrimaryEmail), user.ID)
 
 		} else {
 			// Normal OAuth login (not linking)
 			// Step 1: Check if UserIdentity already exists for this provider
 			identity, err := s.repository.GetUserIdentityByProvider(ctx, provider, providerUserID)
 			if err != nil {
-				log.Printf("OAuth: Error checking identity: %v", err)
+				s.log.Logf("ERROR OAuth: Error checking identity: %v", err)
 				return claims
 			}
 
@@ -225,14 +247,14 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 				// EXISTING OAUTH LOGIN
 				user, err = s.repository.GetUserByID(ctx, identity.UserID.String())
 				if err != nil || user == nil {
-					log.Printf("OAuth: Error fetching user for existing identity: %v", err)
+					s.log.Logf("ERROR OAuth: Error fetching user for existing identity: %v", err)
 					return claims
 				}
 
 				// FIX: Update corrupted Google OAuth email (from before email scope was added)
 				// Check if this is a Google identity with corrupted email (no @ symbol)
 				if provider == "google" && !strings.Contains(identity.Email, "@") && email != "" {
-					log.Printf("INFO: Fixing corrupted Google OAuth email for user %s: %q -> %q",
+					s.log.Logf("INFO Fixing corrupted Google OAuth email for user %s: %q -> %q",
 						user.ID, identity.Email, email)
 					identity.Email = email
 				}
@@ -242,14 +264,14 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 				identity.LastUsedAt = &now
 				_ = s.repository.UpdateUserIdentity(ctx, identity)
 
-				log.Printf("OAuth: Existing user %s logged in via %s", user.PrimaryEmail, provider)
+				s.log.Logf("INFO OAuth: Existing user %s (ID: %s) logged in via %s", maskEmail(user.PrimaryEmail), user.ID, provider)
 
 			} else {
 				// NEW OAUTH LOGIN
 				// Step 2: Check if user exists by email
 				user, err = s.repository.GetUserByEmail(ctx, email)
 				if err != nil {
-					log.Printf("OAuth: Error checking user by email: %v", err)
+					s.log.Logf("ERROR OAuth: Error checking user by email: %v", err)
 					return claims
 				}
 
@@ -274,11 +296,11 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 
 					// Create user + identity atomically
 					if err := s.repository.CreateUserWithIdentity(ctx, user, identity); err != nil {
-						log.Printf("OAuth: Error creating user+identity: %v", err)
+						s.log.Logf("ERROR OAuth: Error creating user+identity: %v", err)
 						return claims
 					}
 
-					log.Printf("OAuth: Created new user %s (%s) via %s", user.Name, user.PrimaryEmail, provider)
+					s.log.Logf("INFO OAuth: Created new user %s (ID: %s) via %s", maskEmail(user.PrimaryEmail), user.ID, provider)
 
 					// Send welcome email (no OTP for OAuth users - already verified)
 					// Non-blocking, fire-and-forget
@@ -293,7 +315,7 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 				} else {
 					// USER EXISTS - REJECT (no auto-linking for security)
 					// Only allow linking via explicit "Link Account" flow
-					log.Printf("OAuth: User exists with email %s but provider not linked. Auto-linking disabled.", email)
+					s.log.Logf("WARN OAuth: User exists with email %s but provider not linked. Auto-linking disabled.", maskEmail(email))
 					return claims // Empty claims = auth failure
 				}
 			}
@@ -323,15 +345,15 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 	}
 
 	if err := s.repository.CreateSession(ctx, session); err != nil {
-		log.Printf("Auth: Error creating session: %v", err)
+		s.log.Logf("ERROR Auth: Error creating session: %v", err)
 	} else {
-		log.Printf("Auth: Created session %s for user %s", sessionID, user.PrimaryEmail)
+		s.log.Logf("INFO Auth: Created session %s for user ID: %s", sessionID, user.ID)
 	}
 
 	// Link JWT to session for validation
 	claims.User.SetStrAttr("sid", sessionID)
 
-	// Enrich claims with our user data
+	// Set canonical user ID (real UUID - not provider-prefixed)
 	claims.User.ID = user.ID.String()
 	claims.User.Email = user.PrimaryEmail
 	claims.User.Name = user.Name
@@ -339,8 +361,12 @@ func (s *AuthServiceImpl) enrichClaims(claims token.Claims) token.Claims {
 
 	// Set role for RBAC
 	claims.User.SetStrAttr("role", string(user.Role))
-	claims.User.SetStrAttr("uid", user.ID.String())
-	// keep provider-prefixed ID so middleware provider check passes
-	claims.User.ID = providerUserID
+
+	// Store provider-prefixed ID separately for reference (if needed)
+	claims.User.SetStrAttr("pid", providerUserID)
+
+	// Store provider name explicitly
+	claims.User.SetStrAttr("provider", provider)
+
 	return claims
 }
