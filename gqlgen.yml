@@ -1,0 +1,65 @@
+# gqlgen.yml
+
+# 1. Schema Location
+schema:
+  - internal/graph/*.graphqls
+
+# 2. Server Logic (The Wiring)
+exec:
+  filename: internal/graph/generated.go
+  package: graph
+
+# 3. Generated Models
+# Input types and types NOT bound to Go structs land here
+model:
+  filename: internal/graph/model/models_gen.go
+  package: model
+
+# 4. Resolver Implementation
+resolver:
+  layout: follow-schema
+  dir: internal/graph
+  package: graph
+  filename_template: "{name}.resolvers.go"
+
+# 5. Type Mappings (The Bridge)
+models:
+  # --- Standard Scalars ---
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
+  Int:
+    model:
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
+  
+  # --- Auth Module Bindings ---
+  User:
+    model: hauslet/internal/auth/domain.User
+  UserIdentity:
+    model: hauslet/internal/auth/domain.UserIdentity
+  Role:
+    model: hauslet/internal/auth/domain.UserRole
+
+  # --- Profile Module Bindings ---
+  Profile:
+    model: hauslet/internal/profile/domain.Profile
+  
+  # TravelCompanion is nested inside Profile
+  TravelCompanion:
+    model: hauslet/internal/profile/domain.TravelCompanion
+
+  # Enum Mappings
+  UserType:
+    model: hauslet/internal/profile/domain.UserType
+  Badge:
+    model: hauslet/internal/profile/domain.Badge
+  BadgeDetails:
+    model: hauslet/internal/profile/domain.BadgeDetails
+  UUID:
+    model:
+      - github.com/google/uuid.UUID

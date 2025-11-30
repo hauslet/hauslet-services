@@ -1,0 +1,18 @@
+# internal/graph/schema.graphqls
+
+scalar Time
+scalar UUID
+scalar Map
+scalar Any
+
+# The Root Query type
+type Query {
+  # Health check or generic API info
+  version: String!
+}
+
+# The Root Mutation type
+type Mutation {
+  # Generic ping
+  ping: String!
+}

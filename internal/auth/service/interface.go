@@ -41,7 +41,7 @@ type AuthService interface {
 
 	// Password authentication (for email/password login)
 	LinkPasswordIdentity(ctx context.Context, userID, email, password string) (*domain.UserIdentity, error)
-	CreatePasswordUser(ctx context.Context, email, password, name string) (*domain.User, error)
+	CreatePasswordUser(ctx context.Context, email, password, name string, birthDate *time.Time) (*domain.User, error)
 	AuthenticatePassword(ctx context.Context, email, password string) (*domain.User, error)
 	ChangePassword(ctx context.Context, userID, oldPassword, newPassword string) error
 
@@ -84,6 +84,7 @@ type AuthServiceImpl struct {
 	queueClient      *queue.Client
 	queueSubject     string
 	linkStateManager *LinkStateManager
+	profileHooks     ProfileHooks
 }
 
 func NewAuthService(cfg *config.AuthConfig,
@@ -92,7 +93,8 @@ func NewAuthService(cfg *config.AuthConfig,
 	emailClient *email.Client,
 	redisClient redis.RedisClient,
 	queueClient *queue.Client,
-	queueSubject string) AuthService {
+	queueSubject string,
+	profileHooks ProfileHooks) AuthService {
 	return &AuthServiceImpl{
 		cfg:              cfg,
 		repository:       repository,
@@ -103,5 +105,12 @@ func NewAuthService(cfg *config.AuthConfig,
 		queueSubject:     queueSubject,
 		requestMetadata:  NewRequestMetadataStore(),
 		linkStateManager: NewLinkStateManager(cfg.EncryptAuthCodeKey),
+		profileHooks:     profileHooks,
 	}
+}
+
+// ProfileHooks defines hooks related to user profile management
+type ProfileHooks interface {
+	// CreateDefaultProfile initializes a profile for a new user
+	CreateDefaultProfile(ctx context.Context, userID string, name string, birthDate *time.Time) error
 }

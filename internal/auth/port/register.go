@@ -43,7 +43,7 @@ func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create user
-	user, err := h.authService.CreatePasswordUser(r.Context(), req.Email, req.Password, req.Name)
+	user, err := h.authService.CreatePasswordUser(r.Context(), req.Email, req.Password, req.Name, req.BirthDate)
 	if err != nil {
 		h.log.Logf("ERROR Failed to create user: %v", err)
 

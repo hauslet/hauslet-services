@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"time"
 
 	"hauslet/config"
 	"hauslet/internal/auth/domain"
@@ -44,6 +45,9 @@ type SendWelcomeEmailFunc func(ctx context.Context, email, name, otpCode string)
 // SendIdentityLinkedEmailFunc sends a security notification when a new identity is linked.
 type SendIdentityLinkedEmailFunc func(ctx context.Context, email, name, provider string) error
 
+// ProfileHookFunc creates a default profile for new users.
+type ProfileHookFunc func(ctx context.Context, userID string, name string, birthDate *time.Time) error
+
 // Dependencies groups the collaborators required by the OAuth service helpers.
 type Dependencies struct {
 	Config               *config.AuthConfig
@@ -55,6 +59,7 @@ type Dependencies struct {
 	LinkIdentity         LinkIdentityFunc
 	SendWelcomeEmail     SendWelcomeEmailFunc
 	SendIdentityLinked   SendIdentityLinkedEmailFunc
+	ProfileHook          ProfileHookFunc
 }
 
 // NewService builds the OAuth service with configured providers and validator.

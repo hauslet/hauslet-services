@@ -14,6 +14,7 @@ help:
 	@echo "  make test          # go test ./..."
 	@echo "  make compose-up    # docker-compose up -d"
 	@echo "  make compose-down  # docker-compose down"
+	@echo "  make scaffold MODULE=name # Scaffold internal/MODULE structure"
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -49,3 +50,10 @@ compose-down:
 .PHONY: clean
 clean:
 	rm -rf $(BIN_DIR)
+
+# Scaffold a new module under internal/
+.PHONY: scaffold
+scaffold:
+	@if [ -z "$(MODULE)" ]; then echo "MODULE is required, e.g. make scaffold MODULE=booking"; exit 1; fi
+	@mkdir -p internal/$(MODULE)/service internal/$(MODULE)/repository/schema internal/$(MODULE)/domain internal/$(MODULE)/docs internal/$(MODULE)/templates
+	@echo "Scaffolded internal/$(MODULE) with service, repository/schema, domain, docs, templates"

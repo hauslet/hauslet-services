@@ -35,8 +35,10 @@ func NewHTTPServer(
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.CleanPath)
-	r.Use(securitymiddleware.SecurityHeaders)
 	r.Use(securitymiddleware.CORSMiddleware(&cfg.App))
+	if cfg.App.Env == "production" {
+		r.Use(securitymiddleware.SecurityHeaders)
+	}
 
 	// Set up routes
 	setupRoutes(r, ctx, db, rds, log, cfg, mC, q)

@@ -1,0 +1,37 @@
+# internal/graph/auth.graphqls
+
+enum Role {
+  user
+  staff
+  moderator
+  support
+  admin
+  root
+}
+
+type UserIdentity {
+  id: UUID!
+  userId: UUID!
+  provider: String!
+  email: String!
+  emailVerified: Boolean!
+  lastUsedAt: Time
+  createdAt: Time!
+}
+
+type User {
+  id: UUID!
+  name: String!
+  primaryEmail: String!
+  role: Role!
+  isActive: Boolean!
+  lastLoginAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+  identities: [UserIdentity!]
+}
+
+extend type Query {
+  # Get currently logged in user
+  me: User
+}

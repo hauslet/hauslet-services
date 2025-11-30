@@ -8,11 +8,14 @@ import (
 	authmiddleware "hauslet/internal/auth/middleware"
 	"hauslet/internal/auth/service"
 	"net/http"
+	"strings"
 	"time"
 
 	"hauslet/internal/platform/redis"
 
 	"github.com/go-chi/chi/v5"
+	authmw "github.com/go-pkgz/auth/middleware"
+	"github.com/go-pkgz/auth/token"
 	"github.com/go-pkgz/lgr"
 )
 
@@ -61,10 +64,11 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 
 	// Protected routes (require authentication)
 	authMiddleware := h.authService.OAuthService().Middleware()
+	updater := h.userUpdater()
 
 	r.Group(func(r chi.Router) {
 		// r.Use(authmiddleware.LogRequestHeaders) // Uncomment for debugging header issues
-		r.Use(authMiddleware.Auth)
+		r.Use(authMiddleware.Auth, authMiddleware.UpdateUser(updater))
 
 		// User profile management.
 		r.Get("/me", h.GetCurrentUser)
@@ -130,8 +134,9 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient redi
 
 	// Protected routes
 	authMiddleware := h.authService.OAuthService().Middleware()
+	updater := h.userUpdater()
 	r.Group(func(r chi.Router) {
-		r.Use(authMiddleware.Auth)
+		r.Use(authMiddleware.Auth, authMiddleware.UpdateUser(updater))
 
 		// Password change: Strict rate limiting (security-sensitive)
 		r.With(applyRateLimit(middleware.RateLimitConfig{
@@ -153,6 +158,33 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient redi
 		r.Get("/me/sessions", h.GetUserSessions)
 		r.Delete("/me/sessions", h.RevokeAllSessions)
 		r.Delete("/me/session", h.RevokeSession)
+	})
+}
+
+// userUpdater enriches token.User with canonical user data from the database.
+func (h *HTTPHandler) userUpdater() authmw.UserUpdater {
+	return authmw.UserUpdFunc(func(u token.User) token.User {
+		uid := u.StrAttr("uid")
+		if uid == "" && u.ID != "" {
+			if parts := strings.SplitN(u.ID, "_", 2); len(parts) == 2 {
+				uid = parts[1]
+			}
+		}
+		if uid == "" {
+			return u
+		}
+
+		user, err := h.authService.GetUser(context.Background(), uid)
+		if err != nil || user == nil {
+			return u
+		}
+
+		u.SetStrAttr("uid", user.ID.String())
+		u.SetStrAttr("email", user.PrimaryEmail)
+		u.SetStrAttr("role", string(user.Role))
+		u.Email = user.PrimaryEmail
+		u.Name = user.Name
+		return u
 	})
 }
 

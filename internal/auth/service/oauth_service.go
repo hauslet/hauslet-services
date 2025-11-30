@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"hauslet/internal/auth/service/oauth"
 
@@ -59,6 +60,12 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 		LinkIdentity:         linkIdentity,
 		SendWelcomeEmail:     s.SendWelcomeEmail,
 		SendIdentityLinked:   s.SendIdentityLinkedEmail,
+		ProfileHook: func(ctx context.Context, userID string, name string, birthDate *time.Time) error {
+			if s.profileHooks == nil {
+				return nil
+			}
+			return s.profileHooks.CreateDefaultProfile(ctx, userID, name, birthDate)
+		},
 	}
 
 	return oauth.NewService(deps)

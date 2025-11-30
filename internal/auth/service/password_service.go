@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"hauslet/internal/auth/domain"
 	"hauslet/internal/auth/repository/schema"
@@ -67,7 +68,7 @@ func (s *AuthServiceImpl) LinkPasswordIdentity(ctx context.Context, userID, emai
 	return domain.MapUserIdentityFromSchema(identity), nil
 }
 
-func (s *AuthServiceImpl) CreatePasswordUser(ctx context.Context, email, password, name string) (*domain.User, error) {
+func (s *AuthServiceImpl) CreatePasswordUser(ctx context.Context, email, password, name string, birthDate *time.Time) (*domain.User, error) {
 	if email == "" {
 		return nil, domain.ErrEmailRequired
 	}
@@ -109,6 +110,12 @@ func (s *AuthServiceImpl) CreatePasswordUser(ctx context.Context, email, passwor
 
 	if err := s.repository.CreateUserWithIdentity(ctx, user, identity); err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	if s.profileHooks != nil {
+		if err := s.profileHooks.CreateDefaultProfile(ctx, user.ID.String(), name, birthDate); err != nil {
+			s.log.Logf("WARN failed to create default profile for user %s: %v", user.ID, err)
+		}
 	}
 
 	return domain.MapUserFromSchema(user), nil

@@ -1,0 +1,139 @@
+# internal/graph/profile.graphqls
+
+enum UserType {
+  host
+  guest
+  agent
+  landlord
+  cohost
+}
+
+enum Badge {
+  identity_verified
+  phone_verified
+  payment_verified
+  super_host
+  fast_responder
+  experienced_host
+  top_guest
+  frequent_traveler
+  licensed_agent
+  verified_landlord
+  pro_photographer
+  early_adopter
+}
+
+type BadgeDetails {
+  id: Badge!
+  label: String!
+  description: String!
+  category: String!
+}
+
+type TravelCompanion {
+  name: String!
+  ageGroup: String!
+  phone: String
+  relationship: String!
+  photoUrl: String
+}
+
+type Profile {
+  id: UUID!
+  userId: String!
+  userTypes: [UserType!]!
+  fullName: String!
+  birthDate: Time
+
+  # Contact Info
+  phoneNumbers: [String!]!
+  address: String
+  city: String
+  state: String
+  country: String
+  zipCode: String
+
+  # Personal Info
+  occupation: String
+  education: String
+  bio: String
+  skills: [String!]!
+  languages: [String!]!
+  interests: [String!]!
+  hobbies: [String!]!
+  funFact: String
+  obsessedWith: String
+
+  # Settings
+  communityCommitment: Boolean!
+  travelCompanions: [TravelCompanion!]!
+
+  # Verification
+  phoneVerified: Boolean!
+  idVerified: Boolean!
+  verificationDate: Time
+  verificationLevel: String!
+
+  # Features
+  rating: Float!
+  reviewsCount: Int!
+  trustScore: Float!
+  
+  # RESOLVER NEEDED: This converts the simple []Badge list into detailed objects
+  badges: [BadgeDetails!]! 
+
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+# Inputs for Mutations
+input TravelCompanionInput {
+  name: String!
+  ageGroup: String!
+  phone: String
+  relationship: String!
+  photoUrl: String
+}
+
+input UpdateProfileInput {
+  fullName: String
+  birthDate: Time
+  phoneNumbers: [String!]
+  address: String
+  city: String
+  state: String
+  country: String
+  zipCode: String
+  occupation: String
+  education: String
+  bio: String
+  skills: [String!]
+  languages: [String!]
+  interests: [String!]
+  hobbies: [String!]
+  funFact: String
+  obsessedWith: String
+  communityCommitment: Boolean
+  travelCompanions: [TravelCompanionInput!]
+}
+
+extend type Query {
+  # Fetch profile by ID
+  profile(id: UUID!): Profile
+  # Fetch profile by User ID (useful for "View Author")
+  profileByUserId(userId: String!): Profile
+  # Public listings of profiles with pagination
+  profiles(limit: Int, offset: Int): [Profile!]!
+  searchProfiles(query: String!, limit: Int, offset: Int): [Profile!]!
+  profilesByUserType(userType: UserType!, limit: Int, offset: Int): [Profile!]!
+  verifiedProfiles(level: String, limit: Int, offset: Int): [Profile!]!
+}
+
+extend type Mutation {
+  # Update current user's profile
+  updateProfile(input: UpdateProfileInput!): Profile!
+  
+  # Admin/System actions
+  addBadge(userId: String!, badge: Badge!): Profile!
+  removeBadge(userId: String!, badge: Badge!): Profile!
+}

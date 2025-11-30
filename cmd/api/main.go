@@ -4,12 +4,13 @@ import (
 	"context"
 	"hauslet/cmd/api/server"
 	"hauslet/config"
-	"hauslet/internal/auth/repository/schema"
+	authSchema "hauslet/internal/auth/repository/schema"
 	"hauslet/internal/platform/database"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/logger"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
+	profileSchema "hauslet/internal/profile/repository/schema"
 	"net/http"
 	"os"
 	"os/signal"
@@ -48,7 +49,12 @@ func main() {
 	log.Logf("INFO ✅ Database connected successfully")
 
 	// Run migrations
-	if err := database.RunMigrations(db, log, &schema.User{}, &schema.UserIdentity{}); err != nil {
+	if err := database.RunMigrations(db, log,
+		&authSchema.User{},
+		&authSchema.UserIdentity{},
+		&profileSchema.Profile{},
+		&profileSchema.TravelCompanionProfile{},
+	); err != nil {
 		log.Logf("ERROR failed to run migrations: %v", err)
 		return
 	}

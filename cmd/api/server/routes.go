@@ -4,12 +4,16 @@ import (
 	"context"
 	"hauslet/config"
 	"hauslet/internal/auth/port"
-	"hauslet/internal/auth/repository"
+	authrepository "hauslet/internal/auth/repository"
 	"hauslet/internal/auth/service"
 	authsession "hauslet/internal/auth/session"
+	"hauslet/internal/graph"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
+	profileport "hauslet/internal/profile/port"
+	profilerepository "hauslet/internal/profile/repository"
+	profileservice "hauslet/internal/profile/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-pkgz/lgr"
@@ -25,10 +29,15 @@ func setupRoutes(r chi.Router,
 	q *queue.Client) {
 	// Initialize auth service
 	sessionStore := authsession.NewSessionStore(*rds)
-	authRepo := repository.NewAuthRepositoryImpl(db, sessionStore)
-	authService := service.NewAuthService(&cfg.Auth,
-		authRepo, log, mC, *rds, q, cfg.YAML.Queue.Subjects["email"])
+	authRepo := authrepository.NewAuthRepositoryImpl(db, sessionStore)
 
+	// Initialize profile service
+	profileRepo := profilerepository.NewProfileRepository(db)
+	profileService := profileservice.NewProfileService(profileRepo)
+	profileHooks := profileport.NewAuthHooksAdapter(profileService)
+
+	authService := service.NewAuthService(&cfg.Auth,
+		authRepo, log, mC, *rds, q, cfg.YAML.Queue.Subjects["email"], profileHooks)
 	// Initialize auth HTTP handler with context
 	authHTTP := port.NewHTTPHandler(ctx, authService, log)
 
@@ -39,4 +48,6 @@ func setupRoutes(r chi.Router,
 		authHTTP.SetupRoutes(r)
 	}
 
+	// Setup GraphQL routes
+	graph.SetupGraphQL(r, authService, profileService, &cfg.App, log)
 }

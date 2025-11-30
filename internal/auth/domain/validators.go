@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
@@ -20,6 +21,12 @@ func (r *RegisterRequest) Validate() error {
 
 	if err := validateName(r.Name); err != nil {
 		return NewValidationError("name", err.Error())
+	}
+
+	if r.BirthDate != nil {
+		if err := validateBirthDate(*r.BirthDate); err != nil {
+			return NewValidationError("birth_date", err.Error())
+		}
 	}
 
 	return nil
@@ -93,6 +100,15 @@ func validateEmail(email string) error {
 	email = strings.TrimSpace(email)
 	if !emailRegex.MatchString(email) {
 		return fmt.Errorf("invalid email format")
+	}
+
+	return nil
+}
+
+func validateBirthDate(birthDate time.Time) error {
+	// Example validation: birth date should not be in the future
+	if birthDate.After(time.Now()) {
+		return fmt.Errorf("birth date cannot be in the future")
 	}
 
 	return nil
