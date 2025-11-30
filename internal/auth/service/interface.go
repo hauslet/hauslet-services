@@ -8,6 +8,7 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
+	"sync"
 	"time"
 
 	"github.com/go-pkgz/auth"
@@ -85,6 +86,8 @@ type AuthServiceImpl struct {
 	queueSubject     string
 	linkStateManager *LinkStateManager
 	profileHooks     ProfileHooks
+	oauthOnce        sync.Once
+	oauthService     *auth.Service
 }
 
 func NewAuthService(cfg *config.AuthConfig,

@@ -103,6 +103,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Me                 func(childComplexity int) int
+		MyProfile          func(childComplexity int) int
 		Profile            func(childComplexity int, id uuid.UUID) int
 		ProfileByUserID    func(childComplexity int, userID string) int
 		Profiles           func(childComplexity int, limit *int, offset *int) int
@@ -161,6 +162,7 @@ type QueryResolver interface {
 	SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain.Profile, error)
 	ProfilesByUserType(ctx context.Context, userType domain.UserType, limit *int, offset *int) ([]*domain.Profile, error)
 	VerifiedProfiles(ctx context.Context, level *string, limit *int, offset *int) ([]*domain.Profile, error)
+	MyProfile(ctx context.Context) (*domain.Profile, error)
 }
 
 type executableSchema struct {
@@ -446,6 +448,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+	case "Query.myProfile":
+		if e.complexity.Query.MyProfile == nil {
+			break
+		}
+
+		return e.complexity.Query.MyProfile(childComplexity), true
 	case "Query.profile":
 		if e.complexity.Query.Profile == nil {
 			break
@@ -3115,6 +3123,101 @@ func (ec *executionContext) fieldContext_Query_verifiedProfiles(ctx context.Cont
 	if fc.Args, err = ec.field_Query_verifiedProfiles_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myProfile,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyProfile(ctx)
+		},
+		nil,
+		ec.marshalOProfile2ᚖhausletᚋinternalᚋprofileᚋdomainᚐProfile,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myProfile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Profile_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_Profile_userId(ctx, field)
+			case "userTypes":
+				return ec.fieldContext_Profile_userTypes(ctx, field)
+			case "fullName":
+				return ec.fieldContext_Profile_fullName(ctx, field)
+			case "birthDate":
+				return ec.fieldContext_Profile_birthDate(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
+			case "address":
+				return ec.fieldContext_Profile_address(ctx, field)
+			case "city":
+				return ec.fieldContext_Profile_city(ctx, field)
+			case "state":
+				return ec.fieldContext_Profile_state(ctx, field)
+			case "country":
+				return ec.fieldContext_Profile_country(ctx, field)
+			case "zipCode":
+				return ec.fieldContext_Profile_zipCode(ctx, field)
+			case "occupation":
+				return ec.fieldContext_Profile_occupation(ctx, field)
+			case "education":
+				return ec.fieldContext_Profile_education(ctx, field)
+			case "bio":
+				return ec.fieldContext_Profile_bio(ctx, field)
+			case "skills":
+				return ec.fieldContext_Profile_skills(ctx, field)
+			case "languages":
+				return ec.fieldContext_Profile_languages(ctx, field)
+			case "interests":
+				return ec.fieldContext_Profile_interests(ctx, field)
+			case "hobbies":
+				return ec.fieldContext_Profile_hobbies(ctx, field)
+			case "funFact":
+				return ec.fieldContext_Profile_funFact(ctx, field)
+			case "obsessedWith":
+				return ec.fieldContext_Profile_obsessedWith(ctx, field)
+			case "communityCommitment":
+				return ec.fieldContext_Profile_communityCommitment(ctx, field)
+			case "travelCompanions":
+				return ec.fieldContext_Profile_travelCompanions(ctx, field)
+			case "phoneVerified":
+				return ec.fieldContext_Profile_phoneVerified(ctx, field)
+			case "idVerified":
+				return ec.fieldContext_Profile_idVerified(ctx, field)
+			case "verificationDate":
+				return ec.fieldContext_Profile_verificationDate(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Profile_verificationLevel(ctx, field)
+			case "rating":
+				return ec.fieldContext_Profile_rating(ctx, field)
+			case "reviewsCount":
+				return ec.fieldContext_Profile_reviewsCount(ctx, field)
+			case "trustScore":
+				return ec.fieldContext_Profile_trustScore(ctx, field)
+			case "badges":
+				return ec.fieldContext_Profile_badges(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Profile_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Profile_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -6004,6 +6107,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myProfile":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myProfile(ctx, field)
 				return res
 			}
 

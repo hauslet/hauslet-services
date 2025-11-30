@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -310,10 +311,22 @@ func (r *ProfileRerpositoryImpl) PatchProfile(ctx context.Context, id string, up
 		return errors.New("invalid id format")
 	}
 
+	normalized := make(map[string]interface{}, len(updates))
+	for k, v := range updates {
+		switch k {
+		case "user_types", "phone_numbers", "skills", "languages", "interests", "hobbies", "badges":
+			if slice, ok := v.([]string); ok {
+				normalized[k] = pq.StringArray(slice)
+				continue
+			}
+		}
+		normalized[k] = v
+	}
+
 	return r.db.WithContext(ctx).
 		Model(&schema.Profile{}).
 		Where("id = ?", parsedID).
-		Updates(updates).Error
+		Updates(normalized).Error
 }
 
 // IncrementReviewStats atomically adjusts rating and review counters.

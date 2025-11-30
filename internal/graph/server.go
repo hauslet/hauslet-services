@@ -28,6 +28,7 @@ func SetupGraphQL(r chi.Router,
 				AuthService:    authService,
 				ProfileService: profileService,
 			},
+			Complexity: NewComplexityRoot(defaultMaxListLimit),
 		}),
 	)
 

@@ -127,6 +127,8 @@ extend type Query {
   searchProfiles(query: String!, limit: Int, offset: Int): [Profile!]!
   profilesByUserType(userType: UserType!, limit: Int, offset: Int): [Profile!]!
   verifiedProfiles(level: String, limit: Int, offset: Int): [Profile!]!
+  # Convenience: current viewer's profile
+  myProfile: Profile
 }
 
 extend type Mutation {

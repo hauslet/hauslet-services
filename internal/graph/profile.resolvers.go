@@ -272,6 +272,21 @@ func (r *queryResolver) VerifiedProfiles(ctx context.Context, level *string, lim
 	return sanitizeProfilesForViewer(profiles, viewerFromContext(ctx)), nil
 }
 
+// MyProfile is the resolver for the myProfile field.
+func (r *queryResolver) MyProfile(ctx context.Context) (*domain.Profile, error) {
+	viewer := viewerFromContext(ctx)
+	if viewer == nil || viewer.UserID == "" {
+		return nil, fmt.Errorf("unauthenticated")
+	}
+
+	profile, err := r.ProfileService.GetProfileByUserID(ctx, viewer.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return sanitizeProfileForViewer(profile, viewer), nil
+}
+
 // Profile returns ProfileResolver implementation.
 func (r *Resolver) Profile() ProfileResolver { return &profileResolver{r} }
 
