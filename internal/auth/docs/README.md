@@ -473,7 +473,7 @@ Identity linking allows users to connect multiple OAuth providers (e.g., Google)
     )
 
     func SetupRoutes(r *chi.Mux, authService service.AuthService, redisClient *redis.Client, appEnv string) {
-        authHandler := port.NewHTTPHandler(r.Context(), authService, lgr.Default())
+        authHandler := authhttp.NewHTTPHandler(r.Context(), authService, lgr.Default())
 
         // With rate limiting (recommended for production)
         authHandler.SetupRoutesWithRateLimiting(r, redisClient, appEnv)

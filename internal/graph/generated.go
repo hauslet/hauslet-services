@@ -60,9 +60,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddBadge      func(childComplexity int, userID string, badge domain.Badge) int
 		Ping          func(childComplexity int) int
-		RemoveBadge   func(childComplexity int, userID string, badge domain.Badge) int
 		UpdateProfile func(childComplexity int, input model.UpdateProfileInput) int
 	}
 
@@ -102,15 +100,13 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Me                 func(childComplexity int) int
-		MyProfile          func(childComplexity int) int
-		Profile            func(childComplexity int, id uuid.UUID) int
-		ProfileByUserID    func(childComplexity int, userID string) int
-		Profiles           func(childComplexity int, limit *int, offset *int) int
-		ProfilesByUserType func(childComplexity int, userType domain.UserType, limit *int, offset *int) int
-		SearchProfiles     func(childComplexity int, query string, limit *int, offset *int) int
-		VerifiedProfiles   func(childComplexity int, level *string, limit *int, offset *int) int
-		Version            func(childComplexity int) int
+		Me              func(childComplexity int) int
+		MyProfile       func(childComplexity int) int
+		Profile         func(childComplexity int, id uuid.UUID) int
+		ProfileByUserID func(childComplexity int, userID string) int
+		Profiles        func(childComplexity int, limit *int, offset *int) int
+		SearchProfiles  func(childComplexity int, query string, limit *int, offset *int) int
+		Version         func(childComplexity int) int
 	}
 
 	TravelCompanion struct {
@@ -147,8 +143,6 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
 	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain.Profile, error)
-	AddBadge(ctx context.Context, userID string, badge domain.Badge) (*domain.Profile, error)
-	RemoveBadge(ctx context.Context, userID string, badge domain.Badge) (*domain.Profile, error)
 }
 type ProfileResolver interface {
 	Badges(ctx context.Context, obj *domain.Profile) ([]*domain.BadgeDetails, error)
@@ -160,8 +154,6 @@ type QueryResolver interface {
 	ProfileByUserID(ctx context.Context, userID string) (*domain.Profile, error)
 	Profiles(ctx context.Context, limit *int, offset *int) ([]*domain.Profile, error)
 	SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain.Profile, error)
-	ProfilesByUserType(ctx context.Context, userType domain.UserType, limit *int, offset *int) ([]*domain.Profile, error)
-	VerifiedProfiles(ctx context.Context, level *string, limit *int, offset *int) ([]*domain.Profile, error)
 	MyProfile(ctx context.Context) (*domain.Profile, error)
 }
 
@@ -209,34 +201,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.BadgeDetails.Label(childComplexity), true
 
-	case "Mutation.addBadge":
-		if e.complexity.Mutation.AddBadge == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_addBadge_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AddBadge(childComplexity, args["userId"].(string), args["badge"].(domain.Badge)), true
 	case "Mutation.ping":
 		if e.complexity.Mutation.Ping == nil {
 			break
 		}
 
 		return e.complexity.Mutation.Ping(childComplexity), true
-	case "Mutation.removeBadge":
-		if e.complexity.Mutation.RemoveBadge == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_removeBadge_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.RemoveBadge(childComplexity, args["userId"].(string), args["badge"].(domain.Badge)), true
 	case "Mutation.updateProfile":
 		if e.complexity.Mutation.UpdateProfile == nil {
 			break
@@ -487,17 +457,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Profiles(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
-	case "Query.profilesByUserType":
-		if e.complexity.Query.ProfilesByUserType == nil {
-			break
-		}
-
-		args, err := ec.field_Query_profilesByUserType_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.ProfilesByUserType(childComplexity, args["userType"].(domain.UserType), args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.searchProfiles":
 		if e.complexity.Query.SearchProfiles == nil {
 			break
@@ -509,17 +468,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.SearchProfiles(childComplexity, args["query"].(string), args["limit"].(*int), args["offset"].(*int)), true
-	case "Query.verifiedProfiles":
-		if e.complexity.Query.VerifiedProfiles == nil {
-			break
-		}
-
-		args, err := ec.field_Query_verifiedProfiles_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.VerifiedProfiles(childComplexity, args["level"].(*string), args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.version":
 		if e.complexity.Query.Version == nil {
 			break
@@ -762,7 +710,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(ec.Schema(), ec.Schema().Types[name]), nil
 }
 
-//go:embed "auth.graphqls" "profile.graphqls" "schema.graphqls"
+//go:embed "schema.graphqls"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -774,47 +722,185 @@ func sourceData(filename string) string {
 }
 
 var sources = []*ast.Source{
-	{Name: "auth.graphqls", Input: sourceData("auth.graphqls"), BuiltIn: false},
-	{Name: "profile.graphqls", Input: sourceData("profile.graphqls"), BuiltIn: false},
 	{Name: "schema.graphqls", Input: sourceData("schema.graphqls"), BuiltIn: false},
+	{Name: "../auth/port/graphql/schema.graphqls", Input: `# internal/auth/port/graphql/schema.graphqls
+
+enum Role {
+  user
+  staff
+  moderator
+  support
+  admin
+  root
+}
+
+type UserIdentity {
+  id: UUID!
+  userId: UUID!
+  provider: String!
+  email: String!
+  emailVerified: Boolean!
+  lastUsedAt: Time
+  createdAt: Time!
+}
+
+type User {
+  id: UUID!
+  name: String!
+  primaryEmail: String!
+  role: Role!
+  isActive: Boolean!
+  lastLoginAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+  identities: [UserIdentity!]
+}
+
+extend type Query {
+  # Get currently logged in user
+  me: User
+}
+`, BuiltIn: false},
+	{Name: "../profile/port/graphql/schema.graphqls", Input: `# internal/profile/port/graphql/schema.graphqls
+
+enum UserType {
+  host
+  guest
+  agent
+  landlord
+  cohost
+}
+
+enum Badge {
+  identity_verified
+  phone_verified
+  payment_verified
+  super_host
+  fast_responder
+  experienced_host
+  top_guest
+  frequent_traveler
+  licensed_agent
+  verified_landlord
+  pro_photographer
+  early_adopter
+}
+
+type BadgeDetails {
+  id: Badge!
+  label: String!
+  description: String!
+  category: String!
+}
+
+type TravelCompanion {
+  name: String!
+  ageGroup: String!
+  phone: String
+  relationship: String!
+  photoUrl: String
+}
+
+type Profile {
+  id: UUID!
+  userId: String!
+  userTypes: [UserType!]!
+  fullName: String!
+  birthDate: Time
+
+  # Contact Info
+  phoneNumbers: [String!]!
+  address: String
+  city: String
+  state: String
+  country: String
+  zipCode: String
+
+  # Personal Info
+  occupation: String
+  education: String
+  bio: String
+  skills: [String!]!
+  languages: [String!]!
+  interests: [String!]!
+  hobbies: [String!]!
+  funFact: String
+  obsessedWith: String
+
+  # Settings
+  communityCommitment: Boolean!
+  travelCompanions: [TravelCompanion!]!
+
+  # Verification
+  phoneVerified: Boolean!
+  idVerified: Boolean!
+  verificationDate: Time
+  verificationLevel: String!
+
+  # Features
+  rating: Float!
+  reviewsCount: Int!
+  trustScore: Float!
+  badges: [BadgeDetails!]!
+
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+# Inputs for Mutations
+input TravelCompanionInput {
+  name: String!
+  ageGroup: String!
+  phone: String
+  relationship: String!
+  photoUrl: String
+}
+
+input UpdateProfileInput {
+  fullName: String
+  birthDate: Time
+  phoneNumbers: [String!]
+  address: String
+  city: String
+  state: String
+  country: String
+  zipCode: String
+  occupation: String
+  education: String
+  bio: String
+  skills: [String!]
+  languages: [String!]
+  interests: [String!]
+  hobbies: [String!]
+  funFact: String
+  obsessedWith: String
+  communityCommitment: Boolean
+  travelCompanions: [TravelCompanionInput!]
+}
+
+extend type Query {
+  # Fetch profile by ID
+  profile(id: UUID!): Profile
+  # Fetch profile by User ID (useful for "View Author")
+  profileByUserId(userId: String!): Profile
+  # Public listings of profiles with pagination
+  profiles(limit: Int, offset: Int): [Profile!]!
+  searchProfiles(query: String!, limit: Int, offset: Int): [Profile!]!
+  # Convenience: current viewer's profile
+  myProfile: Profile
+}
+
+extend type Mutation {
+  # Update current user's profile
+  updateProfile(input: UpdateProfileInput!): Profile!
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
-
-func (ec *executionContext) field_Mutation_addBadge_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["userId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "badge", ec.unmarshalNBadge2hausletᚋinternalᚋprofileᚋdomainᚐBadge)
-	if err != nil {
-		return nil, err
-	}
-	args["badge"] = arg1
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_removeBadge_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["userId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "badge", ec.unmarshalNBadge2hausletᚋinternalᚋprofileᚋdomainᚐBadge)
-	if err != nil {
-		return nil, err
-	}
-	args["badge"] = arg1
-	return args, nil
-}
 
 func (ec *executionContext) field_Mutation_updateProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
@@ -860,27 +946,6 @@ func (ec *executionContext) field_Query_profile_args(ctx context.Context, rawArg
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_profilesByUserType_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userType", ec.unmarshalNUserType2hausletᚋinternalᚋprofileᚋdomainᚐUserType)
-	if err != nil {
-		return nil, err
-	}
-	args["userType"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
-	if err != nil {
-		return nil, err
-	}
-	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
-	if err != nil {
-		return nil, err
-	}
-	args["offset"] = arg2
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_profiles_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -905,27 +970,6 @@ func (ec *executionContext) field_Query_searchProfiles_args(ctx context.Context,
 		return nil, err
 	}
 	args["query"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
-	if err != nil {
-		return nil, err
-	}
-	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
-	if err != nil {
-		return nil, err
-	}
-	args["offset"] = arg2
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_verifiedProfiles_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "level", ec.unmarshalOString2ᚖstring)
-	if err != nil {
-		return nil, err
-	}
-	args["level"] = arg0
 	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
 	if err != nil {
 		return nil, err
@@ -1237,220 +1281,6 @@ func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_addBadge(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_addBadge,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AddBadge(ctx, fc.Args["userId"].(string), fc.Args["badge"].(domain.Badge))
-		},
-		nil,
-		ec.marshalNProfile2ᚖhausletᚋinternalᚋprofileᚋdomainᚐProfile,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_addBadge(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Profile_id(ctx, field)
-			case "userId":
-				return ec.fieldContext_Profile_userId(ctx, field)
-			case "userTypes":
-				return ec.fieldContext_Profile_userTypes(ctx, field)
-			case "fullName":
-				return ec.fieldContext_Profile_fullName(ctx, field)
-			case "birthDate":
-				return ec.fieldContext_Profile_birthDate(ctx, field)
-			case "phoneNumbers":
-				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
-			case "address":
-				return ec.fieldContext_Profile_address(ctx, field)
-			case "city":
-				return ec.fieldContext_Profile_city(ctx, field)
-			case "state":
-				return ec.fieldContext_Profile_state(ctx, field)
-			case "country":
-				return ec.fieldContext_Profile_country(ctx, field)
-			case "zipCode":
-				return ec.fieldContext_Profile_zipCode(ctx, field)
-			case "occupation":
-				return ec.fieldContext_Profile_occupation(ctx, field)
-			case "education":
-				return ec.fieldContext_Profile_education(ctx, field)
-			case "bio":
-				return ec.fieldContext_Profile_bio(ctx, field)
-			case "skills":
-				return ec.fieldContext_Profile_skills(ctx, field)
-			case "languages":
-				return ec.fieldContext_Profile_languages(ctx, field)
-			case "interests":
-				return ec.fieldContext_Profile_interests(ctx, field)
-			case "hobbies":
-				return ec.fieldContext_Profile_hobbies(ctx, field)
-			case "funFact":
-				return ec.fieldContext_Profile_funFact(ctx, field)
-			case "obsessedWith":
-				return ec.fieldContext_Profile_obsessedWith(ctx, field)
-			case "communityCommitment":
-				return ec.fieldContext_Profile_communityCommitment(ctx, field)
-			case "travelCompanions":
-				return ec.fieldContext_Profile_travelCompanions(ctx, field)
-			case "phoneVerified":
-				return ec.fieldContext_Profile_phoneVerified(ctx, field)
-			case "idVerified":
-				return ec.fieldContext_Profile_idVerified(ctx, field)
-			case "verificationDate":
-				return ec.fieldContext_Profile_verificationDate(ctx, field)
-			case "verificationLevel":
-				return ec.fieldContext_Profile_verificationLevel(ctx, field)
-			case "rating":
-				return ec.fieldContext_Profile_rating(ctx, field)
-			case "reviewsCount":
-				return ec.fieldContext_Profile_reviewsCount(ctx, field)
-			case "trustScore":
-				return ec.fieldContext_Profile_trustScore(ctx, field)
-			case "badges":
-				return ec.fieldContext_Profile_badges(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Profile_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Profile_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_addBadge_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_removeBadge(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_removeBadge,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RemoveBadge(ctx, fc.Args["userId"].(string), fc.Args["badge"].(domain.Badge))
-		},
-		nil,
-		ec.marshalNProfile2ᚖhausletᚋinternalᚋprofileᚋdomainᚐProfile,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_removeBadge(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Profile_id(ctx, field)
-			case "userId":
-				return ec.fieldContext_Profile_userId(ctx, field)
-			case "userTypes":
-				return ec.fieldContext_Profile_userTypes(ctx, field)
-			case "fullName":
-				return ec.fieldContext_Profile_fullName(ctx, field)
-			case "birthDate":
-				return ec.fieldContext_Profile_birthDate(ctx, field)
-			case "phoneNumbers":
-				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
-			case "address":
-				return ec.fieldContext_Profile_address(ctx, field)
-			case "city":
-				return ec.fieldContext_Profile_city(ctx, field)
-			case "state":
-				return ec.fieldContext_Profile_state(ctx, field)
-			case "country":
-				return ec.fieldContext_Profile_country(ctx, field)
-			case "zipCode":
-				return ec.fieldContext_Profile_zipCode(ctx, field)
-			case "occupation":
-				return ec.fieldContext_Profile_occupation(ctx, field)
-			case "education":
-				return ec.fieldContext_Profile_education(ctx, field)
-			case "bio":
-				return ec.fieldContext_Profile_bio(ctx, field)
-			case "skills":
-				return ec.fieldContext_Profile_skills(ctx, field)
-			case "languages":
-				return ec.fieldContext_Profile_languages(ctx, field)
-			case "interests":
-				return ec.fieldContext_Profile_interests(ctx, field)
-			case "hobbies":
-				return ec.fieldContext_Profile_hobbies(ctx, field)
-			case "funFact":
-				return ec.fieldContext_Profile_funFact(ctx, field)
-			case "obsessedWith":
-				return ec.fieldContext_Profile_obsessedWith(ctx, field)
-			case "communityCommitment":
-				return ec.fieldContext_Profile_communityCommitment(ctx, field)
-			case "travelCompanions":
-				return ec.fieldContext_Profile_travelCompanions(ctx, field)
-			case "phoneVerified":
-				return ec.fieldContext_Profile_phoneVerified(ctx, field)
-			case "idVerified":
-				return ec.fieldContext_Profile_idVerified(ctx, field)
-			case "verificationDate":
-				return ec.fieldContext_Profile_verificationDate(ctx, field)
-			case "verificationLevel":
-				return ec.fieldContext_Profile_verificationLevel(ctx, field)
-			case "rating":
-				return ec.fieldContext_Profile_rating(ctx, field)
-			case "reviewsCount":
-				return ec.fieldContext_Profile_reviewsCount(ctx, field)
-			case "trustScore":
-				return ec.fieldContext_Profile_trustScore(ctx, field)
-			case "badges":
-				return ec.fieldContext_Profile_badges(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Profile_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Profile_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_removeBadge_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -2907,220 +2737,6 @@ func (ec *executionContext) fieldContext_Query_searchProfiles(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_searchProfiles_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_profilesByUserType(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_profilesByUserType,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().ProfilesByUserType(ctx, fc.Args["userType"].(domain.UserType), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
-		},
-		nil,
-		ec.marshalNProfile2ᚕᚖhausletᚋinternalᚋprofileᚋdomainᚐProfileᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_profilesByUserType(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Profile_id(ctx, field)
-			case "userId":
-				return ec.fieldContext_Profile_userId(ctx, field)
-			case "userTypes":
-				return ec.fieldContext_Profile_userTypes(ctx, field)
-			case "fullName":
-				return ec.fieldContext_Profile_fullName(ctx, field)
-			case "birthDate":
-				return ec.fieldContext_Profile_birthDate(ctx, field)
-			case "phoneNumbers":
-				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
-			case "address":
-				return ec.fieldContext_Profile_address(ctx, field)
-			case "city":
-				return ec.fieldContext_Profile_city(ctx, field)
-			case "state":
-				return ec.fieldContext_Profile_state(ctx, field)
-			case "country":
-				return ec.fieldContext_Profile_country(ctx, field)
-			case "zipCode":
-				return ec.fieldContext_Profile_zipCode(ctx, field)
-			case "occupation":
-				return ec.fieldContext_Profile_occupation(ctx, field)
-			case "education":
-				return ec.fieldContext_Profile_education(ctx, field)
-			case "bio":
-				return ec.fieldContext_Profile_bio(ctx, field)
-			case "skills":
-				return ec.fieldContext_Profile_skills(ctx, field)
-			case "languages":
-				return ec.fieldContext_Profile_languages(ctx, field)
-			case "interests":
-				return ec.fieldContext_Profile_interests(ctx, field)
-			case "hobbies":
-				return ec.fieldContext_Profile_hobbies(ctx, field)
-			case "funFact":
-				return ec.fieldContext_Profile_funFact(ctx, field)
-			case "obsessedWith":
-				return ec.fieldContext_Profile_obsessedWith(ctx, field)
-			case "communityCommitment":
-				return ec.fieldContext_Profile_communityCommitment(ctx, field)
-			case "travelCompanions":
-				return ec.fieldContext_Profile_travelCompanions(ctx, field)
-			case "phoneVerified":
-				return ec.fieldContext_Profile_phoneVerified(ctx, field)
-			case "idVerified":
-				return ec.fieldContext_Profile_idVerified(ctx, field)
-			case "verificationDate":
-				return ec.fieldContext_Profile_verificationDate(ctx, field)
-			case "verificationLevel":
-				return ec.fieldContext_Profile_verificationLevel(ctx, field)
-			case "rating":
-				return ec.fieldContext_Profile_rating(ctx, field)
-			case "reviewsCount":
-				return ec.fieldContext_Profile_reviewsCount(ctx, field)
-			case "trustScore":
-				return ec.fieldContext_Profile_trustScore(ctx, field)
-			case "badges":
-				return ec.fieldContext_Profile_badges(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Profile_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Profile_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_profilesByUserType_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_verifiedProfiles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_verifiedProfiles,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().VerifiedProfiles(ctx, fc.Args["level"].(*string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
-		},
-		nil,
-		ec.marshalNProfile2ᚕᚖhausletᚋinternalᚋprofileᚋdomainᚐProfileᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_verifiedProfiles(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Profile_id(ctx, field)
-			case "userId":
-				return ec.fieldContext_Profile_userId(ctx, field)
-			case "userTypes":
-				return ec.fieldContext_Profile_userTypes(ctx, field)
-			case "fullName":
-				return ec.fieldContext_Profile_fullName(ctx, field)
-			case "birthDate":
-				return ec.fieldContext_Profile_birthDate(ctx, field)
-			case "phoneNumbers":
-				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
-			case "address":
-				return ec.fieldContext_Profile_address(ctx, field)
-			case "city":
-				return ec.fieldContext_Profile_city(ctx, field)
-			case "state":
-				return ec.fieldContext_Profile_state(ctx, field)
-			case "country":
-				return ec.fieldContext_Profile_country(ctx, field)
-			case "zipCode":
-				return ec.fieldContext_Profile_zipCode(ctx, field)
-			case "occupation":
-				return ec.fieldContext_Profile_occupation(ctx, field)
-			case "education":
-				return ec.fieldContext_Profile_education(ctx, field)
-			case "bio":
-				return ec.fieldContext_Profile_bio(ctx, field)
-			case "skills":
-				return ec.fieldContext_Profile_skills(ctx, field)
-			case "languages":
-				return ec.fieldContext_Profile_languages(ctx, field)
-			case "interests":
-				return ec.fieldContext_Profile_interests(ctx, field)
-			case "hobbies":
-				return ec.fieldContext_Profile_hobbies(ctx, field)
-			case "funFact":
-				return ec.fieldContext_Profile_funFact(ctx, field)
-			case "obsessedWith":
-				return ec.fieldContext_Profile_obsessedWith(ctx, field)
-			case "communityCommitment":
-				return ec.fieldContext_Profile_communityCommitment(ctx, field)
-			case "travelCompanions":
-				return ec.fieldContext_Profile_travelCompanions(ctx, field)
-			case "phoneVerified":
-				return ec.fieldContext_Profile_phoneVerified(ctx, field)
-			case "idVerified":
-				return ec.fieldContext_Profile_idVerified(ctx, field)
-			case "verificationDate":
-				return ec.fieldContext_Profile_verificationDate(ctx, field)
-			case "verificationLevel":
-				return ec.fieldContext_Profile_verificationLevel(ctx, field)
-			case "rating":
-				return ec.fieldContext_Profile_rating(ctx, field)
-			case "reviewsCount":
-				return ec.fieldContext_Profile_reviewsCount(ctx, field)
-			case "trustScore":
-				return ec.fieldContext_Profile_trustScore(ctx, field)
-			case "badges":
-				return ec.fieldContext_Profile_badges(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Profile_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Profile_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_verifiedProfiles_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5704,20 +5320,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "addBadge":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_addBadge(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "removeBadge":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_removeBadge(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6060,50 +5662,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_searchProfiles(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "profilesByUserType":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_profilesByUserType(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "verifiedProfiles":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_verifiedProfiles(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

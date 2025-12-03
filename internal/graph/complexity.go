@@ -1,10 +1,6 @@
 package graph
 
-import (
-	"hauslet/internal/profile/domain"
-
-	"github.com/google/uuid"
-)
+import "github.com/google/uuid"
 
 const (
 	defaultMaxListLimit = 50
@@ -44,15 +40,13 @@ func NewComplexityRoot(maxList int) ComplexityRoot {
 
 	return ComplexityRoot{
 		Query: struct {
-			Me                 func(childComplexity int) int
-			MyProfile          func(childComplexity int) int
-			Profile            func(childComplexity int, id uuid.UUID) int
-			ProfileByUserID    func(childComplexity int, userID string) int
-			Profiles           func(childComplexity int, limit *int, offset *int) int
-			ProfilesByUserType func(childComplexity int, userType domain.UserType, limit *int, offset *int) int
-			SearchProfiles     func(childComplexity int, query string, limit *int, offset *int) int
-			VerifiedProfiles   func(childComplexity int, level *string, limit *int, offset *int) int
-			Version            func(childComplexity int) int
+			Me              func(childComplexity int) int
+			MyProfile       func(childComplexity int) int
+			Profile         func(childComplexity int, id uuid.UUID) int
+			ProfileByUserID func(childComplexity int, userID string) int
+			Profiles        func(childComplexity int, limit *int, offset *int) int
+			SearchProfiles  func(childComplexity int, query string, limit *int, offset *int) int
+			Version         func(childComplexity int) int
 		}{
 			MyProfile: func(childComplexity int) int {
 				return 1 + childComplexity
@@ -62,14 +56,6 @@ func NewComplexityRoot(maxList int) ComplexityRoot {
 				return 1 + childComplexity*size
 			},
 			SearchProfiles: func(childComplexity int, _ string, limit *int, _ *int) int {
-				size := clamp(limit)
-				return 1 + childComplexity*size
-			},
-			ProfilesByUserType: func(childComplexity int, _ domain.UserType, limit *int, _ *int) int {
-				size := clamp(limit)
-				return 1 + childComplexity*size
-			},
-			VerifiedProfiles: func(childComplexity int, _ *string, limit *int, _ *int) int {
 				size := clamp(limit)
 				return 1 + childComplexity*size
 			},

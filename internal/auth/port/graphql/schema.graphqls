@@ -1,4 +1,4 @@
-# internal/graph/auth.graphqls
+# internal/auth/port/graphql/schema.graphqls
 
 enum Role {
   user

@@ -1,4 +1,4 @@
-# internal/graph/profile.graphqls
+# internal/profile/port/graphql/schema.graphqls
 
 enum UserType {
   host
@@ -78,9 +78,7 @@ type Profile {
   rating: Float!
   reviewsCount: Int!
   trustScore: Float!
-  
-  # RESOLVER NEEDED: This converts the simple []Badge list into detailed objects
-  badges: [BadgeDetails!]! 
+  badges: [BadgeDetails!]!
 
   createdAt: Time!
   updatedAt: Time!
@@ -125,8 +123,6 @@ extend type Query {
   # Public listings of profiles with pagination
   profiles(limit: Int, offset: Int): [Profile!]!
   searchProfiles(query: String!, limit: Int, offset: Int): [Profile!]!
-  profilesByUserType(userType: UserType!, limit: Int, offset: Int): [Profile!]!
-  verifiedProfiles(level: String, limit: Int, offset: Int): [Profile!]!
   # Convenience: current viewer's profile
   myProfile: Profile
 }
@@ -134,8 +130,4 @@ extend type Query {
 extend type Mutation {
   # Update current user's profile
   updateProfile(input: UpdateProfileInput!): Profile!
-  
-  # Admin/System actions
-  addBadge(userId: String!, badge: Badge!): Profile!
-  removeBadge(userId: String!, badge: Badge!): Profile!
 }

@@ -3,6 +3,8 @@
 # 1. Schema Location
 schema:
   - internal/graph/*.graphqls
+  - internal/auth/port/graphql/*.graphqls
+  - internal/profile/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
 exec:

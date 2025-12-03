@@ -36,7 +36,7 @@ func (s *AuthServiceImpl) SendWelcomeEmail(ctx context.Context, emailAddr, name 
 		preview = "Thanks for joining Hauslet!"
 	}
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"Name":    name,
 		"OTP":     otpCode,
 		"SendOTP": sendOTP, // This controls the {{if}} block in the HTML

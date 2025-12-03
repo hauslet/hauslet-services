@@ -8,6 +8,11 @@ package graph
 import (
 	"context"
 	"fmt"
+	domain1 "hauslet/internal/auth/domain"
+	"hauslet/internal/graph/model"
+	"hauslet/internal/profile/domain"
+
+	"github.com/google/uuid"
 )
 
 // Ping is the resolver for the ping field.
@@ -15,16 +20,60 @@ func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
 	panic(fmt.Errorf("not implemented: Ping - ping"))
 }
 
+// UpdateProfile is the resolver for the updateProfile field.
+func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain.Profile, error) {
+	return r.ProfileResolver.UpdateProfile(ctx, input)
+}
+
+// Badges is the resolver for the badges field.
+func (r *profileResolver) Badges(ctx context.Context, obj *domain.Profile) ([]*domain.BadgeDetails, error) {
+	panic(fmt.Errorf("not implemented: Badges - badges"))
+}
+
 // Version is the resolver for the version field.
 func (r *queryResolver) Version(ctx context.Context) (string, error) {
 	panic(fmt.Errorf("not implemented: Version - version"))
 }
 
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*domain1.User, error) {
+	return r.AuthResolver.Me(ctx)
+}
+
+// Profile is the resolver for the profile field.
+func (r *queryResolver) Profile(ctx context.Context, id uuid.UUID) (*domain.Profile, error) {
+	return r.ProfileResolver.Profile(ctx, id)
+}
+
+// ProfileByUserID is the resolver for the profileByUserId field.
+func (r *queryResolver) ProfileByUserID(ctx context.Context, userID string) (*domain.Profile, error) {
+	return r.ProfileResolver.ProfileByUserID(ctx, userID)
+}
+
+// Profiles is the resolver for the profiles field.
+func (r *queryResolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*domain.Profile, error) {
+	return r.ProfileResolver.Profiles(ctx, limit, offset)
+}
+
+// SearchProfiles is the resolver for the searchProfiles field.
+func (r *queryResolver) SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain.Profile, error) {
+	return r.ProfileResolver.SearchProfiles(ctx, query, limit, offset)
+}
+
+// MyProfile is the resolver for the myProfile field.
+func (r *queryResolver) MyProfile(ctx context.Context) (*domain.Profile, error) {
+	return r.ProfileResolver.MyProfile(ctx)
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
+// Profile returns ProfileResolver implementation.
+func (r *Resolver) Profile() ProfileResolver { return &profileResolver{r} }
 
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
+type profileResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

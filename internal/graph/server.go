@@ -4,6 +4,7 @@ import (
 	"hauslet/config"
 	"hauslet/internal/auth/service"
 	"hauslet/internal/graph/loaders"
+	"hauslet/internal/graph/viewer"
 	profileservice "hauslet/internal/profile/service"
 
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -24,10 +25,7 @@ func SetupGraphQL(r chi.Router,
 
 	srv := handler.New(
 		NewExecutableSchema(Config{
-			Resolvers: &Resolver{
-				AuthService:    authService,
-				ProfileService: profileService,
-			},
+			Resolvers:  NewResolver(authService, profileService),
 			Complexity: NewComplexityRoot(defaultMaxListLimit),
 		}),
 	)
@@ -55,7 +53,7 @@ func SetupGraphQL(r chi.Router,
 		// Optional: Middleware to extract User from JWT and put in Context
 		r.Use(authMiddleware.Trace)
 		// Capture viewer info for resolvers (optional auth).
-		r.Use(WithViewerContext)
+		r.Use(viewer.WithContext)
 		// DataLoaders to batch profile fetches.
 		r.Use(loaders.Middleware(profileService))
 

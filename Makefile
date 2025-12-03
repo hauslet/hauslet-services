@@ -57,3 +57,7 @@ scaffold:
 	@if [ -z "$(MODULE)" ]; then echo "MODULE is required, e.g. make scaffold MODULE=booking"; exit 1; fi
 	@mkdir -p internal/$(MODULE)/service internal/$(MODULE)/repository/schema internal/$(MODULE)/domain internal/$(MODULE)/docs internal/$(MODULE)/templates
 	@echo "Scaffolded internal/$(MODULE) with service, repository/schema, domain, docs, templates"
+
+.PHONY: gql-gen
+gql-gen:
+	$(GO) tool gqlgen generate

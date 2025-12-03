@@ -65,7 +65,7 @@ func (s *AuthServiceImpl) DeactivateUser(ctx context.Context, userID string) err
 	if err != nil {
 		return err
 	}
-	if user.Role == domain.RoleRoot {
+	if user.Role == domain.RoleRoot || user.Role == domain.RoleAdmin {
 		return errors.New("cannot deactivate root user")
 	}
 
@@ -88,3 +88,5 @@ func (s *AuthServiceImpl) ListUsers(ctx context.Context, limit, offset int) ([]d
 	}
 	return domain.MapUsersFromSchema(schemaUsers), nil
 }
+
+

@@ -6,12 +6,21 @@ package graph
 // here.
 
 import (
+	authgraphql "hauslet/internal/auth/port/graphql"
 	authservice "hauslet/internal/auth/service"
+	profilegraphql "hauslet/internal/profile/port/graphql"
 	profileservice "hauslet/internal/profile/service"
 )
 
-// Resolver wires services into GraphQL resolvers.
+// Resolver wires domain-specific resolvers into gqlgen.
 type Resolver struct {
-	AuthService    authservice.AuthService
-	ProfileService profileservice.ProfileService
+	AuthResolver    *authgraphql.Resolver
+	ProfileResolver *profilegraphql.Resolver
+}
+
+func NewResolver(authSvc authservice.AuthService, profileSvc profileservice.ProfileService) *Resolver {
+	return &Resolver{
+		AuthResolver:    authgraphql.NewResolver(authSvc),
+		ProfileResolver: profilegraphql.NewResolver(profileSvc),
+	}
 }

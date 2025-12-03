@@ -1,4 +1,4 @@
-package graph
+package viewer
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/go-pkgz/auth/token"
 )
 
-type viewerContextKey struct{}
+type contextKey struct{}
 
 // Viewer represents the authenticated user making the GraphQL request.
 type Viewer struct {
@@ -15,10 +15,10 @@ type Viewer struct {
 	Role   string
 }
 
-// WithViewerContext captures token.User (if present) and exposes a lightweight viewer
+// WithContext captures token.User (if present) and exposes a lightweight viewer
 // in the request context for downstream resolvers. Safe for public routes as it
 // simply skips when no auth token is provided.
-func WithViewerContext(next http.Handler) http.Handler {
+func WithContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, err := token.GetUserInfo(r)
 		if err == nil {
@@ -31,19 +31,19 @@ func WithViewerContext(next http.Handler) http.Handler {
 			if role == "" {
 				role = user.StrAttr("role")
 			}
-			viewer := &Viewer{
+			v := &Viewer{
 				UserID: userID,
 				Role:   role,
 			}
-			ctx := context.WithValue(r.Context(), viewerContextKey{}, viewer)
+			ctx := context.WithValue(r.Context(), contextKey{}, v)
 			r = r.WithContext(ctx)
 		}
 		next.ServeHTTP(w, r)
 	})
 }
 
-// viewerFromContext extracts the viewer info if present.
-func viewerFromContext(ctx context.Context) *Viewer {
-	viewer, _ := ctx.Value(viewerContextKey{}).(*Viewer)
+// FromContext extracts the viewer info if present.
+func FromContext(ctx context.Context) *Viewer {
+	viewer, _ := ctx.Value(contextKey{}).(*Viewer)
 	return viewer
 }

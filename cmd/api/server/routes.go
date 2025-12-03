@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"hauslet/config"
-	"hauslet/internal/auth/port"
+	authhttp "hauslet/internal/auth/port/http"
 	authrepository "hauslet/internal/auth/repository"
 	"hauslet/internal/auth/service"
 	authsession "hauslet/internal/auth/session"
@@ -11,7 +11,7 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
-	profileport "hauslet/internal/profile/port"
+	profileport "hauslet/internal/profile/port/hooks"
 	profilerepository "hauslet/internal/profile/repository"
 	profileservice "hauslet/internal/profile/service"
 
@@ -39,7 +39,7 @@ func setupRoutes(r chi.Router,
 	authService := service.NewAuthService(&cfg.Auth,
 		authRepo, log, mC, *rds, q, cfg.YAML.Queue.Subjects["email"], profileHooks)
 	// Initialize auth HTTP handler with context
-	authHTTP := port.NewHTTPHandler(ctx, authService, log)
+	authHTTP := authhttp.NewHTTPHandler(ctx, authService, log)
 
 	// Setup auth routes with optional rate limiting in production
 	if cfg.App.Env == "production" {

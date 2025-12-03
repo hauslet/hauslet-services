@@ -14,7 +14,7 @@ type ProfileService interface {
 	GetProfileByUserID(ctx context.Context, userID string) (*domain.Profile, error)
 	GetProfileByID(ctx context.Context, id string) (*domain.Profile, error)
 	UpdateProfile(ctx context.Context, profile domain.Profile) (*domain.Profile, error)
-	PatchProfile(ctx context.Context, id string, updates map[string]interface{}) (*domain.Profile, error)
+	PatchProfile(ctx context.Context, id string, updates map[string]any) (*domain.Profile, error)
 	DeleteProfile(ctx context.Context, userID string) error // Soft delete
 
 	// Discovery
