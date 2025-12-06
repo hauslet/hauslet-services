@@ -29,13 +29,13 @@ func NewHTTPServer(
 
 	// Middleware setup
 	// Heartbeat must be first to intercept before any other middleware
-	r.Use(chimiddleware.Heartbeat("/ping"))
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(chimiddleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.CleanPath)
 	r.Use(securitymiddleware.CORSMiddleware(&cfg.App))
+	r.Use(chimiddleware.Heartbeat("/ping"))
 	if cfg.App.Env == "production" {
 		r.Use(securitymiddleware.SecurityHeaders)
 	}

@@ -8,62 +8,166 @@ package graph
 import (
 	"context"
 	"fmt"
-	domain1 "hauslet/internal/auth/domain"
+	authDomain "hauslet/internal/auth/domain"
 	"hauslet/internal/graph/model"
-	"hauslet/internal/profile/domain"
+	domain1 "hauslet/internal/profile/domain"
+	"hauslet/internal/property/domain"
 
 	"github.com/google/uuid"
 )
 
-// Ping is the resolver for the ping field.
+// Property is the resolver for the property field.
+func (r *listingResolver) Property(ctx context.Context, obj *domain.Listing) (*domain.Property, error) {
+	return r.PropertyResolver.ListingProperty(ctx, obj)
+}
+
+// Mutation resolvers.
 func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
-	panic(fmt.Errorf("not implemented: Ping - ping"))
+	return "pong", nil
 }
 
 // UpdateProfile is the resolver for the updateProfile field.
-func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain.Profile, error) {
+func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain1.Profile, error) {
 	return r.ProfileResolver.UpdateProfile(ctx, input)
 }
 
-// Badges is the resolver for the badges field.
-func (r *profileResolver) Badges(ctx context.Context, obj *domain.Profile) ([]*domain.BadgeDetails, error) {
-	panic(fmt.Errorf("not implemented: Badges - badges"))
+// CreateListing is the resolver for the createListing field.
+func (r *mutationResolver) CreateListing(ctx context.Context, input model.CreateListingInput) (*domain.Listing, error) {
+	return r.PropertyResolver.CreateListing(ctx, input)
 }
 
-// Version is the resolver for the version field.
-func (r *queryResolver) Version(ctx context.Context) (string, error) {
-	panic(fmt.Errorf("not implemented: Version - version"))
+// UpdateListing is the resolver for the updateListing field.
+func (r *mutationResolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.UpdateListingInput) (*domain.Listing, error) {
+	return r.PropertyResolver.UpdateListing(ctx, id, input)
 }
 
-// Me is the resolver for the me field.
-func (r *queryResolver) Me(ctx context.Context) (*domain1.User, error) {
+// DeleteListing is the resolver for the deleteListing field.
+func (r *mutationResolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error) {
+	return r.PropertyResolver.DeleteListing(ctx, id, hard)
+}
+
+// PublishListing is the resolver for the publishListing field.
+func (r *mutationResolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
+	return r.PropertyResolver.PublishListing(ctx, id)
+}
+
+// UnpublishListing is the resolver for the unpublishListing field.
+func (r *mutationResolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
+	return r.PropertyResolver.UnpublishListing(ctx, id)
+}
+
+// AddListingMedia is the resolver for the addListingMedia field.
+func (r *mutationResolver) AddListingMedia(ctx context.Context, listingID uuid.UUID, media []*model.MediaInput) ([]*domain.ListingMedia, error) {
+	return r.PropertyResolver.AddListingMedia(ctx, listingID, media)
+}
+
+// DeleteListingMedia is the resolver for the deleteListingMedia field.
+func (r *mutationResolver) DeleteListingMedia(ctx context.Context, listingID uuid.UUID, mediaIds []uuid.UUID) (bool, error) {
+	return r.PropertyResolver.DeleteListingMedia(ctx, listingID, mediaIds)
+}
+
+// Profile field resolvers.
+func (r *profileResolver) Badges(ctx context.Context, obj *domain1.Profile) ([]*domain1.BadgeDetails, error) {
+	return r.ProfileResolver.Badges(ctx, obj)
+}
+
+// Property field resolvers.
+func (r *propertyResolver) Listings(ctx context.Context, obj *domain.Property, first *int, after *string) (*model.ListingConnection, error) {
+	return r.PropertyResolver.PropertyListings(ctx, obj, first, after)
+}
+
+// Query resolvers.
+func (r *queryResolver) Me(ctx context.Context) (*authDomain.User, error) {
 	return r.AuthResolver.Me(ctx)
 }
 
 // Profile is the resolver for the profile field.
-func (r *queryResolver) Profile(ctx context.Context, id uuid.UUID) (*domain.Profile, error) {
+func (r *queryResolver) Profile(ctx context.Context, id uuid.UUID) (*domain1.Profile, error) {
 	return r.ProfileResolver.Profile(ctx, id)
 }
 
 // ProfileByUserID is the resolver for the profileByUserId field.
-func (r *queryResolver) ProfileByUserID(ctx context.Context, userID string) (*domain.Profile, error) {
+func (r *queryResolver) ProfileByUserID(ctx context.Context, userID string) (*domain1.Profile, error) {
 	return r.ProfileResolver.ProfileByUserID(ctx, userID)
 }
 
 // Profiles is the resolver for the profiles field.
-func (r *queryResolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*domain.Profile, error) {
+func (r *queryResolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*domain1.Profile, error) {
 	return r.ProfileResolver.Profiles(ctx, limit, offset)
 }
 
 // SearchProfiles is the resolver for the searchProfiles field.
-func (r *queryResolver) SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain.Profile, error) {
+func (r *queryResolver) SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain1.Profile, error) {
 	return r.ProfileResolver.SearchProfiles(ctx, query, limit, offset)
 }
 
 // MyProfile is the resolver for the myProfile field.
-func (r *queryResolver) MyProfile(ctx context.Context) (*domain.Profile, error) {
+func (r *queryResolver) MyProfile(ctx context.Context) (*domain1.Profile, error) {
 	return r.ProfileResolver.MyProfile(ctx)
 }
+
+// PropertyByPublicID is the resolver for the propertyByPublicId field.
+func (r *queryResolver) PropertyByPublicID(ctx context.Context, publicID string) (*domain.Property, error) {
+	panic(fmt.Errorf("not implemented: PropertyByPublicID - propertyByPublicId"))
+}
+
+// Listing is the resolver for the listing field.
+func (r *queryResolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
+	return r.PropertyResolver.Listing(ctx, id)
+}
+
+// ListingBySlug is the resolver for the listingBySlug field.
+func (r *queryResolver) ListingBySlug(ctx context.Context, slug string) (*domain.Listing, error) {
+	return r.PropertyResolver.ListingBySlug(ctx, slug)
+}
+
+// Listings is the resolver for the listings field.
+func (r *queryResolver) Listings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
+	return r.PropertyResolver.Listings(ctx, filter, first, after)
+}
+
+// ListingsByProperty is the resolver for the listingsByProperty field.
+func (r *queryResolver) ListingsByProperty(ctx context.Context, propertyID uuid.UUID, first *int, after *string) (*model.ListingConnection, error) {
+	return r.PropertyResolver.ListingsByProperty(ctx, propertyID, first, after)
+}
+
+// MyListings is the resolver for the myListings field.
+func (r *queryResolver) MyListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
+	return r.PropertyResolver.MyListings(ctx, filter, first, after)
+}
+
+// ListingCompleteness is the resolver for the listingCompleteness field.
+func (r *queryResolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain.ListingCompleteness, error) {
+	return r.PropertyResolver.ListingCompleteness(ctx, listingID)
+}
+
+// ListingsNearPoint is the resolver for the listingsNearPoint field.
+func (r *queryResolver) ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error) {
+	return r.PropertyResolver.ListingsNearPoint(ctx, lat, lng, radiusMeters, filter, limit)
+}
+
+// SearchListings is the resolver for the searchListings field.
+func (r *queryResolver) SearchListings(ctx context.Context, query string, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error) {
+	return r.PropertyResolver.SearchListings(ctx, query, filter, limit)
+}
+
+// SimilarListings is the resolver for the similarListings field.
+func (r *queryResolver) SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error) {
+	return r.PropertyResolver.SimilarListings(ctx, listingID, limit, minSimilarity)
+}
+
+// Detail field resolvers.
+func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain.RentalDetail) ([]*domain.ServiceCharge, error) {
+	return r.PropertyResolver.RentalDetailServiceCharges(ctx, obj)
+}
+
+// ServiceCharges is the resolver for the serviceCharges field.
+func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain.SaleDetail) ([]*domain.ServiceCharge, error) {
+	return r.PropertyResolver.SaleDetailServiceCharges(ctx, obj)
+}
+
+// Listing returns ListingResolver implementation.
+func (r *Resolver) Listing() ListingResolver { return &listingResolver{r} }
 
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
@@ -71,9 +175,22 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 // Profile returns ProfileResolver implementation.
 func (r *Resolver) Profile() ProfileResolver { return &profileResolver{r} }
 
+// Property returns PropertyResolver implementation.
+func (r *Resolver) Property() PropertyResolver { return &propertyResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// RentalDetail returns RentalDetailResolver implementation.
+func (r *Resolver) RentalDetail() RentalDetailResolver { return &rentalDetailResolver{r} }
+
+// SaleDetail returns SaleDetailResolver implementation.
+func (r *Resolver) SaleDetail() SaleDetailResolver { return &saleDetailResolver{r} }
+
+type listingResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
+type propertyResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type rentalDetailResolver struct{ *Resolver }
+type saleDetailResolver struct{ *Resolver }

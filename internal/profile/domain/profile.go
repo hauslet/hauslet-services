@@ -58,6 +58,11 @@ type Profile struct {
 	Badges       []Badge
 	TrustScore   float64
 
+	// Privacy & Preferences
+	BioVisible                 bool
+	AllowPersonalizedOffers    bool
+	EnablePerformanceAnalytics bool
+
 	// Metadata
 	CreatedAt time.Time
 	UpdatedAt time.Time

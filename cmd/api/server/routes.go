@@ -14,6 +14,8 @@ import (
 	profileport "hauslet/internal/profile/port/hooks"
 	profilerepository "hauslet/internal/profile/repository"
 	profileservice "hauslet/internal/profile/service"
+	propertyrepository "hauslet/internal/property/repository"
+	propertyservice "hauslet/internal/property/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-pkgz/lgr"
@@ -36,6 +38,10 @@ func setupRoutes(r chi.Router,
 	profileService := profileservice.NewProfileService(profileRepo)
 	profileHooks := profileport.NewAuthHooksAdapter(profileService)
 
+	// Initialize property service
+	propertyRepo := propertyrepository.NewPropertyRepository(db)
+	propertyService := propertyservice.NewPropertyService(propertyRepo)
+
 	authService := service.NewAuthService(&cfg.Auth,
 		authRepo, log, mC, *rds, q, cfg.YAML.Queue.Subjects["email"], profileHooks)
 	// Initialize auth HTTP handler with context
@@ -49,5 +55,5 @@ func setupRoutes(r chi.Router,
 	}
 
 	// Setup GraphQL routes
-	graph.SetupGraphQL(r, authService, profileService, &cfg.App, log)
+	graph.SetupGraphQL(r, authService, profileService, propertyService, &cfg.App, log)
 }

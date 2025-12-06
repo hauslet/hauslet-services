@@ -4,6 +4,9 @@ APP_NAME := hauslet
 GO       := go
 BIN_DIR  := bin
 
+
+
+
 .PHONY: help
 help:
 	@echo "Usage:"
@@ -15,6 +18,7 @@ help:
 	@echo "  make compose-up    # docker-compose up -d"
 	@echo "  make compose-down  # docker-compose down"
 	@echo "  make scaffold MODULE=name # Scaffold internal/MODULE structure"
+	@echo "  make migrate       # Run database migrations (export DATABASE_URL first)"
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -61,3 +65,10 @@ scaffold:
 .PHONY: gql-gen
 gql-gen:
 	$(GO) tool gqlgen generate
+
+.PHONY: migrate
+migrate :
+	@if [ -z "$(DATABASE_URL)" ]; then echo "DATABASE_URL is required, e.g. export DATABASE_URL=postgres://user:pass@localhost:5432/dbname?sslmode=disable"; exit 1; fi
+	goose -dir db/migrations postgres "$(DATABASE_URL)" up
+
+	

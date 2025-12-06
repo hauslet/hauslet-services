@@ -8,6 +8,7 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrUserAlreadyExists  = errors.New("user with this email already exists")
 	ErrUserDeactivated    = errors.New("user account is deactivated")
+	ErrUserSuspended      = errors.New("user account is suspended or banned")
 	ErrInvalidToken       = errors.New("invalid or expired token")
 	ErrSessionNotFound    = errors.New("session not found")
 	ErrSessionExpired     = errors.New("session has expired")

@@ -6,11 +6,40 @@ import (
 	"strings"
 	"time"
 
+	"hauslet/internal/auth/domain"
 	"hauslet/internal/auth/repository/schema"
 
 	"github.com/go-pkgz/auth/token"
 	"github.com/google/uuid"
 )
+
+// ensureActiveOnLogin reactivates a user if allowed or records last login time.
+// It returns a fresh copy of the user so callers have up-to-date activation fields.
+func ensureActiveOnLogin(ctx context.Context, repo Dependencies, user *schema.User) (*schema.User, error) {
+	if user == nil {
+		return nil, domain.ErrUserNotFound
+	}
+
+	if user.IsActive {
+		_ = repo.Repository.UpdateUserLastLogin(ctx, user.ID.String())
+		return user, nil
+	}
+
+	if !user.ReactivateOnLogin {
+		return nil, domain.ErrUserSuspended
+	}
+
+	if err := repo.Repository.ReactivateUser(ctx, user.ID.String(), user.ID.String(), true); err != nil {
+		return nil, fmt.Errorf("failed to reactivate user: %w", err)
+	}
+
+	refreshed, err := repo.Repository.GetUserByID(ctx, user.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to reload user after reactivation: %w", err)
+	}
+
+	return refreshed, nil
+}
 
 func handleOAuthFlow(ctx context.Context, deps Dependencies, claims token.Claims, provider, providerUserID, email, name string, isLinking bool, linkState *LinkState) (*schema.User, error) {
 	if isLinking && linkState != nil {
@@ -62,7 +91,8 @@ func handleOAuthFlow(ctx context.Context, deps Dependencies, claims token.Claims
 		_ = deps.Repository.UpdateUserIdentity(ctx, identity)
 
 		deps.Log.Logf("INFO OAuth: Existing user %s (ID: %s) logged in via %s", maskEmail(user.PrimaryEmail), user.ID, provider)
-		return user, nil
+
+		return ensureActiveOnLogin(ctx, deps, user)
 	}
 
 	user, err := deps.Repository.GetUserByEmail(ctx, email)
@@ -112,7 +142,7 @@ func handleOAuthFlow(ctx context.Context, deps Dependencies, claims token.Claims
 			}(user.PrimaryEmail, user.Name)
 		}
 
-		return user, nil
+		return ensureActiveOnLogin(ctx, deps, user)
 	}
 
 	// AUTO-LINK: user exists with this email but provider not yet linked
@@ -140,5 +170,5 @@ func handleOAuthFlow(ctx context.Context, deps Dependencies, claims token.Claims
 		}(user.PrimaryEmail, user.Name, provider)
 	}
 
-	return user, nil
+	return ensureActiveOnLogin(ctx, deps, user)
 }

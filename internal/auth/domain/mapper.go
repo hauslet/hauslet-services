@@ -12,13 +12,19 @@ func MapUserFromSchema(schemaUser *schema.User) *User {
 	}
 
 	user := &User{
-		ID:           schemaUser.ID,
-		Name:         schemaUser.Name,
-		PrimaryEmail: schemaUser.PrimaryEmail,
-		Role:         UserRole(schemaUser.Role),
-		IsActive:     schemaUser.IsActive,
-		CreatedAt:    schemaUser.CreatedAt,
-		UpdatedAt:    schemaUser.UpdatedAt,
+		ID:                schemaUser.ID,
+		Name:              schemaUser.Name,
+		PrimaryEmail:      schemaUser.PrimaryEmail,
+		Role:              UserRole(schemaUser.Role),
+		IsActive:          schemaUser.IsActive,
+		DeactivatedAt:     schemaUser.DeactivatedAt,
+		DeactivatedReason: schemaUser.DeactivatedReason,
+		DeactivatedBy:     schemaUser.DeactivatedBy,
+		ReactivateOnLogin: schemaUser.ReactivateOnLogin,
+		ReactivatedAt:     schemaUser.ReactivatedAt,
+		ReactivatedBy:     schemaUser.ReactivatedBy,
+		CreatedAt:         schemaUser.CreatedAt,
+		UpdatedAt:         schemaUser.UpdatedAt,
 	}
 
 	// Handle optional LastLoginAt
@@ -43,13 +49,19 @@ func MapUserToSchema(domainUser *User) *schema.User {
 	}
 
 	schemaUser := &schema.User{
-		ID:           domainUser.ID,
-		Name:         domainUser.Name,
-		PrimaryEmail: domainUser.PrimaryEmail,
-		Role:         schema.UserRole(domainUser.Role),
-		IsActive:     domainUser.IsActive,
-		CreatedAt:    domainUser.CreatedAt,
-		UpdatedAt:    domainUser.UpdatedAt,
+		ID:                domainUser.ID,
+		Name:              domainUser.Name,
+		PrimaryEmail:      domainUser.PrimaryEmail,
+		Role:              schema.UserRole(domainUser.Role),
+		IsActive:          domainUser.IsActive,
+		DeactivatedAt:     domainUser.DeactivatedAt,
+		DeactivatedReason: domainUser.DeactivatedReason,
+		DeactivatedBy:     domainUser.DeactivatedBy,
+		ReactivateOnLogin: domainUser.ReactivateOnLogin,
+		ReactivatedAt:     domainUser.ReactivatedAt,
+		ReactivatedBy:     domainUser.ReactivatedBy,
+		CreatedAt:         domainUser.CreatedAt,
+		UpdatedAt:         domainUser.UpdatedAt,
 	}
 
 	// Handle optional LastLoginAt

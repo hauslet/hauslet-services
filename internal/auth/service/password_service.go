@@ -31,7 +31,10 @@ func (s *AuthServiceImpl) LinkPasswordIdentity(ctx context.Context, userID, emai
 		return nil, domain.ErrUserNotFound
 	}
 	if !user.IsActive {
-		return nil, domain.ErrUserDeactivated
+		if user.ReactivateOnLogin {
+			return nil, domain.ErrUserDeactivated
+		}
+		return nil, domain.ErrUserSuspended
 	}
 	if user.PrimaryEmail != email {
 		return nil, fmt.Errorf("email must match user's primary email")
@@ -129,8 +132,13 @@ func (s *AuthServiceImpl) AuthenticatePassword(ctx context.Context, email, passw
 	if user == nil {
 		return nil, errors.New("invalid email or password")
 	}
+
+	needsReactivation := false
 	if !user.IsActive {
-		return nil, errors.New("user account is deactivated")
+		if !user.ReactivateOnLogin {
+			return nil, domain.ErrUserSuspended
+		}
+		needsReactivation = true
 	}
 
 	identities, err := s.repository.ListUserIdentitiesByUserID(ctx, user.ID.String())
@@ -158,7 +166,21 @@ func (s *AuthServiceImpl) AuthenticatePassword(ctx context.Context, email, passw
 		return nil, errors.New("please verify your email before logging in")
 	}
 
-	_ = s.repository.UpdateUserLastLogin(ctx, user.ID.String())
+	if needsReactivation {
+		if err := s.repository.ReactivateUser(ctx, user.ID.String(), user.ID.String(), true); err != nil {
+			return nil, fmt.Errorf("failed to reactivate user: %w", err)
+		}
+		// Refresh the user to return up-to-date activation fields
+		user, err = s.repository.GetUserByID(ctx, user.ID.String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to reload user after reactivation: %w", err)
+		}
+		if user == nil {
+			return nil, domain.ErrUserNotFound
+		}
+	} else {
+		_ = s.repository.UpdateUserLastLogin(ctx, user.ID.String())
+	}
 
 	return domain.MapUserFromSchema(user), nil
 }

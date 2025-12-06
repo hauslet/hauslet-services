@@ -10,35 +10,40 @@ import (
 	"hauslet/internal/profile/domain"
 	profileservice "hauslet/internal/profile/service"
 
+	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
 // Resolver handles profile-specific GraphQL fields.
 type Resolver struct {
 	profileService profileservice.ProfileService
+	log            *lgr.Logger
 }
 
-func NewResolver(profileService profileservice.ProfileService) *Resolver {
-	return &Resolver{profileService: profileService}
+func NewResolver(profileService profileservice.ProfileService, log *lgr.Logger) *Resolver {
+	return &Resolver{profileService: profileService, log: log}
 }
 
 // UpdateProfile is the resolver for the updateProfile field.
 func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain.Profile, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
+		r.log.Logf("WARN Unauthenticated attempt to update profile")
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	// Load current profile for the authenticated user
 	profile, err := r.profileService.GetProfileByUserID(ctx, v.UserID)
 	if err != nil {
+		r.log.Logf("ERROR Failed to get profile for user %s: %v", v.UserID, err)
 		return nil, err
 	}
 	if profile == nil {
+		r.log.Logf("WARN Profile not found for user %s", v.UserID)
 		return nil, fmt.Errorf("profile not found")
 	}
 
-	updates := make(map[string]interface{})
+	updates := make(map[string]any)
 	if input.FullName != nil {
 		updates["full_name"] = input.FullName
 	}
@@ -93,6 +98,15 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 	if input.CommunityCommitment != nil {
 		updates["community_commitment"] = *input.CommunityCommitment
 	}
+	if input.BioVisible != nil {
+		updates["bio_visible"] = *input.BioVisible
+	}
+	if input.AllowPersonalizedOffers != nil {
+		updates["allow_personalized_offers"] = *input.AllowPersonalizedOffers
+	}
+	if input.EnablePerformanceAnalytics != nil {
+		updates["enable_performance_analytics"] = *input.EnablePerformanceAnalytics
+	}
 
 	companionsProvided := input.TravelCompanions != nil
 	var companions []domain.TravelCompanion
@@ -116,12 +130,14 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 	if len(updates) > 0 {
 		updated, err = r.profileService.PatchProfile(ctx, profile.ID.String(), updates)
 		if err != nil {
+			r.log.Logf("ERROR Failed to patch profile for user %s: %v", v.UserID, err)
 			return nil, err
 		}
 	}
 
 	if companionsProvided {
 		if err := r.profileService.UpdateTravelCompanions(ctx, v.UserID, companions); err != nil {
+			r.log.Logf("ERROR Failed to update travel companions for user %s: %v", v.UserID, err)
 			return nil, err
 		}
 		if updated != nil {
@@ -129,6 +145,7 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 		}
 	}
 
+	r.log.Logf("INFO Profile updated successfully for user %s", v.UserID)
 	return sanitizeProfileForViewer(updated, v), nil
 }
 
@@ -136,6 +153,7 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 func (r *Resolver) Profile(ctx context.Context, id uuid.UUID) (*domain.Profile, error) {
 	p, err := r.profileService.GetProfileByID(ctx, id.String())
 	if err != nil {
+		r.log.Logf("ERROR Failed to get profile by ID %s: %v", id, err)
 		return nil, err
 	}
 	return sanitizeProfileForViewer(p, viewer.FromContext(ctx)), nil
@@ -151,6 +169,7 @@ func (r *Resolver) ProfileByUserID(ctx context.Context, userID string) (*domain.
 
 	p, err := r.profileService.GetProfileByUserID(ctx, userID)
 	if err != nil {
+		r.log.Logf("ERROR Failed to get profile by user ID %s: %v", userID, err)
 		return nil, err
 	}
 	return sanitizeProfileForViewer(p, viewer.FromContext(ctx)), nil
@@ -169,6 +188,7 @@ func (r *Resolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*do
 
 	profiles, err := r.profileService.ListProfiles(ctx, l, o)
 	if err != nil {
+		r.log.Logf("ERROR Failed to list profiles: %v", err)
 		return nil, err
 	}
 	return sanitizeProfilesForViewer(profiles, viewer.FromContext(ctx)), nil
@@ -187,6 +207,7 @@ func (r *Resolver) SearchProfiles(ctx context.Context, query string, limit *int,
 
 	profiles, err := r.profileService.SearchProfiles(ctx, query, l, o)
 	if err != nil {
+		r.log.Logf("ERROR Failed to search profiles with query '%s': %v", query, err)
 		return nil, err
 	}
 	return sanitizeProfilesForViewer(profiles, viewer.FromContext(ctx)), nil
@@ -196,11 +217,13 @@ func (r *Resolver) SearchProfiles(ctx context.Context, query string, limit *int,
 func (r *Resolver) MyProfile(ctx context.Context) (*domain.Profile, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
+		r.log.Logf("WARN Unauthenticated attempt to access myProfile")
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	profile, err := r.profileService.GetProfileByUserID(ctx, v.UserID)
 	if err != nil {
+		r.log.Logf("ERROR Failed to get profile for user %s: %v", v.UserID, err)
 		return nil, err
 	}
 
@@ -236,6 +259,9 @@ func sanitizeProfileForViewer(p *domain.Profile, v *viewer.Viewer) *domain.Profi
 	clone.Address = nil
 	clone.ZipCode = nil
 	clone.TravelCompanions = nil
+	clone.BioVisible = false
+	clone.AllowPersonalizedOffers = false
+	clone.EnablePerformanceAnalytics = false
 	return &clone
 }
 

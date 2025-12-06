@@ -9,6 +9,8 @@ import (
 	"hauslet/internal/auth/repository/schema"
 )
 
+const reasonUserSelfDeactivated = "user_self_deactivated"
+
 // User management
 
 func (s *AuthServiceImpl) GetUser(ctx context.Context, userID string) (*domain.User, error) {
@@ -69,8 +71,7 @@ func (s *AuthServiceImpl) DeactivateUser(ctx context.Context, userID string) err
 		return errors.New("cannot deactivate root user")
 	}
 
-	user.IsActive = false
-	if err := s.UpdateUser(ctx, user); err != nil {
+	if err := s.repository.DeactivateUser(ctx, userID, userID, reasonUserSelfDeactivated, true); err != nil {
 		return fmt.Errorf("failed to deactivate user: %w", err)
 	}
 
@@ -88,5 +89,3 @@ func (s *AuthServiceImpl) ListUsers(ctx context.Context, limit, offset int) ([]d
 	}
 	return domain.MapUsersFromSchema(schemaUsers), nil
 }
-
-

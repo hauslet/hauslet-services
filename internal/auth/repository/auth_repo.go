@@ -140,6 +140,100 @@ func (r *AuthRepositoryImpl) UpdateUser(ctx context.Context, user *schema.User) 
 		Updates(user).Error
 }
 
+// DeactivateUser marks a user as inactive with metadata and optional auto-reactivation
+func (r *AuthRepositoryImpl) DeactivateUser(ctx context.Context, userID string, actorID string, reason string, reactivateOnLogin bool) error {
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("invalid user ID format")
+	}
+
+	now := time.Now()
+	var reasonPtr *string
+	if reason != "" {
+		reasonPtr = &reason
+	}
+
+	var actorPtr *uuid.UUID
+	if actorID != "" {
+		parsedActorID, err := uuid.Parse(actorID)
+		if err != nil {
+			return errors.New("invalid actor ID format")
+		}
+		actorPtr = &parsedActorID
+	}
+
+	updates := map[string]interface{}{
+		"is_active":           false,
+		"deactivated_at":      &now,
+		"deactivated_reason":  reasonPtr,
+		"deactivated_by":      actorPtr,
+		"reactivate_on_login": reactivateOnLogin,
+		"reactivated_at":      nil,
+		"reactivated_by":      nil,
+	}
+
+	result := r.db.WithContext(ctx).
+		Model(&schema.User{}).
+		Where("id = ?", parsedUserID).
+		Updates(updates)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+// ReactivateUser sets a user back to active and optionally updates last login
+func (r *AuthRepositoryImpl) ReactivateUser(ctx context.Context, userID string, actorID string, setLastLogin bool) error {
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("invalid user ID format")
+	}
+
+	var actorPtr *uuid.UUID
+	if actorID != "" {
+		parsedActorID, err := uuid.Parse(actorID)
+		if err != nil {
+			return errors.New("invalid actor ID format")
+		}
+		actorPtr = &parsedActorID
+	}
+
+	now := time.Now()
+	updates := map[string]interface{}{
+		"is_active":           true,
+		"deactivated_at":      nil,
+		"deactivated_reason":  nil,
+		"reactivate_on_login": false,
+		"reactivated_at":      &now,
+		"reactivated_by":      actorPtr,
+	}
+
+	if setLastLogin {
+		updates["last_login_at"] = &now
+	}
+
+	result := r.db.WithContext(ctx).
+		Model(&schema.User{}).
+		Where("id = ?", parsedUserID).
+		Updates(updates)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
 // DeleteUser soft deletes a user (sets DeletedAt)
 func (r *AuthRepositoryImpl) DeleteUser(ctx context.Context, id string) error {
 	userID, err := uuid.Parse(id)
@@ -438,6 +532,26 @@ func (r *AuthRepositoryImpl) GetOrCreateUserByEmail(ctx context.Context, email s
 	}
 
 	return user, true, nil
+}
+
+// HardDeleteUser permanently deletes a user and their identities from the database
+func (r *AuthRepositoryImpl) HardDeleteUser(ctx context.Context, id string) error {
+	userID, err := uuid.Parse(id)
+	if err != nil {
+		return errors.New("invalid user ID format")
+	}
+
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Where("user_id = ?", userID).Delete(&schema.UserIdentity{}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Unscoped().Where("id = ?", userID).Delete(&schema.User{}).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 // ============================================================================

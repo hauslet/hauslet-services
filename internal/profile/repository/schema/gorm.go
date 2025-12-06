@@ -19,8 +19,8 @@ type TravelCompanionProfile struct {
 
 type Profile struct {
 	// Primary Key
-	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	FullName  string    `gorm:"not null;index"`
+	ID        uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	FullName  string     `gorm:"not null;index"`
 	BirthDate *time.Time `gorm:"check:birth_date <= now() - interval '18 years'"`
 
 	// Foreign Key to Auth Module
@@ -62,6 +62,11 @@ type Profile struct {
 	ReviewsCount int            `gorm:"default:0"`
 	Badges       pq.StringArray `gorm:"type:text[]"`
 	TrustScore   float64        `gorm:"default:0"`
+
+	// Privacy & Preferences
+	BioVisible                 bool `gorm:"not null;default:false"`
+	AllowPersonalizedOffers    bool `gorm:"not null;default:false"`
+	EnablePerformanceAnalytics bool `gorm:"not null;default:false"`
 
 	// Timestamps
 	CreatedAt time.Time

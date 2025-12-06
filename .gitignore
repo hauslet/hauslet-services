@@ -5,6 +5,8 @@
 .claude
 # Config overrides (user-specific YAML configs)
 config/overrides/
+.cache/
+.gomodcache/
 
 # Binary outputs
 /bin/

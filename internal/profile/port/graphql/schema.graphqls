@@ -79,6 +79,9 @@ type Profile {
   reviewsCount: Int!
   trustScore: Float!
   badges: [BadgeDetails!]!
+  bioVisible: Boolean!
+  allowPersonalizedOffers: Boolean!
+  enablePerformanceAnalytics: Boolean!
 
   createdAt: Time!
   updatedAt: Time!
@@ -112,6 +115,9 @@ input UpdateProfileInput {
   funFact: String
   obsessedWith: String
   communityCommitment: Boolean
+  bioVisible: Boolean
+  allowPersonalizedOffers: Boolean
+  enablePerformanceAnalytics: Boolean
   travelCompanions: [TravelCompanionInput!]
 }
 

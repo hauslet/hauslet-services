@@ -1,0 +1,609 @@
+# internal/property/port/graphql/schema.graphqls
+
+# ===========================
+# ENUMS
+# ===========================
+
+enum CountryCode {
+  NG
+  GH
+}
+
+enum CurrencyCode {
+  NGN
+  GHS
+  USD
+  EUR
+}
+
+enum OwnerType {
+  landlord
+  agent
+  business
+  individual
+}
+
+enum PropertyClass {
+  residential
+  commercial
+}
+
+enum PropertyType {
+  apartment
+  flat
+  duplex
+  penthouse
+  studio
+  house
+  bungalow
+  detached_house
+  semi_detached
+  terraced
+  townhouse
+  villa
+  mansion
+  estate
+  office_space
+  retail_space
+  warehouse
+  industrial
+  mixed_use
+  event_space
+  co_working_space
+}
+
+enum PropertyCondition {
+  new
+  used
+  under_renovation
+  under_construction
+  renovated
+}
+
+enum FurnishingType {
+  furnished
+  unfurnished
+  semi_furnished
+}
+
+enum ListingType {
+  sale
+  rent
+  shortlet
+}
+
+enum ListingStatus {
+  active
+  inactive
+  pending_verification
+  sold
+  rented
+  archived
+  draft
+  suspended
+  under_review
+  requires_updates
+}
+
+enum ReviewStatus {
+  pending
+  approved
+  rejected
+  inconclusive
+}
+
+enum PaymentPeriod {
+  one_time
+  daily
+  weekly
+  monthly
+  quarterly
+  bi_annually
+  yearly
+}
+
+enum AccommodationType {
+  single_room
+  double_room
+  shared_room
+  entire_place
+}
+
+enum RuleCategory {
+  general
+  security
+  prohibited
+  pets
+  guests
+  noise
+  smoking
+  events
+}
+
+enum MediaType {
+  image
+  video
+  tour_360
+  document
+}
+
+# ===========================
+# CORE TYPES
+# ===========================
+
+type Location {
+  lat: Float!
+  lng: Float!
+  srid: Int!
+}
+
+type Property {
+  id: UUID!
+  publicId: String!
+  unitNumber: String!
+  address: String!
+  city: String!
+  state: String!
+  postalCode: String!
+  country: CountryCode!
+  location: Location
+
+  propertyClass: PropertyClass!
+  propertyType: PropertyType!
+  furnishingType: FurnishingType!
+  propertyCondition: PropertyCondition!
+
+  bedrooms: Int
+  bathrooms: Int
+  toilets: Int
+  halfBathrooms: Int
+  floors: Int
+  units: Int!
+
+  ownerId: UUID!
+  squareMeters: Float!
+  floorArea: Float
+
+  amenities: [String!]!
+  featuresCommercial: [String!]!
+
+  # Relationships
+  listings(first: Int, after: String): ListingConnection!
+
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type Listing {
+  id: UUID!
+  propertyId: UUID!
+  ownerId: UUID!
+  ownerType: OwnerType!
+
+  slug: String!
+  title: String!
+  description: String!
+  currency: CurrencyCode!
+
+  listingType: ListingType!
+  status: ListingStatus!
+
+  published: Boolean!
+  publishedAt: Time
+
+  latestReviewStatus: ReviewStatus!
+
+  viewCount: Int!
+  lastViewedAt: Time
+  featuredUntil: Time
+  boostLevel: Int!
+
+  createdBy: UUID
+  updatedBy: UUID
+  statusChangedAt: Time
+  changeReason: String
+
+  hasCalendar: Boolean!
+
+  shortletDetails: ShortletDetail
+  rentalDetails: RentalDetail
+  saleDetails: SaleDetail
+
+  # Relationships
+  property: Property!
+  media(first: Int): [ListingMedia!]!
+
+  createdAt: Time!
+  updatedAt: Time!
+  deletedAt: Time
+}
+
+type ListingMedia {
+  id: UUID!
+  listingId: UUID!
+  url: String!
+  type: MediaType!
+  group: String
+  caption: String
+  mimeType: String
+  sizeBytes: Int!
+  isPrimary: Boolean!
+  isGroupCover: Boolean!
+  order: Int!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type ShortletDetail {
+  nightlyRate: Float!
+  cautionFee: Float
+  cleaningFee: Float
+  serviceFee: Float
+  extraGuestFee: Float
+
+  minNights: Int!
+  maxNights: Int
+  maxGuests: Int!
+  baseGuestCount: Int
+
+  checkInTime: String
+  checkOutTime: String
+
+  accommodationType: AccommodationType!
+
+  calendarMonthsAhead: Int!
+  autoGenerateCalendar: Boolean!
+
+  rules: [RuleGroup!]!
+  amenitiesHighlights: [AmenityHighlight!]!
+}
+
+type RentalDetail {
+  rentalPrice: Float!
+  rentalPricePeriod: PaymentPeriod!
+
+  agencyFee: Float
+  legalFee: Float
+  registrationFee: Float
+  cautionFee: Float
+  serviceCharge: Float
+  serviceCharges: [ServiceCharge!]
+
+  minRentalPeriod: Int!
+  maxRentalPeriod: Int
+  rentalAvailabilityFrom: Time
+
+  rentalTerms: String
+  rentalRules: [RuleGroup!]!
+}
+
+type SaleDetail {
+  salePrice: Float!
+  ownershipTitle: String!
+  paymentPlan: Boolean!
+
+  yearBuilt: Int
+  yearRenovated: Int
+
+  agencyFee: Float
+  legalFee: Float
+  surveyFee: Float
+  titleProcessingFee: Float
+  developmentFee: Float
+  otherFees: Float
+  serviceCharge: Float
+  serviceCharges: [ServiceCharge!]
+
+  saleTerms: String
+  saleAvailabilityFrom: Time
+}
+
+type AmenityHighlight {
+  title: String!
+  summary: String!
+  icon: String!
+}
+
+type RuleGroup {
+  category: RuleCategory!
+  rules: [String!]!
+}
+
+type ServiceCharge {
+  name: String!
+  period: PaymentPeriod!
+  amount: Float!
+}
+
+type ListingCompleteness {
+  listingId: UUID!
+  hasBasicInfo: Boolean!
+  hasPropertyInfo: Boolean!
+  hasPricingInfo: Boolean!
+  hasImages: Boolean!
+  hasDescription: Boolean!
+  completionScore: Int!
+  readyToPublish: Boolean!
+  missingFields: [String!]!
+  recommendations: [String!]!
+  lastCalculatedAt: Time!
+}
+
+# ===========================
+# CONNECTION TYPES (Relay-style)
+# ===========================
+
+type ListingEdge {
+  node: Listing!
+  cursor: String!
+}
+
+type ListingConnection {
+  edges: [ListingEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+# ===========================
+# WRAPPER TYPES (Geospatial & Search)
+# ===========================
+
+type ListingWithDistance {
+  listing: Listing!
+  distanceMeters: Float!
+  score: Float
+}
+
+type ScoredListing {
+  listing: Listing!
+  score: Float!
+  ranking: Int!
+}
+
+# ===========================
+# INPUT TYPES
+# ===========================
+
+input LocationInput {
+  lat: Float!
+  lng: Float!
+}
+
+input CreateListingInput {
+  ownerType: OwnerType!
+  property: CreateListingPropertyInput!
+  title: String!
+  description: String!
+  currency: CurrencyCode
+  listingType: ListingType!
+
+  hasCalendar: Boolean
+
+  shortletDetails: ShortletDetailInput
+  rentalDetails: RentalDetailInput
+  saleDetails: SaleDetailInput
+}
+
+input UpdateListingInput {
+  property: UpdateListingPropertyInput
+  title: String
+  description: String
+  currency: CurrencyCode
+  ownerType: OwnerType
+
+  hasCalendar: Boolean
+
+  shortletDetails: ShortletDetailInput
+  rentalDetails: RentalDetailInput
+  saleDetails: SaleDetailInput
+}
+
+input ShortletDetailInput {
+  nightlyRate: Float!
+  cautionFee: Float
+  cleaningFee: Float
+  serviceFee: Float
+  extraGuestFee: Float
+
+  minNights: Int!
+  maxNights: Int
+  maxGuests: Int!
+  baseGuestCount: Int
+
+  checkInTime: String
+  checkOutTime: String
+
+  accommodationType: AccommodationType!
+
+  calendarMonthsAhead: Int
+  autoGenerateCalendar: Boolean
+
+  rules: [RuleGroupInput!]
+  amenitiesHighlights: [AmenityHighlightInput!]
+}
+
+input RentalDetailInput {
+  rentalPrice: Float!
+  rentalPricePeriod: PaymentPeriod!
+
+  agencyFee: Float
+  legalFee: Float
+  registrationFee: Float
+  cautionFee: Float
+  serviceCharge: Float
+  serviceCharges: [ServiceChargeInput!]
+
+  minRentalPeriod: Int!
+  maxRentalPeriod: Int
+  rentalAvailabilityFrom: Time
+
+  rentalTerms: String
+  rentalRules: [RuleGroupInput!]
+}
+
+input SaleDetailInput {
+  salePrice: Float!
+  ownershipTitle: String!
+  paymentPlan: Boolean
+
+  yearBuilt: Int
+  yearRenovated: Int
+
+  agencyFee: Float
+  legalFee: Float
+  surveyFee: Float
+  titleProcessingFee: Float
+  developmentFee: Float
+  otherFees: Float
+  serviceCharge: Float
+  serviceCharges: [ServiceChargeInput!]
+
+  saleTerms: String
+  saleAvailabilityFrom: Time
+}
+
+input AmenityHighlightInput {
+  title: String!
+  summary: String!
+  icon: String!
+}
+
+input RuleGroupInput {
+  category: RuleCategory!
+  rules: [String!]!
+}
+
+input ServiceChargeInput {
+  name: String!
+  period: PaymentPeriod!
+  amount: Float!
+}
+
+input MediaInput {
+  url: String!
+  type: MediaType!
+  group: String
+  caption: String
+  mimeType: String
+  sizeBytes: Int
+  isPrimary: Boolean
+  isGroupCover: Boolean
+  order: Int
+}
+
+input CreateListingPropertyInput {
+  unitNumber: String
+  address: String!
+  city: String!
+  state: String!
+  postalCode: String
+  country: CountryCode!
+  location: LocationInput
+
+  propertyClass: PropertyClass!
+  propertyType: PropertyType!
+  furnishingType: FurnishingType
+  propertyCondition: PropertyCondition
+
+  bedrooms: Int
+  bathrooms: Int
+  toilets: Int
+  halfBathrooms: Int
+  floors: Int
+  units: Int
+
+  squareMeters: Float
+  floorArea: Float
+
+  amenities: [String!]
+  featuresCommercial: [String!]
+}
+
+input UpdateListingPropertyInput {
+  unitNumber: String
+  address: String
+  city: String
+  state: String
+  postalCode: String
+  country: CountryCode
+  location: LocationInput
+
+  propertyClass: PropertyClass
+  propertyType: PropertyType
+  furnishingType: FurnishingType
+  propertyCondition: PropertyCondition
+
+  bedrooms: Int
+  bathrooms: Int
+  toilets: Int
+  halfBathrooms: Int
+  floors: Int
+  units: Int
+
+  squareMeters: Float
+  floorArea: Float
+
+  amenities: [String!]
+  featuresCommercial: [String!]
+}
+
+input ListingFilterInput {
+  ownerId: UUID
+  propertyId: UUID
+  ownerTypes: [OwnerType!]
+  listingTypes: [ListingType!]
+  statuses: [ListingStatus!]
+  reviewStatuses: [ReviewStatus!]
+  published: Boolean
+  hasCalendar: Boolean
+}
+
+# ===========================
+# QUERIES
+# ===========================
+
+extend type Query {
+  # Properties
+  propertyByPublicId(publicId: String!): Property
+
+  # Listings
+  listing(id: UUID!): Listing
+  listingBySlug(slug: String!): Listing
+  listings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
+  listingsByProperty(propertyId: UUID!, first: Int, after: String): ListingConnection!
+  myListings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
+  listingCompleteness(listingId: UUID!): ListingCompleteness
+
+  # Geospatial
+  listingsNearPoint(lat: Float!, lng: Float!, radiusMeters: Float!, filter: ListingFilterInput, limit: Int): [ListingWithDistance!]!
+
+  # Search
+  searchListings(query: String!, filter: ListingFilterInput, limit: Int): [ScoredListing!]!
+  similarListings(listingId: UUID!, limit: Int, minSimilarity: Float): [ScoredListing!]!
+}
+
+# ===========================
+# MUTATIONS
+# ===========================
+
+extend type Mutation {
+  # Listing lifecycle
+  createListing(input: CreateListingInput!): Listing!
+  updateListing(id: UUID!, input: UpdateListingInput!): Listing!
+  deleteListing(id: UUID!, hard: Boolean): Boolean!
+
+  # Publishing
+  publishListing(id: UUID!): Listing!
+  unpublishListing(id: UUID!): Listing!
+
+  # Media
+  addListingMedia(listingId: UUID!, media: [MediaInput!]!): [ListingMedia!]!
+  deleteListingMedia(listingId: UUID!, mediaIds: [UUID!]!): Boolean!
+}

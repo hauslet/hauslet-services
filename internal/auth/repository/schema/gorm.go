@@ -27,9 +27,16 @@ type User struct {
 	// Initially set from the first OAuth provider, but can be updated by user.
 	PrimaryEmail string `gorm:"column:primary_email;not null;uniqueIndex"`
 
-	Role       UserRole       `gorm:"column:role;type:varchar(50);not null;default:'user'"`
-	IsActive   bool           `gorm:"column:is_active;default:true"`
-	Identities []UserIdentity `gorm:"foreignKey:UserID"`
+	Role     UserRole `gorm:"column:role;type:varchar(50);not null;default:'user'"`
+	IsActive bool     `gorm:"column:is_active;default:true"`
+	// Deactivation metadata (used for user-initiated deactivation or admin suspension)
+	DeactivatedAt     *time.Time     `gorm:"column:deactivated_at"`
+	DeactivatedReason *string        `gorm:"column:deactivated_reason;type:text"`
+	DeactivatedBy     *uuid.UUID     `gorm:"column:deactivated_by;type:uuid"`
+	ReactivateOnLogin bool           `gorm:"column:reactivate_on_login;default:false"`
+	ReactivatedAt     *time.Time     `gorm:"column:reactivated_at"`
+	ReactivatedBy     *uuid.UUID     `gorm:"column:reactivated_by;type:uuid"`
+	Identities        []UserIdentity `gorm:"foreignKey:UserID"`
 
 	LastLoginAt *time.Time `gorm:"column:last_login_at"`
 	CreatedAt   time.Time

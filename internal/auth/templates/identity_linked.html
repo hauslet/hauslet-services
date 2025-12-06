@@ -1,108 +1,38 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Alert: New Login Method Added</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .container {
-            background-color: #ffffff;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .header {
-            background-color: #f59e0b;
-            color: white;
-            padding: 20px;
-            border-radius: 8px 8px 0 0;
-            margin: -30px -30px 20px -30px;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-        .alert-icon {
-            font-size: 48px;
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .content {
-            margin: 20px 0;
-        }
-        .provider-info {
-            background-color: #f3f4f6;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 15px 0;
-            border-left: 4px solid #f59e0b;
-        }
-        .provider-name {
-            font-weight: bold;
-            text-transform: capitalize;
-            color: #1f2937;
-        }
-        .timestamp {
-            color: #6b7280;
-            font-size: 14px;
-        }
-        .warning {
-            background-color: #fef3c7;
-            border: 1px solid #f59e0b;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px 0;
-        }
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 14px;
-            color: #6b7280;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="alert-icon">🔐</div>
-            <h1>Security Alert</h1>
-        </div>
+{{define "content"}}
+<div style="padding: 0 20px;">
 
-        <div class="content">
-            <p>Hi {{.Name}},</p>
+    <h1 style="font-size: 28px; font-weight: 700; margin: 48px 0 16px; text-align: center; color: #111827;">
+        Security Alert: New Login Method Added
+    </h1>
 
-            <p>A new login method has been successfully added to your Hauslet account.</p>
+    <p style="font-size: 16px; line-height: 26px; color: #111827; margin: 0 0 12px 0;">
+        Hi {{.Name}},
+    </p>
 
-            <div class="provider-info">
-                <div><strong>Login Method:</strong> <span class="provider-name">{{.Provider}}</span></div>
-                <div class="timestamp"><strong>Time:</strong> {{.Timestamp}}</div>
-                <div><strong>Account:</strong> {{.Email}}</div>
-            </div>
+    <p style="font-size: 16px; line-height: 26px; color: #111827; margin: 0 0 16px 0;">
+        A new sign-in method was just linked to your Hauslet account.
+    </p>
 
-            <p>You can now use this method to sign in to your account in addition to your existing login methods.</p>
-
-            <div class="warning">
-                <strong>⚠️ Didn't make this change?</strong>
-                <p style="margin: 10px 0 0 0;">
-                    If you did not add this login method, your account may be compromised.
-                    Please contact our support team immediately and change your password.
-                </p>
-            </div>
-        </div>
-
-        <div class="footer">
-            <p>This is an automated security notification from Hauslet.</p>
-            <p>For security reasons, we send this alert whenever a new login method is added to your account.</p>
-        </div>
+    <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin: 0 0 16px 0;">
+        <p style="margin: 0 0 8px 0; font-size: 15px; color: #111827;"><strong>Login Method:</strong> {{.Provider}}</p>
+        <p style="margin: 0 0 8px 0; font-size: 15px; color: #111827;"><strong>Time:</strong> {{.Timestamp}}</p>
+        <p style="margin: 0; font-size: 15px; color: #111827;"><strong>Account:</strong> {{.Email}}</p>
     </div>
-</body>
-</html>
+
+    <p style="font-size: 15px; line-height: 24px; color: #111827; margin: 0 0 12px 0;">
+        You can now sign in using this method in addition to your existing login options.
+    </p>
+
+    <div style="background: #fff7ed; border: 1px solid #f97316; border-radius: 10px; padding: 14px; margin: 0 0 20px 0;">
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #9a3412;">
+            <strong>Didn't make this change?</strong><br />
+            Your account may be compromised. Please change your password immediately and contact support.
+        </p>
+    </div>
+
+    <p style="font-size: 14px; line-height: 22px; color: #6b7280; margin: 0 0 12px 0;">
+        This automated notice is sent whenever a new login method is added to keep your account secure.
+    </p>
+
+</div>
+{{end}}

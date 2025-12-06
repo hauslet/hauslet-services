@@ -5,6 +5,7 @@ schema:
   - internal/graph/*.graphqls
   - internal/auth/port/graphql/*.graphqls
   - internal/profile/port/graphql/*.graphqls
+  - internal/property/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
 exec:
@@ -65,3 +66,57 @@ models:
   UUID:
     model:
       - github.com/google/uuid.UUID
+
+  # --- Property Module Bindings ---
+  Property:
+    model: hauslet/internal/property/domain.Property
+  Listing:
+    model: hauslet/internal/property/domain.Listing
+  ListingMedia:
+    model: hauslet/internal/property/domain.ListingMedia
+  Location:
+    model: hauslet/internal/property/domain.Location
+  ShortletDetail:
+    model: hauslet/internal/property/domain.ShortletDetail
+  RentalDetail:
+    model: hauslet/internal/property/domain.RentalDetail
+  SaleDetail:
+    model: hauslet/internal/property/domain.SaleDetail
+  AmenityHighlight:
+    model: hauslet/internal/property/domain.AmenityHighlight
+  RuleGroup:
+    model: hauslet/internal/property/domain.RuleGroup
+  ServiceCharge:
+    model: hauslet/internal/property/domain.ServiceCharge
+  ListingCompleteness:
+    model: hauslet/internal/property/domain.ListingCompleteness
+
+  # Property Enums
+  CountryCode:
+    model: hauslet/internal/property/domain.CountryCode
+  CurrencyCode:
+    model: hauslet/internal/property/domain.CurrencyCode
+  OwnerType:
+    model: hauslet/internal/property/domain.OwnerType
+  PropertyClass:
+    model: hauslet/internal/property/domain.PropertyClass
+  PropertyType:
+    model: hauslet/internal/property/domain.PropertyType
+  PropertyCondition:
+    model: hauslet/internal/property/domain.PropertyCondition
+  FurnishingType:
+    model: hauslet/internal/property/domain.FurnishingType
+  ListingType:
+    model: hauslet/internal/property/domain.ListingType
+  ListingStatus:
+    model: hauslet/internal/property/domain.ListingStatus
+  ReviewStatus:
+    model: hauslet/internal/property/domain.ReviewStatus
+  PaymentPeriod:
+    model: hauslet/internal/property/domain.PaymentPeriod
+  AccommodationType:
+    model: hauslet/internal/property/domain.AccommodationType
+  RuleCategory:
+    model: hauslet/internal/property/domain.RuleCategory
+  MediaType:
+    model: hauslet/internal/property/domain.MediaType

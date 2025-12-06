@@ -5,21 +5,28 @@ import (
 	"net/http"
 
 	profileservice "hauslet/internal/profile/service"
+	propertyservice "hauslet/internal/property/service"
 )
 
 type loadersKey struct{}
 
 // Loaders bundles request-scoped loaders.
 type Loaders struct {
-	Profile *ProfileLoader
+	Profile            *ProfileLoader
+	Property           *PropertyLoader
+	Listing            *ListingLoader
+	ListingsByProperty *ListingsByPropertyLoader
 }
 
 // Middleware attaches loaders to the request context for GraphQL handlers.
-func Middleware(profileSvc profileservice.ProfileService) func(http.Handler) http.Handler {
+func Middleware(profileSvc profileservice.ProfileService, propertySvc propertyservice.Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), loadersKey{}, &Loaders{
-				Profile: NewProfileLoader(profileSvc),
+				Profile:            NewProfileLoader(profileSvc),
+				Property:           NewPropertyLoader(propertySvc),
+				Listing:            NewListingLoader(propertySvc),
+				ListingsByProperty: NewListingsByPropertyLoader(propertySvc),
 			})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

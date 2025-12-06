@@ -11,6 +11,7 @@ import (
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	profileSchema "hauslet/internal/profile/repository/schema"
+	propertySchema "hauslet/internal/property/repository/schema"
 	"net/http"
 	"os"
 	"os/signal"
@@ -54,6 +55,9 @@ func main() {
 		&authSchema.UserIdentity{},
 		&profileSchema.Profile{},
 		&profileSchema.TravelCompanionProfile{},
+		&propertySchema.Property{},
+		&propertySchema.Listing{},
+		&propertySchema.ListingMedia{},
 	); err != nil {
 		log.Logf("ERROR failed to run migrations: %v", err)
 		return

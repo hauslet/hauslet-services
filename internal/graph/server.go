@@ -6,6 +6,7 @@ import (
 	"hauslet/internal/graph/loaders"
 	"hauslet/internal/graph/viewer"
 	profileservice "hauslet/internal/profile/service"
+	propertyservice "hauslet/internal/property/service"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -20,12 +21,13 @@ import (
 func SetupGraphQL(r chi.Router,
 	authService service.AuthService,
 	profileService profileservice.ProfileService,
+	propertyService propertyservice.Service,
 	cfg *config.AppConfig,
 	log *lgr.Logger) {
 
 	srv := handler.New(
 		NewExecutableSchema(Config{
-			Resolvers:  NewResolver(authService, profileService),
+			Resolvers:  NewResolver(authService, profileService, propertyService, log),
 			Complexity: NewComplexityRoot(defaultMaxListLimit),
 		}),
 	)
@@ -54,8 +56,8 @@ func SetupGraphQL(r chi.Router,
 		r.Use(authMiddleware.Trace)
 		// Capture viewer info for resolvers (optional auth).
 		r.Use(viewer.WithContext)
-		// DataLoaders to batch profile fetches.
-		r.Use(loaders.Middleware(profileService))
+		// DataLoaders to batch profile and property fetches.
+		r.Use(loaders.Middleware(profileService, propertyService))
 
 		// The Query Endpoint
 		r.Handle("/query", srv)

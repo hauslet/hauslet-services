@@ -15,6 +15,8 @@ type AuthRepository interface {
 	GetUserWithIdentities(ctx context.Context, id string) (*schema.User, error)
 	UpdateUserLastLogin(ctx context.Context, id string) error
 	UpdateUser(ctx context.Context, user *schema.User) error
+	DeactivateUser(ctx context.Context, userID string, actorID string, reason string, reactivateOnLogin bool) error
+	ReactivateUser(ctx context.Context, userID string, actorID string, setLastLogin bool) error
 	DeleteUser(ctx context.Context, id string) error
 	ListUsers(ctx context.Context, limit, offset int) ([]schema.User, error)
 
@@ -38,6 +40,7 @@ type AuthRepository interface {
 	// Atomic operations (transactional)
 	CreateUserWithIdentity(ctx context.Context, user *schema.User, identity *schema.UserIdentity) error
 	GetOrCreateUserByEmail(ctx context.Context, email string, user *schema.User) (*schema.User, bool, error)
+	HardDeleteUser(ctx context.Context, id string) error
 
 	// Role management
 	GetUsersByRole(ctx context.Context, role schema.UserRole) ([]schema.User, error)

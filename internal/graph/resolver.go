@@ -10,17 +10,30 @@ import (
 	authservice "hauslet/internal/auth/service"
 	profilegraphql "hauslet/internal/profile/port/graphql"
 	profileservice "hauslet/internal/profile/service"
+	propertygraphql "hauslet/internal/property/port/graphql"
+	propertyservice "hauslet/internal/property/service"
+
+	"github.com/go-pkgz/lgr"
 )
 
 // Resolver wires domain-specific resolvers into gqlgen.
 type Resolver struct {
-	AuthResolver    *authgraphql.Resolver
-	ProfileResolver *profilegraphql.Resolver
+	log              *lgr.Logger
+	AuthResolver     *authgraphql.Resolver
+	ProfileResolver  *profilegraphql.Resolver
+	PropertyResolver *propertygraphql.Resolver
 }
 
-func NewResolver(authSvc authservice.AuthService, profileSvc profileservice.ProfileService) *Resolver {
+func NewResolver(
+	authSvc authservice.AuthService,
+	profileSvc profileservice.ProfileService,
+	propertySvc propertyservice.Service,
+	log *lgr.Logger,
+) *Resolver {
 	return &Resolver{
-		AuthResolver:    authgraphql.NewResolver(authSvc),
-		ProfileResolver: profilegraphql.NewResolver(profileSvc),
+		log:              log,
+		AuthResolver:     authgraphql.NewResolver(authSvc),
+		ProfileResolver:  profilegraphql.NewResolver(profileSvc, log),
+		PropertyResolver: propertygraphql.NewResolver(propertySvc, log),
 	}
 }

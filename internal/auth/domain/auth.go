@@ -21,14 +21,20 @@ const (
 // User represents a user in the system (domain model - safe for business logic)
 // SECURITY: Does not expose sensitive fields like password hashes or soft deletes
 type User struct {
-	ID           uuid.UUID  `json:"id"`
-	Name         string     `json:"name"`
-	PrimaryEmail string     `json:"primary_email"`
-	Role         UserRole   `json:"role"`
-	IsActive     bool       `json:"is_active"`
-	LastLoginAt  *time.Time `json:"last_login_at,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID                uuid.UUID  `json:"id"`
+	Name              string     `json:"name"`
+	PrimaryEmail      string     `json:"primary_email"`
+	Role              UserRole   `json:"role"`
+	IsActive          bool       `json:"is_active"`
+	DeactivatedAt     *time.Time `json:"deactivated_at,omitempty"`
+	DeactivatedReason *string    `json:"deactivated_reason,omitempty"`
+	DeactivatedBy     *uuid.UUID `json:"deactivated_by,omitempty"`
+	ReactivateOnLogin bool       `json:"reactivate_on_login"`
+	ReactivatedAt     *time.Time `json:"reactivated_at,omitempty"`
+	ReactivatedBy     *uuid.UUID `json:"reactivated_by,omitempty"`
+	LastLoginAt       *time.Time `json:"last_login_at,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 
 	// Connected OAuth identities (without sensitive data)
 	Identities []UserIdentity `json:"identities,omitempty"`
