@@ -4,33 +4,11 @@ import (
 	"context"
 	"fmt"
 	"hauslet/internal/property/repository/schema"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
-
-// ReplaceListingMedia swaps the media collection for a listing in a transaction.
-func (r *GormRepository) ReplaceListingMedia(ctx context.Context, id uuid.UUID, media []schema.ListingMedia) error {
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("listing_id = ?", id).Delete(&schema.ListingMedia{}).Error; err != nil {
-			return fmt.Errorf("failed to delete existing media: %w", err)
-		}
-		if len(media) == 0 {
-			return nil
-		}
-		for i := range media {
-			media[i].ListingID = id
-		}
-		if err := tx.CreateInBatches(&media, BatchInsertSize).Error; err != nil {
-			return fmt.Errorf("failed to insert new media: %w", err)
-		}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("failed to replace listing media: %w", err)
-	}
-	return nil
-}
 
 // AddListingMedia appends media to a listing.
 func (r *GormRepository) AddListingMedia(ctx context.Context, listingID uuid.UUID, media []schema.ListingMedia) error {
@@ -63,7 +41,7 @@ func (r *GormRepository) ListListingMedia(ctx context.Context, listingID uuid.UU
 	var media []schema.ListingMedia
 	if err := r.db.WithContext(ctx).
 		Where("listing_id = ?", listingID).
-		Order("order ASC").
+		Order(`"order" ASC`).
 		Order("created_at ASC").
 		Find(&media).Error; err != nil {
 		return nil, fmt.Errorf("failed to list listing media: %w", err)
@@ -87,4 +65,22 @@ func (r *GormRepository) UpdateListingMedia(ctx context.Context, listingID uuid.
 		return fmt.Errorf("listing media not found: %w", gorm.ErrRecordNotFound)
 	}
 	return nil
+}
+
+// FindStaleListingMedia returns media that haven't been uploaded within a window.
+func (r *GormRepository) FindStaleListingMedia(ctx context.Context, olderThan time.Time, limit int) ([]schema.ListingMedia, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+
+	var media []schema.ListingMedia
+	err := r.db.WithContext(ctx).
+		Where("uploaded = ? AND url_generated_at <= ?", false, olderThan).
+		Order("url_generated_at ASC").
+		Limit(limit).
+		Find(&media).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to find stale listing media: %w", err)
+	}
+	return media, nil
 }

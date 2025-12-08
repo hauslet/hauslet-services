@@ -22,12 +22,12 @@ func SetupGraphQL(r chi.Router,
 	authService service.AuthService,
 	profileService profileservice.ProfileService,
 	propertyService propertyservice.Service,
-	cfg *config.AppConfig,
+	cfg *config.GlobalConfig,
 	log *lgr.Logger) {
 
 	srv := handler.New(
 		NewExecutableSchema(Config{
-			Resolvers:  NewResolver(authService, profileService, propertyService, log),
+			Resolvers:  NewResolver(authService, profileService, propertyService, cfg, log),
 			Complexity: NewComplexityRoot(defaultMaxListLimit),
 		}),
 	)
@@ -42,7 +42,7 @@ func SetupGraphQL(r chi.Router,
 
 	srv.SetQueryCache(lru.New[*ast.QueryDocument](1000))
 
-	if cfg.Env != "production" {
+	if cfg.App.Env != "production" {
 		srv.Use(extension.Introspection{})
 	}
 	srv.Use(extension.AutomaticPersistedQuery{
@@ -63,7 +63,7 @@ func SetupGraphQL(r chi.Router,
 		r.Handle("/query", srv)
 	})
 
-	if cfg.Env != "production" {
+	if cfg.App.Env != "production" {
 		r.Handle("/playground", playground.Handler("Hauslet GraphQL", "/query"))
 		log.Logf("[INFO] GraphQL Playground available at /playground")
 	}

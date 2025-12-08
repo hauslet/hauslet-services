@@ -47,11 +47,11 @@ type Service interface {
 	SearchListings(ctx context.Context, sim SimilarityQuery, filter ListingFilter) ([]ScoredResult[domain.Listing], error)
 
 	// Listing media
-	ReplaceListingMedia(ctx context.Context, listingID uuid.UUID, media []domain.ListingMedia) error
-	AddListingMedia(ctx context.Context, listingID uuid.UUID, media []domain.ListingMedia) error
-	UpdateListingMedia(ctx context.Context, listingID uuid.UUID, mediaID uuid.UUID, updates map[string]any) error
-	DeleteListingMedia(ctx context.Context, listingID uuid.UUID, mediaIDs []uuid.UUID) error
+	UploadListingMedia(ctx context.Context, listingID uuid.UUID, media []domain.ListingMediaInput) ([]domain.ListingMediaResult, error)
+	UpdateListingMedia(ctx context.Context, listingID uuid.UUID, mediaID uuid.UUID, updates domain.ListingMediaUpdateInput) error
+	DeleteListingMedia(ctx context.Context, listingID uuid.UUID, media []domain.ListingMediaDeleteInput) error
 	ListListingMedia(ctx context.Context, listingID uuid.UUID) ([]domain.ListingMedia, error)
+	FinalizeListingMedia(ctx context.Context, data domain.FinalizedListingMedia) error
 
 	// Composite operations
 	CreatePropertyWithListing(ctx context.Context, p domain.Property, l domain.Listing) (*domain.Property, *domain.Listing, error)

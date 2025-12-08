@@ -10,9 +10,14 @@ queue:
     email: "email.send"
     notification: "notification.push"
     moderation: "moderation.check"
+    media_thumbnail: "media.thumbnail"
+    media_cleanup: "media.cleanup"
 
   # Consumer mappings (worker names for each job type)
   consumers:
     email: "email-worker"
     notification: "notification-worker"
     moderation: "moderation-worker"
+    media_thumbnail: "media-thumbnail-worker"
+    media_cleanup: "media-cleanup-worker"
+

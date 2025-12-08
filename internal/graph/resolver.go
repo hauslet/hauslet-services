@@ -6,6 +6,7 @@ package graph
 // here.
 
 import (
+	cfg "hauslet/config"
 	authgraphql "hauslet/internal/auth/port/graphql"
 	authservice "hauslet/internal/auth/service"
 	profilegraphql "hauslet/internal/profile/port/graphql"
@@ -28,12 +29,13 @@ func NewResolver(
 	authSvc authservice.AuthService,
 	profileSvc profileservice.ProfileService,
 	propertySvc propertyservice.Service,
+	appCfg *cfg.GlobalConfig,
 	log *lgr.Logger,
 ) *Resolver {
 	return &Resolver{
 		log:              log,
 		AuthResolver:     authgraphql.NewResolver(authSvc),
 		ProfileResolver:  profilegraphql.NewResolver(profileSvc, log),
-		PropertyResolver: propertygraphql.NewResolver(propertySvc, log),
+		PropertyResolver: propertygraphql.NewResolver(propertySvc, appCfg, log),
 	}
 }

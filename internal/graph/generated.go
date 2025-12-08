@@ -45,6 +45,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Listing() ListingResolver
+	ListingMedia() ListingMediaResolver
 	Mutation() MutationResolver
 	Profile() ProfileResolver
 	Property() PropertyResolver
@@ -135,10 +136,12 @@ type ComplexityRoot struct {
 		ID           func(childComplexity int) int
 		IsGroupCover func(childComplexity int) int
 		IsPrimary    func(childComplexity int) int
+		Key          func(childComplexity int) int
 		ListingID    func(childComplexity int) int
 		MimeType     func(childComplexity int) int
 		Order        func(childComplexity int) int
 		SizeBytes    func(childComplexity int) int
+		Thumbnails   func(childComplexity int) int
 		Type         func(childComplexity int) int
 		URL          func(childComplexity int) int
 		UpdatedAt    func(childComplexity int) int
@@ -157,15 +160,13 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddListingMedia    func(childComplexity int, listingID uuid.UUID, media []*model.MediaInput) int
-		CreateListing      func(childComplexity int, input model.CreateListingInput) int
-		DeleteListing      func(childComplexity int, id uuid.UUID, hard *bool) int
-		DeleteListingMedia func(childComplexity int, listingID uuid.UUID, mediaIds []uuid.UUID) int
-		Ping               func(childComplexity int) int
-		PublishListing     func(childComplexity int, id uuid.UUID) int
-		UnpublishListing   func(childComplexity int, id uuid.UUID) int
-		UpdateListing      func(childComplexity int, id uuid.UUID, input model.UpdateListingInput) int
-		UpdateProfile      func(childComplexity int, input model.UpdateProfileInput) int
+		CreateListing    func(childComplexity int, input model.CreateListingInput) int
+		DeleteListing    func(childComplexity int, id uuid.UUID, hard *bool) int
+		Ping             func(childComplexity int) int
+		PublishListing   func(childComplexity int, id uuid.UUID) int
+		UnpublishListing func(childComplexity int, id uuid.UUID) int
+		UpdateListing    func(childComplexity int, id uuid.UUID, input model.UpdateListingInput) int
+		UpdateProfile    func(childComplexity int, input model.UpdateProfileInput) int
 	}
 
 	PageInfo struct {
@@ -332,6 +333,25 @@ type ComplexityRoot struct {
 		ServiceFee           func(childComplexity int) int
 	}
 
+	Thumbnail struct {
+		Height    func(childComplexity int) int
+		Key       func(childComplexity int) int
+		MimeType  func(childComplexity int) int
+		SizeBytes func(childComplexity int) int
+		URL       func(childComplexity int) int
+		Width     func(childComplexity int) int
+	}
+
+	ThumbnailVariant struct {
+		Height    func(childComplexity int) int
+		Key       func(childComplexity int) int
+		MimeType  func(childComplexity int) int
+		Size      func(childComplexity int) int
+		SizeBytes func(childComplexity int) int
+		URL       func(childComplexity int) int
+		Width     func(childComplexity int) int
+	}
+
 	TravelCompanion struct {
 		AgeGroup     func(childComplexity int) int
 		Name         func(childComplexity int) int
@@ -366,6 +386,9 @@ type ComplexityRoot struct {
 type ListingResolver interface {
 	Property(ctx context.Context, obj *domain.Listing) (*domain.Property, error)
 }
+type ListingMediaResolver interface {
+	Thumbnails(ctx context.Context, obj *domain.ListingMedia) ([]*domain.ThumbnailVariant, error)
+}
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
 	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain1.Profile, error)
@@ -374,8 +397,6 @@ type MutationResolver interface {
 	DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error)
 	PublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error)
 	UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error)
-	AddListingMedia(ctx context.Context, listingID uuid.UUID, media []*model.MediaInput) ([]*domain.ListingMedia, error)
-	DeleteListingMedia(ctx context.Context, listingID uuid.UUID, mediaIds []uuid.UUID) (bool, error)
 }
 type ProfileResolver interface {
 	Badges(ctx context.Context, obj *domain1.Profile) ([]*domain1.BadgeDetails, error)
@@ -792,6 +813,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ListingMedia.IsPrimary(childComplexity), true
+	case "ListingMedia.key":
+		if e.complexity.ListingMedia.Key == nil {
+			break
+		}
+
+		return e.complexity.ListingMedia.Key(childComplexity), true
 	case "ListingMedia.listingId":
 		if e.complexity.ListingMedia.ListingID == nil {
 			break
@@ -816,6 +843,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ListingMedia.SizeBytes(childComplexity), true
+	case "ListingMedia.thumbnails":
+		if e.complexity.ListingMedia.Thumbnails == nil {
+			break
+		}
+
+		return e.complexity.ListingMedia.Thumbnails(childComplexity), true
 	case "ListingMedia.type":
 		if e.complexity.ListingMedia.Type == nil {
 			break
@@ -873,17 +906,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Location.SRID(childComplexity), true
 
-	case "Mutation.addListingMedia":
-		if e.complexity.Mutation.AddListingMedia == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_addListingMedia_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.AddListingMedia(childComplexity, args["listingId"].(uuid.UUID), args["media"].([]*model.MediaInput)), true
 	case "Mutation.createListing":
 		if e.complexity.Mutation.CreateListing == nil {
 			break
@@ -906,17 +928,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteListing(childComplexity, args["id"].(uuid.UUID), args["hard"].(*bool)), true
-	case "Mutation.deleteListingMedia":
-		if e.complexity.Mutation.DeleteListingMedia == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteListingMedia_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteListingMedia(childComplexity, args["listingId"].(uuid.UUID), args["mediaIds"].([]uuid.UUID)), true
 	case "Mutation.ping":
 		if e.complexity.Mutation.Ping == nil {
 			break
@@ -1857,6 +1868,86 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ShortletDetail.ServiceFee(childComplexity), true
 
+	case "Thumbnail.height":
+		if e.complexity.Thumbnail.Height == nil {
+			break
+		}
+
+		return e.complexity.Thumbnail.Height(childComplexity), true
+	case "Thumbnail.key":
+		if e.complexity.Thumbnail.Key == nil {
+			break
+		}
+
+		return e.complexity.Thumbnail.Key(childComplexity), true
+	case "Thumbnail.mimeType":
+		if e.complexity.Thumbnail.MimeType == nil {
+			break
+		}
+
+		return e.complexity.Thumbnail.MimeType(childComplexity), true
+	case "Thumbnail.sizeBytes":
+		if e.complexity.Thumbnail.SizeBytes == nil {
+			break
+		}
+
+		return e.complexity.Thumbnail.SizeBytes(childComplexity), true
+	case "Thumbnail.url":
+		if e.complexity.Thumbnail.URL == nil {
+			break
+		}
+
+		return e.complexity.Thumbnail.URL(childComplexity), true
+	case "Thumbnail.width":
+		if e.complexity.Thumbnail.Width == nil {
+			break
+		}
+
+		return e.complexity.Thumbnail.Width(childComplexity), true
+
+	case "ThumbnailVariant.height":
+		if e.complexity.ThumbnailVariant.Height == nil {
+			break
+		}
+
+		return e.complexity.ThumbnailVariant.Height(childComplexity), true
+	case "ThumbnailVariant.key":
+		if e.complexity.ThumbnailVariant.Key == nil {
+			break
+		}
+
+		return e.complexity.ThumbnailVariant.Key(childComplexity), true
+	case "ThumbnailVariant.mimeType":
+		if e.complexity.ThumbnailVariant.MimeType == nil {
+			break
+		}
+
+		return e.complexity.ThumbnailVariant.MimeType(childComplexity), true
+	case "ThumbnailVariant.size":
+		if e.complexity.ThumbnailVariant.Size == nil {
+			break
+		}
+
+		return e.complexity.ThumbnailVariant.Size(childComplexity), true
+	case "ThumbnailVariant.sizeBytes":
+		if e.complexity.ThumbnailVariant.SizeBytes == nil {
+			break
+		}
+
+		return e.complexity.ThumbnailVariant.SizeBytes(childComplexity), true
+	case "ThumbnailVariant.url":
+		if e.complexity.ThumbnailVariant.URL == nil {
+			break
+		}
+
+		return e.complexity.ThumbnailVariant.URL(childComplexity), true
+	case "ThumbnailVariant.width":
+		if e.complexity.ThumbnailVariant.Width == nil {
+			break
+		}
+
+		return e.complexity.ThumbnailVariant.Width(childComplexity), true
+
 	case "TravelCompanion.ageGroup":
 		if e.complexity.TravelCompanion.AgeGroup == nil {
 			break
@@ -2520,7 +2611,9 @@ type ListingMedia {
   id: UUID!
   listingId: UUID!
   url: String!
+  key: String!
   type: MediaType!
+  thumbnails: [ThumbnailVariant!]!
   group: String
   caption: String
   mimeType: String
@@ -2530,6 +2623,25 @@ type ListingMedia {
   order: Int!
   createdAt: Time!
   updatedAt: Time!
+}
+
+type Thumbnail {
+  key: String!
+  url: String!
+  width: Int!
+  height: Int!
+  sizeBytes: Int!
+  mimeType: String!
+}
+
+type ThumbnailVariant {
+  size: String!
+  key: String!
+  url: String!
+  width: Int!
+  height: Int!
+  sizeBytes: Int!
+  mimeType: String!
 }
 
 type ShortletDetail {
@@ -2785,12 +2897,8 @@ input ServiceChargeInput {
 }
 
 input MediaInput {
-  url: String!
-  type: MediaType!
   group: String
   caption: String
-  mimeType: String
-  sizeBytes: Int
   isPrimary: Boolean
   isGroupCover: Boolean
   order: Int
@@ -2900,10 +3008,6 @@ extend type Mutation {
   # Publishing
   publishListing(id: UUID!): Listing!
   unpublishListing(id: UUID!): Listing!
-
-  # Media
-  addListingMedia(listingId: UUID!, media: [MediaInput!]!): [ListingMedia!]!
-  deleteListingMedia(listingId: UUID!, mediaIds: [UUID!]!): Boolean!
 }
 `, BuiltIn: false},
 }
@@ -2924,22 +3028,6 @@ func (ec *executionContext) field_Listing_media_args(ctx context.Context, rawArg
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_addListingMedia_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "listingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
-	if err != nil {
-		return nil, err
-	}
-	args["listingId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "media", ec.unmarshalNMediaInput2ᚕᚖhausletᚋinternalᚋgraphᚋmodelᚐMediaInputᚄ)
-	if err != nil {
-		return nil, err
-	}
-	args["media"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_createListing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2948,22 +3036,6 @@ func (ec *executionContext) field_Mutation_createListing_args(ctx context.Contex
 		return nil, err
 	}
 	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteListingMedia_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "listingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
-	if err != nil {
-		return nil, err
-	}
-	args["listingId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "mediaIds", ec.unmarshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ)
-	if err != nil {
-		return nil, err
-	}
-	args["mediaIds"] = arg1
 	return args, nil
 }
 
@@ -4487,8 +4559,12 @@ func (ec *executionContext) fieldContext_Listing_media(ctx context.Context, fiel
 				return ec.fieldContext_ListingMedia_listingId(ctx, field)
 			case "url":
 				return ec.fieldContext_ListingMedia_url(ctx, field)
+			case "key":
+				return ec.fieldContext_ListingMedia_key(ctx, field)
 			case "type":
 				return ec.fieldContext_ListingMedia_type(ctx, field)
+			case "thumbnails":
+				return ec.fieldContext_ListingMedia_thumbnails(ctx, field)
 			case "group":
 				return ec.fieldContext_ListingMedia_group(ctx, field)
 			case "caption":
@@ -5241,6 +5317,35 @@ func (ec *executionContext) fieldContext_ListingMedia_url(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _ListingMedia_key(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingMedia_key,
+		func(ctx context.Context) (any, error) {
+			return obj.Key, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingMedia_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingMedia",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ListingMedia_type(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5265,6 +5370,51 @@ func (ec *executionContext) fieldContext_ListingMedia_type(_ context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type MediaType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingMedia_thumbnails(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingMedia_thumbnails,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.ListingMedia().Thumbnails(ctx, obj)
+		},
+		nil,
+		ec.marshalNThumbnailVariant2ᚕᚖhausletᚋinternalᚋpropertyᚋdomainᚐThumbnailVariantᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingMedia_thumbnails(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingMedia",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "size":
+				return ec.fieldContext_ThumbnailVariant_size(ctx, field)
+			case "key":
+				return ec.fieldContext_ThumbnailVariant_key(ctx, field)
+			case "url":
+				return ec.fieldContext_ThumbnailVariant_url(ctx, field)
+			case "width":
+				return ec.fieldContext_ThumbnailVariant_width(ctx, field)
+			case "height":
+				return ec.fieldContext_ThumbnailVariant_height(ctx, field)
+			case "sizeBytes":
+				return ec.fieldContext_ThumbnailVariant_sizeBytes(ctx, field)
+			case "mimeType":
+				return ec.fieldContext_ThumbnailVariant_mimeType(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ThumbnailVariant", field.Name)
 		},
 	}
 	return fc, nil
@@ -6356,116 +6506,6 @@ func (ec *executionContext) fieldContext_Mutation_unpublishListing(ctx context.C
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_unpublishListing_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_addListingMedia(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_addListingMedia,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AddListingMedia(ctx, fc.Args["listingId"].(uuid.UUID), fc.Args["media"].([]*model.MediaInput))
-		},
-		nil,
-		ec.marshalNListingMedia2ᚕᚖhausletᚋinternalᚋpropertyᚋdomainᚐListingMediaᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_addListingMedia(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_ListingMedia_id(ctx, field)
-			case "listingId":
-				return ec.fieldContext_ListingMedia_listingId(ctx, field)
-			case "url":
-				return ec.fieldContext_ListingMedia_url(ctx, field)
-			case "type":
-				return ec.fieldContext_ListingMedia_type(ctx, field)
-			case "group":
-				return ec.fieldContext_ListingMedia_group(ctx, field)
-			case "caption":
-				return ec.fieldContext_ListingMedia_caption(ctx, field)
-			case "mimeType":
-				return ec.fieldContext_ListingMedia_mimeType(ctx, field)
-			case "sizeBytes":
-				return ec.fieldContext_ListingMedia_sizeBytes(ctx, field)
-			case "isPrimary":
-				return ec.fieldContext_ListingMedia_isPrimary(ctx, field)
-			case "isGroupCover":
-				return ec.fieldContext_ListingMedia_isGroupCover(ctx, field)
-			case "order":
-				return ec.fieldContext_ListingMedia_order(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_ListingMedia_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_ListingMedia_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ListingMedia", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_addListingMedia_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_deleteListingMedia(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_deleteListingMedia,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteListingMedia(ctx, fc.Args["listingId"].(uuid.UUID), fc.Args["mediaIds"].([]uuid.UUID))
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_deleteListingMedia(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteListingMedia_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -11414,6 +11454,383 @@ func (ec *executionContext) fieldContext_ShortletDetail_amenitiesHighlights(_ co
 	return fc, nil
 }
 
+func (ec *executionContext) _Thumbnail_key(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Thumbnail_key,
+		func(ctx context.Context) (any, error) {
+			return obj.Key, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Thumbnail_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Thumbnail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Thumbnail_url(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Thumbnail_url,
+		func(ctx context.Context) (any, error) {
+			return obj.URL, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Thumbnail_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Thumbnail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Thumbnail_width(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Thumbnail_width,
+		func(ctx context.Context) (any, error) {
+			return obj.Width, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Thumbnail_width(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Thumbnail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Thumbnail_height(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Thumbnail_height,
+		func(ctx context.Context) (any, error) {
+			return obj.Height, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Thumbnail_height(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Thumbnail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Thumbnail_sizeBytes(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Thumbnail_sizeBytes,
+		func(ctx context.Context) (any, error) {
+			return obj.SizeBytes, nil
+		},
+		nil,
+		ec.marshalNInt2int64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Thumbnail_sizeBytes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Thumbnail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Thumbnail_mimeType(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Thumbnail_mimeType,
+		func(ctx context.Context) (any, error) {
+			return obj.MimeType, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Thumbnail_mimeType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Thumbnail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ThumbnailVariant_size(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ThumbnailVariant_size,
+		func(ctx context.Context) (any, error) {
+			return obj.Size, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ThumbnailVariant_size(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ThumbnailVariant",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ThumbnailVariant_key(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ThumbnailVariant_key,
+		func(ctx context.Context) (any, error) {
+			return obj.Key, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ThumbnailVariant_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ThumbnailVariant",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ThumbnailVariant_url(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ThumbnailVariant_url,
+		func(ctx context.Context) (any, error) {
+			return obj.URL, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ThumbnailVariant_url(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ThumbnailVariant",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ThumbnailVariant_width(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ThumbnailVariant_width,
+		func(ctx context.Context) (any, error) {
+			return obj.Width, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ThumbnailVariant_width(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ThumbnailVariant",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ThumbnailVariant_height(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ThumbnailVariant_height,
+		func(ctx context.Context) (any, error) {
+			return obj.Height, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ThumbnailVariant_height(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ThumbnailVariant",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ThumbnailVariant_sizeBytes(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ThumbnailVariant_sizeBytes,
+		func(ctx context.Context) (any, error) {
+			return obj.SizeBytes, nil
+		},
+		nil,
+		ec.marshalNInt2int64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ThumbnailVariant_sizeBytes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ThumbnailVariant",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ThumbnailVariant_mimeType(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ThumbnailVariant_mimeType,
+		func(ctx context.Context) (any, error) {
+			return obj.MimeType, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ThumbnailVariant_mimeType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ThumbnailVariant",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _TravelCompanion_name(ctx context.Context, field graphql.CollectedField, obj *domain1.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -13900,27 +14317,13 @@ func (ec *executionContext) unmarshalInputMediaInput(ctx context.Context, obj an
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"url", "type", "group", "caption", "mimeType", "sizeBytes", "isPrimary", "isGroupCover", "order"}
+	fieldsInOrder := [...]string{"group", "caption", "isPrimary", "isGroupCover", "order"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "url":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.URL = data
-		case "type":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
-			data, err := ec.unmarshalNMediaType2hausletᚋinternalᚋpropertyᚋdomainᚐMediaType(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Type = data
 		case "group":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -13935,20 +14338,6 @@ func (ec *executionContext) unmarshalInputMediaInput(ctx context.Context, obj an
 				return it, err
 			}
 			it.Caption = data
-		case "mimeType":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mimeType"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.MimeType = data
-		case "sizeBytes":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sizeBytes"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.SizeBytes = data
 		case "isPrimary":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isPrimary"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -15387,23 +15776,64 @@ func (ec *executionContext) _ListingMedia(ctx context.Context, sel ast.Selection
 		case "id":
 			out.Values[i] = ec._ListingMedia_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "listingId":
 			out.Values[i] = ec._ListingMedia_listingId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "url":
 			out.Values[i] = ec._ListingMedia_url(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "key":
+			out.Values[i] = ec._ListingMedia_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "type":
 			out.Values[i] = ec._ListingMedia_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "thumbnails":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ListingMedia_thumbnails(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "group":
 			out.Values[i] = ec._ListingMedia_group(ctx, field, obj)
 		case "caption":
@@ -15413,32 +15843,32 @@ func (ec *executionContext) _ListingMedia(ctx context.Context, sel ast.Selection
 		case "sizeBytes":
 			out.Values[i] = ec._ListingMedia_sizeBytes(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "isPrimary":
 			out.Values[i] = ec._ListingMedia_isPrimary(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "isGroupCover":
 			out.Values[i] = ec._ListingMedia_isGroupCover(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "order":
 			out.Values[i] = ec._ListingMedia_order(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "createdAt":
 			out.Values[i] = ec._ListingMedia_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "updatedAt":
 			out.Values[i] = ec._ListingMedia_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -15622,20 +16052,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "unpublishListing":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_unpublishListing(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "addListingMedia":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_addListingMedia(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "deleteListingMedia":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteListingMedia(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -16911,6 +17327,139 @@ func (ec *executionContext) _ShortletDetail(ctx context.Context, sel ast.Selecti
 	return out
 }
 
+var thumbnailImplementors = []string{"Thumbnail"}
+
+func (ec *executionContext) _Thumbnail(ctx context.Context, sel ast.SelectionSet, obj *domain.Thumbnail) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, thumbnailImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Thumbnail")
+		case "key":
+			out.Values[i] = ec._Thumbnail_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "url":
+			out.Values[i] = ec._Thumbnail_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "width":
+			out.Values[i] = ec._Thumbnail_width(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "height":
+			out.Values[i] = ec._Thumbnail_height(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sizeBytes":
+			out.Values[i] = ec._Thumbnail_sizeBytes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "mimeType":
+			out.Values[i] = ec._Thumbnail_mimeType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var thumbnailVariantImplementors = []string{"ThumbnailVariant"}
+
+func (ec *executionContext) _ThumbnailVariant(ctx context.Context, sel ast.SelectionSet, obj *domain.ThumbnailVariant) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, thumbnailVariantImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ThumbnailVariant")
+		case "size":
+			out.Values[i] = ec._ThumbnailVariant_size(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "key":
+			out.Values[i] = ec._ThumbnailVariant_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "url":
+			out.Values[i] = ec._ThumbnailVariant_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "width":
+			out.Values[i] = ec._ThumbnailVariant_width(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "height":
+			out.Values[i] = ec._ThumbnailVariant_height(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sizeBytes":
+			out.Values[i] = ec._ThumbnailVariant_sizeBytes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "mimeType":
+			out.Values[i] = ec._ThumbnailVariant_mimeType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var travelCompanionImplementors = []string{"TravelCompanion"}
 
 func (ec *executionContext) _TravelCompanion(ctx context.Context, sel ast.SelectionSet, obj *domain1.TravelCompanion) graphql.Marshaler {
@@ -17834,60 +18383,6 @@ func (ec *executionContext) marshalNListingMedia2ᚕhausletᚋinternalᚋpropert
 	return ret
 }
 
-func (ec *executionContext) marshalNListingMedia2ᚕᚖhausletᚋinternalᚋpropertyᚋdomainᚐListingMediaᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain.ListingMedia) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNListingMedia2ᚖhausletᚋinternalᚋpropertyᚋdomainᚐListingMedia(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNListingMedia2ᚖhausletᚋinternalᚋpropertyᚋdomainᚐListingMedia(ctx context.Context, sel ast.SelectionSet, v *domain.ListingMedia) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._ListingMedia(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNListingStatus2hausletᚋinternalᚋpropertyᚋdomainᚐListingStatus(ctx context.Context, v any) (domain.ListingStatus, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain.ListingStatus(tmp)
@@ -17974,26 +18469,6 @@ func (ec *executionContext) marshalNListingWithDistance2ᚖhausletᚋinternalᚋ
 		return graphql.Null
 	}
 	return ec._ListingWithDistance(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNMediaInput2ᚕᚖhausletᚋinternalᚋgraphᚋmodelᚐMediaInputᚄ(ctx context.Context, v any) ([]*model.MediaInput, error) {
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]*model.MediaInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNMediaInput2ᚖhausletᚋinternalᚋgraphᚋmodelᚐMediaInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) unmarshalNMediaInput2ᚖhausletᚋinternalᚋgraphᚋmodelᚐMediaInput(ctx context.Context, v any) (*model.MediaInput, error) {
-	res, err := ec.unmarshalInputMediaInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNMediaType2hausletᚋinternalᚋpropertyᚋdomainᚐMediaType(ctx context.Context, v any) (domain.MediaType, error) {
@@ -18399,6 +18874,60 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
+func (ec *executionContext) marshalNThumbnailVariant2ᚕᚖhausletᚋinternalᚋpropertyᚋdomainᚐThumbnailVariantᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain.ThumbnailVariant) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNThumbnailVariant2ᚖhausletᚋinternalᚋpropertyᚋdomainᚐThumbnailVariant(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNThumbnailVariant2ᚖhausletᚋinternalᚋpropertyᚋdomainᚐThumbnailVariant(ctx context.Context, sel ast.SelectionSet, v *domain.ThumbnailVariant) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ThumbnailVariant(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v any) (time.Time, error) {
 	res, err := graphql.UnmarshalTime(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -18475,36 +19004,6 @@ func (ec *executionContext) unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(c
 
 func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, sel ast.SelectionSet, v uuid.UUID) graphql.Marshaler {
 	return ec._UUID(ctx, sel, &v)
-}
-
-func (ec *executionContext) unmarshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, v any) ([]uuid.UUID, error) {
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]uuid.UUID, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, sel ast.SelectionSet, v []uuid.UUID) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, sel, v[i])
-	}
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
 }
 
 func (ec *executionContext) unmarshalNUpdateListingInput2hausletᚋinternalᚋgraphᚋmodelᚐUpdateListingInput(ctx context.Context, v any) (model.UpdateListingInput, error) {

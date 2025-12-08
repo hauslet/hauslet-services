@@ -59,11 +59,11 @@ type ListingRepository interface {
 	BulkDeleteListings(ctx context.Context, ids []uuid.UUID, hard bool) error
 	UpdateListingStatus(ctx context.Context, id uuid.UUID, status schema.ListingStatus, reason string, changedBy *uuid.UUID) error
 	UpdatePublishState(ctx context.Context, id uuid.UUID, published bool, publishedAt *time.Time) error
-	ReplaceListingMedia(ctx context.Context, id uuid.UUID, media []schema.ListingMedia) error
 	AddListingMedia(ctx context.Context, listingID uuid.UUID, media []schema.ListingMedia) error
 	DeleteListingMedia(ctx context.Context, listingID uuid.UUID, mediaIDs []uuid.UUID) error
 	UpdateListingMedia(ctx context.Context, listingID uuid.UUID, mediaID uuid.UUID, updates map[string]any) error
 	ListListingMedia(ctx context.Context, listingID uuid.UUID) ([]schema.ListingMedia, error)
+	FindStaleListingMedia(ctx context.Context, olderThan time.Time, limit int) ([]schema.ListingMedia, error)
 	SoftDeleteListing(ctx context.Context, id uuid.UUID) error
 	HardDeleteListing(ctx context.Context, id uuid.UUID) error
 	IncrementView(ctx context.Context, id uuid.UUID, viewedAt time.Time) error

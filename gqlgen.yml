@@ -90,6 +90,10 @@ models:
     model: hauslet/internal/property/domain.ServiceCharge
   ListingCompleteness:
     model: hauslet/internal/property/domain.ListingCompleteness
+  Thumbnail:
+    model: hauslet/internal/property/domain.Thumbnail
+  ThumbnailVariant:
+    model: hauslet/internal/property/domain.ThumbnailVariant
 
   # Property Enums
   CountryCode:

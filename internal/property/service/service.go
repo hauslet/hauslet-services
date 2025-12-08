@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	platformQueue "hauslet/internal/platform/queue"
+	"hauslet/internal/platform/storage"
 	"hauslet/internal/property/domain"
 	"hauslet/internal/property/repository"
 
@@ -11,12 +13,20 @@ import (
 
 // ServiceImpl implements the Service interface.
 type ServiceImpl struct {
-	repo repository.Repository
+	repo             repository.Repository
+	storage          *storage.R2Storage
+	queue            *platformQueue.Client
+	thumbnailSubject string
 }
 
 // NewPropertyService creates a new property service.
-func NewPropertyService(repo repository.Repository) Service {
-	return &ServiceImpl{repo: repo}
+func NewPropertyService(repo repository.Repository, storage *storage.R2Storage, queue *platformQueue.Client, thumbnailSubject string) Service {
+	return &ServiceImpl{
+		repo:             repo,
+		storage:          storage,
+		queue:            queue,
+		thumbnailSubject: thumbnailSubject,
+	}
 }
 
 // ensureProperty fetches a property by ID, returning an error if not found.

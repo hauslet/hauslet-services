@@ -11,9 +11,11 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/storage"
 	profileport "hauslet/internal/profile/port/hooks"
 	profilerepository "hauslet/internal/profile/repository"
 	profileservice "hauslet/internal/profile/service"
+	propertyhttp "hauslet/internal/property/port/http"
 	propertyrepository "hauslet/internal/property/repository"
 	propertyservice "hauslet/internal/property/service"
 
@@ -28,7 +30,8 @@ func setupRoutes(r chi.Router,
 	log *lgr.Logger,
 	cfg *config.GlobalConfig,
 	mC *email.Client,
-	q *queue.Client) {
+	q *queue.Client,
+	r2 *storage.R2Storage) {
 	// Initialize auth service
 	sessionStore := authsession.NewSessionStore(*rds)
 	authRepo := authrepository.NewAuthRepositoryImpl(db, sessionStore)
@@ -40,10 +43,21 @@ func setupRoutes(r chi.Router,
 
 	// Initialize property service
 	propertyRepo := propertyrepository.NewPropertyRepository(db)
-	propertyService := propertyservice.NewPropertyService(propertyRepo)
+	thumbnailSubject := cfg.YAML.Queue.Subjects["media_thumbnail"]
+	propertyService := propertyservice.NewPropertyService(propertyRepo, r2, q, thumbnailSubject)
 
-	authService := service.NewAuthService(&cfg.Auth,
-		authRepo, log, mC, *rds, q, cfg.YAML.Queue.Subjects["email"], profileHooks)
+	emailSubject := cfg.YAML.Queue.Subjects["email"]
+	authService := service.NewAuthService(
+		&cfg.Auth,
+		authRepo,
+		log,
+		mC,
+		*rds,
+		q,
+		emailSubject,
+		profileHooks,
+	)
+
 	// Initialize auth HTTP handler with context
 	authHTTP := authhttp.NewHTTPHandler(ctx, authService, log)
 
@@ -54,6 +68,16 @@ func setupRoutes(r chi.Router,
 		authHTTP.SetupRoutes(r)
 	}
 
+	// Initialize property HTTP handler with context
+	propertyHTTP := propertyhttp.NewHTTPHandler(ctx, propertyService, log)
+
+	// Setup property routes with optional rate limiting in production
+	if cfg.App.Env == "production" {
+		propertyHTTP.SetupRoutesWithRateLimiting(r, authService, *rds)
+	} else {
+		propertyHTTP.SetupRoutes(r, authService)
+	}
+
 	// Setup GraphQL routes
-	graph.SetupGraphQL(r, authService, profileService, propertyService, &cfg.App, log)
+	graph.SetupGraphQL(r, authService, profileService, propertyService, cfg, log)
 }

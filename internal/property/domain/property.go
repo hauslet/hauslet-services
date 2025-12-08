@@ -222,8 +222,10 @@ type ListingMedia struct {
 	ListingID uuid.UUID `json:"listing_id"`
 
 	// Required fields
-	URL  string    `json:"url"`
-	Type MediaType `json:"type"`
+	URL        string       `json:"url"`
+	Key        string       `json:"key"`
+	Type       MediaType    `json:"type"`
+	Thumbnails ThumbnailMap `json:"thumbnails,omitempty"`
 
 	// Optional metadata
 	Group    *string `json:"group,omitempty"`
@@ -240,6 +242,78 @@ type ListingMedia struct {
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// Thumbnail represents a generated thumbnail variant for media.
+type Thumbnail struct {
+	Key       string `json:"key"`
+	URL       string `json:"url,omitempty"`
+	Width     int    `json:"width"`
+	Height    int    `json:"height"`
+	SizeBytes int64  `json:"size_bytes"`
+	MimeType  string `json:"mime_type"`
+}
+
+// ThumbnailMap maps variant names (e.g., "small", "medium") to thumbnail metadata.
+type ThumbnailMap map[string]Thumbnail
+
+// ThumbnailVariant represents a named thumbnail variant for GraphQL responses.
+// It combines the variant size (e.g., "small", "medium", "large") with the thumbnail metadata.
+type ThumbnailVariant struct {
+	Size      string `json:"size"`
+	Key       string `json:"key"`
+	URL       string `json:"url"`
+	Width     int    `json:"width"`
+	Height    int    `json:"height"`
+	SizeBytes int64  `json:"size_bytes"`
+	MimeType  string `json:"mime_type"`
+}
+
+// ListingMediaInput represents input data for listing media
+type ListingMediaInput struct {
+	Type         MediaType `json:"type"`
+	Group        *string   `json:"group,omitempty"`
+	Caption      *string   `json:"caption,omitempty"`
+	MimeType     *string   `json:"mime_type,omitempty"`
+	SizeBytes    int64     `json:"size_bytes"`
+	IsPrimary    bool      `json:"is_primary"`
+	IsGroupCover bool      `json:"is_group_cover"`
+	Order        int       `json:"order"`
+	Filename     string    `json:"filename"`
+	Duration     *int      `json:"duration,omitempty"` // in seconds, for videos
+}
+
+// ListingMediaUpdateInput represents updatable fields for listing media
+type ListingMediaUpdateInput struct {
+	Caption      *string `json:"caption,omitempty"`
+	IsPrimary    *bool   `json:"is_primary,omitempty"`
+	IsGroupCover *bool   `json:"is_group_cover,omitempty"`
+	Order        *int    `json:"order,omitempty"`
+}
+
+// ListingMediaDeleteInput represents input for deleting listing media
+type ListingMediaDeleteInput struct {
+	MediaID uuid.UUID `json:"media_id"`
+	Key     string    `json:"key"`
+}
+
+type FinalizedListingMediaItem struct {
+	ID  uuid.UUID `json:"id"`
+	Key string    `json:"key"`
+}
+
+// FinalizedListingMedia represents media that has been finalized for a listing
+type FinalizedListingMedia struct {
+	ListingID uuid.UUID `json:"listing_id"`
+	MediaKeys []string  `json:"media_keys"`
+}
+
+// ListingMediaResult represents the result of uploading listing media
+type ListingMediaResult struct {
+	ID       uuid.UUID `json:"id"`
+	Filename string    `json:"filename"`
+	URL      string    `json:"url"`
+	Key      string    `json:"key"`
 }
 
 // ListingCompleteness represents a completeness assessment for a listing.

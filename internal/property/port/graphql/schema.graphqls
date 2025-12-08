@@ -222,7 +222,9 @@ type ListingMedia {
   id: UUID!
   listingId: UUID!
   url: String!
+  key: String!
   type: MediaType!
+  thumbnails: [ThumbnailVariant!]!
   group: String
   caption: String
   mimeType: String
@@ -232,6 +234,25 @@ type ListingMedia {
   order: Int!
   createdAt: Time!
   updatedAt: Time!
+}
+
+type Thumbnail {
+  key: String!
+  url: String!
+  width: Int!
+  height: Int!
+  sizeBytes: Int!
+  mimeType: String!
+}
+
+type ThumbnailVariant {
+  size: String!
+  key: String!
+  url: String!
+  width: Int!
+  height: Int!
+  sizeBytes: Int!
+  mimeType: String!
 }
 
 type ShortletDetail {
@@ -487,12 +508,8 @@ input ServiceChargeInput {
 }
 
 input MediaInput {
-  url: String!
-  type: MediaType!
   group: String
   caption: String
-  mimeType: String
-  sizeBytes: Int
   isPrimary: Boolean
   isGroupCover: Boolean
   order: Int
@@ -602,8 +619,4 @@ extend type Mutation {
   # Publishing
   publishListing(id: UUID!): Listing!
   unpublishListing(id: UUID!): Listing!
-
-  # Media
-  addListingMedia(listingId: UUID!, media: [MediaInput!]!): [ListingMedia!]!
-  deleteListingMedia(listingId: UUID!, mediaIds: [UUID!]!): Boolean!
 }

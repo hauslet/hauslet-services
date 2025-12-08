@@ -7,6 +7,7 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/storage"
 	"net/http"
 	"time"
 
@@ -24,11 +25,11 @@ func NewHTTPServer(
 	cfg *config.GlobalConfig,
 	mC *email.Client,
 	q *queue.Client,
+	r2 *storage.R2Storage,
 ) *http.Server {
 	r := chi.NewRouter()
 
 	// Middleware setup
-	// Heartbeat must be first to intercept before any other middleware
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(chimiddleware.Logger)
@@ -41,7 +42,7 @@ func NewHTTPServer(
 	}
 
 	// Set up routes
-	setupRoutes(r, ctx, db, rds, log, cfg, mC, q)
+	setupRoutes(r, ctx, db, rds, log, cfg, mC, q, r2)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.App.Port,

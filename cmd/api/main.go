@@ -10,6 +10,7 @@ import (
 	"hauslet/internal/platform/logger"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/storage"
 	profileSchema "hauslet/internal/profile/repository/schema"
 	propertySchema "hauslet/internal/property/repository/schema"
 	"net/http"
@@ -85,6 +86,14 @@ func main() {
 	}
 	log.Logf("INFO ✅ Redis connected successfully")
 
+	storageClient, err := storage.NewR2S3Client(cfg.Storage.R2)
+	if err != nil {
+		log.Logf("ERROR failed to create R2 S3 client: %v", err)
+		return
+	}
+	r2Storage := storage.NewR2Storage(storageClient, &cfg.Storage.R2)
+	log.Logf("INFO ✅ Cloudflare R2 storage client initialized")
+
 	// Define email sender based on configuration
 	var emailSender email.Sender
 	switch cfg.App.Env {
@@ -112,6 +121,12 @@ func main() {
 	// Initialize NATS queue (optional fallback to direct send on failure)
 	var queueClient *queue.Client
 	queueSubjects := []string{cfg.YAML.Queue.Subjects["email"]}
+	if thumbSub := cfg.YAML.Queue.Subjects["media_thumbnail"]; thumbSub != "" {
+		queueSubjects = append(queueSubjects, thumbSub)
+	}
+	if cleanupSub := cfg.YAML.Queue.Subjects["media_cleanup"]; cleanupSub != "" {
+		queueSubjects = append(queueSubjects, cleanupSub)
+	}
 	if q, err := queue.New(initCtx, cfg.Infra.NATS.URL, cfg.YAML.Queue.StreamName, queueSubjects); err != nil {
 		log.Logf("WARN ⚠️ failed to initialize NATS queue, direct send will be used: %v", err)
 	} else {
@@ -121,7 +136,7 @@ func main() {
 	}
 
 	// Create and start the HTTP server
-	srv := server.NewHTTPServer(initCtx, db, &redisClient, log, cfg, mailClient, queueClient)
+	srv := server.NewHTTPServer(initCtx, db, &redisClient, log, cfg, mailClient, queueClient, r2Storage)
 	handleServerLifecycle(srv, log)
 }
 

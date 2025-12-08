@@ -45,7 +45,7 @@ func newMockService(t *testing.T) (service.Service, sqlmock.Sqlmock, func()) {
 	}
 
 	repo := repository.NewPropertyRepository(gdb)
-	svc := service.NewPropertyService(repo)
+	svc := service.NewPropertyService(repo, nil, nil, "")
 
 	cleanup := func() { sqlDB.Close() }
 	return svc, mock, cleanup

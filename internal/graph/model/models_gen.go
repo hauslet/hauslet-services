@@ -86,15 +86,11 @@ type LocationInput struct {
 }
 
 type MediaInput struct {
-	URL          string           `json:"url"`
-	Type         domain.MediaType `json:"type"`
-	Group        *string          `json:"group,omitempty"`
-	Caption      *string          `json:"caption,omitempty"`
-	MimeType     *string          `json:"mimeType,omitempty"`
-	SizeBytes    *int             `json:"sizeBytes,omitempty"`
-	IsPrimary    *bool            `json:"isPrimary,omitempty"`
-	IsGroupCover *bool            `json:"isGroupCover,omitempty"`
-	Order        *int             `json:"order,omitempty"`
+	Group        *string `json:"group,omitempty"`
+	Caption      *string `json:"caption,omitempty"`
+	IsPrimary    *bool   `json:"isPrimary,omitempty"`
+	IsGroupCover *bool   `json:"isGroupCover,omitempty"`
+	Order        *int    `json:"order,omitempty"`
 }
 
 type Mutation struct {

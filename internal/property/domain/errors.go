@@ -17,4 +17,13 @@ var (
 	ErrMediaNotFound         = errors.New("media not found")
 	ErrInvalidMediaType      = errors.New("invalid media type")
 	ErrNoPrimaryMedia        = errors.New("listing must have at least one primary media")
+
+	// Authorization errors
+	ErrForbidden            = errors.New("forbidden: insufficient permissions")
+	ErrUnauthorized         = errors.New("unauthorized")
+
+	// Media operation errors
+	ErrInvalidMediaInput    = errors.New("invalid media input")
+	ErrMediaUploadFailed    = errors.New("media upload failed")
+	ErrTooManyMediaItems    = errors.New("too many media items")
 )

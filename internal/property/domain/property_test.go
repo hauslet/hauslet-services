@@ -356,7 +356,7 @@ func TestMapListingFromSchema(t *testing.T) {
 			{
 				ID:        uuid.New(),
 				ListingID: listingID,
-				URL:       "https://example.com/1.jpg",
+				Key:       "1.jpg",
 				Type:      schema.MediaTypeImage,
 				IsPrimary: true,
 				Order:     1,

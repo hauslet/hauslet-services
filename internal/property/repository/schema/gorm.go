@@ -2,6 +2,8 @@ package schema
 
 import (
 	"crypto/rand"
+	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -304,37 +306,62 @@ const (
 	MediaTypeDocument MediaType = "document"
 )
 
+// 1. Define a helper struct for the thumbnail details
+type Thumbnail struct {
+	Key      string `json:"key"`        // S3 Key: "listings/123/kitchen_thumb_sm.jpg"
+	Width    int    `json:"width"`      // 300
+	Height   int    `json:"height"`     // 200
+	Size     int64  `json:"size_bytes"` // File size for optimization checks
+	MimeType string `json:"mime_type"`  // "image/webp"
+}
+
+// 2. Define the Map for GORM to handle JSONB storage
+// Keys will be "small", "medium", "og", etc.
+type ThumbnailMap map[string]Thumbnail
+
+// Value and Scan are required for GORM to handle custom JSON structures if not using the default serializer
+func (tm ThumbnailMap) Value() (driver.Value, error) {
+	return json.Marshal(tm)
+}
+
+func (tm *ThumbnailMap) Scan(value interface{}) error {
+	return json.Unmarshal(value.([]byte), tm)
+}
+
 type ListingMedia struct {
 	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	ListingID uuid.UUID `gorm:"type:uuid;not null;index"` // Foreign Key
+	ListingID uuid.UUID `gorm:"type:uuid;not null;index"`
 
 	// REQUIRED FIELDS
-	URL  string    `gorm:"not null"`
+	Key  string    `gorm:"not null"` // The Original High-Res Image
 	Type MediaType `gorm:"size:20;default:'image'"`
 
+	// --- NEW FIELD ---
+	// Stores variations like {"small": {Key: "...", Width: 300...}, "medium": {...}}
+	Thumbnails ThumbnailMap `gorm:"type:jsonb;serializer:json"`
+	// -----------------
+
 	// OPTIONAL Metadata
-	Group    *string `gorm:"type:varchar(100);index"` // e.g., "kitchen", "exterior"
-	Caption  *string `gorm:"size:100"`                // e.g., "Marble countertops"
-	MimeType *string `gorm:"size:50"`                 // e.g., "image/jpeg"
+	Group    *string `gorm:"type:varchar(100);index"`
+	Caption  *string `gorm:"size:100"`
+	MimeType *string `gorm:"size:50"`
 
 	SizeBytes int64 `gorm:"default:0"`
+	Duration  *int  `gorm:"default:null"`
 
-	// FLAGS
-	// IsPrimary: The main photo for the listing card.
-	IsPrimary bool `gorm:"default:false;index"`
-
-	// IsGroupCover: The main photo if viewing the "Kitchen" gallery specifically.
+	IsPrimary    bool `gorm:"default:false;index"`
 	IsGroupCover bool `gorm:"default:false"`
+	Order        int  `gorm:"default:0;index"`
 
-	Order int `gorm:"default:0;index"`
+	ImageEmbedding *VectorEmbedding `gorm:"type:vector(512)"`
 
-	// Vector embeddings for image similarity search
-	ImageEmbedding *VectorEmbedding `gorm:"type:vector(512)" json:"image_embedding,omitempty"`
+	EmbeddingModel       *string `gorm:"type:varchar(100)"`
+	EmbeddingVersion     *string `gorm:"type:varchar(50)"`
+	EmbeddingGeneratedAt *time.Time
 
-	// Embedding metadata
-	EmbeddingModel       *string    `gorm:"type:varchar(100)" json:"embedding_model,omitempty"`
-	EmbeddingVersion     *string    `gorm:"type:varchar(50)" json:"embedding_version,omitempty"`
-	EmbeddingGeneratedAt *time.Time `json:"embedding_generated_at,omitempty"`
+	UrlGeneratedAt time.Time `gorm:"index"`
+	Uploaded       bool      `gorm:"default:false;index"`
+	UploadedAt     time.Time `gorm:"index"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -342,6 +369,11 @@ type ListingMedia struct {
 
 // Validation to ensure Type is correct
 func (m *ListingMedia) BeforeSave(tx *gorm.DB) error {
+	// If Type isn't being changed in this operation, skip validation to allow partial updates.
+	if tx != nil && tx.Statement != nil && !tx.Statement.Changed("Type") {
+		return nil
+	}
+
 	switch m.Type {
 	case MediaTypeImage, MediaTypeVideo, MediaTypeTour360, MediaTypeDocument:
 		return nil

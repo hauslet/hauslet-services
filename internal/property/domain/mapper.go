@@ -519,11 +519,28 @@ func MapListingMediaFromSchema(schemaMedia *schema.ListingMedia) *ListingMedia {
 		return nil
 	}
 
+	var thumbs ThumbnailMap
+	if schemaMedia.Thumbnails != nil {
+		thumbs = make(ThumbnailMap, len(schemaMedia.Thumbnails))
+		for k, v := range schemaMedia.Thumbnails {
+			thumbs[k] = Thumbnail{
+				Key:       v.Key,
+				URL:       "",
+				Width:     v.Width,
+				Height:    v.Height,
+				SizeBytes: v.Size,
+				MimeType:  v.MimeType,
+			}
+		}
+	}
+
 	return &ListingMedia{
 		ID:           schemaMedia.ID,
 		ListingID:    schemaMedia.ListingID,
-		URL:          schemaMedia.URL,
+		URL:          "",
+		Key:          schemaMedia.Key,
 		Type:         MediaType(schemaMedia.Type),
+		Thumbnails:   thumbs,
 		Group:        schemaMedia.Group,
 		Caption:      schemaMedia.Caption,
 		MimeType:     schemaMedia.MimeType,
@@ -542,11 +559,26 @@ func MapListingMediaToSchema(domainMedia *ListingMedia) *schema.ListingMedia {
 		return nil
 	}
 
+	var thumbs schema.ThumbnailMap
+	if domainMedia.Thumbnails != nil {
+		thumbs = make(schema.ThumbnailMap, len(domainMedia.Thumbnails))
+		for k, v := range domainMedia.Thumbnails {
+			thumbs[k] = schema.Thumbnail{
+				Key:      v.Key,
+				Width:    v.Width,
+				Height:   v.Height,
+				Size:     v.SizeBytes,
+				MimeType: v.MimeType,
+			}
+		}
+	}
+
 	return &schema.ListingMedia{
 		ID:           domainMedia.ID,
 		ListingID:    domainMedia.ListingID,
-		URL:          domainMedia.URL,
+		Key:          domainMedia.Key,
 		Type:         schema.MediaType(domainMedia.Type),
+		Thumbnails:   thumbs,
 		Group:        domainMedia.Group,
 		Caption:      domainMedia.Caption,
 		MimeType:     domainMedia.MimeType,

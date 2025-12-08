@@ -3,7 +3,11 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 
+	"hauslet/config"
+	"hauslet/internal/graph/helpers"
 	"hauslet/internal/graph/loaders"
 	"hauslet/internal/graph/model"
 	"hauslet/internal/graph/viewer"
@@ -18,10 +22,11 @@ import (
 type Resolver struct {
 	propertyService service.Service
 	log             *lgr.Logger
+	cdnHost         string
 }
 
-func NewResolver(propertyService service.Service, log *lgr.Logger) *Resolver {
-	return &Resolver{propertyService: propertyService, log: log}
+func NewResolver(propertyService service.Service, cfg *config.GlobalConfig, log *lgr.Logger) *Resolver {
+	return &Resolver{propertyService: propertyService, cdnHost: cfg.Storage.R2.CDNHost, log: log}
 }
 
 // ===========================
@@ -44,6 +49,9 @@ func (r *Resolver) PropertyByPublicId(ctx context.Context, publicId string) (*do
 func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
 	if l := loaders.For(ctx); l != nil && l.Listing != nil {
 		if listing, err := l.Listing.Load(ctx, id); err == nil {
+			if listing != nil && len(listing.Media) > 0 {
+				listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
+			}
 			return sanitizeListingForViewer(listing, viewer.FromContext(ctx)), nil
 		}
 	}
@@ -52,6 +60,9 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 	if err != nil {
 		r.log.Logf("ERROR Failed to get listing by ID %s: %v", id, err)
 		return nil, err
+	}
+	if listing != nil && len(listing.Media) > 0 {
+		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
 	return sanitizeListingForViewer(listing, viewer.FromContext(ctx)), nil
 }
@@ -63,6 +74,9 @@ func (r *Resolver) ListingBySlug(ctx context.Context, slug string) (*domain.List
 		r.log.Logf("ERROR Failed to get listing by slug %s: %v", slug, err)
 		return nil, err
 	}
+	if listing != nil && len(listing.Media) > 0 {
+		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
+	}
 	return sanitizeListingForViewer(listing, viewer.FromContext(ctx)), nil
 }
 
@@ -72,10 +86,7 @@ func (r *Resolver) Listings(ctx context.Context, filter *model.ListingFilterInpu
 	offset := 0
 
 	if first != nil && *first > 0 {
-		limit = *first
-		if limit > 100 {
-			limit = 100
-		}
+		limit = min(*first, 100)
 	}
 
 	if after != nil {
@@ -96,6 +107,12 @@ func (r *Resolver) Listings(ctx context.Context, filter *model.ListingFilterInpu
 	if err != nil {
 		r.log.Logf("ERROR Failed to list listings: %v", err)
 		return nil, err
+	}
+
+	for i := range listings {
+		if len(listings[i].Media) > 0 {
+			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
+		}
 	}
 
 	return buildListingConnection(listings, total, offset, limit, viewer.FromContext(ctx)), nil
@@ -409,119 +426,6 @@ func (r *Resolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.
 	return sanitizeListingForViewer(unpublished, v), nil
 }
 
-// AddListingMedia adds media to a listing.
-func (r *Resolver) AddListingMedia(ctx context.Context, listingID uuid.UUID, media []*model.MediaInput) ([]*domain.ListingMedia, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to add media to listing %s", listingID)
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		r.log.Logf("ERROR Invalid user ID in addListingMedia: %s", v.UserID)
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
-	existing, err := r.propertyService.GetListingByID(ctx, listingID, false)
-	if err != nil {
-		r.log.Logf("ERROR Failed to get listing %s for adding media: %v", listingID, err)
-		return nil, err
-	}
-	if existing == nil {
-		r.log.Logf("WARN Listing %s not found for adding media", listingID)
-		return nil, domain.ErrListingNotFound
-	}
-	if !isAdminRole(v.Role) && existing.OwnerID != requesterID {
-		r.log.Logf("WARN User %s attempted to add media to listing %s owned by %s", v.UserID, listingID, existing.OwnerID)
-		return nil, fmt.Errorf("forbidden: not the owner")
-	}
-
-	domainMedia := make([]domain.ListingMedia, 0, len(media))
-	for _, m := range media {
-		if m == nil {
-			continue
-		}
-		size := int64(0)
-		if m.SizeBytes != nil {
-			size = int64(*m.SizeBytes)
-		}
-		order := 0
-		if m.Order != nil {
-			order = *m.Order
-		}
-		domainMedia = append(domainMedia, domain.ListingMedia{
-			ID:           uuid.New(),
-			ListingID:    listingID,
-			URL:          m.URL,
-			Type:         m.Type,
-			Group:        m.Group,
-			Caption:      m.Caption,
-			MimeType:     m.MimeType,
-			SizeBytes:    size,
-			IsPrimary:    boolOrDefault(m.IsPrimary, false),
-			IsGroupCover: boolOrDefault(m.IsGroupCover, false),
-			Order:        order,
-		})
-	}
-
-	if err := r.propertyService.AddListingMedia(ctx, listingID, domainMedia); err != nil {
-		r.log.Logf("ERROR Failed to add media to listing %s: %v", listingID, err)
-		return nil, err
-	}
-
-	updatedMedia, err := r.propertyService.ListListingMedia(ctx, listingID)
-	if err != nil {
-		r.log.Logf("ERROR Failed to list media for listing %s: %v", listingID, err)
-		return nil, err
-	}
-
-	r.log.Logf("INFO Media added to listing %s by user %s", listingID, v.UserID)
-
-	result := make([]*domain.ListingMedia, len(updatedMedia))
-	for i := range updatedMedia {
-		result[i] = &updatedMedia[i]
-	}
-	return result, nil
-}
-
-// DeleteListingMedia deletes media from a listing.
-func (r *Resolver) DeleteListingMedia(ctx context.Context, listingID uuid.UUID, mediaIds []uuid.UUID) (bool, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to delete media from listing %s", listingID)
-		return false, fmt.Errorf("unauthenticated")
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		r.log.Logf("ERROR Invalid user ID in deleteListingMedia: %s", v.UserID)
-		return false, fmt.Errorf("invalid user ID")
-	}
-
-	existing, err := r.propertyService.GetListingByID(ctx, listingID, false)
-	if err != nil {
-		r.log.Logf("ERROR Failed to get listing %s for deleting media: %v", listingID, err)
-		return false, err
-	}
-	if existing == nil {
-		r.log.Logf("WARN Listing %s not found for deleting media", listingID)
-		return false, domain.ErrListingNotFound
-	}
-	if !isAdminRole(v.Role) && existing.OwnerID != requesterID {
-		r.log.Logf("WARN User %s attempted to delete media from listing %s owned by %s", v.UserID, listingID, existing.OwnerID)
-		return false, fmt.Errorf("forbidden: not the owner")
-	}
-
-	if err := r.propertyService.DeleteListingMedia(ctx, listingID, mediaIds); err != nil {
-		r.log.Logf("ERROR Failed to delete media from listing %s: %v", listingID, err)
-		return false, err
-	}
-
-	r.log.Logf("INFO Media deleted from listing %s by user %s", listingID, v.UserID)
-	return true, nil
-}
-
 // ===========================
 // FIELD RESOLVERS
 // ===========================
@@ -780,4 +684,29 @@ func (r *Resolver) SaleDetailServiceCharges(ctx context.Context, obj *domain.Sal
 		charges[i] = &c
 	}
 	return charges, nil
+}
+
+// Thumbnails resolves the thumbnails field on ListingMedia by converting the map to an array.
+func (r *Resolver) ListingMediaThumbnails(ctx context.Context, obj *domain.ListingMedia) ([]*domain.ThumbnailVariant, error) {
+	if len(obj.Thumbnails) == 0 {
+		return []*domain.ThumbnailVariant{}, nil
+	}
+
+	thumbnails := make([]*domain.ThumbnailVariant, 0, len(obj.Thumbnails))
+	for name, thumb := range obj.Thumbnails {
+		// Remove file extension from size name (e.g., "small.jpg" -> "small")
+		size := strings.TrimSuffix(name, filepath.Ext(name))
+
+		thumbnails = append(thumbnails, &domain.ThumbnailVariant{
+			Size:      size,
+			Key:       thumb.Key,
+			URL:       thumb.URL,
+			Width:     thumb.Width,
+			Height:    thumb.Height,
+			SizeBytes: thumb.SizeBytes,
+			MimeType:  thumb.MimeType,
+		})
+	}
+
+	return thumbnails, nil
 }

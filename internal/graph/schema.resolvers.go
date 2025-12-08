@@ -21,6 +21,11 @@ func (r *listingResolver) Property(ctx context.Context, obj *domain.Listing) (*d
 	return r.PropertyResolver.ListingProperty(ctx, obj)
 }
 
+// Thumbnails is the resolver for the thumbnails field.
+func (r *listingMediaResolver) Thumbnails(ctx context.Context, obj *domain.ListingMedia) ([]*domain.ThumbnailVariant, error) {
+	return r.PropertyResolver.ListingMediaThumbnails(ctx, obj)
+}
+
 // Mutation resolvers.
 func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
 	return "pong", nil
@@ -54,16 +59,6 @@ func (r *mutationResolver) PublishListing(ctx context.Context, id uuid.UUID) (*d
 // UnpublishListing is the resolver for the unpublishListing field.
 func (r *mutationResolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
 	return r.PropertyResolver.UnpublishListing(ctx, id)
-}
-
-// AddListingMedia is the resolver for the addListingMedia field.
-func (r *mutationResolver) AddListingMedia(ctx context.Context, listingID uuid.UUID, media []*model.MediaInput) ([]*domain.ListingMedia, error) {
-	return r.PropertyResolver.AddListingMedia(ctx, listingID, media)
-}
-
-// DeleteListingMedia is the resolver for the deleteListingMedia field.
-func (r *mutationResolver) DeleteListingMedia(ctx context.Context, listingID uuid.UUID, mediaIds []uuid.UUID) (bool, error) {
-	return r.PropertyResolver.DeleteListingMedia(ctx, listingID, mediaIds)
 }
 
 // Profile field resolvers.
@@ -169,6 +164,9 @@ func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain.Sal
 // Listing returns ListingResolver implementation.
 func (r *Resolver) Listing() ListingResolver { return &listingResolver{r} }
 
+// ListingMedia returns ListingMediaResolver implementation.
+func (r *Resolver) ListingMedia() ListingMediaResolver { return &listingMediaResolver{r} }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
@@ -188,6 +186,7 @@ func (r *Resolver) RentalDetail() RentalDetailResolver { return &rentalDetailRes
 func (r *Resolver) SaleDetail() SaleDetailResolver { return &saleDetailResolver{r} }
 
 type listingResolver struct{ *Resolver }
+type listingMediaResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
 type propertyResolver struct{ *Resolver }
