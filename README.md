@@ -1,6 +1,6 @@
 # Hauslet Services
 
-[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8.svg)](https://golang.org/)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8.svg)](https://golang.org/)
 
 This repository contains the backend services for **Hauslet**, a hybrid real estate platform tailored for the Nigerian market, combining long-term property acquisition (Zillow model) and short-term rentals (Airbnb model).
 
