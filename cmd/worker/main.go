@@ -8,16 +8,18 @@ import (
 	"time"
 
 	"hauslet/config"
+	propertyrepository "hauslet/internal/modules/property/repository"
 	"hauslet/internal/platform/database"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/logger"
 	platformQueue "hauslet/internal/platform/queue"
 	"hauslet/internal/platform/storage"
-	propertyrepository "hauslet/internal/property/repository"
 	"hauslet/internal/queue"
-	"hauslet/internal/queue/jobs"
-	"hauslet/internal/workers"
-	"hauslet/internal/workers/handlers"
+	jobs "hauslet/internal/queue/jobs/listing"
+
+	"hauslet/internal/transport/worker"
+	emailHandler "hauslet/internal/transport/worker/handlers/emails"
+	listingHandler "hauslet/internal/transport/worker/handlers/listing"
 
 	"github.com/go-pkgz/lgr"
 )
@@ -83,7 +85,7 @@ func main() {
 	registry := queue.NewRegistry()
 
 	// Register email handler
-	emailHandler := handlers.NewEmailHandler(emailClient, log, emailSubject)
+	emailHandler := emailHandler.NewEmailHandler(emailClient, log, emailSubject)
 	registry.Register(emailHandler)
 
 	var propertyRepo propertyrepository.Repository
@@ -92,13 +94,13 @@ func main() {
 	}
 	// Register listing media thumbnail handler
 	if thumbnailSubject != "" {
-		thumbnailHandler := handlers.NewListingMediaThumbnailHandler(propertyRepo, r2Storage, log, thumbnailSubject)
+		thumbnailHandler := listingHandler.NewListingMediaThumbnailHandler(propertyRepo, r2Storage, log, thumbnailSubject)
 		registry.Register(thumbnailHandler)
 	}
 
 	// Register listing media cleanup handler
 	if cleanupSubject != "" {
-		cleanupHandler := handlers.NewListingMediaCleanupHandler(propertyRepo, r2Storage, log, cleanupSubject)
+		cleanupHandler := listingHandler.NewListingMediaCleanupHandler(propertyRepo, r2Storage, log, cleanupSubject)
 		registry.Register(cleanupHandler)
 	}
 
@@ -109,7 +111,7 @@ func main() {
 	log.Logf("INFO ✅ Registered %d job handlers", registry.HandlerCount())
 
 	// Start worker processor
-	processor := workers.NewProcessor(queueClient, registry, log, cfg)
+	processor := worker.NewProcessor(queueClient, registry, log, cfg)
 
 	if err := processor.Start(ctx); err != nil {
 		log.Logf("ERROR Failed to start processor: %v", err)
@@ -143,7 +145,7 @@ func main() {
 }
 
 // handleShutdown manages graceful shutdown on signals
-func handleShutdown(log *lgr.Logger, processor *workers.Processor) {
+func handleShutdown(log *lgr.Logger, processor *worker.Processor) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 

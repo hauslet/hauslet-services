@@ -1,0 +1,45 @@
+package service
+
+import (
+	"context"
+	"time"
+
+	"hauslet/internal/modules/profile/domain"
+)
+
+// ProfileService defines business-level operations for profile management.
+type ProfileService interface {
+	// Core CRUD
+	CreateProfile(ctx context.Context, profile domain.Profile) (*domain.Profile, error)
+	GetProfileByUserID(ctx context.Context, userID string) (*domain.Profile, error)
+	GetProfileByID(ctx context.Context, id string) (*domain.Profile, error)
+	UpdateProfile(ctx context.Context, profile domain.Profile) (*domain.Profile, error)
+	PatchProfile(ctx context.Context, id string, updates map[string]any) (*domain.Profile, error)
+	DeleteProfile(ctx context.Context, userID string) error // Soft delete
+
+	// Discovery
+	ListProfiles(ctx context.Context, limit, offset int) ([]domain.Profile, error)
+	SearchProfiles(ctx context.Context, query string, limit, offset int) ([]domain.Profile, error)
+	GetProfilesByUserType(ctx context.Context, userType string, limit, offset int) ([]domain.Profile, error)
+	GetVerifiedProfiles(ctx context.Context, level string, limit, offset int) ([]domain.Profile, error)
+
+	// Batch/Helpers
+	GetProfilesByUserIDs(ctx context.Context, userIDs []string) ([]domain.Profile, error)
+	ProfileExists(ctx context.Context, userID string) (bool, error)
+
+	// Field-level operations
+	AddBadge(ctx context.Context, userID string, badge domain.Badge) error
+	RemoveBadge(ctx context.Context, userID string, badge domain.Badge) error
+	UpdateTravelCompanions(ctx context.Context, userID string, companions []domain.TravelCompanion) error
+	UpdateTrustScore(ctx context.Context, userID string, score float64) error
+	IncrementReviewStats(ctx context.Context, userID string, ratingDelta float64, reviewsDelta int) error
+	SetVerificationStatus(ctx context.Context, userID string, level string, verified bool, verificationDate *time.Time) error
+
+	// Administrative
+	RestoreProfile(ctx context.Context, userID string) error
+	HardDeleteProfile(ctx context.Context, userID string) error
+	GetDeletedProfiles(ctx context.Context) ([]domain.Profile, error)
+
+	// Hooks
+	CreateDefaultProfile(ctx context.Context, userID string, name string, birthDate *time.Time) error
+}

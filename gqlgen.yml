@@ -2,26 +2,26 @@
 
 # 1. Schema Location
 schema:
-  - internal/graph/*.graphqls
-  - internal/auth/port/graphql/*.graphqls
-  - internal/profile/port/graphql/*.graphqls
-  - internal/property/port/graphql/*.graphqls
+  - internal/transport/graph/*.graphqls
+  - internal/modules/auth/port/graphql/*.graphqls
+  - internal/modules/profile/port/graphql/*.graphqls
+  - internal/modules/property/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
 exec:
-  filename: internal/graph/generated.go
+  filename: internal/transport/graph/generated.go
   package: graph
 
 # 3. Generated Models
 # Input types and types NOT bound to Go structs land here
 model:
-  filename: internal/graph/model/models_gen.go
+  filename: internal/transport/graph/model/models_gen.go
   package: model
 
 # 4. Resolver Implementation
 resolver:
   layout: follow-schema
-  dir: internal/graph
+  dir: internal/transport/graph
   package: graph
   filename_template: "{name}.resolvers.go"
 
@@ -42,85 +42,85 @@ models:
   
   # --- Auth Module Bindings ---
   User:
-    model: hauslet/internal/auth/domain.User
+    model: hauslet/internal/modules/auth/domain.User
   UserIdentity:
-    model: hauslet/internal/auth/domain.UserIdentity
+    model: hauslet/internal/modules/auth/domain.UserIdentity
   Role:
-    model: hauslet/internal/auth/domain.UserRole
+    model: hauslet/internal/modules/auth/domain.UserRole
 
   # --- Profile Module Bindings ---
   Profile:
-    model: hauslet/internal/profile/domain.Profile
+    model: hauslet/internal/modules/profile/domain.Profile
   
   # TravelCompanion is nested inside Profile
   TravelCompanion:
-    model: hauslet/internal/profile/domain.TravelCompanion
+    model: hauslet/internal/modules/profile/domain.TravelCompanion
 
   # Enum Mappings
   UserType:
-    model: hauslet/internal/profile/domain.UserType
+    model: hauslet/internal/modules/profile/domain.UserType
   Badge:
-    model: hauslet/internal/profile/domain.Badge
+    model: hauslet/internal/modules/profile/domain.Badge
   BadgeDetails:
-    model: hauslet/internal/profile/domain.BadgeDetails
+    model: hauslet/internal/modules/profile/domain.BadgeDetails
   UUID:
     model:
       - github.com/google/uuid.UUID
 
   # --- Property Module Bindings ---
   Property:
-    model: hauslet/internal/property/domain.Property
+    model: hauslet/internal/modules/property/domain.Property
   Listing:
-    model: hauslet/internal/property/domain.Listing
+    model: hauslet/internal/modules/property/domain.Listing
   ListingMedia:
-    model: hauslet/internal/property/domain.ListingMedia
+    model: hauslet/internal/modules/property/domain.ListingMedia
   Location:
-    model: hauslet/internal/property/domain.Location
+    model: hauslet/internal/modules/property/domain.Location
   ShortletDetail:
-    model: hauslet/internal/property/domain.ShortletDetail
+    model: hauslet/internal/modules/property/domain.ShortletDetail
   RentalDetail:
-    model: hauslet/internal/property/domain.RentalDetail
+    model: hauslet/internal/modules/property/domain.RentalDetail
   SaleDetail:
-    model: hauslet/internal/property/domain.SaleDetail
+    model: hauslet/internal/modules/property/domain.SaleDetail
   AmenityHighlight:
-    model: hauslet/internal/property/domain.AmenityHighlight
+    model: hauslet/internal/modules/property/domain.AmenityHighlight
   RuleGroup:
-    model: hauslet/internal/property/domain.RuleGroup
+    model: hauslet/internal/modules/property/domain.RuleGroup
   ServiceCharge:
-    model: hauslet/internal/property/domain.ServiceCharge
+    model: hauslet/internal/modules/property/domain.ServiceCharge
   ListingCompleteness:
-    model: hauslet/internal/property/domain.ListingCompleteness
+    model: hauslet/internal/modules/property/domain.ListingCompleteness
   Thumbnail:
-    model: hauslet/internal/property/domain.Thumbnail
+    model: hauslet/internal/modules/property/domain.Thumbnail
   ThumbnailVariant:
-    model: hauslet/internal/property/domain.ThumbnailVariant
+    model: hauslet/internal/modules/property/domain.ThumbnailVariant
 
   # Property Enums
   CountryCode:
-    model: hauslet/internal/property/domain.CountryCode
+    model: hauslet/internal/modules/property/domain.CountryCode
   CurrencyCode:
-    model: hauslet/internal/property/domain.CurrencyCode
+    model: hauslet/internal/modules/property/domain.CurrencyCode
   OwnerType:
-    model: hauslet/internal/property/domain.OwnerType
+    model: hauslet/internal/modules/property/domain.OwnerType
   PropertyClass:
-    model: hauslet/internal/property/domain.PropertyClass
+    model: hauslet/internal/modules/property/domain.PropertyClass
   PropertyType:
-    model: hauslet/internal/property/domain.PropertyType
+    model: hauslet/internal/modules/property/domain.PropertyType
   PropertyCondition:
-    model: hauslet/internal/property/domain.PropertyCondition
+    model: hauslet/internal/modules/property/domain.PropertyCondition
   FurnishingType:
-    model: hauslet/internal/property/domain.FurnishingType
+    model: hauslet/internal/modules/property/domain.FurnishingType
   ListingType:
-    model: hauslet/internal/property/domain.ListingType
+    model: hauslet/internal/modules/property/domain.ListingType
   ListingStatus:
-    model: hauslet/internal/property/domain.ListingStatus
+    model: hauslet/internal/modules/property/domain.ListingStatus
   ReviewStatus:
-    model: hauslet/internal/property/domain.ReviewStatus
+    model: hauslet/internal/modules/property/domain.ReviewStatus
   PaymentPeriod:
-    model: hauslet/internal/property/domain.PaymentPeriod
+    model: hauslet/internal/modules/property/domain.PaymentPeriod
   AccommodationType:
-    model: hauslet/internal/property/domain.AccommodationType
+    model: hauslet/internal/modules/property/domain.AccommodationType
   RuleCategory:
-    model: hauslet/internal/property/domain.RuleCategory
+    model: hauslet/internal/modules/property/domain.RuleCategory
   MediaType:
-    model: hauslet/internal/property/domain.MediaType
+    model: hauslet/internal/modules/property/domain.MediaType

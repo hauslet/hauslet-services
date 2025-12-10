@@ -3,21 +3,21 @@ package server
 import (
 	"context"
 	"hauslet/config"
-	authhttp "hauslet/internal/auth/port/http"
-	authrepository "hauslet/internal/auth/repository"
-	"hauslet/internal/auth/service"
-	authsession "hauslet/internal/auth/session"
-	"hauslet/internal/graph"
+	authhttp "hauslet/internal/modules/auth/port/http"
+	authrepository "hauslet/internal/modules/auth/repository"
+	"hauslet/internal/modules/auth/service"
+	authsession "hauslet/internal/modules/auth/session"
+	profileport "hauslet/internal/modules/profile/port/hooks"
+	profilerepository "hauslet/internal/modules/profile/repository"
+	profileservice "hauslet/internal/modules/profile/service"
+	propertyhttp "hauslet/internal/modules/property/port/http"
+	propertyrepository "hauslet/internal/modules/property/repository"
+	propertyservice "hauslet/internal/modules/property/service"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
-	profileport "hauslet/internal/profile/port/hooks"
-	profilerepository "hauslet/internal/profile/repository"
-	profileservice "hauslet/internal/profile/service"
-	propertyhttp "hauslet/internal/property/port/http"
-	propertyrepository "hauslet/internal/property/repository"
-	propertyservice "hauslet/internal/property/service"
+	"hauslet/internal/transport/graph"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-pkgz/lgr"
@@ -34,7 +34,7 @@ func setupRoutes(r chi.Router,
 	r2 *storage.R2Storage) {
 	// Initialize auth service
 	sessionStore := authsession.NewSessionStore(*rds)
-	authRepo := authrepository.NewAuthRepositoryImpl(db, sessionStore)
+	authRepo := authrepository.NewAuthRepository(db, sessionStore)
 
 	// Initialize profile service
 	profileRepo := profilerepository.NewProfileRepository(db)
