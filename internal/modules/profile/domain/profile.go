@@ -6,13 +6,48 @@ import (
 	"github.com/google/uuid"
 )
 
+type AgeGroup string
+type Gender string
+type Relationship string
+
+const (
+	AgeGroupChild  AgeGroup = "child"
+	AgeGroupTeen   AgeGroup = "teen"
+	AgeGroupAdult  AgeGroup = "adult"
+	AgeGroupSenior AgeGroup = "senior"
+)
+
+const (
+	GenderMale        Gender = "male"
+	GenderFemale      Gender = "female"
+	GenderOther       Gender = "other"
+	GenderUndisclosed Gender = "undisclosed"
+)
+
+const (
+	RelationshipFamily    Relationship = "family"
+	RelationshipFriend    Relationship = "friend"
+	RelationshipColleague Relationship = "colleague"
+	RelationshipOther     Relationship = "other"
+)
+
 // TravelCompanion represents a travel companion in the domain model
 type TravelCompanion struct {
+	ID           uuid.UUID
 	Name         string
-	AgeGroup     string // e.g., "child", "teen", "adult", "senior"
+	AgeGroup     AgeGroup
+	Gender       Gender
 	Phone        *string
-	Relationship string // e.g., "family", "friend", "colleague"
+	Relationship Relationship
 	PhotoURL     *string
+}
+
+type UploadResult struct {
+	TravelCompanionID uuid.UUID `json:"travel_companion_id,omitempty"`
+	UserID            string    `json:"user_id"`
+	Filename          string    `json:"filename"`
+	URL               string    `json:"url"`
+	Key               string    `json:"key"`
 }
 
 // Profile represents the core domain model for user profiles
@@ -22,14 +57,22 @@ type Profile struct {
 	UserTypes []UserType
 	FullName  string
 	BirthDate *time.Time
+	Gender    Gender
+	PhotoURL  *string
 
 	// Contact Information
-	PhoneNumbers []string
-	Address      *string
-	City         *string
-	State        *string
-	Country      *string
-	ZipCode      *string
+	PhoneNumbers   []string
+	Address        *string
+	City           *string
+	State          *string
+	Country        *string
+	ZipCode        *string
+	HouseNumber    *string
+	Street         *string
+	Area           *string
+	LGA            *string
+	District       *string
+	DigitalAddress *string
 
 	// Personal Information
 	Occupation   *string

@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"hauslet/internal/modules/profile/domain"
+
+	"github.com/google/uuid"
 )
 
 // ProfileService defines business-level operations for profile management.
@@ -30,10 +32,14 @@ type ProfileService interface {
 	// Field-level operations
 	AddBadge(ctx context.Context, userID string, badge domain.Badge) error
 	RemoveBadge(ctx context.Context, userID string, badge domain.Badge) error
-	UpdateTravelCompanions(ctx context.Context, userID string, companions []domain.TravelCompanion) error
+	AddTravelCompanion(ctx context.Context, userID string, companion domain.TravelCompanion) error
+	DeleteTravelCompanion(ctx context.Context, userID string, companionID string) error
+	UpdateTravelCompanion(ctx context.Context, userID string, companion domain.TravelCompanion) error
 	UpdateTrustScore(ctx context.Context, userID string, score float64) error
 	IncrementReviewStats(ctx context.Context, userID string, ratingDelta float64, reviewsDelta int) error
 	SetVerificationStatus(ctx context.Context, userID string, level string, verified bool, verificationDate *time.Time) error
+	UploadProfilePhoto(ctx context.Context, userID, filename string) (*domain.UploadResult, error)
+	UploadTravelCompanionPhoto(ctx context.Context, CompanionID uuid.UUID, userID, filename string) (*domain.UploadResult, error)
 
 	// Administrative
 	RestoreProfile(ctx context.Context, userID string) error

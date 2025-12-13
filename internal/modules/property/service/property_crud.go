@@ -107,23 +107,6 @@ func (s *ServiceImpl) GetPropertyByID(ctx context.Context, id uuid.UUID) (*domai
 	return s.ensureProperty(ctx, id)
 }
 
-// GetPropertyByPublicID retrieves a property by its public ID.
-func (s *ServiceImpl) GetPropertyByPublicID(ctx context.Context, publicID string) (*domain.Property, error) {
-	if publicID == "" {
-		return nil, domain.ErrInvalidPropertyID
-	}
-
-	p, err := s.repo.GetPropertyByPublicID(ctx, publicID)
-	if err != nil {
-		return nil, err
-	}
-	if p == nil {
-		return nil, domain.ErrPropertyNotFound
-	}
-
-	return domain.MapPropertyFromSchema(p), nil
-}
-
 // GetPropertiesByIDs retrieves multiple properties by their IDs.
 func (s *ServiceImpl) GetPropertiesByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.Property, error) {
 	if len(ids) == 0 {

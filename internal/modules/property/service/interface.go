@@ -17,7 +17,6 @@ type Service interface {
 	UpdateProperty(ctx context.Context, p domain.Property) (*domain.Property, error)
 	PatchProperty(ctx context.Context, id uuid.UUID, updates map[string]any) (*domain.Property, error)
 	GetPropertyByID(ctx context.Context, id uuid.UUID) (*domain.Property, error)
-	GetPropertyByPublicID(ctx context.Context, publicID string) (*domain.Property, error)
 	GetPropertiesByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.Property, error)
 	ListProperties(ctx context.Context, filter PropertyFilter, page Pagination) ([]domain.Property, int64, error)
 	DeleteProperty(ctx context.Context, id uuid.UUID, hard bool) error
@@ -27,6 +26,7 @@ type Service interface {
 	UpdateListing(ctx context.Context, l domain.Listing) (*domain.Listing, error)
 	PatchListing(ctx context.Context, id uuid.UUID, updates map[string]any) (*domain.Listing, error)
 	GetListingByID(ctx context.Context, id uuid.UUID, preloadMedia bool) (*domain.Listing, error)
+	GetListingByPublicID(ctx context.Context, publicID string, preloadMedia bool) (*domain.Listing, error)
 	GetListingBySlug(ctx context.Context, slug string, preloadMedia bool) (*domain.Listing, error)
 	GetListingsByIDs(ctx context.Context, ids []uuid.UUID, preloadMedia bool) ([]domain.Listing, error)
 	GetListingsByPropertyIDs(ctx context.Context, propertyIDs []uuid.UUID) ([]domain.Listing, error)

@@ -587,11 +587,9 @@ input ListingFilterInput {
 # ===========================
 
 extend type Query {
-  # Properties
-  propertyByPublicId(publicId: String!): Property
-
   # Listings
   listing(id: UUID!): Listing
+  listingByPublicId(publicId: String!): Listing
   listingBySlug(slug: String!): Listing
   listings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
   listingsByProperty(propertyId: UUID!, first: Int, after: String): ListingConnection!

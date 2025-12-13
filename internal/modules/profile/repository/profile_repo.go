@@ -3,8 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
-	"hauslet/internal/modules/profile/repository/schema"
 	"time"
+
+	"hauslet/internal/modules/profile/repository/schema"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -25,6 +26,12 @@ func (r *ProfileRerpositoryImpl) CreateProfile(ctx context.Context, profile *sch
 		return errors.New("user ID cannot be nil")
 	}
 
+	for i := range profile.TravelCompanions {
+		if profile.TravelCompanions[i].ProfileID == uuid.Nil {
+			profile.TravelCompanions[i].ProfileID = profile.ID
+		}
+	}
+
 	return r.db.WithContext(ctx).Create(profile).Error
 }
 
@@ -41,6 +48,7 @@ func (r *ProfileRerpositoryImpl) GetProfileByUserID(ctx context.Context, userID 
 
 	var profile schema.Profile
 	err = r.db.WithContext(ctx).
+		Preload("TravelCompanions").
 		Where("user_id = ?", parsedUserID).
 		First(&profile).Error
 
@@ -88,10 +96,15 @@ func (r *ProfileRerpositoryImpl) UpdateProfile(ctx context.Context, profile *sch
 		return errors.New("profile ID cannot be nil")
 	}
 
+	for i := range profile.TravelCompanions {
+		if profile.TravelCompanions[i].ProfileID == uuid.Nil {
+			profile.TravelCompanions[i].ProfileID = profile.ID
+		}
+	}
+
 	return r.db.WithContext(ctx).
-		Model(&schema.Profile{}).
-		Where("id = ?", profile.ID).
-		Updates(profile).Error
+		Session(&gorm.Session{FullSaveAssociations: true}).
+		Save(profile).Error
 }
 
 // DeleteProfile performs a soft delete of a profile by user ID.
@@ -133,6 +146,7 @@ func (r *ProfileRerpositoryImpl) GetDeletedProfiles(ctx context.Context) ([]*sch
 
 	err := r.db.WithContext(ctx).
 		Unscoped().
+		Preload("TravelCompanions").
 		Where("deleted_at IS NOT NULL").
 		Find(&profiles).Error
 
@@ -160,6 +174,7 @@ func (r *ProfileRerpositoryImpl) GetProfilesByUserIDs(ctx context.Context, userI
 
 	var profiles []*schema.Profile
 	if err := r.db.WithContext(ctx).
+		Preload("TravelCompanions").
 		Where("user_id IN ?", parsed).
 		Find(&profiles).Error; err != nil {
 		return nil, err
@@ -181,6 +196,7 @@ func (r *ProfileRerpositoryImpl) GetProfileByID(ctx context.Context, id string) 
 
 	var profile schema.Profile
 	err = r.db.WithContext(ctx).
+		Preload("TravelCompanions").
 		Where("id = ?", parsedID).
 		First(&profile).Error
 
@@ -199,6 +215,7 @@ func (r *ProfileRerpositoryImpl) ListProfiles(ctx context.Context, limit, offset
 	var profiles []*schema.Profile
 
 	query := r.db.WithContext(ctx).
+		Preload("TravelCompanions").
 		Order("created_at DESC")
 
 	if limit > 0 {
@@ -223,6 +240,7 @@ func (r *ProfileRerpositoryImpl) GetProfilesByUserType(ctx context.Context, user
 
 	var profiles []*schema.Profile
 	query := r.db.WithContext(ctx).
+		Preload("TravelCompanions").
 		Where("? = ANY(user_types)", userType).
 		Order("created_at DESC")
 
@@ -245,6 +263,7 @@ func (r *ProfileRerpositoryImpl) GetVerifiedProfiles(ctx context.Context, level 
 	var profiles []*schema.Profile
 
 	query := r.db.WithContext(ctx).
+		Preload("TravelCompanions").
 		Where("id_verified = ?", true).
 		Order("verification_date DESC")
 
@@ -275,6 +294,7 @@ func (r *ProfileRerpositoryImpl) SearchProfiles(ctx context.Context, query strin
 	var profiles []*schema.Profile
 
 	dbQuery := r.db.WithContext(ctx).
+		Preload("TravelCompanions").
 		Where(
 			r.db.Where("bio ILIKE ?", searchTerm).
 				Or("occupation ILIKE ?", searchTerm).
@@ -298,7 +318,7 @@ func (r *ProfileRerpositoryImpl) SearchProfiles(ctx context.Context, query strin
 }
 
 // PatchProfile performs a partial update using the provided field map.
-func (r *ProfileRerpositoryImpl) PatchProfile(ctx context.Context, id string, updates map[string]interface{}) error {
+func (r *ProfileRerpositoryImpl) PatchProfile(ctx context.Context, id string, updates map[string]any) error {
 	if id == "" {
 		return errors.New("id cannot be empty")
 	}
@@ -319,6 +339,39 @@ func (r *ProfileRerpositoryImpl) PatchProfile(ctx context.Context, id string, up
 				normalized[k] = pq.StringArray(slice)
 				continue
 			}
+		case "address":
+			normalized["addr_street"] = v
+			continue
+		case "street":
+			normalized["addr_street"] = v
+			continue
+		case "house_number", "houseNumber":
+			normalized["addr_house_number"] = v
+			continue
+		case "area":
+			normalized["addr_area"] = v
+			continue
+		case "lga":
+			normalized["addr_lga"] = v
+			continue
+		case "district":
+			normalized["addr_district"] = v
+			continue
+		case "digital_address", "digitalAddress":
+			normalized["addr_digital_address"] = v
+			continue
+		case "city":
+			normalized["addr_city"] = v
+			continue
+		case "state":
+			normalized["addr_state"] = v
+			continue
+		case "country":
+			normalized["addr_country"] = v
+			continue
+		case "zip_code", "zipCode", "postal_code", "postalCode":
+			normalized["addr_postal_code"] = v
+			continue
 		}
 		normalized[k] = v
 	}
@@ -420,8 +473,9 @@ func (r *ProfileRerpositoryImpl) RemoveBadge(ctx context.Context, userID string,
 		Update("badges", gorm.Expr("array_remove(badges, ?)", badge)).Error
 }
 
-// UpdateTravelCompanions replaces the travel companions JSONB field.
-func (r *ProfileRerpositoryImpl) UpdateTravelCompanions(ctx context.Context, userID string, companions []schema.TravelCompanionProfile) error {
+// AddTravelCompanion creates a new travel companion for a profile.
+// AddTravelCompanion creates a new travel companion for a profile.
+func (r *ProfileRerpositoryImpl) AddTravelCompanion(ctx context.Context, userID string, companion schema.TravelCompanion) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -431,10 +485,161 @@ func (r *ProfileRerpositoryImpl) UpdateTravelCompanions(ctx context.Context, use
 		return errors.New("invalid userID format")
 	}
 
-	return r.db.WithContext(ctx).
+	// OPTIMIZATION: Select ONLY the ID.
+	// We don't need to load the Bio, Address, or huge arrays just to link the FK.
+	var profile schema.Profile
+	if err := r.db.WithContext(ctx).
 		Model(&schema.Profile{}).
+		Select("id").
 		Where("user_id = ?", parsedUserID).
-		Update("travel_companions", companions).Error
+		First(&profile).Error; err != nil {
+		return err
+	}
+
+	// Set IDs
+	if companion.ID == uuid.Nil {
+		companion.ID = uuid.New()
+	}
+	companion.ProfileID = profile.ID
+
+	return r.db.WithContext(ctx).Create(&companion).Error
+}
+
+// GetTravelCompanions lists travel companions for a profile.
+func (r *ProfileRerpositoryImpl) GetTravelCompanions(ctx context.Context, userID string) ([]*schema.TravelCompanion, error) {
+	if userID == "" {
+		return nil, errors.New("userID cannot be empty")
+	}
+
+	// Validate UUID format
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid userID format")
+	}
+
+	var companions []*schema.TravelCompanion
+
+	// OPTIMIZATION: Use a JOIN to filter by the Profile's UserID directly.
+	// SQL: SELECT travel_companions.* FROM travel_companions
+	//      JOIN profiles ON profiles.id = travel_companions.profile_id
+	//      WHERE profiles.user_id = ?
+	err = r.db.WithContext(ctx).
+		Table("travel_companions").
+		Joins("JOIN profiles ON profiles.id = travel_companions.profile_id").
+		Where("profiles.user_id = ?", parsedUserID).
+		Find(&companions).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return companions, nil
+}
+
+// GetTravelCompanionByID fetches a travel companion by ID scoped to a profile.
+func (r *ProfileRerpositoryImpl) GetTravelCompanionByID(ctx context.Context, userID string, companionID uuid.UUID) (*schema.TravelCompanion, error) {
+	if userID == "" || companionID == uuid.Nil {
+		return nil, errors.New("userID and companionID cannot be empty")
+	}
+
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid userID format")
+	}
+
+	var profile schema.Profile
+	if err := r.db.WithContext(ctx).
+		Where("user_id = ?", parsedUserID).
+		First(&profile).Error; err != nil {
+		return nil, err
+	}
+
+	var companion schema.TravelCompanion
+	if err := r.db.WithContext(ctx).
+		Where("id = ? AND profile_id = ?", companionID, profile.ID).
+		First(&companion).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &companion, nil
+}
+
+// UpdateTravelCompanion updates or creates a single travel companion for a profile.
+func (r *ProfileRerpositoryImpl) UpdateTravelCompanion(ctx context.Context, userID string, companion schema.TravelCompanion) error {
+	if userID == "" {
+		return errors.New("userID cannot be empty")
+	}
+
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("invalid userID format")
+	}
+
+	// OPTIMIZATION: Fetch ONLY the ID (avoids loading the full heavy profile)
+	var profileID uuid.UUID
+	if err := r.db.WithContext(ctx).
+		Model(&schema.Profile{}).
+		Select("id").
+		Where("user_id = ?", parsedUserID).
+		Scan(&profileID).Error; err != nil {
+		return err
+	}
+
+	if companion.ID == uuid.Nil {
+		companion.ID = uuid.New()
+		companion.ProfileID = profileID // Link to the found profile ID
+		return r.db.WithContext(ctx).Create(&companion).Error
+	}
+	return r.db.WithContext(ctx).
+		Model(&schema.TravelCompanion{}).
+		Where("id = ? AND profile_id = ?", companion.ID, profileID).
+		Select("*").                            // Forces update of all fields provided in the struct
+		Omit("id", "profile_id", "created_at"). // Protect PK and FK from changing
+		Updates(&companion).Error
+}
+
+// DeleteTravelCompanion removes a travel companion by ID scoped to a profile.
+func (r *ProfileRerpositoryImpl) DeleteTravelCompanion(ctx context.Context, userID string, companionID string) error {
+	if userID == "" || companionID == "" {
+		return errors.New("userID and companionID cannot be empty")
+	}
+
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("invalid userID format")
+	}
+	parsedCompanionID, err := uuid.Parse(companionID)
+	if err != nil {
+		return errors.New("invalid companionID format")
+	}
+
+	var profileID uuid.UUID
+	if err := r.db.WithContext(ctx).
+		Model(&schema.Profile{}).
+		Select("id").
+		Where("user_id = ?", parsedUserID).
+		Scan(&profileID).Error; err != nil {
+		return err
+	}
+
+	// Delete scoped to the profile to prevent deleting someone else's companion
+	result := r.db.WithContext(ctx).
+		Where("id = ? AND profile_id = ?", parsedCompanionID, profileID).
+		Delete(&schema.TravelCompanion{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	// Optional: Check if a row was actually deleted (to return 404 if ID was wrong)
+	if result.RowsAffected == 0 {
+		return errors.New("companion not found or access denied")
+	}
+
+	return nil
 }
 
 // UpdateTrustScore updates the trust score for a profile.

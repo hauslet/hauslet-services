@@ -11,8 +11,8 @@ import (
 	"hauslet/internal/platform/logger"
 	platformQueue "hauslet/internal/platform/queue"
 	"hauslet/internal/queue"
-	"hauslet/internal/queue/jobs"
-	"hauslet/internal/worker/handlers"
+	jobs "hauslet/internal/queue/jobs/emails"
+	handlers "hauslet/internal/transport/worker/handlers/emails"
 
 	"github.com/nats-io/nats-server/v2/test"
 )

@@ -36,7 +36,7 @@ func newMockService(t *testing.T) (service.ProfileService, sqlmock.Sqlmock, func
 	}
 
 	repo := repository.NewProfileRepository(gdb)
-	svc := service.NewProfileService(repo)
+	svc := service.NewProfileService(repo, nil)
 
 	cleanup := func() { sqlDB.Close() }
 	return svc, mock, cleanup
@@ -115,6 +115,11 @@ func TestServiceUpdateProfilePreservesIDAndRecalculatesTrust(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "user_id", "user_types", "full_name", "phone_numbers", "rating", "reviews_count", "badges", "created_at", "updated_at",
 		}).AddRow(profileID, uuid.MustParse(userID), "{guest}", "Name", pqStringArray(`{}`), 4.5, 10, pqStringArray(`{}`), now, now))
+	mock.ExpectQuery(`SELECT \* FROM "travel_companions" WHERE "travel_companions"\."profile_id" = \$1`).
+		WithArgs(profileID).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "profile_id", "name", "age_group", "gender", "phone", "relationship", "photo_url", "created_at", "updated_at",
+		}))
 
 	// update call
 	mock.ExpectExec(`UPDATE "profiles"`).
@@ -160,6 +165,11 @@ func TestServicePatchProfileUpdatesTrustScore(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{
 			"id", "user_id", "user_types", "full_name", "phone_numbers", "rating", "reviews_count", "badges", "created_at", "updated_at",
 		}).AddRow(uuid.MustParse(id), userID, "{guest}", "Name", pqStringArray(`{}`), 5.0, 1, pqStringArray(`{}`), now, now))
+	mock.ExpectQuery(`SELECT \* FROM "travel_companions" WHERE "travel_companions"\."profile_id" = \$1`).
+		WithArgs(uuid.MustParse(id)).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "profile_id", "name", "age_group", "gender", "phone", "relationship", "photo_url", "created_at", "updated_at",
+		}))
 
 	mock.ExpectExec(`UPDATE "profiles"`).
 		WillReturnResult(sqlmock.NewResult(0, 1))

@@ -23,11 +23,12 @@ enum Badge {
   early_adopter
 }
 
-type BadgeDetails {
-  id: Badge!
-  label: String!
-  description: String!
-  category: String!
+type UploadResult {
+  userID: String!
+  filename: String!
+  uploadURL: String!
+  key: String!
+  travelCompanionID: UUID
 }
 
 type TravelCompanion {
@@ -44,10 +45,17 @@ type Profile {
   userTypes: [UserType!]!
   fullName: String!
   birthDate: Time
-
+  gender: String
+  photoUrl: String
   # Contact Info
   phoneNumbers: [String!]!
   address: String
+  street: String
+  houseNumber: String
+  area: String
+  lga: String
+  district: String
+  digitalAddress: String
   city: String
   state: String
   country: String
@@ -78,7 +86,7 @@ type Profile {
   rating: Float!
   reviewsCount: Int!
   trustScore: Float!
-  badges: [BadgeDetails!]!
+  badges: [Badge!]!
   bioVisible: Boolean!
   allowPersonalizedOffers: Boolean!
   enablePerformanceAnalytics: Boolean!
@@ -99,8 +107,16 @@ input TravelCompanionInput {
 input UpdateProfileInput {
   fullName: String
   birthDate: Time
+  gender: String
   phoneNumbers: [String!]
+  profilePhotoURL: String
   address: String
+  street: String
+  houseNumber: String
+  area: String
+  lga: String
+  district: String
+  digitalAddress: String
   city: String
   state: String
   country: String
@@ -118,22 +134,23 @@ input UpdateProfileInput {
   bioVisible: Boolean
   allowPersonalizedOffers: Boolean
   enablePerformanceAnalytics: Boolean
-  travelCompanions: [TravelCompanionInput!]
 }
 
 extend type Query {
-  # Fetch profile by ID
   profile(id: UUID!): Profile
-  # Fetch profile by User ID (useful for "View Author")
   profileByUserId(userId: String!): Profile
-  # Public listings of profiles with pagination
   profiles(limit: Int, offset: Int): [Profile!]!
   searchProfiles(query: String!, limit: Int, offset: Int): [Profile!]!
-  # Convenience: current viewer's profile
   myProfile: Profile
+  uploadProfilePhoto(userID: String!, fileName: String!): UploadResult!
+  uploadTravelCompanionPhoto(userID: String!, companionID: String!, fileName: String!): UploadResult!
 }
 
 extend type Mutation {
   # Update current user's profile
   updateProfile(input: UpdateProfileInput!): Profile!
+  addTravelCompanion(userId: String!, input: TravelCompanionInput!): Boolean!
+  updateTravelCompanion(userId: String!, companionId: String!, input: TravelCompanionInput!): Boolean!
+  deleteTravelCompanion(userId: String!, companionId: String!): Boolean!
+  deleteProfile(userId: String!): Boolean!
 }

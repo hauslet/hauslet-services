@@ -52,6 +52,7 @@ type ResolverRoot interface {
 	Query() QueryResolver
 	RentalDetail() RentalDetailResolver
 	SaleDetail() SaleDetailResolver
+	TravelCompanion() TravelCompanionResolver
 }
 
 type DirectiveRoot struct {
@@ -62,13 +63,6 @@ type ComplexityRoot struct {
 		Icon    func(childComplexity int) int
 		Summary func(childComplexity int) int
 		Title   func(childComplexity int) int
-	}
-
-	BadgeDetails struct {
-		Category    func(childComplexity int) int
-		Description func(childComplexity int) int
-		ID          func(childComplexity int) int
-		Label       func(childComplexity int) int
 	}
 
 	Listing struct {
@@ -160,13 +154,17 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateListing    func(childComplexity int, input model.CreateListingInput) int
-		DeleteListing    func(childComplexity int, id uuid.UUID, hard *bool) int
-		Ping             func(childComplexity int) int
-		PublishListing   func(childComplexity int, id uuid.UUID) int
-		UnpublishListing func(childComplexity int, id uuid.UUID) int
-		UpdateListing    func(childComplexity int, id uuid.UUID, input model.UpdateListingInput) int
-		UpdateProfile    func(childComplexity int, input model.UpdateProfileInput) int
+		AddTravelCompanion    func(childComplexity int, userID string, input model.TravelCompanionInput) int
+		CreateListing         func(childComplexity int, input model.CreateListingInput) int
+		DeleteListing         func(childComplexity int, id uuid.UUID, hard *bool) int
+		DeleteProfile         func(childComplexity int, userID string) int
+		DeleteTravelCompanion func(childComplexity int, userID string, companionID string) int
+		Ping                  func(childComplexity int) int
+		PublishListing        func(childComplexity int, id uuid.UUID) int
+		UnpublishListing      func(childComplexity int, id uuid.UUID) int
+		UpdateListing         func(childComplexity int, id uuid.UUID, input model.UpdateListingInput) int
+		UpdateProfile         func(childComplexity int, input model.UpdateProfileInput) int
+		UpdateTravelCompanion func(childComplexity int, userID string, companionID string, input model.TravelCompanionInput) int
 	}
 
 	PageInfo struct {
@@ -179,6 +177,7 @@ type ComplexityRoot struct {
 	Profile struct {
 		Address                    func(childComplexity int) int
 		AllowPersonalizedOffers    func(childComplexity int) int
+		Area                       func(childComplexity int) int
 		Badges                     func(childComplexity int) int
 		Bio                        func(childComplexity int) int
 		BioVisible                 func(childComplexity int) int
@@ -187,23 +186,30 @@ type ComplexityRoot struct {
 		CommunityCommitment        func(childComplexity int) int
 		Country                    func(childComplexity int) int
 		CreatedAt                  func(childComplexity int) int
+		DigitalAddress             func(childComplexity int) int
+		District                   func(childComplexity int) int
 		Education                  func(childComplexity int) int
 		EnablePerformanceAnalytics func(childComplexity int) int
 		FullName                   func(childComplexity int) int
 		FunFact                    func(childComplexity int) int
+		Gender                     func(childComplexity int) int
 		Hobbies                    func(childComplexity int) int
+		HouseNumber                func(childComplexity int) int
 		ID                         func(childComplexity int) int
 		IDVerified                 func(childComplexity int) int
 		Interests                  func(childComplexity int) int
+		LGA                        func(childComplexity int) int
 		Languages                  func(childComplexity int) int
 		ObsessedWith               func(childComplexity int) int
 		Occupation                 func(childComplexity int) int
 		PhoneNumbers               func(childComplexity int) int
 		PhoneVerified              func(childComplexity int) int
+		PhotoURL                   func(childComplexity int) int
 		Rating                     func(childComplexity int) int
 		ReviewsCount               func(childComplexity int) int
 		Skills                     func(childComplexity int) int
 		State                      func(childComplexity int) int
+		Street                     func(childComplexity int) int
 		TravelCompanions           func(childComplexity int) int
 		TrustScore                 func(childComplexity int) int
 		UpdatedAt                  func(childComplexity int) int
@@ -245,22 +251,24 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Listing             func(childComplexity int, id uuid.UUID) int
-		ListingBySlug       func(childComplexity int, slug string) int
-		ListingCompleteness func(childComplexity int, listingID uuid.UUID) int
-		Listings            func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
-		ListingsByProperty  func(childComplexity int, propertyID uuid.UUID, first *int, after *string) int
-		ListingsNearPoint   func(childComplexity int, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) int
-		Me                  func(childComplexity int) int
-		MyListings          func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
-		MyProfile           func(childComplexity int) int
-		Profile             func(childComplexity int, id uuid.UUID) int
-		ProfileByUserID     func(childComplexity int, userID string) int
-		Profiles            func(childComplexity int, limit *int, offset *int) int
-		PropertyByPublicID  func(childComplexity int, publicID string) int
-		SearchListings      func(childComplexity int, query string, filter *model.ListingFilterInput, limit *int) int
-		SearchProfiles      func(childComplexity int, query string, limit *int, offset *int) int
-		SimilarListings     func(childComplexity int, listingID uuid.UUID, limit *int, minSimilarity *float64) int
+		Listing                    func(childComplexity int, id uuid.UUID) int
+		ListingByPublicID          func(childComplexity int, publicID string) int
+		ListingBySlug              func(childComplexity int, slug string) int
+		ListingCompleteness        func(childComplexity int, listingID uuid.UUID) int
+		Listings                   func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
+		ListingsByProperty         func(childComplexity int, propertyID uuid.UUID, first *int, after *string) int
+		ListingsNearPoint          func(childComplexity int, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) int
+		Me                         func(childComplexity int) int
+		MyListings                 func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
+		MyProfile                  func(childComplexity int) int
+		Profile                    func(childComplexity int, id uuid.UUID) int
+		ProfileByUserID            func(childComplexity int, userID string) int
+		Profiles                   func(childComplexity int, limit *int, offset *int) int
+		SearchListings             func(childComplexity int, query string, filter *model.ListingFilterInput, limit *int) int
+		SearchProfiles             func(childComplexity int, query string, limit *int, offset *int) int
+		SimilarListings            func(childComplexity int, listingID uuid.UUID, limit *int, minSimilarity *float64) int
+		UploadProfilePhoto         func(childComplexity int, userID string, fileName string) int
+		UploadTravelCompanionPhoto func(childComplexity int, userID string, companionID string, fileName string) int
 	}
 
 	RentalDetail struct {
@@ -360,6 +368,14 @@ type ComplexityRoot struct {
 		Relationship func(childComplexity int) int
 	}
 
+	UploadResult struct {
+		Filename          func(childComplexity int) int
+		Key               func(childComplexity int) int
+		TravelCompanionID func(childComplexity int) int
+		UploadURL         func(childComplexity int) int
+		UserID            func(childComplexity int) int
+	}
+
 	User struct {
 		CreatedAt    func(childComplexity int) int
 		ID           func(childComplexity int) int
@@ -392,6 +408,10 @@ type ListingMediaResolver interface {
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
 	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain1.Profile, error)
+	AddTravelCompanion(ctx context.Context, userID string, input model.TravelCompanionInput) (bool, error)
+	UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input model.TravelCompanionInput) (bool, error)
+	DeleteTravelCompanion(ctx context.Context, userID string, companionID string) (bool, error)
+	DeleteProfile(ctx context.Context, userID string) (bool, error)
 	CreateListing(ctx context.Context, input model.CreateListingInput) (*domain.Listing, error)
 	UpdateListing(ctx context.Context, id uuid.UUID, input model.UpdateListingInput) (*domain.Listing, error)
 	DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error)
@@ -399,7 +419,7 @@ type MutationResolver interface {
 	UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error)
 }
 type ProfileResolver interface {
-	Badges(ctx context.Context, obj *domain1.Profile) ([]*domain1.BadgeDetails, error)
+	Gender(ctx context.Context, obj *domain1.Profile) (*string, error)
 }
 type PropertyResolver interface {
 	Listings(ctx context.Context, obj *domain.Property, first *int, after *string) (*model.ListingConnection, error)
@@ -411,8 +431,10 @@ type QueryResolver interface {
 	Profiles(ctx context.Context, limit *int, offset *int) ([]*domain1.Profile, error)
 	SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain1.Profile, error)
 	MyProfile(ctx context.Context) (*domain1.Profile, error)
-	PropertyByPublicID(ctx context.Context, publicID string) (*domain.Property, error)
+	UploadProfilePhoto(ctx context.Context, userID string, fileName string) (*model.UploadResult, error)
+	UploadTravelCompanionPhoto(ctx context.Context, userID string, companionID string, fileName string) (*model.UploadResult, error)
 	Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, error)
+	ListingByPublicID(ctx context.Context, publicID string) (*domain.Listing, error)
 	ListingBySlug(ctx context.Context, slug string) (*domain.Listing, error)
 	Listings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
 	ListingsByProperty(ctx context.Context, propertyID uuid.UUID, first *int, after *string) (*model.ListingConnection, error)
@@ -427,6 +449,11 @@ type RentalDetailResolver interface {
 }
 type SaleDetailResolver interface {
 	ServiceCharges(ctx context.Context, obj *domain.SaleDetail) ([]*domain.ServiceCharge, error)
+}
+type TravelCompanionResolver interface {
+	AgeGroup(ctx context.Context, obj *domain1.TravelCompanion) (string, error)
+
+	Relationship(ctx context.Context, obj *domain1.TravelCompanion) (string, error)
 }
 
 type executableSchema struct {
@@ -466,31 +493,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AmenityHighlight.Title(childComplexity), true
-
-	case "BadgeDetails.category":
-		if e.complexity.BadgeDetails.Category == nil {
-			break
-		}
-
-		return e.complexity.BadgeDetails.Category(childComplexity), true
-	case "BadgeDetails.description":
-		if e.complexity.BadgeDetails.Description == nil {
-			break
-		}
-
-		return e.complexity.BadgeDetails.Description(childComplexity), true
-	case "BadgeDetails.id":
-		if e.complexity.BadgeDetails.ID == nil {
-			break
-		}
-
-		return e.complexity.BadgeDetails.ID(childComplexity), true
-	case "BadgeDetails.label":
-		if e.complexity.BadgeDetails.Label == nil {
-			break
-		}
-
-		return e.complexity.BadgeDetails.Label(childComplexity), true
 
 	case "Listing.boostLevel":
 		if e.complexity.Listing.BoostLevel == nil {
@@ -906,6 +908,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Location.SRID(childComplexity), true
 
+	case "Mutation.addTravelCompanion":
+		if e.complexity.Mutation.AddTravelCompanion == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addTravelCompanion_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddTravelCompanion(childComplexity, args["userId"].(string), args["input"].(model.TravelCompanionInput)), true
 	case "Mutation.createListing":
 		if e.complexity.Mutation.CreateListing == nil {
 			break
@@ -928,6 +941,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteListing(childComplexity, args["id"].(uuid.UUID), args["hard"].(*bool)), true
+	case "Mutation.deleteProfile":
+		if e.complexity.Mutation.DeleteProfile == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteProfile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteProfile(childComplexity, args["userId"].(string)), true
+	case "Mutation.deleteTravelCompanion":
+		if e.complexity.Mutation.DeleteTravelCompanion == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteTravelCompanion_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteTravelCompanion(childComplexity, args["userId"].(string), args["companionId"].(string)), true
 	case "Mutation.ping":
 		if e.complexity.Mutation.Ping == nil {
 			break
@@ -978,6 +1013,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateProfile(childComplexity, args["input"].(model.UpdateProfileInput)), true
+	case "Mutation.updateTravelCompanion":
+		if e.complexity.Mutation.UpdateTravelCompanion == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateTravelCompanion_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateTravelCompanion(childComplexity, args["userId"].(string), args["companionId"].(string), args["input"].(model.TravelCompanionInput)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -1016,6 +1062,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Profile.AllowPersonalizedOffers(childComplexity), true
+	case "Profile.area":
+		if e.complexity.Profile.Area == nil {
+			break
+		}
+
+		return e.complexity.Profile.Area(childComplexity), true
 	case "Profile.badges":
 		if e.complexity.Profile.Badges == nil {
 			break
@@ -1064,6 +1116,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Profile.CreatedAt(childComplexity), true
+	case "Profile.digitalAddress":
+		if e.complexity.Profile.DigitalAddress == nil {
+			break
+		}
+
+		return e.complexity.Profile.DigitalAddress(childComplexity), true
+	case "Profile.district":
+		if e.complexity.Profile.District == nil {
+			break
+		}
+
+		return e.complexity.Profile.District(childComplexity), true
 	case "Profile.education":
 		if e.complexity.Profile.Education == nil {
 			break
@@ -1088,12 +1152,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Profile.FunFact(childComplexity), true
+	case "Profile.gender":
+		if e.complexity.Profile.Gender == nil {
+			break
+		}
+
+		return e.complexity.Profile.Gender(childComplexity), true
 	case "Profile.hobbies":
 		if e.complexity.Profile.Hobbies == nil {
 			break
 		}
 
 		return e.complexity.Profile.Hobbies(childComplexity), true
+	case "Profile.houseNumber":
+		if e.complexity.Profile.HouseNumber == nil {
+			break
+		}
+
+		return e.complexity.Profile.HouseNumber(childComplexity), true
 	case "Profile.id":
 		if e.complexity.Profile.ID == nil {
 			break
@@ -1112,6 +1188,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Profile.Interests(childComplexity), true
+	case "Profile.lga":
+		if e.complexity.Profile.LGA == nil {
+			break
+		}
+
+		return e.complexity.Profile.LGA(childComplexity), true
 	case "Profile.languages":
 		if e.complexity.Profile.Languages == nil {
 			break
@@ -1142,6 +1224,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Profile.PhoneVerified(childComplexity), true
+	case "Profile.photoUrl":
+		if e.complexity.Profile.PhotoURL == nil {
+			break
+		}
+
+		return e.complexity.Profile.PhotoURL(childComplexity), true
 	case "Profile.rating":
 		if e.complexity.Profile.Rating == nil {
 			break
@@ -1166,6 +1254,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Profile.State(childComplexity), true
+	case "Profile.street":
+		if e.complexity.Profile.Street == nil {
+			break
+		}
+
+		return e.complexity.Profile.Street(childComplexity), true
 	case "Profile.travelCompanions":
 		if e.complexity.Profile.TravelCompanions == nil {
 			break
@@ -1394,6 +1488,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Listing(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.listingByPublicId":
+		if e.complexity.Query.ListingByPublicID == nil {
+			break
+		}
+
+		args, err := ec.field_Query_listingByPublicId_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ListingByPublicID(childComplexity, args["publicId"].(string)), true
 	case "Query.listingBySlug":
 		if e.complexity.Query.ListingBySlug == nil {
 			break
@@ -1505,17 +1610,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Profiles(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
-	case "Query.propertyByPublicId":
-		if e.complexity.Query.PropertyByPublicID == nil {
-			break
-		}
-
-		args, err := ec.field_Query_propertyByPublicId_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.PropertyByPublicID(childComplexity, args["publicId"].(string)), true
 	case "Query.searchListings":
 		if e.complexity.Query.SearchListings == nil {
 			break
@@ -1549,6 +1643,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.SimilarListings(childComplexity, args["listingId"].(uuid.UUID), args["limit"].(*int), args["minSimilarity"].(*float64)), true
+	case "Query.uploadProfilePhoto":
+		if e.complexity.Query.UploadProfilePhoto == nil {
+			break
+		}
+
+		args, err := ec.field_Query_uploadProfilePhoto_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UploadProfilePhoto(childComplexity, args["userID"].(string), args["fileName"].(string)), true
+	case "Query.uploadTravelCompanionPhoto":
+		if e.complexity.Query.UploadTravelCompanionPhoto == nil {
+			break
+		}
+
+		args, err := ec.field_Query_uploadTravelCompanionPhoto_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UploadTravelCompanionPhoto(childComplexity, args["userID"].(string), args["companionID"].(string), args["fileName"].(string)), true
 
 	case "RentalDetail.agencyFee":
 		if e.complexity.RentalDetail.AgencyFee == nil {
@@ -1979,6 +2095,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.TravelCompanion.Relationship(childComplexity), true
 
+	case "UploadResult.filename":
+		if e.complexity.UploadResult.Filename == nil {
+			break
+		}
+
+		return e.complexity.UploadResult.Filename(childComplexity), true
+	case "UploadResult.key":
+		if e.complexity.UploadResult.Key == nil {
+			break
+		}
+
+		return e.complexity.UploadResult.Key(childComplexity), true
+	case "UploadResult.travelCompanionID":
+		if e.complexity.UploadResult.TravelCompanionID == nil {
+			break
+		}
+
+		return e.complexity.UploadResult.TravelCompanionID(childComplexity), true
+	case "UploadResult.uploadURL":
+		if e.complexity.UploadResult.UploadURL == nil {
+			break
+		}
+
+		return e.complexity.UploadResult.UploadURL(childComplexity), true
+	case "UploadResult.userID":
+		if e.complexity.UploadResult.UserID == nil {
+			break
+		}
+
+		return e.complexity.UploadResult.UserID(childComplexity), true
+
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
 			break
@@ -2272,11 +2419,12 @@ enum Badge {
   early_adopter
 }
 
-type BadgeDetails {
-  id: Badge!
-  label: String!
-  description: String!
-  category: String!
+type UploadResult {
+  userID: String!
+  filename: String!
+  uploadURL: String!
+  key: String!
+  travelCompanionID: UUID
 }
 
 type TravelCompanion {
@@ -2293,10 +2441,17 @@ type Profile {
   userTypes: [UserType!]!
   fullName: String!
   birthDate: Time
-
+  gender: String
+  photoUrl: String
   # Contact Info
   phoneNumbers: [String!]!
   address: String
+  street: String
+  houseNumber: String
+  area: String
+  lga: String
+  district: String
+  digitalAddress: String
   city: String
   state: String
   country: String
@@ -2327,7 +2482,7 @@ type Profile {
   rating: Float!
   reviewsCount: Int!
   trustScore: Float!
-  badges: [BadgeDetails!]!
+  badges: [Badge!]!
   bioVisible: Boolean!
   allowPersonalizedOffers: Boolean!
   enablePerformanceAnalytics: Boolean!
@@ -2348,8 +2503,16 @@ input TravelCompanionInput {
 input UpdateProfileInput {
   fullName: String
   birthDate: Time
+  gender: String
   phoneNumbers: [String!]
+  profilePhotoURL: String
   address: String
+  street: String
+  houseNumber: String
+  area: String
+  lga: String
+  district: String
+  digitalAddress: String
   city: String
   state: String
   country: String
@@ -2367,24 +2530,25 @@ input UpdateProfileInput {
   bioVisible: Boolean
   allowPersonalizedOffers: Boolean
   enablePerformanceAnalytics: Boolean
-  travelCompanions: [TravelCompanionInput!]
 }
 
 extend type Query {
-  # Fetch profile by ID
   profile(id: UUID!): Profile
-  # Fetch profile by User ID (useful for "View Author")
   profileByUserId(userId: String!): Profile
-  # Public listings of profiles with pagination
   profiles(limit: Int, offset: Int): [Profile!]!
   searchProfiles(query: String!, limit: Int, offset: Int): [Profile!]!
-  # Convenience: current viewer's profile
   myProfile: Profile
+  uploadProfilePhoto(userID: String!, fileName: String!): UploadResult!
+  uploadTravelCompanionPhoto(userID: String!, companionID: String!, fileName: String!): UploadResult!
 }
 
 extend type Mutation {
   # Update current user's profile
   updateProfile(input: UpdateProfileInput!): Profile!
+  addTravelCompanion(userId: String!, input: TravelCompanionInput!): Boolean!
+  updateTravelCompanion(userId: String!, companionId: String!, input: TravelCompanionInput!): Boolean!
+  deleteTravelCompanion(userId: String!, companionId: String!): Boolean!
+  deleteProfile(userId: String!): Boolean!
 }
 `, BuiltIn: false},
 	{Name: "../../modules/property/port/graphql/schema.graphqls", Input: `# internal/property/port/graphql/schema.graphqls
@@ -2976,11 +3140,9 @@ input ListingFilterInput {
 # ===========================
 
 extend type Query {
-  # Properties
-  propertyByPublicId(publicId: String!): Property
-
   # Listings
   listing(id: UUID!): Listing
+  listingByPublicId(publicId: String!): Listing
   listingBySlug(slug: String!): Listing
   listings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
   listingsByProperty(propertyId: UUID!, first: Int, after: String): ListingConnection!
@@ -3028,6 +3190,22 @@ func (ec *executionContext) field_Listing_media_args(ctx context.Context, rawArg
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_addTravelCompanion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNTravelCompanionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createListing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3052,6 +3230,33 @@ func (ec *executionContext) field_Mutation_deleteListing_args(ctx context.Contex
 		return nil, err
 	}
 	args["hard"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteTravelCompanion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "companionId", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["companionId"] = arg1
 	return args, nil
 }
 
@@ -3104,6 +3309,27 @@ func (ec *executionContext) field_Mutation_updateProfile_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateTravelCompanion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "companionId", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["companionId"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNTravelCompanionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Property_listings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3128,6 +3354,17 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_listingByPublicId_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "publicId", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["publicId"] = arg0
 	return args, nil
 }
 
@@ -3296,17 +3533,6 @@ func (ec *executionContext) field_Query_profiles_args(ctx context.Context, rawAr
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_propertyByPublicId_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "publicId", ec.unmarshalNString2string)
-	if err != nil {
-		return nil, err
-	}
-	args["publicId"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_searchListings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3367,6 +3593,43 @@ func (ec *executionContext) field_Query_similarListings_args(ctx context.Context
 		return nil, err
 	}
 	args["minSimilarity"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_uploadProfilePhoto_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userID", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "fileName", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["fileName"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_uploadTravelCompanionPhoto_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userID", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "companionID", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["companionID"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "fileName", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["fileName"] = arg2
 	return args, nil
 }
 
@@ -3499,122 +3762,6 @@ func (ec *executionContext) _AmenityHighlight_icon(ctx context.Context, field gr
 func (ec *executionContext) fieldContext_AmenityHighlight_icon(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AmenityHighlight",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _BadgeDetails_id(ctx context.Context, field graphql.CollectedField, obj *domain1.BadgeDetails) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_BadgeDetails_id,
-		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
-		},
-		nil,
-		ec.marshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_BadgeDetails_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "BadgeDetails",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Badge does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _BadgeDetails_label(ctx context.Context, field graphql.CollectedField, obj *domain1.BadgeDetails) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_BadgeDetails_label,
-		func(ctx context.Context) (any, error) {
-			return obj.Label, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_BadgeDetails_label(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "BadgeDetails",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _BadgeDetails_description(ctx context.Context, field graphql.CollectedField, obj *domain1.BadgeDetails) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_BadgeDetails_description,
-		func(ctx context.Context) (any, error) {
-			return obj.Description, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_BadgeDetails_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "BadgeDetails",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _BadgeDetails_category(ctx context.Context, field graphql.CollectedField, obj *domain1.BadgeDetails) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_BadgeDetails_category,
-		func(ctx context.Context) (any, error) {
-			return obj.Category, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_BadgeDetails_category(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "BadgeDetails",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -5981,10 +6128,26 @@ func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Cont
 				return ec.fieldContext_Profile_fullName(ctx, field)
 			case "birthDate":
 				return ec.fieldContext_Profile_birthDate(ctx, field)
+			case "gender":
+				return ec.fieldContext_Profile_gender(ctx, field)
+			case "photoUrl":
+				return ec.fieldContext_Profile_photoUrl(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
 				return ec.fieldContext_Profile_address(ctx, field)
+			case "street":
+				return ec.fieldContext_Profile_street(ctx, field)
+			case "houseNumber":
+				return ec.fieldContext_Profile_houseNumber(ctx, field)
+			case "area":
+				return ec.fieldContext_Profile_area(ctx, field)
+			case "lga":
+				return ec.fieldContext_Profile_lga(ctx, field)
+			case "district":
+				return ec.fieldContext_Profile_district(ctx, field)
+			case "digitalAddress":
+				return ec.fieldContext_Profile_digitalAddress(ctx, field)
 			case "city":
 				return ec.fieldContext_Profile_city(ctx, field)
 			case "state":
@@ -6053,6 +6216,170 @@ func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addTravelCompanion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_addTravelCompanion,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().AddTravelCompanion(ctx, fc.Args["userId"].(string), fc.Args["input"].(model.TravelCompanionInput))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addTravelCompanion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addTravelCompanion_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateTravelCompanion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateTravelCompanion,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateTravelCompanion(ctx, fc.Args["userId"].(string), fc.Args["companionId"].(string), fc.Args["input"].(model.TravelCompanionInput))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateTravelCompanion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateTravelCompanion_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteTravelCompanion(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteTravelCompanion,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteTravelCompanion(ctx, fc.Args["userId"].(string), fc.Args["companionId"].(string))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteTravelCompanion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteTravelCompanion_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteProfile,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteProfile(ctx, fc.Args["userId"].(string))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteProfile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -6773,6 +7100,64 @@ func (ec *executionContext) fieldContext_Profile_birthDate(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Profile_gender(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_gender,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Profile().Gender(ctx, obj)
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_gender(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_photoUrl(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_photoUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.PhotoURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_photoUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Profile_phoneNumbers(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -6819,6 +7204,180 @@ func (ec *executionContext) _Profile_address(ctx context.Context, field graphql.
 }
 
 func (ec *executionContext) fieldContext_Profile_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_street(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_street,
+		func(ctx context.Context) (any, error) {
+			return obj.Street, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_street(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_houseNumber(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_houseNumber,
+		func(ctx context.Context) (any, error) {
+			return obj.HouseNumber, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_houseNumber(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_area(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_area,
+		func(ctx context.Context) (any, error) {
+			return obj.Area, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_area(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_lga(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_lga,
+		func(ctx context.Context) (any, error) {
+			return obj.LGA, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_lga(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_district(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_district,
+		func(ctx context.Context) (any, error) {
+			return obj.District, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_district(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_digitalAddress(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_digitalAddress,
+		func(ctx context.Context) (any, error) {
+			return obj.DigitalAddress, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_digitalAddress(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Profile",
 		Field:      field,
@@ -7488,10 +8047,10 @@ func (ec *executionContext) _Profile_badges(ctx context.Context, field graphql.C
 		field,
 		ec.fieldContext_Profile_badges,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Profile().Badges(ctx, obj)
+			return obj.Badges, nil
 		},
 		nil,
-		ec.marshalNBadgeDetails2ᚕᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeDetailsᚄ,
+		ec.marshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ,
 		true,
 		true,
 	)
@@ -7501,20 +8060,10 @@ func (ec *executionContext) fieldContext_Profile_badges(_ context.Context, field
 	fc = &graphql.FieldContext{
 		Object:     "Profile",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_BadgeDetails_id(ctx, field)
-			case "label":
-				return ec.fieldContext_BadgeDetails_label(ctx, field)
-			case "description":
-				return ec.fieldContext_BadgeDetails_description(ctx, field)
-			case "category":
-				return ec.fieldContext_BadgeDetails_category(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type BadgeDetails", field.Name)
+			return nil, errors.New("field of type Badge does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8560,10 +9109,26 @@ func (ec *executionContext) fieldContext_Query_profile(ctx context.Context, fiel
 				return ec.fieldContext_Profile_fullName(ctx, field)
 			case "birthDate":
 				return ec.fieldContext_Profile_birthDate(ctx, field)
+			case "gender":
+				return ec.fieldContext_Profile_gender(ctx, field)
+			case "photoUrl":
+				return ec.fieldContext_Profile_photoUrl(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
 				return ec.fieldContext_Profile_address(ctx, field)
+			case "street":
+				return ec.fieldContext_Profile_street(ctx, field)
+			case "houseNumber":
+				return ec.fieldContext_Profile_houseNumber(ctx, field)
+			case "area":
+				return ec.fieldContext_Profile_area(ctx, field)
+			case "lga":
+				return ec.fieldContext_Profile_lga(ctx, field)
+			case "district":
+				return ec.fieldContext_Profile_district(ctx, field)
+			case "digitalAddress":
+				return ec.fieldContext_Profile_digitalAddress(ctx, field)
 			case "city":
 				return ec.fieldContext_Profile_city(ctx, field)
 			case "state":
@@ -8673,10 +9238,26 @@ func (ec *executionContext) fieldContext_Query_profileByUserId(ctx context.Conte
 				return ec.fieldContext_Profile_fullName(ctx, field)
 			case "birthDate":
 				return ec.fieldContext_Profile_birthDate(ctx, field)
+			case "gender":
+				return ec.fieldContext_Profile_gender(ctx, field)
+			case "photoUrl":
+				return ec.fieldContext_Profile_photoUrl(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
 				return ec.fieldContext_Profile_address(ctx, field)
+			case "street":
+				return ec.fieldContext_Profile_street(ctx, field)
+			case "houseNumber":
+				return ec.fieldContext_Profile_houseNumber(ctx, field)
+			case "area":
+				return ec.fieldContext_Profile_area(ctx, field)
+			case "lga":
+				return ec.fieldContext_Profile_lga(ctx, field)
+			case "district":
+				return ec.fieldContext_Profile_district(ctx, field)
+			case "digitalAddress":
+				return ec.fieldContext_Profile_digitalAddress(ctx, field)
 			case "city":
 				return ec.fieldContext_Profile_city(ctx, field)
 			case "state":
@@ -8786,10 +9367,26 @@ func (ec *executionContext) fieldContext_Query_profiles(ctx context.Context, fie
 				return ec.fieldContext_Profile_fullName(ctx, field)
 			case "birthDate":
 				return ec.fieldContext_Profile_birthDate(ctx, field)
+			case "gender":
+				return ec.fieldContext_Profile_gender(ctx, field)
+			case "photoUrl":
+				return ec.fieldContext_Profile_photoUrl(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
 				return ec.fieldContext_Profile_address(ctx, field)
+			case "street":
+				return ec.fieldContext_Profile_street(ctx, field)
+			case "houseNumber":
+				return ec.fieldContext_Profile_houseNumber(ctx, field)
+			case "area":
+				return ec.fieldContext_Profile_area(ctx, field)
+			case "lga":
+				return ec.fieldContext_Profile_lga(ctx, field)
+			case "district":
+				return ec.fieldContext_Profile_district(ctx, field)
+			case "digitalAddress":
+				return ec.fieldContext_Profile_digitalAddress(ctx, field)
 			case "city":
 				return ec.fieldContext_Profile_city(ctx, field)
 			case "state":
@@ -8899,10 +9496,26 @@ func (ec *executionContext) fieldContext_Query_searchProfiles(ctx context.Contex
 				return ec.fieldContext_Profile_fullName(ctx, field)
 			case "birthDate":
 				return ec.fieldContext_Profile_birthDate(ctx, field)
+			case "gender":
+				return ec.fieldContext_Profile_gender(ctx, field)
+			case "photoUrl":
+				return ec.fieldContext_Profile_photoUrl(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
 				return ec.fieldContext_Profile_address(ctx, field)
+			case "street":
+				return ec.fieldContext_Profile_street(ctx, field)
+			case "houseNumber":
+				return ec.fieldContext_Profile_houseNumber(ctx, field)
+			case "area":
+				return ec.fieldContext_Profile_area(ctx, field)
+			case "lga":
+				return ec.fieldContext_Profile_lga(ctx, field)
+			case "district":
+				return ec.fieldContext_Profile_district(ctx, field)
+			case "digitalAddress":
+				return ec.fieldContext_Profile_digitalAddress(ctx, field)
 			case "city":
 				return ec.fieldContext_Profile_city(ctx, field)
 			case "state":
@@ -9011,10 +9624,26 @@ func (ec *executionContext) fieldContext_Query_myProfile(_ context.Context, fiel
 				return ec.fieldContext_Profile_fullName(ctx, field)
 			case "birthDate":
 				return ec.fieldContext_Profile_birthDate(ctx, field)
+			case "gender":
+				return ec.fieldContext_Profile_gender(ctx, field)
+			case "photoUrl":
+				return ec.fieldContext_Profile_photoUrl(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
 				return ec.fieldContext_Profile_address(ctx, field)
+			case "street":
+				return ec.fieldContext_Profile_street(ctx, field)
+			case "houseNumber":
+				return ec.fieldContext_Profile_houseNumber(ctx, field)
+			case "area":
+				return ec.fieldContext_Profile_area(ctx, field)
+			case "lga":
+				return ec.fieldContext_Profile_lga(ctx, field)
+			case "district":
+				return ec.fieldContext_Profile_district(ctx, field)
+			case "digitalAddress":
+				return ec.fieldContext_Profile_digitalAddress(ctx, field)
 			case "city":
 				return ec.fieldContext_Profile_city(ctx, field)
 			case "state":
@@ -9078,24 +9707,24 @@ func (ec *executionContext) fieldContext_Query_myProfile(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_propertyByPublicId(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_uploadProfilePhoto(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_propertyByPublicId,
+		ec.fieldContext_Query_uploadProfilePhoto,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().PropertyByPublicID(ctx, fc.Args["publicId"].(string))
+			return ec.resolvers.Query().UploadProfilePhoto(ctx, fc.Args["userID"].(string), fc.Args["fileName"].(string))
 		},
 		nil,
-		ec.marshalOProperty2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐProperty,
+		ec.marshalNUploadResult2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUploadResult,
 		true,
-		false,
+		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_propertyByPublicId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_uploadProfilePhoto(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -9103,62 +9732,18 @@ func (ec *executionContext) fieldContext_Query_propertyByPublicId(ctx context.Co
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Property_id(ctx, field)
-			case "publicId":
-				return ec.fieldContext_Property_publicId(ctx, field)
-			case "unitNumber":
-				return ec.fieldContext_Property_unitNumber(ctx, field)
-			case "address":
-				return ec.fieldContext_Property_address(ctx, field)
-			case "city":
-				return ec.fieldContext_Property_city(ctx, field)
-			case "state":
-				return ec.fieldContext_Property_state(ctx, field)
-			case "postalCode":
-				return ec.fieldContext_Property_postalCode(ctx, field)
-			case "country":
-				return ec.fieldContext_Property_country(ctx, field)
-			case "location":
-				return ec.fieldContext_Property_location(ctx, field)
-			case "propertyClass":
-				return ec.fieldContext_Property_propertyClass(ctx, field)
-			case "propertyType":
-				return ec.fieldContext_Property_propertyType(ctx, field)
-			case "furnishingType":
-				return ec.fieldContext_Property_furnishingType(ctx, field)
-			case "propertyCondition":
-				return ec.fieldContext_Property_propertyCondition(ctx, field)
-			case "bedrooms":
-				return ec.fieldContext_Property_bedrooms(ctx, field)
-			case "bathrooms":
-				return ec.fieldContext_Property_bathrooms(ctx, field)
-			case "toilets":
-				return ec.fieldContext_Property_toilets(ctx, field)
-			case "halfBathrooms":
-				return ec.fieldContext_Property_halfBathrooms(ctx, field)
-			case "floors":
-				return ec.fieldContext_Property_floors(ctx, field)
-			case "units":
-				return ec.fieldContext_Property_units(ctx, field)
-			case "ownerId":
-				return ec.fieldContext_Property_ownerId(ctx, field)
-			case "squareMeters":
-				return ec.fieldContext_Property_squareMeters(ctx, field)
-			case "floorArea":
-				return ec.fieldContext_Property_floorArea(ctx, field)
-			case "amenities":
-				return ec.fieldContext_Property_amenities(ctx, field)
-			case "featuresCommercial":
-				return ec.fieldContext_Property_featuresCommercial(ctx, field)
-			case "listings":
-				return ec.fieldContext_Property_listings(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Property_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Property_updatedAt(ctx, field)
+			case "userID":
+				return ec.fieldContext_UploadResult_userID(ctx, field)
+			case "filename":
+				return ec.fieldContext_UploadResult_filename(ctx, field)
+			case "uploadURL":
+				return ec.fieldContext_UploadResult_uploadURL(ctx, field)
+			case "key":
+				return ec.fieldContext_UploadResult_key(ctx, field)
+			case "travelCompanionID":
+				return ec.fieldContext_UploadResult_travelCompanionID(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Property", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type UploadResult", field.Name)
 		},
 	}
 	defer func() {
@@ -9168,7 +9753,60 @@ func (ec *executionContext) fieldContext_Query_propertyByPublicId(ctx context.Co
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_propertyByPublicId_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_uploadProfilePhoto_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_uploadTravelCompanionPhoto(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_uploadTravelCompanionPhoto,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().UploadTravelCompanionPhoto(ctx, fc.Args["userID"].(string), fc.Args["companionID"].(string), fc.Args["fileName"].(string))
+		},
+		nil,
+		ec.marshalNUploadResult2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUploadResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_uploadTravelCompanionPhoto(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "userID":
+				return ec.fieldContext_UploadResult_userID(ctx, field)
+			case "filename":
+				return ec.fieldContext_UploadResult_filename(ctx, field)
+			case "uploadURL":
+				return ec.fieldContext_UploadResult_uploadURL(ctx, field)
+			case "key":
+				return ec.fieldContext_UploadResult_key(ctx, field)
+			case "travelCompanionID":
+				return ec.fieldContext_UploadResult_travelCompanionID(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UploadResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_uploadTravelCompanionPhoto_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -9272,6 +9910,109 @@ func (ec *executionContext) fieldContext_Query_listing(ctx context.Context, fiel
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_listing_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_listingByPublicId(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_listingByPublicId,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().ListingByPublicID(ctx, fc.Args["publicId"].(string))
+		},
+		nil,
+		ec.marshalOListing2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_listingByPublicId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Listing_id(ctx, field)
+			case "propertyId":
+				return ec.fieldContext_Listing_propertyId(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_Listing_ownerId(ctx, field)
+			case "ownerType":
+				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "slug":
+				return ec.fieldContext_Listing_slug(ctx, field)
+			case "title":
+				return ec.fieldContext_Listing_title(ctx, field)
+			case "description":
+				return ec.fieldContext_Listing_description(ctx, field)
+			case "currency":
+				return ec.fieldContext_Listing_currency(ctx, field)
+			case "listingType":
+				return ec.fieldContext_Listing_listingType(ctx, field)
+			case "status":
+				return ec.fieldContext_Listing_status(ctx, field)
+			case "published":
+				return ec.fieldContext_Listing_published(ctx, field)
+			case "publishedAt":
+				return ec.fieldContext_Listing_publishedAt(ctx, field)
+			case "latestReviewStatus":
+				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "viewCount":
+				return ec.fieldContext_Listing_viewCount(ctx, field)
+			case "lastViewedAt":
+				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
+			case "featuredUntil":
+				return ec.fieldContext_Listing_featuredUntil(ctx, field)
+			case "boostLevel":
+				return ec.fieldContext_Listing_boostLevel(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Listing_createdBy(ctx, field)
+			case "updatedBy":
+				return ec.fieldContext_Listing_updatedBy(ctx, field)
+			case "statusChangedAt":
+				return ec.fieldContext_Listing_statusChangedAt(ctx, field)
+			case "changeReason":
+				return ec.fieldContext_Listing_changeReason(ctx, field)
+			case "hasCalendar":
+				return ec.fieldContext_Listing_hasCalendar(ctx, field)
+			case "shortletDetails":
+				return ec.fieldContext_Listing_shortletDetails(ctx, field)
+			case "rentalDetails":
+				return ec.fieldContext_Listing_rentalDetails(ctx, field)
+			case "saleDetails":
+				return ec.fieldContext_Listing_saleDetails(ctx, field)
+			case "property":
+				return ec.fieldContext_Listing_property(ctx, field)
+			case "media":
+				return ec.fieldContext_Listing_media(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Listing_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Listing_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_listingByPublicId_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -11867,7 +12608,7 @@ func (ec *executionContext) _TravelCompanion_ageGroup(ctx context.Context, field
 		field,
 		ec.fieldContext_TravelCompanion_ageGroup,
 		func(ctx context.Context) (any, error) {
-			return obj.AgeGroup, nil
+			return ec.resolvers.TravelCompanion().AgeGroup(ctx, obj)
 		},
 		nil,
 		ec.marshalNString2string,
@@ -11880,8 +12621,8 @@ func (ec *executionContext) fieldContext_TravelCompanion_ageGroup(_ context.Cont
 	fc = &graphql.FieldContext{
 		Object:     "TravelCompanion",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -11925,7 +12666,7 @@ func (ec *executionContext) _TravelCompanion_relationship(ctx context.Context, f
 		field,
 		ec.fieldContext_TravelCompanion_relationship,
 		func(ctx context.Context) (any, error) {
-			return obj.Relationship, nil
+			return ec.resolvers.TravelCompanion().Relationship(ctx, obj)
 		},
 		nil,
 		ec.marshalNString2string,
@@ -11938,8 +12679,8 @@ func (ec *executionContext) fieldContext_TravelCompanion_relationship(_ context.
 	fc = &graphql.FieldContext{
 		Object:     "TravelCompanion",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -11971,6 +12712,151 @@ func (ec *executionContext) fieldContext_TravelCompanion_photoUrl(_ context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UploadResult_userID(ctx context.Context, field graphql.CollectedField, obj *model.UploadResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UploadResult_userID,
+		func(ctx context.Context) (any, error) {
+			return obj.UserID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UploadResult_userID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UploadResult_filename(ctx context.Context, field graphql.CollectedField, obj *model.UploadResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UploadResult_filename,
+		func(ctx context.Context) (any, error) {
+			return obj.Filename, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UploadResult_filename(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UploadResult_uploadURL(ctx context.Context, field graphql.CollectedField, obj *model.UploadResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UploadResult_uploadURL,
+		func(ctx context.Context) (any, error) {
+			return obj.UploadURL, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UploadResult_uploadURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UploadResult_key(ctx context.Context, field graphql.CollectedField, obj *model.UploadResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UploadResult_key,
+		func(ctx context.Context) (any, error) {
+			return obj.Key, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UploadResult_key(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UploadResult_travelCompanionID(ctx context.Context, field graphql.CollectedField, obj *model.UploadResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UploadResult_travelCompanionID,
+		func(ctx context.Context) (any, error) {
+			return obj.TravelCompanionID, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UploadResult_travelCompanionID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UploadResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -15120,7 +16006,7 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"fullName", "birthDate", "phoneNumbers", "address", "city", "state", "country", "zipCode", "occupation", "education", "bio", "skills", "languages", "interests", "hobbies", "funFact", "obsessedWith", "communityCommitment", "bioVisible", "allowPersonalizedOffers", "enablePerformanceAnalytics", "travelCompanions"}
+	fieldsInOrder := [...]string{"fullName", "birthDate", "gender", "phoneNumbers", "profilePhotoURL", "address", "street", "houseNumber", "area", "lga", "district", "digitalAddress", "city", "state", "country", "zipCode", "occupation", "education", "bio", "skills", "languages", "interests", "hobbies", "funFact", "obsessedWith", "communityCommitment", "bioVisible", "allowPersonalizedOffers", "enablePerformanceAnalytics"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -15141,6 +16027,13 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 				return it, err
 			}
 			it.BirthDate = data
+		case "gender":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gender"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Gender = data
 		case "phoneNumbers":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phoneNumbers"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
@@ -15148,6 +16041,13 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 				return it, err
 			}
 			it.PhoneNumbers = data
+		case "profilePhotoURL":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("profilePhotoURL"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ProfilePhotoURL = data
 		case "address":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -15155,6 +16055,48 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 				return it, err
 			}
 			it.Address = data
+		case "street":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("street"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Street = data
+		case "houseNumber":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("houseNumber"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HouseNumber = data
+		case "area":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("area"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Area = data
+		case "lga":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lga"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lga = data
+		case "district":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("district"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.District = data
+		case "digitalAddress":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("digitalAddress"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DigitalAddress = data
 		case "city":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("city"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -15274,13 +16216,6 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 				return it, err
 			}
 			it.EnablePerformanceAnalytics = data
-		case "travelCompanions":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("travelCompanions"))
-			data, err := ec.unmarshalOTravelCompanionInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInputᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.TravelCompanions = data
 		}
 	}
 
@@ -15318,60 +16253,6 @@ func (ec *executionContext) _AmenityHighlight(ctx context.Context, sel ast.Selec
 			}
 		case "icon":
 			out.Values[i] = ec._AmenityHighlight_icon(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var badgeDetailsImplementors = []string{"BadgeDetails"}
-
-func (ec *executionContext) _BadgeDetails(ctx context.Context, sel ast.SelectionSet, obj *domain1.BadgeDetails) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, badgeDetailsImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("BadgeDetails")
-		case "id":
-			out.Values[i] = ec._BadgeDetails_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "label":
-			out.Values[i] = ec._BadgeDetails_label(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "description":
-			out.Values[i] = ec._BadgeDetails_description(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "category":
-			out.Values[i] = ec._BadgeDetails_category(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -16021,6 +16902,34 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "addTravelCompanion":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addTravelCompanion(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateTravelCompanion":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateTravelCompanion(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteTravelCompanion":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteTravelCompanion(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteProfile":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteProfile(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createListing":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createListing(ctx, field)
@@ -16160,6 +17069,41 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "birthDate":
 			out.Values[i] = ec._Profile_birthDate(ctx, field, obj)
+		case "gender":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Profile_gender(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "photoUrl":
+			out.Values[i] = ec._Profile_photoUrl(ctx, field, obj)
 		case "phoneNumbers":
 			out.Values[i] = ec._Profile_phoneNumbers(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16167,6 +17111,18 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "address":
 			out.Values[i] = ec._Profile_address(ctx, field, obj)
+		case "street":
+			out.Values[i] = ec._Profile_street(ctx, field, obj)
+		case "houseNumber":
+			out.Values[i] = ec._Profile_houseNumber(ctx, field, obj)
+		case "area":
+			out.Values[i] = ec._Profile_area(ctx, field, obj)
+		case "lga":
+			out.Values[i] = ec._Profile_lga(ctx, field, obj)
+		case "district":
+			out.Values[i] = ec._Profile_district(ctx, field, obj)
+		case "digitalAddress":
+			out.Values[i] = ec._Profile_digitalAddress(ctx, field, obj)
 		case "city":
 			out.Values[i] = ec._Profile_city(ctx, field, obj)
 		case "state":
@@ -16248,41 +17204,10 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "badges":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Profile_badges(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Profile_badges(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "bioVisible":
 			out.Values[i] = ec._Profile_bioVisible(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16649,16 +17574,41 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "propertyByPublicId":
+		case "uploadProfilePhoto":
 			field := field
 
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
 				defer func() {
 					if r := recover(); r != nil {
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_propertyByPublicId(ctx, field)
+				res = ec._Query_uploadProfilePhoto(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "uploadTravelCompanionPhoto":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_uploadTravelCompanionPhoto(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -16678,6 +17628,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_listing(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "listingByPublicId":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_listingByPublicId(ctx, field)
 				return res
 			}
 
@@ -17474,22 +18443,140 @@ func (ec *executionContext) _TravelCompanion(ctx context.Context, sel ast.Select
 		case "name":
 			out.Values[i] = ec._TravelCompanion_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "ageGroup":
-			out.Values[i] = ec._TravelCompanion_ageGroup(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._TravelCompanion_ageGroup(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "phone":
 			out.Values[i] = ec._TravelCompanion_phone(ctx, field, obj)
 		case "relationship":
-			out.Values[i] = ec._TravelCompanion_relationship(ctx, field, obj)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._TravelCompanion_relationship(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "photoUrl":
+			out.Values[i] = ec._TravelCompanion_photoUrl(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var uploadResultImplementors = []string{"UploadResult"}
+
+func (ec *executionContext) _UploadResult(ctx context.Context, sel ast.SelectionSet, obj *model.UploadResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, uploadResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UploadResult")
+		case "userID":
+			out.Values[i] = ec._UploadResult_userID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "photoUrl":
-			out.Values[i] = ec._TravelCompanion_photoUrl(ctx, field, obj)
+		case "filename":
+			out.Values[i] = ec._UploadResult_filename(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "uploadURL":
+			out.Values[i] = ec._UploadResult_uploadURL(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "key":
+			out.Values[i] = ec._UploadResult_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "travelCompanionID":
+			out.Values[i] = ec._UploadResult_travelCompanionID(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -18074,7 +19161,22 @@ func (ec *executionContext) marshalNBadge2hausletᚋinternalᚋmodulesᚋprofile
 	return res
 }
 
-func (ec *executionContext) marshalNBadgeDetails2ᚕᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeDetailsᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain1.BadgeDetails) graphql.Marshaler {
+func (ec *executionContext) unmarshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, v any) ([]domain1.Badge, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]domain1.Badge, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.Badge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -18098,7 +19200,7 @@ func (ec *executionContext) marshalNBadgeDetails2ᚕᚖhausletᚋinternalᚋmodu
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNBadgeDetails2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeDetails(ctx, sel, v[i])
+			ret[i] = ec.marshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -18116,16 +19218,6 @@ func (ec *executionContext) marshalNBadgeDetails2ᚕᚖhausletᚋinternalᚋmodu
 	}
 
 	return ret
-}
-
-func (ec *executionContext) marshalNBadgeDetails2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeDetails(ctx context.Context, sel ast.SelectionSet, v *domain1.BadgeDetails) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._BadgeDetails(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
@@ -18992,9 +20084,9 @@ func (ec *executionContext) marshalNTravelCompanion2ᚕhausletᚋinternalᚋmodu
 	return ret
 }
 
-func (ec *executionContext) unmarshalNTravelCompanionInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInput(ctx context.Context, v any) (*model.TravelCompanionInput, error) {
+func (ec *executionContext) unmarshalNTravelCompanionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInput(ctx context.Context, v any) (model.TravelCompanionInput, error) {
 	res, err := ec.unmarshalInputTravelCompanionInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (uuid.UUID, error) {
@@ -19014,6 +20106,20 @@ func (ec *executionContext) unmarshalNUpdateListingInput2hausletᚋinternalᚋtr
 func (ec *executionContext) unmarshalNUpdateProfileInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateProfileInput(ctx context.Context, v any) (model.UpdateProfileInput, error) {
 	res, err := ec.unmarshalInputUpdateProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUploadResult2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUploadResult(ctx context.Context, sel ast.SelectionSet, v model.UploadResult) graphql.Marshaler {
+	return ec._UploadResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUploadResult2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUploadResult(ctx context.Context, sel ast.SelectionSet, v *model.UploadResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UploadResult(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNUserIdentity2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentity(ctx context.Context, sel ast.SelectionSet, v domain2.UserIdentity) graphql.Marshaler {
@@ -19759,13 +20865,6 @@ func (ec *executionContext) marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋpr
 	return ec._Profile(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOProperty2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐProperty(ctx context.Context, sel ast.SelectionSet, v *domain.Property) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Property(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalOPropertyClass2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, v any) (*domain.PropertyClass, error) {
 	if v == nil {
 		return nil, nil
@@ -20098,24 +21197,6 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	_ = ctx
 	res := graphql.MarshalTime(*v)
 	return res
-}
-
-func (ec *executionContext) unmarshalOTravelCompanionInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInputᚄ(ctx context.Context, v any) ([]*model.TravelCompanionInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]*model.TravelCompanionInput, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNTravelCompanionInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInput(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
 }
 
 func (ec *executionContext) unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (*uuid.UUID, error) {

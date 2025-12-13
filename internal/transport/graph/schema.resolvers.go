@@ -8,7 +8,7 @@ package graph
 import (
 	"context"
 	"fmt"
-	authDomain "hauslet/internal/modules/auth/domain"
+	domain2 "hauslet/internal/modules/auth/domain"
 	domain1 "hauslet/internal/modules/profile/domain"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/transport/graph/model"
@@ -26,7 +26,7 @@ func (r *listingMediaResolver) Thumbnails(ctx context.Context, obj *domain.Listi
 	return r.PropertyResolver.ListingMediaThumbnails(ctx, obj)
 }
 
-// Mutation resolvers.
+// Ping is the resolver for the ping field.
 func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
 	return "pong", nil
 }
@@ -34,6 +34,26 @@ func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
 // UpdateProfile is the resolver for the updateProfile field.
 func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain1.Profile, error) {
 	return r.ProfileResolver.UpdateProfile(ctx, input)
+}
+
+// AddTravelCompanion is the resolver for the addTravelCompanion field.
+func (r *mutationResolver) AddTravelCompanion(ctx context.Context, userID string, input model.TravelCompanionInput) (bool, error) {
+	return r.ProfileResolver.AddTravelCompanion(ctx, userID, input)
+}
+
+// UpdateTravelCompanion is the resolver for the updateTravelCompanion field.
+func (r *mutationResolver) UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input model.TravelCompanionInput) (bool, error) {
+	return r.ProfileResolver.UpdateTravelCompanion(ctx, userID, companionID, input)
+}
+
+// DeleteTravelCompanion is the resolver for the deleteTravelCompanion field.
+func (r *mutationResolver) DeleteTravelCompanion(ctx context.Context, userID string, companionID string) (bool, error) {
+	return r.ProfileResolver.DeleteTravelCompanion(ctx, userID, companionID)
+}
+
+// DeleteProfile is the resolver for the deleteProfile field.
+func (r *mutationResolver) DeleteProfile(ctx context.Context, userID string) (bool, error) {
+	return r.ProfileResolver.DeleteProfile(ctx, userID)
 }
 
 // CreateListing is the resolver for the createListing field.
@@ -61,9 +81,9 @@ func (r *mutationResolver) UnpublishListing(ctx context.Context, id uuid.UUID) (
 	return r.PropertyResolver.UnpublishListing(ctx, id)
 }
 
-// Profile field resolvers.
-func (r *profileResolver) Badges(ctx context.Context, obj *domain1.Profile) ([]*domain1.BadgeDetails, error) {
-	return r.ProfileResolver.Badges(ctx, obj)
+// Gender is the resolver for the gender field.
+func (r *profileResolver) Gender(ctx context.Context, obj *domain1.Profile) (*string, error) {
+	panic(fmt.Errorf("not implemented: Gender - gender"))
 }
 
 // Property field resolvers.
@@ -71,8 +91,8 @@ func (r *propertyResolver) Listings(ctx context.Context, obj *domain.Property, f
 	return r.PropertyResolver.PropertyListings(ctx, obj, first, after)
 }
 
-// Query resolvers.
-func (r *queryResolver) Me(ctx context.Context) (*authDomain.User, error) {
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*domain2.User, error) {
 	return r.AuthResolver.Me(ctx)
 }
 
@@ -101,14 +121,46 @@ func (r *queryResolver) MyProfile(ctx context.Context) (*domain1.Profile, error)
 	return r.ProfileResolver.MyProfile(ctx)
 }
 
-// PropertyByPublicID is the resolver for the propertyByPublicId field.
-func (r *queryResolver) PropertyByPublicID(ctx context.Context, publicID string) (*domain.Property, error) {
-	panic(fmt.Errorf("not implemented: PropertyByPublicID - propertyByPublicId"))
+// UploadProfilePhoto is the resolver for the uploadProfilePhoto field.
+func (r *queryResolver) UploadProfilePhoto(ctx context.Context, userID string, fileName string) (*model.UploadResult, error) {
+	uploadResult, err := r.ProfileResolver.UploadProfilePhoto(ctx, userID, fileName)
+	if err != nil {
+		return nil, err
+	}
+	return &model.UploadResult{
+		UserID:    uploadResult.UserID,
+		Filename:  uploadResult.Filename,
+		UploadURL: uploadResult.URL,
+		Key:       uploadResult.Key,
+	}, nil
+}
+
+// UploadTravelCompanionPhoto is the resolver for the uploadTravelCompanionPhoto field.
+func (r *queryResolver) UploadTravelCompanionPhoto(ctx context.Context, userID string, companionID string, fileName string) (*model.UploadResult, error) {
+	companionIDUUID, err := uuid.Parse(companionID)
+	if err != nil {
+		return nil, err
+	}
+	uploadResult, err := r.ProfileResolver.UploadTravelCompanionPhoto(ctx, companionIDUUID, userID, fileName)
+	if err != nil {
+		return nil, err
+	}
+	return &model.UploadResult{
+		UserID:    uploadResult.UserID,
+		Filename:  uploadResult.Filename,
+		UploadURL: uploadResult.URL,
+		Key:       uploadResult.Key,
+	}, nil
 }
 
 // Listing is the resolver for the listing field.
 func (r *queryResolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
 	return r.PropertyResolver.Listing(ctx, id)
+}
+
+// ListingByPublicID is the resolver for the listingByPublicId field.
+func (r *queryResolver) ListingByPublicID(ctx context.Context, publicID string) (*domain.Listing, error) {
+	panic(fmt.Errorf("not implemented: ListingByPublicID - listingByPublicId"))
 }
 
 // ListingBySlug is the resolver for the listingBySlug field.
@@ -161,6 +213,16 @@ func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain.Sal
 	return r.PropertyResolver.SaleDetailServiceCharges(ctx, obj)
 }
 
+// AgeGroup is the resolver for the ageGroup field.
+func (r *travelCompanionResolver) AgeGroup(ctx context.Context, obj *domain1.TravelCompanion) (string, error) {
+	return string(obj.AgeGroup), nil
+}
+
+// Relationship is the resolver for the relationship field.
+func (r *travelCompanionResolver) Relationship(ctx context.Context, obj *domain1.TravelCompanion) (string, error) {
+	return string(obj.Relationship), nil
+}
+
 // Listing returns ListingResolver implementation.
 func (r *Resolver) Listing() ListingResolver { return &listingResolver{r} }
 
@@ -185,6 +247,9 @@ func (r *Resolver) RentalDetail() RentalDetailResolver { return &rentalDetailRes
 // SaleDetail returns SaleDetailResolver implementation.
 func (r *Resolver) SaleDetail() SaleDetailResolver { return &saleDetailResolver{r} }
 
+// TravelCompanion returns TravelCompanionResolver implementation.
+func (r *Resolver) TravelCompanion() TravelCompanionResolver { return &travelCompanionResolver{r} }
+
 type listingResolver struct{ *Resolver }
 type listingMediaResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
@@ -193,3 +258,4 @@ type propertyResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type rentalDetailResolver struct{ *Resolver }
 type saleDetailResolver struct{ *Resolver }
+type travelCompanionResolver struct{ *Resolver }

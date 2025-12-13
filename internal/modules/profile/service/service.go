@@ -5,16 +5,18 @@ import (
 
 	"hauslet/internal/modules/profile/domain"
 	"hauslet/internal/modules/profile/repository"
+	"hauslet/internal/platform/storage"
 )
 
 // ProfileServiceImpl provides business-level operations for profiles.
 type ProfileServiceImpl struct {
-	repo repository.ProfileRepository
+	repo    repository.ProfileRepository
+	storage *storage.R2Storage
 }
 
 // NewProfileService creates a new profile service.
-func NewProfileService(repo repository.ProfileRepository) ProfileService {
-	return &ProfileServiceImpl{repo: repo}
+func NewProfileService(repo repository.ProfileRepository, storage *storage.R2Storage) ProfileService {
+	return &ProfileServiceImpl{repo: repo, storage: storage}
 }
 
 // ensureProfile fetches a profile by user ID, returning an error if not found.

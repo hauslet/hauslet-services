@@ -22,12 +22,20 @@ func MapProfileFromSchema(schemaProfile *schema.Profile) *Profile {
 		UserTypes:                  make([]UserType, len(schemaProfile.UserTypes)),
 		FullName:                   schemaProfile.FullName,
 		BirthDate:                  schemaProfile.BirthDate,
+		Gender:                     Gender(schemaProfile.Gender),
+		PhotoURL:                   schemaProfile.PhotoURL,
 		PhoneNumbers:               make([]string, len(schemaProfile.PhoneNumbers)),
-		Address:                    schemaProfile.Address,
-		City:                       schemaProfile.City,
-		State:                      schemaProfile.State,
-		Country:                    schemaProfile.Country,
-		ZipCode:                    schemaProfile.ZipCode,
+		Address:                    schemaProfile.Address.Street,
+		City:                       schemaProfile.Address.City,
+		State:                      schemaProfile.Address.State,
+		Country:                    schemaProfile.Address.Country,
+		ZipCode:                    schemaProfile.Address.PostalCode,
+		HouseNumber:                schemaProfile.Address.HouseNumber,
+		Street:                     schemaProfile.Address.Street,
+		Area:                       schemaProfile.Address.Area,
+		LGA:                        schemaProfile.Address.LGA,
+		District:                   schemaProfile.Address.District,
+		DigitalAddress:             schemaProfile.Address.DigitalAddress,
 		Occupation:                 schemaProfile.Occupation,
 		Education:                  schemaProfile.Education,
 		Bio:                        schemaProfile.Bio,
@@ -90,18 +98,37 @@ func MapProfileToSchema(domainProfile *Profile) (*schema.Profile, error) {
 		return nil, errors.New("invalid userID format")
 	}
 
+	gender := domainProfile.Gender
+	if gender == "" {
+		gender = GenderUndisclosed
+	}
+
+	streetVal := domainProfile.Street
+	if streetVal == nil {
+		streetVal = domainProfile.Address
+	}
+
 	schemaProfile := &schema.Profile{
-		ID:                         domainProfile.ID,
-		UserID:                     userUUID,
-		UserTypes:                  make(pq.StringArray, len(domainProfile.UserTypes)),
-		FullName:                   domainProfile.FullName,
-		BirthDate:                  domainProfile.BirthDate,
-		PhoneNumbers:               make(pq.StringArray, len(domainProfile.PhoneNumbers)),
-		Address:                    domainProfile.Address,
-		City:                       domainProfile.City,
-		State:                      domainProfile.State,
-		Country:                    domainProfile.Country,
-		ZipCode:                    domainProfile.ZipCode,
+		ID:           domainProfile.ID,
+		UserID:       userUUID,
+		UserTypes:    make(pq.StringArray, len(domainProfile.UserTypes)),
+		FullName:     domainProfile.FullName,
+		BirthDate:    domainProfile.BirthDate,
+		Gender:       schema.Gender(gender),
+		PhotoURL:     domainProfile.PhotoURL,
+		PhoneNumbers: make(pq.StringArray, len(domainProfile.PhoneNumbers)),
+		Address: schema.Address{
+			HouseNumber:    domainProfile.HouseNumber,
+			Street:         streetVal,
+			Area:           domainProfile.Area,
+			LGA:            domainProfile.LGA,
+			City:           domainProfile.City,
+			State:          domainProfile.State,
+			Country:        domainProfile.Country,
+			PostalCode:     domainProfile.ZipCode,
+			District:       domainProfile.District,
+			DigitalAddress: domainProfile.DigitalAddress,
+		},
 		Occupation:                 domainProfile.Occupation,
 		Education:                  domainProfile.Education,
 		Bio:                        domainProfile.Bio,
@@ -112,7 +139,7 @@ func MapProfileToSchema(domainProfile *Profile) (*schema.Profile, error) {
 		FunFact:                    domainProfile.FunFact,
 		ObsessedWith:               domainProfile.ObsessedWith,
 		CommunityCommitment:        domainProfile.CommunityCommitment,
-		TravelCompanions:           make([]schema.TravelCompanionProfile, len(domainProfile.TravelCompanions)),
+		TravelCompanions:           make([]schema.TravelCompanion, len(domainProfile.TravelCompanions)),
 		PhoneVerified:              domainProfile.PhoneVerified,
 		IDVerified:                 domainProfile.IDVerified,
 		VerificationDate:           domainProfile.VerificationDate,
@@ -167,23 +194,37 @@ func MapProfilesFromSchema(schemaProfiles []*schema.Profile) []Profile {
 }
 
 // MapTravelCompanionFromSchema converts schema travel companion to domain.
-func MapTravelCompanionFromSchema(schemaCompanion schema.TravelCompanionProfile) TravelCompanion {
+func MapTravelCompanionFromSchema(schemaCompanion schema.TravelCompanion) TravelCompanion {
+	gender := Gender(schemaCompanion.Gender)
+	if gender == "" {
+		gender = GenderUndisclosed
+	}
+
 	return TravelCompanion{
+		ID:           schemaCompanion.ID,
 		Name:         schemaCompanion.Name,
-		AgeGroup:     schemaCompanion.AgeGroup,
+		AgeGroup:     AgeGroup(schemaCompanion.AgeGroup),
+		Gender:       gender,
 		Phone:        schemaCompanion.Phone,
-		Relationship: schemaCompanion.Relationship,
+		Relationship: Relationship(schemaCompanion.Relationship),
 		PhotoURL:     schemaCompanion.PhotoURL,
 	}
 }
 
 // MapTravelCompanionToSchema converts domain travel companion to schema.
-func MapTravelCompanionToSchema(domainCompanion TravelCompanion) schema.TravelCompanionProfile {
-	return schema.TravelCompanionProfile{
+func MapTravelCompanionToSchema(domainCompanion TravelCompanion) schema.TravelCompanion {
+	gender := domainCompanion.Gender
+	if gender == "" {
+		gender = GenderUndisclosed
+	}
+
+	return schema.TravelCompanion{
+		ID:           domainCompanion.ID,
 		Name:         domainCompanion.Name,
-		AgeGroup:     domainCompanion.AgeGroup,
+		AgeGroup:     schema.AgeGroup(domainCompanion.AgeGroup),
+		Gender:       schema.Gender(gender),
 		Phone:        domainCompanion.Phone,
-		Relationship: domainCompanion.Relationship,
+		Relationship: schema.Relationship(domainCompanion.Relationship),
 		PhotoURL:     domainCompanion.PhotoURL,
 	}
 }

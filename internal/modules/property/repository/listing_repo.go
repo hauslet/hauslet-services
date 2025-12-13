@@ -169,6 +169,30 @@ func (r *GormRepository) GetListingBySlug(ctx context.Context, slug string, prel
 	return &listing, nil
 }
 
+// GetListingByPublicID fetches a listing by the associated property's public ID.
+func (r *GormRepository) GetListingByPublicID(ctx context.Context, publicID string, preloadMedia bool) (*schema.Listing, error) {
+	var listing schema.Listing
+
+	query := r.db.WithContext(ctx).
+		Model(&schema.Listing{}).
+		Joins("JOIN properties ON properties.id = listings.property_id").
+		Where("properties.public_id = ?", publicID)
+		// Preload("Property")
+
+	if preloadMedia {
+		query = query.Preload("Media")
+	}
+
+	if err := query.Select("listings.*").First(&listing).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("listing not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get listing by public id: %w", err)
+	}
+
+	return &listing, nil
+}
+
 // ListListings returns listings that match the provided filter and pagination.
 func (r *GormRepository) ListListings(ctx context.Context, filter ListingFilter, page Pagination) (*PaginatedResult[schema.Listing], error) {
 	var listings []schema.Listing

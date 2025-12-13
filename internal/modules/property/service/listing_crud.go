@@ -102,6 +102,23 @@ func (s *ServiceImpl) GetListingByID(ctx context.Context, id uuid.UUID, preloadM
 	return s.ensureListing(ctx, id, preloadMedia)
 }
 
+// GetListingByPublicID retrieves a listing by its public identifier (alias of slug).
+func (s *ServiceImpl) GetListingByPublicID(ctx context.Context, publicID string, preloadMedia bool) (*domain.Listing, error) {
+	if publicID == "" {
+		return nil, domain.ErrInvalidSlug
+	}
+
+	l, err := s.repo.GetListingByPublicID(ctx, publicID, preloadMedia)
+	if err != nil {
+		return nil, err
+	}
+	if l == nil {
+		return nil, domain.ErrListingNotFound
+	}
+
+	return domain.MapListingFromSchema(l), nil
+}
+
 // GetListingBySlug retrieves a listing by its slug.
 func (s *ServiceImpl) GetListingBySlug(ctx context.Context, slug string, preloadMedia bool) (*domain.Listing, error) {
 	if slug == "" {

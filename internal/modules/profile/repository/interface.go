@@ -5,6 +5,7 @@ import (
 	"hauslet/internal/modules/profile/repository/schema"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -14,22 +15,15 @@ type ProfileRepository interface {
 	GetProfileByUserID(ctx context.Context, userID string) (*schema.Profile, error)
 	GetProfileByID(ctx context.Context, id string) (*schema.Profile, error)
 	UpdateProfile(ctx context.Context, profile *schema.Profile) error
-	PatchProfile(ctx context.Context, id string, updates map[string]interface{}) error
+	PatchProfile(ctx context.Context, id string, updates map[string]any) error
 	DeleteProfile(ctx context.Context, userID string) error // Soft delete
 	ProfileExists(ctx context.Context, userID string) (bool, error)
-
-	// --- Performance / Batching ---
-	// Essential for resolving lists of users (e.g. "Reviews" section)
 	GetProfilesByUserIDs(ctx context.Context, userIDs []string) ([]*schema.Profile, error)
-
-	// --- Search & Discovery ---
 	ListProfiles(ctx context.Context, limit, offset int) ([]*schema.Profile, error)
 	SearchProfiles(ctx context.Context, query string, limit, offset int) ([]*schema.Profile, error)
 	GetProfilesByUserType(ctx context.Context, userType string, limit, offset int) ([]*schema.Profile, error)
 	GetVerifiedProfiles(ctx context.Context, level string, limit, offset int) ([]*schema.Profile, error)
-
-	// --- Specific Field Updates (Atomic Operations) ---
-	// Handling Review aggregates
+	UpdateTrustScore(ctx context.Context, userID string, score float64) error
 	IncrementReviewStats(ctx context.Context, userID string, ratingDelta float64, reviewsDelta int) error
 
 	// Handling Verification
@@ -39,11 +33,12 @@ type ProfileRepository interface {
 	AddBadge(ctx context.Context, userID string, badge string) error
 	RemoveBadge(ctx context.Context, userID string, badge string) error
 
-	// Handling JSONB
-	UpdateTravelCompanions(ctx context.Context, userID string, companions []schema.TravelCompanionProfile) error
-
-	// Handling Reputation
-	UpdateTrustScore(ctx context.Context, userID string, score float64) error
+	// Handling Travel Companions
+	AddTravelCompanion(ctx context.Context, userID string, companion schema.TravelCompanion) error
+	GetTravelCompanions(ctx context.Context, userID string) ([]*schema.TravelCompanion, error)
+	GetTravelCompanionByID(ctx context.Context, userID string, companionID uuid.UUID) (*schema.TravelCompanion, error)
+	UpdateTravelCompanion(ctx context.Context, userID string, companion schema.TravelCompanion) error
+	DeleteTravelCompanion(ctx context.Context, userID string, companionID string) error
 
 	// --- Administrative ---
 	RestoreProfile(ctx context.Context, userID string) error

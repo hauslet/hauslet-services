@@ -38,7 +38,7 @@ func setupRoutes(r chi.Router,
 
 	// Initialize profile service
 	profileRepo := profilerepository.NewProfileRepository(db)
-	profileService := profileservice.NewProfileService(profileRepo)
+	profileService := profileservice.NewProfileService(profileRepo, r2)
 	profileHooks := profileport.NewAuthHooksAdapter(profileService)
 
 	// Initialize property service

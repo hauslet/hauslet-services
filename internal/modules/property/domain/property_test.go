@@ -392,7 +392,7 @@ func TestMapListingFromSchema(t *testing.T) {
 	if result.SaleDetails == nil || result.SaleDetails.ServiceChargeBreakdown == nil || len(*result.SaleDetails.ServiceChargeBreakdown) != 1 {
 		t.Fatalf("MapListingFromSchema() did not map sale details correctly: %+v", result.SaleDetails)
 	}
-	if len(result.Media) != 1 || result.Media[0].URL != "https://example.com/1.jpg" || result.Media[0].Type != MediaTypeImage {
+	if len(result.Media) != 1 || result.Media[0].Key != "1.jpg" || result.Media[0].Type != MediaTypeImage {
 		t.Fatalf("MapListingFromSchema() did not map media correctly: %+v", result.Media)
 	}
 }

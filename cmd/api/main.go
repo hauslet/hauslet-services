@@ -55,7 +55,7 @@ func main() {
 		&authSchema.User{},
 		&authSchema.UserIdentity{},
 		&profileSchema.Profile{},
-		&profileSchema.TravelCompanionProfile{},
+		&profileSchema.TravelCompanion{},
 		&propertySchema.Property{},
 		&propertySchema.Listing{},
 		&propertySchema.ListingMedia{},

@@ -109,18 +109,6 @@ func (r *GormRepository) GetPropertyByID(ctx context.Context, id uuid.UUID) (*sc
 	return &property, nil
 }
 
-// GetPropertyByPublicID fetches a property by public ID.
-func (r *GormRepository) GetPropertyByPublicID(ctx context.Context, publicID string) (*schema.Property, error) {
-	var property schema.Property
-	if err := r.db.WithContext(ctx).Where("public_id = ?", publicID).First(&property).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("property not found: %w", err)
-		}
-		return nil, fmt.Errorf("failed to get property: %w", err)
-	}
-	return &property, nil
-}
-
 // ListProperties returns properties that match the provided filter and pagination.
 func (r *GormRepository) ListProperties(ctx context.Context, filter PropertyFilter, page Pagination) (*PaginatedResult[schema.Property], error) {
 	var properties []schema.Property

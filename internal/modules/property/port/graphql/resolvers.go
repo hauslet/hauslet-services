@@ -25,24 +25,26 @@ type Resolver struct {
 	cdnHost         string
 }
 
-func NewResolver(propertyService service.Service, cfg *config.GlobalConfig, log *lgr.Logger) *Resolver {
-	return &Resolver{propertyService: propertyService, cdnHost: cfg.Storage.R2.CDNHost, log: log}
+func NewResolver(propertyService service.Service, cfg *config.StorageConfig, log *lgr.Logger) *Resolver {
+	return &Resolver{propertyService: propertyService, cdnHost: cfg.R2.CDNHost, log: log}
 }
 
 // ===========================
 // QUERY RESOLVERS
 // ===========================
 
-// PropertyByPublicId retrieves a property by its public ID.
-func (r *Resolver) PropertyByPublicId(ctx context.Context, publicId string) (*domain.Property, error) {
-	property, err := r.propertyService.GetPropertyByPublicID(ctx, publicId)
+// ListingByPublicId retrieves a listing by its public ID.
+func (r *Resolver) ListingByPublicId(ctx context.Context, publicId string) (*domain.Listing, error) {
+	listing, err := r.propertyService.GetListingByPublicID(ctx, publicId, false)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property by public ID %s: %v", publicId, err)
+		r.log.Logf("ERROR Failed to get listing by public ID %s: %v", publicId, err)
 		return nil, err
 	}
+	if listing != nil && len(listing.Media) > 0 {
+		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
+	}
 
-	v := viewer.FromContext(ctx)
-	return sanitizePropertyForViewer(property, v), nil
+	return sanitizeListingForViewer(listing, viewer.FromContext(ctx)), nil
 }
 
 // Listing retrieves a listing by ID.

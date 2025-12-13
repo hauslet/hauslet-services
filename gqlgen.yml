@@ -61,8 +61,6 @@ models:
     model: hauslet/internal/modules/profile/domain.UserType
   Badge:
     model: hauslet/internal/modules/profile/domain.Badge
-  BadgeDetails:
-    model: hauslet/internal/modules/profile/domain.BadgeDetails
   UUID:
     model:
       - github.com/google/uuid.UUID

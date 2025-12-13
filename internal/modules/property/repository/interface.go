@@ -15,7 +15,6 @@ type PropertyRepository interface {
 	// Standard CRUD operations
 	CreateProperty(ctx context.Context, property *schema.Property) error
 	CreatePropertyTx(ctx context.Context, tx *gorm.DB, property *schema.Property) error
-	GetPropertyByPublicID(ctx context.Context, publicID string) (*schema.Property, error)
 	UpdateProperty(ctx context.Context, property *schema.Property) error
 	UpdatePropertyTx(ctx context.Context, tx *gorm.DB, property *schema.Property) error
 	PatchProperty(ctx context.Context, id uuid.UUID, updates map[string]any) error
@@ -48,6 +47,7 @@ type ListingRepository interface {
 	PatchListing(ctx context.Context, id uuid.UUID, updates map[string]any) error
 	PatchListingTx(ctx context.Context, tx *gorm.DB, id uuid.UUID, updates map[string]any) error
 	GetListingByID(ctx context.Context, id uuid.UUID, preloadMedia bool) (*schema.Listing, error)
+	GetListingByPublicID(ctx context.Context, publicID string, preloadMedia bool) (*schema.Listing, error)
 	GetListingBySlug(ctx context.Context, slug string, preloadMedia bool) (*schema.Listing, error)
 	ListListings(ctx context.Context, filter ListingFilter, page Pagination) (*PaginatedResult[schema.Listing], error)
 	ListListingsByPropertyID(ctx context.Context, propertyID uuid.UUID, page Pagination) (*PaginatedResult[schema.Listing], error)

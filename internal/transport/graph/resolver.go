@@ -35,7 +35,7 @@ func NewResolver(
 	return &Resolver{
 		log:              log,
 		AuthResolver:     authgraphql.NewResolver(authSvc),
-		ProfileResolver:  profilegraphql.NewResolver(profileSvc, log),
-		PropertyResolver: propertygraphql.NewResolver(propertySvc, appCfg, log),
+		ProfileResolver:  profilegraphql.NewResolver(profileSvc, &appCfg.Storage, log),
+		PropertyResolver: propertygraphql.NewResolver(propertySvc, &appCfg.Storage, log),
 	}
 }
