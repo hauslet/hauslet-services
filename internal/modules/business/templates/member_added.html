@@ -1,0 +1,36 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+
+    {{if .BusinessLogoURL}}
+    <div style="text-align: center; margin: 30px 0;">
+        <img src="{{.BusinessLogoURL}}" alt="{{.BusinessName}}" style="max-width: 150px; height: auto; border-radius: 8px;">
+    </div>
+    {{end}}
+
+    <h1 style="font-size: 28px; font-weight: bold; margin-top: 48px; text-align: center; color: #000000;">
+        Welcome to {{.BusinessName}}!
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; margin-bottom: 30px; color: #000000;">
+        Great news, {{.MemberName}}! You've been added to <strong>{{.BusinessName}}</strong> as a <strong>{{.Role}}</strong> by <strong>{{.AddedBy}}</strong>.
+    </p>
+
+    <div style="background-color: #f4f4f4; border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <h3 style="font-size: 18px; font-weight: bold; margin-top: 0; color: #000000;">You can now:</h3>
+        <ul style="font-size: 14px; line-height: 24px; color: #666666; padding-left: 20px;">
+            <li>Access the business dashboard</li>
+            <li>Manage properties and listings</li>
+            <li>Collaborate with your team</li>
+        </ul>
+    </div>
+
+    <div style="text-align: center; margin: 40px 0;">
+        <a href="{{.DashboardURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            Go to Dashboard
+        </a>
+    </div>
+
+</div>
+{{end}}
+
+{{template "layout" .}}

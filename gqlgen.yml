@@ -6,6 +6,7 @@ schema:
   - internal/modules/auth/port/graphql/*.graphqls
   - internal/modules/profile/port/graphql/*.graphqls
   - internal/modules/property/port/graphql/*.graphqls
+  - internal/modules/business/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
 exec:
@@ -122,3 +123,23 @@ models:
     model: hauslet/internal/modules/property/domain.RuleCategory
   MediaType:
     model: hauslet/internal/modules/property/domain.MediaType
+
+  # --- Business Module Bindings ---
+  Business:
+    model: hauslet/internal/modules/business/domain.Business
+  BusinessMember:
+    model: hauslet/internal/modules/business/domain.BusinessMember
+  BusinessInvitation:
+    model: hauslet/internal/modules/business/domain.BusinessInvitation
+  MemberPermissions:
+    model: hauslet/internal/modules/business/domain.MemberPermissions
+  BusinessAddress:
+    model: hauslet/internal/modules/business/domain.Address
+
+  # Business Enums
+  BusinessType:
+    model: hauslet/internal/modules/business/domain.BusinessType
+  MemberRole:
+    model: hauslet/internal/modules/business/domain.MemberRole
+  InvitationStatus:
+    model: hauslet/internal/modules/business/domain.InvitationStatus

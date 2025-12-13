@@ -3,6 +3,7 @@ package graph
 import (
 	"hauslet/config"
 	"hauslet/internal/modules/auth/service"
+	businessservice "hauslet/internal/modules/business/service"
 	profileservice "hauslet/internal/modules/profile/service"
 	propertyservice "hauslet/internal/modules/property/service"
 	"hauslet/internal/transport/graph/loaders"
@@ -22,12 +23,13 @@ func SetupGraphQL(r chi.Router,
 	authService service.AuthService,
 	profileService profileservice.ProfileService,
 	propertyService propertyservice.Service,
+	businessService businessservice.BusinessService,
 	cfg *config.GlobalConfig,
 	log *lgr.Logger) {
 
 	srv := handler.New(
 		NewExecutableSchema(Config{
-			Resolvers:  NewResolver(authService, profileService, propertyService, cfg, log),
+			Resolvers:  NewResolver(authService, profileService, propertyService, businessService, cfg, log),
 			Complexity: NewComplexityRoot(defaultMaxListLimit),
 		}),
 	)

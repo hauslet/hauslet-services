@@ -51,6 +51,13 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 			}
 		}
 
+		var profileAvatarFetcher oauth.ProfileAvatarFetcher
+		if s.profileHooks != nil {
+			profileAvatarFetcher = func(ctx context.Context, userID string) (*string, error) {
+				return s.profileHooks.GetProfileAvatarURL(ctx, userID)
+			}
+		}
+
 		deps := oauth.Dependencies{
 			Config:               s.cfg,
 			Repository:           s.repository,
@@ -67,6 +74,7 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 				}
 				return s.profileHooks.CreateDefaultProfile(ctx, userID, name, birthDate)
 			},
+			ProfileAvatarFetcher: profileAvatarFetcher,
 		}
 
 		s.oauthService = oauth.NewService(deps)

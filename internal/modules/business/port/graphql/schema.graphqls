@@ -1,0 +1,254 @@
+# internal/modules/business/port/graphql/schema.graphqls
+
+# ===========================
+# ENUMS
+# ===========================
+
+enum BusinessType {
+  property_management
+  real_estate_agency
+  property_developer
+  investment_firm
+  individual
+}
+
+enum MemberRole {
+  owner
+  admin
+  member
+  viewer
+  accountant
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  declined
+  expired
+  revoked
+}
+
+# ===========================
+# CORE TYPES
+# ===========================
+
+type BusinessAddress {
+  houseNumber: String
+  street: String
+  area: String
+  lga: String
+  city: String
+  state: String
+  country: String
+  postalCode: String
+  district: String
+  digitalAddress: String
+}
+
+type Business {
+  id: UUID!
+  slug: String!
+  name: String!
+  displayName: String!
+  description: String
+  businessType: BusinessType!
+
+  # Legal Information
+  registrationNumber: String
+  taxID: String
+  legalEntityType: String
+
+  # Contact
+  email: String!
+  phoneNumbers: [String!]!
+  website: String
+
+  # Location
+  address: BusinessAddress!
+  location: Location
+
+  # Branding
+  logoURL: String
+  coverImageURL: String
+  brandColor: String
+
+  # Status
+  isVerified: Boolean!
+  verifiedAt: Time
+  isActive: Boolean!
+
+  # Billing
+  billingEmail: String
+
+  # Stats
+  memberCount: Int!
+  propertyCount: Int!
+  listingCount: Int!
+
+  # Relations
+  members: [BusinessMember!]!
+
+  createdBy: UUID!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type BusinessMember {
+  id: UUID!
+  businessID: UUID!
+  userID: UUID!
+  role: MemberRole!
+  permissions: MemberPermissions!
+  isActive: Boolean!
+  joinedAt: Time!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type MemberPermissions {
+  canCreateListings: Boolean!
+  canEditListings: Boolean!
+  canDeleteListings: Boolean!
+  canPublishListings: Boolean!
+  canManageMedia: Boolean!
+  canViewAnalytics: Boolean!
+  canManageMembers: Boolean!
+  canEditBusiness: Boolean!
+  canViewFinancials: Boolean!
+}
+
+type BusinessInvitation {
+  id: UUID!
+  businessID: UUID!
+  email: String!
+  role: MemberRole!
+  status: InvitationStatus!
+  expiresAt: Time!
+  createdAt: Time!
+}
+
+# ===========================
+# INPUT TYPES
+# ===========================
+
+input BusinessAddressInput {
+  houseNumber: String
+  street: String
+  area: String
+  lga: String
+  city: String
+  state: String
+  country: String
+  postalCode: String
+  district: String
+  digitalAddress: String
+}
+
+input CreateBusinessInput {
+  name: String!
+  displayName: String!
+  description: String
+  businessType: BusinessType!
+
+  # Legal Information
+  registrationNumber: String
+  taxID: String
+  legalEntityType: String
+
+  # Contact
+  email: String!
+  phoneNumbers: [String!]
+  website: String
+
+  # Location
+  address: BusinessAddressInput!
+  location: LocationInput
+
+  # Branding
+  logoURL: String
+  coverImageURL: String
+  brandColor: String
+
+  # Billing
+  billingEmail: String
+}
+
+input UpdateBusinessInput {
+  displayName: String
+  description: String
+  email: String
+  phoneNumbers: [String!]
+  website: String
+  address: BusinessAddressInput
+  location: LocationInput
+  logoURL: String
+  coverImageURL: String
+  brandColor: String
+  billingEmail: String
+}
+
+input InviteMemberInput {
+  email: String!
+  role: MemberRole!
+  customPermissions: MemberPermissionsInput
+}
+
+input MemberPermissionsInput {
+  canCreateListings: Boolean
+  canEditListings: Boolean
+  canDeleteListings: Boolean
+  canPublishListings: Boolean
+  canManageMedia: Boolean
+  canViewAnalytics: Boolean
+  canManageMembers: Boolean
+  canEditBusiness: Boolean
+  canViewFinancials: Boolean
+}
+
+# ===========================
+# QUERIES
+# ===========================
+
+extend type Query {
+  # Businesses
+  business(id: UUID!): Business
+  businessBySlug(slug: String!): Business
+  myBusinesses: [Business!]!
+  allBusinesses(limit: Int, offset: Int): [Business!]!
+  searchBusinesses(query: String!, limit: Int, offset: Int): [Business!]!
+
+  # Memberships
+  businessMembers(businessID: UUID!): [BusinessMember!]!
+  myMemberships: [BusinessMember!]!
+  businessMember(businessID: UUID!, userID: UUID!): BusinessMember
+
+  # Invitations
+  businessInvitations(businessID: UUID!): [BusinessInvitation!]!
+  myInvitations(email: String!): [BusinessInvitation!]!
+
+  # Permissions
+  myBusinessPermissions(businessID: UUID!): MemberPermissions
+}
+
+# ===========================
+# MUTATIONS
+# ===========================
+
+extend type Mutation {
+  # Business Management
+  createBusiness(input: CreateBusinessInput!): Business!
+  updateBusiness(id: UUID!, input: UpdateBusinessInput!): Business!
+  deleteBusiness(id: UUID!): Boolean!
+
+  # Member Management
+  addBusinessMember(businessID: UUID!, userID: UUID!, role: MemberRole!, customPermissions: MemberPermissionsInput): BusinessMember!
+  updateMemberRole(businessID: UUID!, memberID: UUID!, role: MemberRole!): BusinessMember!
+  updateMemberPermissions(businessID: UUID!, memberID: UUID!, permissions: MemberPermissionsInput!): BusinessMember!
+  removeMember(businessID: UUID!, memberID: UUID!): Boolean!
+
+  # Invitation Management
+  inviteMember(businessID: UUID!, input: InviteMemberInput!): BusinessInvitation!
+  acceptInvitation(token: String!): BusinessMember!
+  declineInvitation(token: String!): Boolean!
+  revokeInvitation(invitationID: UUID!): Boolean!
+}

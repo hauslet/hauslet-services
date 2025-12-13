@@ -7,6 +7,8 @@ import (
 	authrepository "hauslet/internal/modules/auth/repository"
 	"hauslet/internal/modules/auth/service"
 	authsession "hauslet/internal/modules/auth/session"
+	businessrepository "hauslet/internal/modules/business/repository"
+	businessservice "hauslet/internal/modules/business/service"
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
 	profileservice "hauslet/internal/modules/profile/service"
@@ -39,12 +41,16 @@ func setupRoutes(r chi.Router,
 	// Initialize profile service
 	profileRepo := profilerepository.NewProfileRepository(db)
 	profileService := profileservice.NewProfileService(profileRepo, r2)
-	profileHooks := profileport.NewAuthHooksAdapter(profileService)
+	profileHooks := profileport.NewAuthHooksAdapter(profileService, cfg.Storage.R2.CDNHost)
 
 	// Initialize property service
 	propertyRepo := propertyrepository.NewPropertyRepository(db)
 	thumbnailSubject := cfg.YAML.Queue.Subjects["media_thumbnail"]
 	propertyService := propertyservice.NewPropertyService(propertyRepo, r2, q, thumbnailSubject)
+
+	// Initialize business service
+	businessRepo := businessrepository.NewBusinessRepository(db)
+	businessService := businessservice.NewBusinessService(businessRepo, log)
 
 	emailSubject := cfg.YAML.Queue.Subjects["email"]
 	authService := service.NewAuthService(
@@ -79,5 +85,5 @@ func setupRoutes(r chi.Router,
 	}
 
 	// Setup GraphQL routes
-	graph.SetupGraphQL(r, authService, profileService, propertyService, cfg, log)
+	graph.SetupGraphQL(r, authService, profileService, propertyService, businessService, cfg, log)
 }

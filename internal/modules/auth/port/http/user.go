@@ -48,10 +48,11 @@ func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 
 	// Return user profile
 	response := domain.UserResponse{
-		ID:    user.ID.String(),
-		Email: user.PrimaryEmail,
-		Name:  user.Name,
-		Role:  string(user.Role),
+		ID:        user.ID.String(),
+		Email:     user.PrimaryEmail,
+		Name:      user.Name,
+		Role:      string(user.Role),
+		AvatarURL: user.AvatarURL,
 	}
 
 	h.sendSuccess(w, response, http.StatusOK)
@@ -148,10 +149,11 @@ func (h *HTTPHandler) UpdateCurrentUser(w http.ResponseWriter, r *http.Request) 
 
 	// Return updated user
 	response := domain.UserResponse{
-		ID:    user.ID.String(),
-		Email: user.PrimaryEmail,
-		Name:  user.Name,
-		Role:  string(user.Role),
+		ID:        user.ID.String(),
+		Email:     user.PrimaryEmail,
+		Name:      user.Name,
+		Role:      string(user.Role),
+		AvatarURL: user.AvatarURL,
 	}
 
 	h.sendSuccess(w, response, http.StatusOK)

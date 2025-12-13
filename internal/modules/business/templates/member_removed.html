@@ -1,0 +1,31 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+
+    {{if .BusinessLogoURL}}
+    <div style="text-align: center; margin: 30px 0;">
+        <img src="{{.BusinessLogoURL}}" alt="{{.BusinessName}}" style="max-width: 150px; height: auto; border-radius: 8px;">
+    </div>
+    {{end}}
+
+    <h1 style="font-size: 28px; font-weight: bold; margin-top: 48px; text-align: center; color: #000000;">
+        Access Removed
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; margin-bottom: 30px; color: #000000;">
+        Hi {{.MemberName}}, this is to inform you that you've been removed from <strong>{{.BusinessName}}</strong> by <strong>{{.RemovedBy}}</strong>.
+    </p>
+
+    <div style="background-color: #f4f4f4; border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <p style="font-size: 14px; line-height: 22px; color: #666666; margin: 0; text-align: center;">
+            You no longer have access to the business dashboard and its resources.
+        </p>
+    </div>
+
+    <p style="font-size: 14px; line-height: 22px; color: #666666; text-align: center; margin-top: 30px;">
+        If you believe this was done in error, please contact the business owner.
+    </p>
+
+</div>
+{{end}}
+
+{{template "layout" .}}

@@ -75,6 +75,16 @@ func (c *claimsEnricher) EnrichClaims(claims token.Claims) token.Claims {
 	claims.User.SetStrAttr("pid", providerUserID)
 	claims.User.SetStrAttr("provider", provider)
 
+	// Attach avatar URL from profile (best-effort, non-blocking on errors)
+	if c.deps.ProfileAvatarFetcher != nil {
+		if avatarURL, err := c.deps.ProfileAvatarFetcher(ctx, user.ID.String()); err != nil {
+			c.deps.Log.Logf("WARN Auth: failed to fetch avatar for user %s: %v", user.ID, err)
+		} else if avatarURL != nil && *avatarURL != "" {
+			claims.User.SetStrAttr("avatar_url", *avatarURL)
+			claims.User.Picture = *avatarURL
+		}
+	}
+
 	return claims
 }
 

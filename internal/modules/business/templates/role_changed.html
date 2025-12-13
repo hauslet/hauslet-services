@@ -1,0 +1,43 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+
+    {{if .BusinessLogoURL}}
+    <div style="text-align: center; margin: 30px 0;">
+        <img src="{{.BusinessLogoURL}}" alt="{{.BusinessName}}" style="max-width: 150px; height: auto; border-radius: 8px;">
+    </div>
+    {{end}}
+
+    <h1 style="font-size: 28px; font-weight: bold; margin-top: 48px; text-align: center; color: #000000;">
+        Your Role Has Been Updated
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; margin-bottom: 30px; color: #000000;">
+        Hi {{.MemberName}}, your role in <strong>{{.BusinessName}}</strong> has been updated by <strong>{{.ChangedBy}}</strong>.
+    </p>
+
+    <div style="background-color: #f4f4f4; border-radius: 8px; padding: 20px; margin: 30px auto; max-width: 400px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 14px; color: #666666;">Previous Role:</span>
+            <span style="font-size: 16px; font-weight: bold; color: #000000;">{{.OldRole}}</span>
+        </div>
+        <div style="border-top: 1px solid #e0e0e0; margin: 10px 0;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 14px; color: #666666;">New Role:</span>
+            <span style="font-size: 16px; font-weight: bold; color: #924DBF;">{{.NewRole}}</span>
+        </div>
+    </div>
+
+    <p style="font-size: 14px; line-height: 22px; text-align: center; color: #666666; margin: 30px 0;">
+        Your new role grants you different permissions within the business. Please review the updated permissions in your dashboard.
+    </p>
+
+    <div style="text-align: center; margin: 40px 0;">
+        <a href="{{.DashboardURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            View Dashboard
+        </a>
+    </div>
+
+</div>
+{{end}}
+
+{{template "layout" .}}

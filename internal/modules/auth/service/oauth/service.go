@@ -45,6 +45,9 @@ type SendWelcomeEmailFunc func(ctx context.Context, email, name, otpCode string)
 // SendIdentityLinkedEmailFunc sends a security notification when a new identity is linked.
 type SendIdentityLinkedEmailFunc func(ctx context.Context, email, name, provider string) error
 
+// ProfileAvatarFetcher fetches a fully-qualified avatar URL for the user.
+type ProfileAvatarFetcher func(ctx context.Context, userID string) (*string, error)
+
 // ProfileHookFunc creates a default profile for new users.
 type ProfileHookFunc func(ctx context.Context, userID string, name string, birthDate *time.Time) error
 
@@ -60,6 +63,7 @@ type Dependencies struct {
 	SendWelcomeEmail     SendWelcomeEmailFunc
 	SendIdentityLinked   SendIdentityLinkedEmailFunc
 	ProfileHook          ProfileHookFunc
+	ProfileAvatarFetcher ProfileAvatarFetcher
 }
 
 // NewService builds the OAuth service with configured providers and validator.
@@ -82,6 +86,7 @@ func NewService(deps Dependencies) *auth.Service {
 		DisableXSRF:       deps.Config.DisableXSRF,
 		XSRFIgnoreMethods: []string{"GET"},
 		Validator:         NewValidator(deps.Repository, deps.Log),
+		JWTCookieDomain:   deps.Config.CookieDomain,
 	}
 
 	service := auth.NewService(options)

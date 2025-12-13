@@ -44,6 +44,7 @@ func Load() *GlobalConfig {
 				CookieDuration:  getDuration("COOKIE_DURATION", "24h"),
 				AvatarStorePath: def("AVATAR_STORE_PATH", "/tmp/avatars"),
 				DisableXSRF:     getBool("DISABLE_XSRF", false), // Default: XSRF enabled
+				CookieDomain:    def("COOKIE_DOMAIN", ""),
 			},
 			Storage: StorageConfig{
 				DB: DBConfig{

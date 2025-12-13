@@ -38,6 +38,7 @@ type AuthConfig struct {
 	CookieDuration  time.Duration // Cookie validity
 	AvatarStorePath string        // Avatar storage location
 	DisableXSRF     bool          // XSRF protection toggle
+	CookieDomain    string        // Domain to scope auth cookies (e.g., .yourdomain.com for subdomains)
 }
 
 type StorageConfig struct {

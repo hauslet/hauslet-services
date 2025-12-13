@@ -24,6 +24,7 @@ type User struct {
 	ID                uuid.UUID  `json:"id"`
 	Name              string     `json:"name"`
 	PrimaryEmail      string     `json:"primary_email"`
+	AvatarURL         *string    `json:"avatar_url,omitempty"`
 	Role              UserRole   `json:"role"`
 	IsActive          bool       `json:"is_active"`
 	DeactivatedAt     *time.Time `json:"deactivated_at,omitempty"`

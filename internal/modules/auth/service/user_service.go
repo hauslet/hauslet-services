@@ -21,7 +21,9 @@ func (s *AuthServiceImpl) GetUser(ctx context.Context, userID string) (*domain.U
 	if schemaUser == nil {
 		return nil, errors.New("user not found")
 	}
-	return domain.MapUserFromSchema(schemaUser), nil
+	user := domain.MapUserFromSchema(schemaUser)
+	s.enrichUserAvatar(ctx, user)
+	return user, nil
 }
 
 func (s *AuthServiceImpl) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
@@ -32,7 +34,9 @@ func (s *AuthServiceImpl) GetUserByEmail(ctx context.Context, email string) (*do
 	if schemaUser == nil {
 		return nil, errors.New("user not found")
 	}
-	return domain.MapUserFromSchema(schemaUser), nil
+	user := domain.MapUserFromSchema(schemaUser)
+	s.enrichUserAvatar(ctx, user)
+	return user, nil
 }
 
 // SAFEGUARD: Cannot change role of root user
@@ -88,4 +92,20 @@ func (s *AuthServiceImpl) ListUsers(ctx context.Context, limit, offset int) ([]d
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 	return domain.MapUsersFromSchema(schemaUsers), nil
+}
+
+// enrichUserAvatar attaches avatar URL from the profile service when available.
+func (s *AuthServiceImpl) enrichUserAvatar(ctx context.Context, user *domain.User) {
+	if user == nil || s.profileHooks == nil {
+		return
+	}
+
+	avatar, err := s.profileHooks.GetProfileAvatarURL(ctx, user.ID.String())
+	if err != nil {
+		s.log.Logf("WARN Auth: failed to fetch avatar for user %s: %v", user.ID, err)
+		return
+	}
+	if avatar != nil {
+		user.AvatarURL = avatar
+	}
 }

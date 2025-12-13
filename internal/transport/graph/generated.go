@@ -8,9 +8,10 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	domain2 "hauslet/internal/modules/auth/domain"
-	domain1 "hauslet/internal/modules/profile/domain"
-	"hauslet/internal/modules/property/domain"
+	domain3 "hauslet/internal/modules/auth/domain"
+	"hauslet/internal/modules/business/domain"
+	domain2 "hauslet/internal/modules/profile/domain"
+	domain1 "hauslet/internal/modules/property/domain"
 	"hauslet/internal/transport/graph/model"
 	"strconv"
 	"sync"
@@ -44,6 +45,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Business() BusinessResolver
 	Listing() ListingResolver
 	ListingMedia() ListingMediaResolver
 	Mutation() MutationResolver
@@ -63,6 +65,72 @@ type ComplexityRoot struct {
 		Icon    func(childComplexity int) int
 		Summary func(childComplexity int) int
 		Title   func(childComplexity int) int
+	}
+
+	Business struct {
+		Address            func(childComplexity int) int
+		BillingEmail       func(childComplexity int) int
+		BrandColor         func(childComplexity int) int
+		BusinessType       func(childComplexity int) int
+		CoverImageURL      func(childComplexity int) int
+		CreatedAt          func(childComplexity int) int
+		CreatedBy          func(childComplexity int) int
+		Description        func(childComplexity int) int
+		DisplayName        func(childComplexity int) int
+		Email              func(childComplexity int) int
+		ID                 func(childComplexity int) int
+		IsActive           func(childComplexity int) int
+		IsVerified         func(childComplexity int) int
+		LegalEntityType    func(childComplexity int) int
+		ListingCount       func(childComplexity int) int
+		Location           func(childComplexity int) int
+		LogoURL            func(childComplexity int) int
+		MemberCount        func(childComplexity int) int
+		Members            func(childComplexity int) int
+		Name               func(childComplexity int) int
+		PhoneNumbers       func(childComplexity int) int
+		PropertyCount      func(childComplexity int) int
+		RegistrationNumber func(childComplexity int) int
+		Slug               func(childComplexity int) int
+		TaxID              func(childComplexity int) int
+		UpdatedAt          func(childComplexity int) int
+		VerifiedAt         func(childComplexity int) int
+		Website            func(childComplexity int) int
+	}
+
+	BusinessAddress struct {
+		Area           func(childComplexity int) int
+		City           func(childComplexity int) int
+		Country        func(childComplexity int) int
+		DigitalAddress func(childComplexity int) int
+		District       func(childComplexity int) int
+		HouseNumber    func(childComplexity int) int
+		LGA            func(childComplexity int) int
+		PostalCode     func(childComplexity int) int
+		State          func(childComplexity int) int
+		Street         func(childComplexity int) int
+	}
+
+	BusinessInvitation struct {
+		BusinessID func(childComplexity int) int
+		CreatedAt  func(childComplexity int) int
+		Email      func(childComplexity int) int
+		ExpiresAt  func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Role       func(childComplexity int) int
+		Status     func(childComplexity int) int
+	}
+
+	BusinessMember struct {
+		BusinessID  func(childComplexity int) int
+		CreatedAt   func(childComplexity int) int
+		ID          func(childComplexity int) int
+		IsActive    func(childComplexity int) int
+		JoinedAt    func(childComplexity int) int
+		Permissions func(childComplexity int) int
+		Role        func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
+		UserID      func(childComplexity int) int
 	}
 
 	Listing struct {
@@ -153,18 +221,41 @@ type ComplexityRoot struct {
 		SRID func(childComplexity int) int
 	}
 
+	MemberPermissions struct {
+		CanCreateListings  func(childComplexity int) int
+		CanDeleteListings  func(childComplexity int) int
+		CanEditBusiness    func(childComplexity int) int
+		CanEditListings    func(childComplexity int) int
+		CanManageMedia     func(childComplexity int) int
+		CanManageMembers   func(childComplexity int) int
+		CanPublishListings func(childComplexity int) int
+		CanViewAnalytics   func(childComplexity int) int
+		CanViewFinancials  func(childComplexity int) int
+	}
+
 	Mutation struct {
-		AddTravelCompanion    func(childComplexity int, userID string, input model.TravelCompanionInput) int
-		CreateListing         func(childComplexity int, input model.CreateListingInput) int
-		DeleteListing         func(childComplexity int, id uuid.UUID, hard *bool) int
-		DeleteProfile         func(childComplexity int, userID string) int
-		DeleteTravelCompanion func(childComplexity int, userID string, companionID string) int
-		Ping                  func(childComplexity int) int
-		PublishListing        func(childComplexity int, id uuid.UUID) int
-		UnpublishListing      func(childComplexity int, id uuid.UUID) int
-		UpdateListing         func(childComplexity int, id uuid.UUID, input model.UpdateListingInput) int
-		UpdateProfile         func(childComplexity int, input model.UpdateProfileInput) int
-		UpdateTravelCompanion func(childComplexity int, userID string, companionID string, input model.TravelCompanionInput) int
+		AcceptInvitation        func(childComplexity int, token string) int
+		AddBusinessMember       func(childComplexity int, businessID uuid.UUID, userID uuid.UUID, role domain.MemberRole, customPermissions *model.MemberPermissionsInput) int
+		AddTravelCompanion      func(childComplexity int, userID string, input model.TravelCompanionInput) int
+		CreateBusiness          func(childComplexity int, input model.CreateBusinessInput) int
+		CreateListing           func(childComplexity int, input model.CreateListingInput) int
+		DeclineInvitation       func(childComplexity int, token string) int
+		DeleteBusiness          func(childComplexity int, id uuid.UUID) int
+		DeleteListing           func(childComplexity int, id uuid.UUID, hard *bool) int
+		DeleteProfile           func(childComplexity int, userID string) int
+		DeleteTravelCompanion   func(childComplexity int, userID string, companionID string) int
+		InviteMember            func(childComplexity int, businessID uuid.UUID, input model.InviteMemberInput) int
+		Ping                    func(childComplexity int) int
+		PublishListing          func(childComplexity int, id uuid.UUID) int
+		RemoveMember            func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID) int
+		RevokeInvitation        func(childComplexity int, invitationID uuid.UUID) int
+		UnpublishListing        func(childComplexity int, id uuid.UUID) int
+		UpdateBusiness          func(childComplexity int, id uuid.UUID, input model.UpdateBusinessInput) int
+		UpdateListing           func(childComplexity int, id uuid.UUID, input model.UpdateListingInput) int
+		UpdateMemberPermissions func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID, permissions model.MemberPermissionsInput) int
+		UpdateMemberRole        func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID, role domain.MemberRole) int
+		UpdateProfile           func(childComplexity int, input model.UpdateProfileInput) int
+		UpdateTravelCompanion   func(childComplexity int, userID string, companionID string, input model.TravelCompanionInput) int
 	}
 
 	PageInfo struct {
@@ -251,6 +342,12 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		AllBusinesses              func(childComplexity int, limit *int, offset *int) int
+		Business                   func(childComplexity int, id uuid.UUID) int
+		BusinessBySlug             func(childComplexity int, slug string) int
+		BusinessInvitations        func(childComplexity int, businessID uuid.UUID) int
+		BusinessMember             func(childComplexity int, businessID uuid.UUID, userID uuid.UUID) int
+		BusinessMembers            func(childComplexity int, businessID uuid.UUID) int
 		Listing                    func(childComplexity int, id uuid.UUID) int
 		ListingByPublicID          func(childComplexity int, publicID string) int
 		ListingBySlug              func(childComplexity int, slug string) int
@@ -259,11 +356,16 @@ type ComplexityRoot struct {
 		ListingsByProperty         func(childComplexity int, propertyID uuid.UUID, first *int, after *string) int
 		ListingsNearPoint          func(childComplexity int, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) int
 		Me                         func(childComplexity int) int
+		MyBusinessPermissions      func(childComplexity int, businessID uuid.UUID) int
+		MyBusinesses               func(childComplexity int) int
+		MyInvitations              func(childComplexity int, email string) int
 		MyListings                 func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
+		MyMemberships              func(childComplexity int) int
 		MyProfile                  func(childComplexity int) int
 		Profile                    func(childComplexity int, id uuid.UUID) int
 		ProfileByUserID            func(childComplexity int, userID string) int
 		Profiles                   func(childComplexity int, limit *int, offset *int) int
+		SearchBusinesses           func(childComplexity int, query string, limit *int, offset *int) int
 		SearchListings             func(childComplexity int, query string, filter *model.ListingFilterInput, limit *int) int
 		SearchProfiles             func(childComplexity int, query string, limit *int, offset *int) int
 		SimilarListings            func(childComplexity int, listingID uuid.UUID, limit *int, minSimilarity *float64) int
@@ -377,6 +479,7 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
+		AvatarURL    func(childComplexity int) int
 		CreatedAt    func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Identities   func(childComplexity int) int
@@ -399,61 +502,88 @@ type ComplexityRoot struct {
 	}
 }
 
+type BusinessResolver interface {
+	Location(ctx context.Context, obj *domain.Business) (*domain1.Location, error)
+
+	Members(ctx context.Context, obj *domain.Business) ([]*domain.BusinessMember, error)
+}
 type ListingResolver interface {
-	Property(ctx context.Context, obj *domain.Listing) (*domain.Property, error)
+	Property(ctx context.Context, obj *domain1.Listing) (*domain1.Property, error)
 }
 type ListingMediaResolver interface {
-	Thumbnails(ctx context.Context, obj *domain.ListingMedia) ([]*domain.ThumbnailVariant, error)
+	Thumbnails(ctx context.Context, obj *domain1.ListingMedia) ([]*domain1.ThumbnailVariant, error)
 }
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
-	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain1.Profile, error)
+	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain2.Profile, error)
 	AddTravelCompanion(ctx context.Context, userID string, input model.TravelCompanionInput) (bool, error)
 	UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input model.TravelCompanionInput) (bool, error)
 	DeleteTravelCompanion(ctx context.Context, userID string, companionID string) (bool, error)
 	DeleteProfile(ctx context.Context, userID string) (bool, error)
-	CreateListing(ctx context.Context, input model.CreateListingInput) (*domain.Listing, error)
-	UpdateListing(ctx context.Context, id uuid.UUID, input model.UpdateListingInput) (*domain.Listing, error)
+	CreateListing(ctx context.Context, input model.CreateListingInput) (*domain1.Listing, error)
+	UpdateListing(ctx context.Context, id uuid.UUID, input model.UpdateListingInput) (*domain1.Listing, error)
 	DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error)
-	PublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error)
-	UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error)
+	PublishListing(ctx context.Context, id uuid.UUID) (*domain1.Listing, error)
+	UnpublishListing(ctx context.Context, id uuid.UUID) (*domain1.Listing, error)
+	CreateBusiness(ctx context.Context, input model.CreateBusinessInput) (*domain.Business, error)
+	UpdateBusiness(ctx context.Context, id uuid.UUID, input model.UpdateBusinessInput) (*domain.Business, error)
+	DeleteBusiness(ctx context.Context, id uuid.UUID) (bool, error)
+	AddBusinessMember(ctx context.Context, businessID uuid.UUID, userID uuid.UUID, role domain.MemberRole, customPermissions *model.MemberPermissionsInput) (*domain.BusinessMember, error)
+	UpdateMemberRole(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, role domain.MemberRole) (*domain.BusinessMember, error)
+	UpdateMemberPermissions(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, permissions model.MemberPermissionsInput) (*domain.BusinessMember, error)
+	RemoveMember(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID) (bool, error)
+	InviteMember(ctx context.Context, businessID uuid.UUID, input model.InviteMemberInput) (*domain.BusinessInvitation, error)
+	AcceptInvitation(ctx context.Context, token string) (*domain.BusinessMember, error)
+	DeclineInvitation(ctx context.Context, token string) (bool, error)
+	RevokeInvitation(ctx context.Context, invitationID uuid.UUID) (bool, error)
 }
 type ProfileResolver interface {
-	Gender(ctx context.Context, obj *domain1.Profile) (*string, error)
+	Gender(ctx context.Context, obj *domain2.Profile) (*string, error)
 }
 type PropertyResolver interface {
-	Listings(ctx context.Context, obj *domain.Property, first *int, after *string) (*model.ListingConnection, error)
+	Listings(ctx context.Context, obj *domain1.Property, first *int, after *string) (*model.ListingConnection, error)
 }
 type QueryResolver interface {
-	Me(ctx context.Context) (*domain2.User, error)
-	Profile(ctx context.Context, id uuid.UUID) (*domain1.Profile, error)
-	ProfileByUserID(ctx context.Context, userID string) (*domain1.Profile, error)
-	Profiles(ctx context.Context, limit *int, offset *int) ([]*domain1.Profile, error)
-	SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain1.Profile, error)
-	MyProfile(ctx context.Context) (*domain1.Profile, error)
+	Me(ctx context.Context) (*domain3.User, error)
+	Profile(ctx context.Context, id uuid.UUID) (*domain2.Profile, error)
+	ProfileByUserID(ctx context.Context, userID string) (*domain2.Profile, error)
+	Profiles(ctx context.Context, limit *int, offset *int) ([]*domain2.Profile, error)
+	SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain2.Profile, error)
+	MyProfile(ctx context.Context) (*domain2.Profile, error)
 	UploadProfilePhoto(ctx context.Context, userID string, fileName string) (*model.UploadResult, error)
 	UploadTravelCompanionPhoto(ctx context.Context, userID string, companionID string, fileName string) (*model.UploadResult, error)
-	Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, error)
-	ListingByPublicID(ctx context.Context, publicID string) (*domain.Listing, error)
-	ListingBySlug(ctx context.Context, slug string) (*domain.Listing, error)
+	Listing(ctx context.Context, id uuid.UUID) (*domain1.Listing, error)
+	ListingByPublicID(ctx context.Context, publicID string) (*domain1.Listing, error)
+	ListingBySlug(ctx context.Context, slug string) (*domain1.Listing, error)
 	Listings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
 	ListingsByProperty(ctx context.Context, propertyID uuid.UUID, first *int, after *string) (*model.ListingConnection, error)
 	MyListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
-	ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain.ListingCompleteness, error)
+	ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain1.ListingCompleteness, error)
 	ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error)
 	SearchListings(ctx context.Context, query string, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error)
 	SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error)
+	Business(ctx context.Context, id uuid.UUID) (*domain.Business, error)
+	BusinessBySlug(ctx context.Context, slug string) (*domain.Business, error)
+	MyBusinesses(ctx context.Context) ([]*domain.Business, error)
+	AllBusinesses(ctx context.Context, limit *int, offset *int) ([]*domain.Business, error)
+	SearchBusinesses(ctx context.Context, query string, limit *int, offset *int) ([]*domain.Business, error)
+	BusinessMembers(ctx context.Context, businessID uuid.UUID) ([]*domain.BusinessMember, error)
+	MyMemberships(ctx context.Context) ([]*domain.BusinessMember, error)
+	BusinessMember(ctx context.Context, businessID uuid.UUID, userID uuid.UUID) (*domain.BusinessMember, error)
+	BusinessInvitations(ctx context.Context, businessID uuid.UUID) ([]*domain.BusinessInvitation, error)
+	MyInvitations(ctx context.Context, email string) ([]*domain.BusinessInvitation, error)
+	MyBusinessPermissions(ctx context.Context, businessID uuid.UUID) (*domain.MemberPermissions, error)
 }
 type RentalDetailResolver interface {
-	ServiceCharges(ctx context.Context, obj *domain.RentalDetail) ([]*domain.ServiceCharge, error)
+	ServiceCharges(ctx context.Context, obj *domain1.RentalDetail) ([]*domain1.ServiceCharge, error)
 }
 type SaleDetailResolver interface {
-	ServiceCharges(ctx context.Context, obj *domain.SaleDetail) ([]*domain.ServiceCharge, error)
+	ServiceCharges(ctx context.Context, obj *domain1.SaleDetail) ([]*domain1.ServiceCharge, error)
 }
 type TravelCompanionResolver interface {
-	AgeGroup(ctx context.Context, obj *domain1.TravelCompanion) (string, error)
+	AgeGroup(ctx context.Context, obj *domain2.TravelCompanion) (string, error)
 
-	Relationship(ctx context.Context, obj *domain1.TravelCompanion) (string, error)
+	Relationship(ctx context.Context, obj *domain2.TravelCompanion) (string, error)
 }
 
 type executableSchema struct {
@@ -493,6 +623,334 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AmenityHighlight.Title(childComplexity), true
+
+	case "Business.address":
+		if e.complexity.Business.Address == nil {
+			break
+		}
+
+		return e.complexity.Business.Address(childComplexity), true
+	case "Business.billingEmail":
+		if e.complexity.Business.BillingEmail == nil {
+			break
+		}
+
+		return e.complexity.Business.BillingEmail(childComplexity), true
+	case "Business.brandColor":
+		if e.complexity.Business.BrandColor == nil {
+			break
+		}
+
+		return e.complexity.Business.BrandColor(childComplexity), true
+	case "Business.businessType":
+		if e.complexity.Business.BusinessType == nil {
+			break
+		}
+
+		return e.complexity.Business.BusinessType(childComplexity), true
+	case "Business.coverImageURL":
+		if e.complexity.Business.CoverImageURL == nil {
+			break
+		}
+
+		return e.complexity.Business.CoverImageURL(childComplexity), true
+	case "Business.createdAt":
+		if e.complexity.Business.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Business.CreatedAt(childComplexity), true
+	case "Business.createdBy":
+		if e.complexity.Business.CreatedBy == nil {
+			break
+		}
+
+		return e.complexity.Business.CreatedBy(childComplexity), true
+	case "Business.description":
+		if e.complexity.Business.Description == nil {
+			break
+		}
+
+		return e.complexity.Business.Description(childComplexity), true
+	case "Business.displayName":
+		if e.complexity.Business.DisplayName == nil {
+			break
+		}
+
+		return e.complexity.Business.DisplayName(childComplexity), true
+	case "Business.email":
+		if e.complexity.Business.Email == nil {
+			break
+		}
+
+		return e.complexity.Business.Email(childComplexity), true
+	case "Business.id":
+		if e.complexity.Business.ID == nil {
+			break
+		}
+
+		return e.complexity.Business.ID(childComplexity), true
+	case "Business.isActive":
+		if e.complexity.Business.IsActive == nil {
+			break
+		}
+
+		return e.complexity.Business.IsActive(childComplexity), true
+	case "Business.isVerified":
+		if e.complexity.Business.IsVerified == nil {
+			break
+		}
+
+		return e.complexity.Business.IsVerified(childComplexity), true
+	case "Business.legalEntityType":
+		if e.complexity.Business.LegalEntityType == nil {
+			break
+		}
+
+		return e.complexity.Business.LegalEntityType(childComplexity), true
+	case "Business.listingCount":
+		if e.complexity.Business.ListingCount == nil {
+			break
+		}
+
+		return e.complexity.Business.ListingCount(childComplexity), true
+	case "Business.location":
+		if e.complexity.Business.Location == nil {
+			break
+		}
+
+		return e.complexity.Business.Location(childComplexity), true
+	case "Business.logoURL":
+		if e.complexity.Business.LogoURL == nil {
+			break
+		}
+
+		return e.complexity.Business.LogoURL(childComplexity), true
+	case "Business.memberCount":
+		if e.complexity.Business.MemberCount == nil {
+			break
+		}
+
+		return e.complexity.Business.MemberCount(childComplexity), true
+	case "Business.members":
+		if e.complexity.Business.Members == nil {
+			break
+		}
+
+		return e.complexity.Business.Members(childComplexity), true
+	case "Business.name":
+		if e.complexity.Business.Name == nil {
+			break
+		}
+
+		return e.complexity.Business.Name(childComplexity), true
+	case "Business.phoneNumbers":
+		if e.complexity.Business.PhoneNumbers == nil {
+			break
+		}
+
+		return e.complexity.Business.PhoneNumbers(childComplexity), true
+	case "Business.propertyCount":
+		if e.complexity.Business.PropertyCount == nil {
+			break
+		}
+
+		return e.complexity.Business.PropertyCount(childComplexity), true
+	case "Business.registrationNumber":
+		if e.complexity.Business.RegistrationNumber == nil {
+			break
+		}
+
+		return e.complexity.Business.RegistrationNumber(childComplexity), true
+	case "Business.slug":
+		if e.complexity.Business.Slug == nil {
+			break
+		}
+
+		return e.complexity.Business.Slug(childComplexity), true
+	case "Business.taxID":
+		if e.complexity.Business.TaxID == nil {
+			break
+		}
+
+		return e.complexity.Business.TaxID(childComplexity), true
+	case "Business.updatedAt":
+		if e.complexity.Business.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Business.UpdatedAt(childComplexity), true
+	case "Business.verifiedAt":
+		if e.complexity.Business.VerifiedAt == nil {
+			break
+		}
+
+		return e.complexity.Business.VerifiedAt(childComplexity), true
+	case "Business.website":
+		if e.complexity.Business.Website == nil {
+			break
+		}
+
+		return e.complexity.Business.Website(childComplexity), true
+
+	case "BusinessAddress.area":
+		if e.complexity.BusinessAddress.Area == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.Area(childComplexity), true
+	case "BusinessAddress.city":
+		if e.complexity.BusinessAddress.City == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.City(childComplexity), true
+	case "BusinessAddress.country":
+		if e.complexity.BusinessAddress.Country == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.Country(childComplexity), true
+	case "BusinessAddress.digitalAddress":
+		if e.complexity.BusinessAddress.DigitalAddress == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.DigitalAddress(childComplexity), true
+	case "BusinessAddress.district":
+		if e.complexity.BusinessAddress.District == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.District(childComplexity), true
+	case "BusinessAddress.houseNumber":
+		if e.complexity.BusinessAddress.HouseNumber == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.HouseNumber(childComplexity), true
+	case "BusinessAddress.lga":
+		if e.complexity.BusinessAddress.LGA == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.LGA(childComplexity), true
+	case "BusinessAddress.postalCode":
+		if e.complexity.BusinessAddress.PostalCode == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.PostalCode(childComplexity), true
+	case "BusinessAddress.state":
+		if e.complexity.BusinessAddress.State == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.State(childComplexity), true
+	case "BusinessAddress.street":
+		if e.complexity.BusinessAddress.Street == nil {
+			break
+		}
+
+		return e.complexity.BusinessAddress.Street(childComplexity), true
+
+	case "BusinessInvitation.businessID":
+		if e.complexity.BusinessInvitation.BusinessID == nil {
+			break
+		}
+
+		return e.complexity.BusinessInvitation.BusinessID(childComplexity), true
+	case "BusinessInvitation.createdAt":
+		if e.complexity.BusinessInvitation.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.BusinessInvitation.CreatedAt(childComplexity), true
+	case "BusinessInvitation.email":
+		if e.complexity.BusinessInvitation.Email == nil {
+			break
+		}
+
+		return e.complexity.BusinessInvitation.Email(childComplexity), true
+	case "BusinessInvitation.expiresAt":
+		if e.complexity.BusinessInvitation.ExpiresAt == nil {
+			break
+		}
+
+		return e.complexity.BusinessInvitation.ExpiresAt(childComplexity), true
+	case "BusinessInvitation.id":
+		if e.complexity.BusinessInvitation.ID == nil {
+			break
+		}
+
+		return e.complexity.BusinessInvitation.ID(childComplexity), true
+	case "BusinessInvitation.role":
+		if e.complexity.BusinessInvitation.Role == nil {
+			break
+		}
+
+		return e.complexity.BusinessInvitation.Role(childComplexity), true
+	case "BusinessInvitation.status":
+		if e.complexity.BusinessInvitation.Status == nil {
+			break
+		}
+
+		return e.complexity.BusinessInvitation.Status(childComplexity), true
+
+	case "BusinessMember.businessID":
+		if e.complexity.BusinessMember.BusinessID == nil {
+			break
+		}
+
+		return e.complexity.BusinessMember.BusinessID(childComplexity), true
+	case "BusinessMember.createdAt":
+		if e.complexity.BusinessMember.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.BusinessMember.CreatedAt(childComplexity), true
+	case "BusinessMember.id":
+		if e.complexity.BusinessMember.ID == nil {
+			break
+		}
+
+		return e.complexity.BusinessMember.ID(childComplexity), true
+	case "BusinessMember.isActive":
+		if e.complexity.BusinessMember.IsActive == nil {
+			break
+		}
+
+		return e.complexity.BusinessMember.IsActive(childComplexity), true
+	case "BusinessMember.joinedAt":
+		if e.complexity.BusinessMember.JoinedAt == nil {
+			break
+		}
+
+		return e.complexity.BusinessMember.JoinedAt(childComplexity), true
+	case "BusinessMember.permissions":
+		if e.complexity.BusinessMember.Permissions == nil {
+			break
+		}
+
+		return e.complexity.BusinessMember.Permissions(childComplexity), true
+	case "BusinessMember.role":
+		if e.complexity.BusinessMember.Role == nil {
+			break
+		}
+
+		return e.complexity.BusinessMember.Role(childComplexity), true
+	case "BusinessMember.updatedAt":
+		if e.complexity.BusinessMember.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.BusinessMember.UpdatedAt(childComplexity), true
+	case "BusinessMember.userID":
+		if e.complexity.BusinessMember.UserID == nil {
+			break
+		}
+
+		return e.complexity.BusinessMember.UserID(childComplexity), true
 
 	case "Listing.boostLevel":
 		if e.complexity.Listing.BoostLevel == nil {
@@ -908,6 +1366,83 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Location.SRID(childComplexity), true
 
+	case "MemberPermissions.canCreateListings":
+		if e.complexity.MemberPermissions.CanCreateListings == nil {
+			break
+		}
+
+		return e.complexity.MemberPermissions.CanCreateListings(childComplexity), true
+	case "MemberPermissions.canDeleteListings":
+		if e.complexity.MemberPermissions.CanDeleteListings == nil {
+			break
+		}
+
+		return e.complexity.MemberPermissions.CanDeleteListings(childComplexity), true
+	case "MemberPermissions.canEditBusiness":
+		if e.complexity.MemberPermissions.CanEditBusiness == nil {
+			break
+		}
+
+		return e.complexity.MemberPermissions.CanEditBusiness(childComplexity), true
+	case "MemberPermissions.canEditListings":
+		if e.complexity.MemberPermissions.CanEditListings == nil {
+			break
+		}
+
+		return e.complexity.MemberPermissions.CanEditListings(childComplexity), true
+	case "MemberPermissions.canManageMedia":
+		if e.complexity.MemberPermissions.CanManageMedia == nil {
+			break
+		}
+
+		return e.complexity.MemberPermissions.CanManageMedia(childComplexity), true
+	case "MemberPermissions.canManageMembers":
+		if e.complexity.MemberPermissions.CanManageMembers == nil {
+			break
+		}
+
+		return e.complexity.MemberPermissions.CanManageMembers(childComplexity), true
+	case "MemberPermissions.canPublishListings":
+		if e.complexity.MemberPermissions.CanPublishListings == nil {
+			break
+		}
+
+		return e.complexity.MemberPermissions.CanPublishListings(childComplexity), true
+	case "MemberPermissions.canViewAnalytics":
+		if e.complexity.MemberPermissions.CanViewAnalytics == nil {
+			break
+		}
+
+		return e.complexity.MemberPermissions.CanViewAnalytics(childComplexity), true
+	case "MemberPermissions.canViewFinancials":
+		if e.complexity.MemberPermissions.CanViewFinancials == nil {
+			break
+		}
+
+		return e.complexity.MemberPermissions.CanViewFinancials(childComplexity), true
+
+	case "Mutation.acceptInvitation":
+		if e.complexity.Mutation.AcceptInvitation == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_acceptInvitation_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AcceptInvitation(childComplexity, args["token"].(string)), true
+	case "Mutation.addBusinessMember":
+		if e.complexity.Mutation.AddBusinessMember == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addBusinessMember_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.AddBusinessMember(childComplexity, args["businessID"].(uuid.UUID), args["userID"].(uuid.UUID), args["role"].(domain.MemberRole), args["customPermissions"].(*model.MemberPermissionsInput)), true
 	case "Mutation.addTravelCompanion":
 		if e.complexity.Mutation.AddTravelCompanion == nil {
 			break
@@ -919,6 +1454,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.AddTravelCompanion(childComplexity, args["userId"].(string), args["input"].(model.TravelCompanionInput)), true
+	case "Mutation.createBusiness":
+		if e.complexity.Mutation.CreateBusiness == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createBusiness_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateBusiness(childComplexity, args["input"].(model.CreateBusinessInput)), true
 	case "Mutation.createListing":
 		if e.complexity.Mutation.CreateListing == nil {
 			break
@@ -930,6 +1476,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateListing(childComplexity, args["input"].(model.CreateListingInput)), true
+	case "Mutation.declineInvitation":
+		if e.complexity.Mutation.DeclineInvitation == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_declineInvitation_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeclineInvitation(childComplexity, args["token"].(string)), true
+	case "Mutation.deleteBusiness":
+		if e.complexity.Mutation.DeleteBusiness == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteBusiness_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteBusiness(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deleteListing":
 		if e.complexity.Mutation.DeleteListing == nil {
 			break
@@ -963,6 +1531,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteTravelCompanion(childComplexity, args["userId"].(string), args["companionId"].(string)), true
+	case "Mutation.inviteMember":
+		if e.complexity.Mutation.InviteMember == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_inviteMember_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.InviteMember(childComplexity, args["businessID"].(uuid.UUID), args["input"].(model.InviteMemberInput)), true
 	case "Mutation.ping":
 		if e.complexity.Mutation.Ping == nil {
 			break
@@ -980,6 +1559,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.PublishListing(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.removeMember":
+		if e.complexity.Mutation.RemoveMember == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeMember_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveMember(childComplexity, args["businessID"].(uuid.UUID), args["memberID"].(uuid.UUID)), true
+	case "Mutation.revokeInvitation":
+		if e.complexity.Mutation.RevokeInvitation == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_revokeInvitation_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RevokeInvitation(childComplexity, args["invitationID"].(uuid.UUID)), true
 	case "Mutation.unpublishListing":
 		if e.complexity.Mutation.UnpublishListing == nil {
 			break
@@ -991,6 +1592,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UnpublishListing(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.updateBusiness":
+		if e.complexity.Mutation.UpdateBusiness == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateBusiness_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateBusiness(childComplexity, args["id"].(uuid.UUID), args["input"].(model.UpdateBusinessInput)), true
 	case "Mutation.updateListing":
 		if e.complexity.Mutation.UpdateListing == nil {
 			break
@@ -1002,6 +1614,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateListing(childComplexity, args["id"].(uuid.UUID), args["input"].(model.UpdateListingInput)), true
+	case "Mutation.updateMemberPermissions":
+		if e.complexity.Mutation.UpdateMemberPermissions == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateMemberPermissions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateMemberPermissions(childComplexity, args["businessID"].(uuid.UUID), args["memberID"].(uuid.UUID), args["permissions"].(model.MemberPermissionsInput)), true
+	case "Mutation.updateMemberRole":
+		if e.complexity.Mutation.UpdateMemberRole == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateMemberRole_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateMemberRole(childComplexity, args["businessID"].(uuid.UUID), args["memberID"].(uuid.UUID), args["role"].(domain.MemberRole)), true
 	case "Mutation.updateProfile":
 		if e.complexity.Mutation.UpdateProfile == nil {
 			break
@@ -1477,6 +2111,72 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Property.UpdatedAt(childComplexity), true
 
+	case "Query.allBusinesses":
+		if e.complexity.Query.AllBusinesses == nil {
+			break
+		}
+
+		args, err := ec.field_Query_allBusinesses_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.AllBusinesses(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.business":
+		if e.complexity.Query.Business == nil {
+			break
+		}
+
+		args, err := ec.field_Query_business_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Business(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.businessBySlug":
+		if e.complexity.Query.BusinessBySlug == nil {
+			break
+		}
+
+		args, err := ec.field_Query_businessBySlug_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BusinessBySlug(childComplexity, args["slug"].(string)), true
+	case "Query.businessInvitations":
+		if e.complexity.Query.BusinessInvitations == nil {
+			break
+		}
+
+		args, err := ec.field_Query_businessInvitations_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BusinessInvitations(childComplexity, args["businessID"].(uuid.UUID)), true
+	case "Query.businessMember":
+		if e.complexity.Query.BusinessMember == nil {
+			break
+		}
+
+		args, err := ec.field_Query_businessMember_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BusinessMember(childComplexity, args["businessID"].(uuid.UUID), args["userID"].(uuid.UUID)), true
+	case "Query.businessMembers":
+		if e.complexity.Query.BusinessMembers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_businessMembers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BusinessMembers(childComplexity, args["businessID"].(uuid.UUID)), true
 	case "Query.listing":
 		if e.complexity.Query.Listing == nil {
 			break
@@ -1560,6 +2260,34 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+	case "Query.myBusinessPermissions":
+		if e.complexity.Query.MyBusinessPermissions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myBusinessPermissions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyBusinessPermissions(childComplexity, args["businessID"].(uuid.UUID)), true
+	case "Query.myBusinesses":
+		if e.complexity.Query.MyBusinesses == nil {
+			break
+		}
+
+		return e.complexity.Query.MyBusinesses(childComplexity), true
+	case "Query.myInvitations":
+		if e.complexity.Query.MyInvitations == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myInvitations_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyInvitations(childComplexity, args["email"].(string)), true
 	case "Query.myListings":
 		if e.complexity.Query.MyListings == nil {
 			break
@@ -1571,6 +2299,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyListings(childComplexity, args["filter"].(*model.ListingFilterInput), args["first"].(*int), args["after"].(*string)), true
+	case "Query.myMemberships":
+		if e.complexity.Query.MyMemberships == nil {
+			break
+		}
+
+		return e.complexity.Query.MyMemberships(childComplexity), true
 	case "Query.myProfile":
 		if e.complexity.Query.MyProfile == nil {
 			break
@@ -1610,6 +2344,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Profiles(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.searchBusinesses":
+		if e.complexity.Query.SearchBusinesses == nil {
+			break
+		}
+
+		args, err := ec.field_Query_searchBusinesses_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SearchBusinesses(childComplexity, args["query"].(string), args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.searchListings":
 		if e.complexity.Query.SearchListings == nil {
 			break
@@ -2126,6 +2871,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.UploadResult.UserID(childComplexity), true
 
+	case "User.avatarUrl":
+		if e.complexity.User.AvatarURL == nil {
+			break
+		}
+
+		return e.complexity.User.AvatarURL(childComplexity), true
 	case "User.createdAt":
 		if e.complexity.User.CreatedAt == nil {
 			break
@@ -2233,17 +2984,22 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputAmenityHighlightInput,
+		ec.unmarshalInputBusinessAddressInput,
+		ec.unmarshalInputCreateBusinessInput,
 		ec.unmarshalInputCreateListingInput,
 		ec.unmarshalInputCreateListingPropertyInput,
+		ec.unmarshalInputInviteMemberInput,
 		ec.unmarshalInputListingFilterInput,
 		ec.unmarshalInputLocationInput,
 		ec.unmarshalInputMediaInput,
+		ec.unmarshalInputMemberPermissionsInput,
 		ec.unmarshalInputRentalDetailInput,
 		ec.unmarshalInputRuleGroupInput,
 		ec.unmarshalInputSaleDetailInput,
 		ec.unmarshalInputServiceChargeInput,
 		ec.unmarshalInputShortletDetailInput,
 		ec.unmarshalInputTravelCompanionInput,
+		ec.unmarshalInputUpdateBusinessInput,
 		ec.unmarshalInputUpdateListingInput,
 		ec.unmarshalInputUpdateListingPropertyInput,
 		ec.unmarshalInputUpdateProfileInput,
@@ -2381,6 +3137,7 @@ type User {
   id: UUID!
   name: String!
   primaryEmail: String!
+  avatarUrl: String
   role: Role!
   isActive: Boolean!
   lastLoginAt: Time
@@ -3172,6 +3929,261 @@ extend type Mutation {
   unpublishListing(id: UUID!): Listing!
 }
 `, BuiltIn: false},
+	{Name: "../../modules/business/port/graphql/schema.graphqls", Input: `# internal/modules/business/port/graphql/schema.graphqls
+
+# ===========================
+# ENUMS
+# ===========================
+
+enum BusinessType {
+  property_management
+  real_estate_agency
+  property_developer
+  investment_firm
+  individual
+}
+
+enum MemberRole {
+  owner
+  admin
+  member
+  viewer
+  accountant
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  declined
+  expired
+  revoked
+}
+
+# ===========================
+# CORE TYPES
+# ===========================
+
+type BusinessAddress {
+  houseNumber: String
+  street: String
+  area: String
+  lga: String
+  city: String
+  state: String
+  country: String
+  postalCode: String
+  district: String
+  digitalAddress: String
+}
+
+type Business {
+  id: UUID!
+  slug: String!
+  name: String!
+  displayName: String!
+  description: String
+  businessType: BusinessType!
+
+  # Legal Information
+  registrationNumber: String
+  taxID: String
+  legalEntityType: String
+
+  # Contact
+  email: String!
+  phoneNumbers: [String!]!
+  website: String
+
+  # Location
+  address: BusinessAddress!
+  location: Location
+
+  # Branding
+  logoURL: String
+  coverImageURL: String
+  brandColor: String
+
+  # Status
+  isVerified: Boolean!
+  verifiedAt: Time
+  isActive: Boolean!
+
+  # Billing
+  billingEmail: String
+
+  # Stats
+  memberCount: Int!
+  propertyCount: Int!
+  listingCount: Int!
+
+  # Relations
+  members: [BusinessMember!]!
+
+  createdBy: UUID!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type BusinessMember {
+  id: UUID!
+  businessID: UUID!
+  userID: UUID!
+  role: MemberRole!
+  permissions: MemberPermissions!
+  isActive: Boolean!
+  joinedAt: Time!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type MemberPermissions {
+  canCreateListings: Boolean!
+  canEditListings: Boolean!
+  canDeleteListings: Boolean!
+  canPublishListings: Boolean!
+  canManageMedia: Boolean!
+  canViewAnalytics: Boolean!
+  canManageMembers: Boolean!
+  canEditBusiness: Boolean!
+  canViewFinancials: Boolean!
+}
+
+type BusinessInvitation {
+  id: UUID!
+  businessID: UUID!
+  email: String!
+  role: MemberRole!
+  status: InvitationStatus!
+  expiresAt: Time!
+  createdAt: Time!
+}
+
+# ===========================
+# INPUT TYPES
+# ===========================
+
+input BusinessAddressInput {
+  houseNumber: String
+  street: String
+  area: String
+  lga: String
+  city: String
+  state: String
+  country: String
+  postalCode: String
+  district: String
+  digitalAddress: String
+}
+
+input CreateBusinessInput {
+  name: String!
+  displayName: String!
+  description: String
+  businessType: BusinessType!
+
+  # Legal Information
+  registrationNumber: String
+  taxID: String
+  legalEntityType: String
+
+  # Contact
+  email: String!
+  phoneNumbers: [String!]
+  website: String
+
+  # Location
+  address: BusinessAddressInput!
+  location: LocationInput
+
+  # Branding
+  logoURL: String
+  coverImageURL: String
+  brandColor: String
+
+  # Billing
+  billingEmail: String
+}
+
+input UpdateBusinessInput {
+  displayName: String
+  description: String
+  email: String
+  phoneNumbers: [String!]
+  website: String
+  address: BusinessAddressInput
+  location: LocationInput
+  logoURL: String
+  coverImageURL: String
+  brandColor: String
+  billingEmail: String
+}
+
+input InviteMemberInput {
+  email: String!
+  role: MemberRole!
+  customPermissions: MemberPermissionsInput
+}
+
+input MemberPermissionsInput {
+  canCreateListings: Boolean
+  canEditListings: Boolean
+  canDeleteListings: Boolean
+  canPublishListings: Boolean
+  canManageMedia: Boolean
+  canViewAnalytics: Boolean
+  canManageMembers: Boolean
+  canEditBusiness: Boolean
+  canViewFinancials: Boolean
+}
+
+# ===========================
+# QUERIES
+# ===========================
+
+extend type Query {
+  # Businesses
+  business(id: UUID!): Business
+  businessBySlug(slug: String!): Business
+  myBusinesses: [Business!]!
+  allBusinesses(limit: Int, offset: Int): [Business!]!
+  searchBusinesses(query: String!, limit: Int, offset: Int): [Business!]!
+
+  # Memberships
+  businessMembers(businessID: UUID!): [BusinessMember!]!
+  myMemberships: [BusinessMember!]!
+  businessMember(businessID: UUID!, userID: UUID!): BusinessMember
+
+  # Invitations
+  businessInvitations(businessID: UUID!): [BusinessInvitation!]!
+  myInvitations(email: String!): [BusinessInvitation!]!
+
+  # Permissions
+  myBusinessPermissions(businessID: UUID!): MemberPermissions
+}
+
+# ===========================
+# MUTATIONS
+# ===========================
+
+extend type Mutation {
+  # Business Management
+  createBusiness(input: CreateBusinessInput!): Business!
+  updateBusiness(id: UUID!, input: UpdateBusinessInput!): Business!
+  deleteBusiness(id: UUID!): Boolean!
+
+  # Member Management
+  addBusinessMember(businessID: UUID!, userID: UUID!, role: MemberRole!, customPermissions: MemberPermissionsInput): BusinessMember!
+  updateMemberRole(businessID: UUID!, memberID: UUID!, role: MemberRole!): BusinessMember!
+  updateMemberPermissions(businessID: UUID!, memberID: UUID!, permissions: MemberPermissionsInput!): BusinessMember!
+  removeMember(businessID: UUID!, memberID: UUID!): Boolean!
+
+  # Invitation Management
+  inviteMember(businessID: UUID!, input: InviteMemberInput!): BusinessInvitation!
+  acceptInvitation(token: String!): BusinessMember!
+  declineInvitation(token: String!): Boolean!
+  revokeInvitation(invitationID: UUID!): Boolean!
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -3187,6 +4199,43 @@ func (ec *executionContext) field_Listing_media_args(ctx context.Context, rawArg
 		return nil, err
 	}
 	args["first"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_acceptInvitation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "token", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["token"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_addBusinessMember_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "userID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "role", ec.unmarshalNMemberRole2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberRole)
+	if err != nil {
+		return nil, err
+	}
+	args["role"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "customPermissions", ec.unmarshalOMemberPermissionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput)
+	if err != nil {
+		return nil, err
+	}
+	args["customPermissions"] = arg3
 	return args, nil
 }
 
@@ -3206,6 +4255,17 @@ func (ec *executionContext) field_Mutation_addTravelCompanion_args(ctx context.C
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createBusiness_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateBusinessInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateBusinessInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createListing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3214,6 +4274,28 @@ func (ec *executionContext) field_Mutation_createListing_args(ctx context.Contex
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_declineInvitation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "token", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["token"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteBusiness_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -3260,6 +4342,22 @@ func (ec *executionContext) field_Mutation_deleteTravelCompanion_args(ctx contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_inviteMember_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNInviteMemberInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInviteMemberInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_publishListing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3271,6 +4369,33 @@ func (ec *executionContext) field_Mutation_publishListing_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_removeMember_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "memberID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["memberID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_revokeInvitation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "invitationID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["invitationID"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_unpublishListing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3279,6 +4404,22 @@ func (ec *executionContext) field_Mutation_unpublishListing_args(ctx context.Con
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateBusiness_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateBusinessInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateBusinessInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -3295,6 +4436,48 @@ func (ec *executionContext) field_Mutation_updateListing_args(ctx context.Contex
 		return nil, err
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateMemberPermissions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "memberID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["memberID"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "permissions", ec.unmarshalNMemberPermissionsInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput)
+	if err != nil {
+		return nil, err
+	}
+	args["permissions"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateMemberRole_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "memberID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["memberID"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "role", ec.unmarshalNMemberRole2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberRole)
+	if err != nil {
+		return nil, err
+	}
+	args["role"] = arg2
 	return args, nil
 }
 
@@ -3354,6 +4537,82 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_allBusinesses_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_businessBySlug_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "slug", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["slug"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_businessInvitations_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_businessMember_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "userID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_businessMembers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_business_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -3474,6 +4733,28 @@ func (ec *executionContext) field_Query_listings_args(ctx context.Context, rawAr
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_myBusinessPermissions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessID", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_myInvitations_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "email", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_myListings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3530,6 +4811,27 @@ func (ec *executionContext) field_Query_profiles_args(ctx context.Context, rawAr
 		return nil, err
 	}
 	args["offset"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_searchBusinesses_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "query", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["query"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -3685,7 +4987,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _AmenityHighlight_title(ctx context.Context, field graphql.CollectedField, obj *domain.AmenityHighlight) (ret graphql.Marshaler) {
+func (ec *executionContext) _AmenityHighlight_title(ctx context.Context, field graphql.CollectedField, obj *domain1.AmenityHighlight) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3714,7 +5016,7 @@ func (ec *executionContext) fieldContext_AmenityHighlight_title(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _AmenityHighlight_summary(ctx context.Context, field graphql.CollectedField, obj *domain.AmenityHighlight) (ret graphql.Marshaler) {
+func (ec *executionContext) _AmenityHighlight_summary(ctx context.Context, field graphql.CollectedField, obj *domain1.AmenityHighlight) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3743,7 +5045,7 @@ func (ec *executionContext) fieldContext_AmenityHighlight_summary(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _AmenityHighlight_icon(ctx context.Context, field graphql.CollectedField, obj *domain.AmenityHighlight) (ret graphql.Marshaler) {
+func (ec *executionContext) _AmenityHighlight_icon(ctx context.Context, field graphql.CollectedField, obj *domain1.AmenityHighlight) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3772,7 +5074,1643 @@ func (ec *executionContext) fieldContext_AmenityHighlight_icon(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_id(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Business_id(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_slug(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_slug,
+		func(ctx context.Context) (any, error) {
+			return obj.Slug, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_slug(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_name(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_displayName(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_displayName,
+		func(ctx context.Context) (any, error) {
+			return obj.DisplayName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_displayName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_description(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_businessType(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_businessType,
+		func(ctx context.Context) (any, error) {
+			return obj.BusinessType, nil
+		},
+		nil,
+		ec.marshalNBusinessType2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_businessType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type BusinessType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_registrationNumber(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_registrationNumber,
+		func(ctx context.Context) (any, error) {
+			return obj.RegistrationNumber, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_registrationNumber(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_taxID(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_taxID,
+		func(ctx context.Context) (any, error) {
+			return obj.TaxID, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_taxID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_legalEntityType(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_legalEntityType,
+		func(ctx context.Context) (any, error) {
+			return obj.LegalEntityType, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_legalEntityType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_email(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_email,
+		func(ctx context.Context) (any, error) {
+			return obj.Email, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_phoneNumbers(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_phoneNumbers,
+		func(ctx context.Context) (any, error) {
+			return obj.PhoneNumbers, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_phoneNumbers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_website(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_website,
+		func(ctx context.Context) (any, error) {
+			return obj.Website, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_website(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_address(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_address,
+		func(ctx context.Context) (any, error) {
+			return obj.Address, nil
+		},
+		nil,
+		ec.marshalNBusinessAddress2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐAddress,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_address(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "houseNumber":
+				return ec.fieldContext_BusinessAddress_houseNumber(ctx, field)
+			case "street":
+				return ec.fieldContext_BusinessAddress_street(ctx, field)
+			case "area":
+				return ec.fieldContext_BusinessAddress_area(ctx, field)
+			case "lga":
+				return ec.fieldContext_BusinessAddress_lga(ctx, field)
+			case "city":
+				return ec.fieldContext_BusinessAddress_city(ctx, field)
+			case "state":
+				return ec.fieldContext_BusinessAddress_state(ctx, field)
+			case "country":
+				return ec.fieldContext_BusinessAddress_country(ctx, field)
+			case "postalCode":
+				return ec.fieldContext_BusinessAddress_postalCode(ctx, field)
+			case "district":
+				return ec.fieldContext_BusinessAddress_district(ctx, field)
+			case "digitalAddress":
+				return ec.fieldContext_BusinessAddress_digitalAddress(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessAddress", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_location(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_location,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Business().Location(ctx, obj)
+		},
+		nil,
+		ec.marshalOLocation2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐLocation,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_location(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "lat":
+				return ec.fieldContext_Location_lat(ctx, field)
+			case "lng":
+				return ec.fieldContext_Location_lng(ctx, field)
+			case "srid":
+				return ec.fieldContext_Location_srid(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Location", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_logoURL(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_logoURL,
+		func(ctx context.Context) (any, error) {
+			return obj.LogoURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_logoURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_coverImageURL(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_coverImageURL,
+		func(ctx context.Context) (any, error) {
+			return obj.CoverImageURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_coverImageURL(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_brandColor(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_brandColor,
+		func(ctx context.Context) (any, error) {
+			return obj.BrandColor, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_brandColor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_isVerified(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_isVerified,
+		func(ctx context.Context) (any, error) {
+			return obj.IsVerified, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_isVerified(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_verifiedAt(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_verifiedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.VerifiedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_verifiedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_isActive(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_isActive,
+		func(ctx context.Context) (any, error) {
+			return obj.IsActive, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_billingEmail(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_billingEmail,
+		func(ctx context.Context) (any, error) {
+			return obj.BillingEmail, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_billingEmail(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_memberCount(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_memberCount,
+		func(ctx context.Context) (any, error) {
+			return obj.MemberCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_memberCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_propertyCount(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_propertyCount,
+		func(ctx context.Context) (any, error) {
+			return obj.PropertyCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_propertyCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_listingCount(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_listingCount,
+		func(ctx context.Context) (any, error) {
+			return obj.ListingCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_listingCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_members(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_members,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Business().Members(ctx, obj)
+		},
+		nil,
+		ec.marshalNBusinessMember2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMemberᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_members(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessMember_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessMember_businessID(ctx, field)
+			case "userID":
+				return ec.fieldContext_BusinessMember_userID(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessMember_role(ctx, field)
+			case "permissions":
+				return ec.fieldContext_BusinessMember_permissions(ctx, field)
+			case "isActive":
+				return ec.fieldContext_BusinessMember_isActive(ctx, field)
+			case "joinedAt":
+				return ec.fieldContext_BusinessMember_joinedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessMember_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_BusinessMember_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessMember", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_createdBy(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_createdBy,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedBy, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_createdBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Business_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain.Business) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Business_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Business_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Business",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_houseNumber(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_houseNumber,
+		func(ctx context.Context) (any, error) {
+			return obj.HouseNumber, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_houseNumber(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_street(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_street,
+		func(ctx context.Context) (any, error) {
+			return obj.Street, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_street(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_area(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_area,
+		func(ctx context.Context) (any, error) {
+			return obj.Area, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_area(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_lga(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_lga,
+		func(ctx context.Context) (any, error) {
+			return obj.LGA, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_lga(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_city(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_city,
+		func(ctx context.Context) (any, error) {
+			return obj.City, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_state(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_state,
+		func(ctx context.Context) (any, error) {
+			return obj.State, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_state(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_country(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_country,
+		func(ctx context.Context) (any, error) {
+			return obj.Country, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_postalCode(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_postalCode,
+		func(ctx context.Context) (any, error) {
+			return obj.PostalCode, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_postalCode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_district(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_district,
+		func(ctx context.Context) (any, error) {
+			return obj.District, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_district(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessAddress_digitalAddress(ctx context.Context, field graphql.CollectedField, obj *domain.Address) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessAddress_digitalAddress,
+		func(ctx context.Context) (any, error) {
+			return obj.DigitalAddress, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessAddress_digitalAddress(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessAddress",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessInvitation_id(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessInvitation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessInvitation_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessInvitation_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessInvitation",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessInvitation_businessID(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessInvitation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessInvitation_businessID,
+		func(ctx context.Context) (any, error) {
+			return obj.BusinessID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessInvitation_businessID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessInvitation",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessInvitation_email(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessInvitation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessInvitation_email,
+		func(ctx context.Context) (any, error) {
+			return obj.Email, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessInvitation_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessInvitation",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessInvitation_role(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessInvitation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessInvitation_role,
+		func(ctx context.Context) (any, error) {
+			return obj.Role, nil
+		},
+		nil,
+		ec.marshalNMemberRole2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberRole,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessInvitation_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessInvitation",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type MemberRole does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessInvitation_status(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessInvitation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessInvitation_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNInvitationStatus2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐInvitationStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessInvitation_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessInvitation",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type InvitationStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessInvitation_expiresAt(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessInvitation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessInvitation_expiresAt,
+		func(ctx context.Context) (any, error) {
+			return obj.ExpiresAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessInvitation_expiresAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessInvitation",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessInvitation_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessInvitation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessInvitation_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessInvitation_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessInvitation",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessMember_id(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessMember_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessMember_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessMember_businessID(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessMember_businessID,
+		func(ctx context.Context) (any, error) {
+			return obj.BusinessID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessMember_businessID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessMember_userID(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessMember_userID,
+		func(ctx context.Context) (any, error) {
+			return obj.UserID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessMember_userID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessMember_role(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessMember_role,
+		func(ctx context.Context) (any, error) {
+			return obj.Role, nil
+		},
+		nil,
+		ec.marshalNMemberRole2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberRole,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessMember_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type MemberRole does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessMember_permissions(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessMember_permissions,
+		func(ctx context.Context) (any, error) {
+			return obj.Permissions, nil
+		},
+		nil,
+		ec.marshalNMemberPermissions2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberPermissions,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessMember_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "canCreateListings":
+				return ec.fieldContext_MemberPermissions_canCreateListings(ctx, field)
+			case "canEditListings":
+				return ec.fieldContext_MemberPermissions_canEditListings(ctx, field)
+			case "canDeleteListings":
+				return ec.fieldContext_MemberPermissions_canDeleteListings(ctx, field)
+			case "canPublishListings":
+				return ec.fieldContext_MemberPermissions_canPublishListings(ctx, field)
+			case "canManageMedia":
+				return ec.fieldContext_MemberPermissions_canManageMedia(ctx, field)
+			case "canViewAnalytics":
+				return ec.fieldContext_MemberPermissions_canViewAnalytics(ctx, field)
+			case "canManageMembers":
+				return ec.fieldContext_MemberPermissions_canManageMembers(ctx, field)
+			case "canEditBusiness":
+				return ec.fieldContext_MemberPermissions_canEditBusiness(ctx, field)
+			case "canViewFinancials":
+				return ec.fieldContext_MemberPermissions_canViewFinancials(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MemberPermissions", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessMember_isActive(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessMember_isActive,
+		func(ctx context.Context) (any, error) {
+			return obj.IsActive, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessMember_isActive(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessMember_joinedAt(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessMember_joinedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.JoinedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessMember_joinedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessMember_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessMember_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessMember_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BusinessMember_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain.BusinessMember) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BusinessMember_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BusinessMember_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BusinessMember",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Listing_id(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3801,7 +6739,7 @@ func (ec *executionContext) fieldContext_Listing_id(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_propertyId(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_propertyId(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3830,7 +6768,7 @@ func (ec *executionContext) fieldContext_Listing_propertyId(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_ownerId(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_ownerId(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3859,7 +6797,7 @@ func (ec *executionContext) fieldContext_Listing_ownerId(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_ownerType(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_ownerType(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3888,7 +6826,7 @@ func (ec *executionContext) fieldContext_Listing_ownerType(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_slug(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_slug(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3917,7 +6855,7 @@ func (ec *executionContext) fieldContext_Listing_slug(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_title(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_title(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3946,7 +6884,7 @@ func (ec *executionContext) fieldContext_Listing_title(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_description(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_description(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -3975,7 +6913,7 @@ func (ec *executionContext) fieldContext_Listing_description(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_currency(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_currency(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4004,7 +6942,7 @@ func (ec *executionContext) fieldContext_Listing_currency(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_listingType(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_listingType(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4033,7 +6971,7 @@ func (ec *executionContext) fieldContext_Listing_listingType(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_status(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_status(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4062,7 +7000,7 @@ func (ec *executionContext) fieldContext_Listing_status(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_published(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_published(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4091,7 +7029,7 @@ func (ec *executionContext) fieldContext_Listing_published(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_publishedAt(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_publishedAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4120,7 +7058,7 @@ func (ec *executionContext) fieldContext_Listing_publishedAt(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_latestReviewStatus(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_latestReviewStatus(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4149,7 +7087,7 @@ func (ec *executionContext) fieldContext_Listing_latestReviewStatus(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_viewCount(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_viewCount(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4178,7 +7116,7 @@ func (ec *executionContext) fieldContext_Listing_viewCount(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_lastViewedAt(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_lastViewedAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4207,7 +7145,7 @@ func (ec *executionContext) fieldContext_Listing_lastViewedAt(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_featuredUntil(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_featuredUntil(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4236,7 +7174,7 @@ func (ec *executionContext) fieldContext_Listing_featuredUntil(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_boostLevel(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_boostLevel(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4265,7 +7203,7 @@ func (ec *executionContext) fieldContext_Listing_boostLevel(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_createdBy(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_createdBy(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4294,7 +7232,7 @@ func (ec *executionContext) fieldContext_Listing_createdBy(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_updatedBy(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_updatedBy(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4323,7 +7261,7 @@ func (ec *executionContext) fieldContext_Listing_updatedBy(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_statusChangedAt(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_statusChangedAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4352,7 +7290,7 @@ func (ec *executionContext) fieldContext_Listing_statusChangedAt(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_changeReason(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_changeReason(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4381,7 +7319,7 @@ func (ec *executionContext) fieldContext_Listing_changeReason(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_hasCalendar(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_hasCalendar(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4410,7 +7348,7 @@ func (ec *executionContext) fieldContext_Listing_hasCalendar(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_shortletDetails(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_shortletDetails(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4473,7 +7411,7 @@ func (ec *executionContext) fieldContext_Listing_shortletDetails(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_rentalDetails(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_rentalDetails(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4530,7 +7468,7 @@ func (ec *executionContext) fieldContext_Listing_rentalDetails(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_saleDetails(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_saleDetails(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4591,7 +7529,7 @@ func (ec *executionContext) fieldContext_Listing_saleDetails(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_property(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_property(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4676,7 +7614,7 @@ func (ec *executionContext) fieldContext_Listing_property(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_media(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_media(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4748,7 +7686,7 @@ func (ec *executionContext) fieldContext_Listing_media(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4777,7 +7715,7 @@ func (ec *executionContext) fieldContext_Listing_createdAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4806,7 +7744,7 @@ func (ec *executionContext) fieldContext_Listing_updatedAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_deletedAt(ctx context.Context, field graphql.CollectedField, obj *domain.Listing) (ret graphql.Marshaler) {
+func (ec *executionContext) _Listing_deletedAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4835,7 +7773,7 @@ func (ec *executionContext) fieldContext_Listing_deletedAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_listingId(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_listingId(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4864,7 +7802,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_listingId(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_hasBasicInfo(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_hasBasicInfo(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4893,7 +7831,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_hasBasicInfo(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_hasPropertyInfo(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_hasPropertyInfo(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4922,7 +7860,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_hasPropertyInfo(_ c
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_hasPricingInfo(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_hasPricingInfo(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4951,7 +7889,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_hasPricingInfo(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_hasImages(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_hasImages(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -4980,7 +7918,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_hasImages(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_hasDescription(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_hasDescription(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5009,7 +7947,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_hasDescription(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_completionScore(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_completionScore(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5038,7 +7976,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_completionScore(_ c
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_readyToPublish(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_readyToPublish(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5067,7 +8005,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_readyToPublish(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_missingFields(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_missingFields(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5096,7 +8034,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_missingFields(_ con
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_recommendations(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_recommendations(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5125,7 +8063,7 @@ func (ec *executionContext) fieldContext_ListingCompleteness_recommendations(_ c
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingCompleteness_lastCalculatedAt(ctx context.Context, field graphql.CollectedField, obj *domain.ListingCompleteness) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingCompleteness_lastCalculatedAt(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingCompleteness) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5377,7 +8315,7 @@ func (ec *executionContext) fieldContext_ListingEdge_cursor(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_id(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_id(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5406,7 +8344,7 @@ func (ec *executionContext) fieldContext_ListingMedia_id(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_listingId(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_listingId(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5435,7 +8373,7 @@ func (ec *executionContext) fieldContext_ListingMedia_listingId(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_url(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_url(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5464,7 +8402,7 @@ func (ec *executionContext) fieldContext_ListingMedia_url(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_key(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_key(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5493,7 +8431,7 @@ func (ec *executionContext) fieldContext_ListingMedia_key(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_type(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_type(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5522,7 +8460,7 @@ func (ec *executionContext) fieldContext_ListingMedia_type(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_thumbnails(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_thumbnails(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5567,7 +8505,7 @@ func (ec *executionContext) fieldContext_ListingMedia_thumbnails(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_group(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_group(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5596,7 +8534,7 @@ func (ec *executionContext) fieldContext_ListingMedia_group(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_caption(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_caption(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5625,7 +8563,7 @@ func (ec *executionContext) fieldContext_ListingMedia_caption(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_mimeType(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_mimeType(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5654,7 +8592,7 @@ func (ec *executionContext) fieldContext_ListingMedia_mimeType(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_sizeBytes(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_sizeBytes(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5683,7 +8621,7 @@ func (ec *executionContext) fieldContext_ListingMedia_sizeBytes(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_isPrimary(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_isPrimary(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5712,7 +8650,7 @@ func (ec *executionContext) fieldContext_ListingMedia_isPrimary(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_isGroupCover(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_isGroupCover(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5741,7 +8679,7 @@ func (ec *executionContext) fieldContext_ListingMedia_isGroupCover(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_order(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_order(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5770,7 +8708,7 @@ func (ec *executionContext) fieldContext_ListingMedia_order(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5799,7 +8737,7 @@ func (ec *executionContext) fieldContext_ListingMedia_createdAt(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingMedia_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain.ListingMedia) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingMedia_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain1.ListingMedia) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -5977,7 +8915,7 @@ func (ec *executionContext) fieldContext_ListingWithDistance_score(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _Location_lat(ctx context.Context, field graphql.CollectedField, obj *domain.Location) (ret graphql.Marshaler) {
+func (ec *executionContext) _Location_lat(ctx context.Context, field graphql.CollectedField, obj *domain1.Location) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -6006,7 +8944,7 @@ func (ec *executionContext) fieldContext_Location_lat(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Location_lng(ctx context.Context, field graphql.CollectedField, obj *domain.Location) (ret graphql.Marshaler) {
+func (ec *executionContext) _Location_lng(ctx context.Context, field graphql.CollectedField, obj *domain1.Location) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -6035,7 +8973,7 @@ func (ec *executionContext) fieldContext_Location_lng(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Location_srid(ctx context.Context, field graphql.CollectedField, obj *domain.Location) (ret graphql.Marshaler) {
+func (ec *executionContext) _Location_srid(ctx context.Context, field graphql.CollectedField, obj *domain1.Location) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -6059,6 +8997,267 @@ func (ec *executionContext) fieldContext_Location_srid(_ context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MemberPermissions_canCreateListings(ctx context.Context, field graphql.CollectedField, obj *domain.MemberPermissions) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MemberPermissions_canCreateListings,
+		func(ctx context.Context) (any, error) {
+			return obj.CanCreateListings, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MemberPermissions_canCreateListings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MemberPermissions",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MemberPermissions_canEditListings(ctx context.Context, field graphql.CollectedField, obj *domain.MemberPermissions) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MemberPermissions_canEditListings,
+		func(ctx context.Context) (any, error) {
+			return obj.CanEditListings, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MemberPermissions_canEditListings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MemberPermissions",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MemberPermissions_canDeleteListings(ctx context.Context, field graphql.CollectedField, obj *domain.MemberPermissions) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MemberPermissions_canDeleteListings,
+		func(ctx context.Context) (any, error) {
+			return obj.CanDeleteListings, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MemberPermissions_canDeleteListings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MemberPermissions",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MemberPermissions_canPublishListings(ctx context.Context, field graphql.CollectedField, obj *domain.MemberPermissions) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MemberPermissions_canPublishListings,
+		func(ctx context.Context) (any, error) {
+			return obj.CanPublishListings, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MemberPermissions_canPublishListings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MemberPermissions",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MemberPermissions_canManageMedia(ctx context.Context, field graphql.CollectedField, obj *domain.MemberPermissions) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MemberPermissions_canManageMedia,
+		func(ctx context.Context) (any, error) {
+			return obj.CanManageMedia, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MemberPermissions_canManageMedia(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MemberPermissions",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MemberPermissions_canViewAnalytics(ctx context.Context, field graphql.CollectedField, obj *domain.MemberPermissions) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MemberPermissions_canViewAnalytics,
+		func(ctx context.Context) (any, error) {
+			return obj.CanViewAnalytics, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MemberPermissions_canViewAnalytics(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MemberPermissions",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MemberPermissions_canManageMembers(ctx context.Context, field graphql.CollectedField, obj *domain.MemberPermissions) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MemberPermissions_canManageMembers,
+		func(ctx context.Context) (any, error) {
+			return obj.CanManageMembers, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MemberPermissions_canManageMembers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MemberPermissions",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MemberPermissions_canEditBusiness(ctx context.Context, field graphql.CollectedField, obj *domain.MemberPermissions) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MemberPermissions_canEditBusiness,
+		func(ctx context.Context) (any, error) {
+			return obj.CanEditBusiness, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MemberPermissions_canEditBusiness(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MemberPermissions",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MemberPermissions_canViewFinancials(ctx context.Context, field graphql.CollectedField, obj *domain.MemberPermissions) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MemberPermissions_canViewFinancials,
+		func(ctx context.Context) (any, error) {
+			return obj.CanViewFinancials, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MemberPermissions_canViewFinancials(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MemberPermissions",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6839,6 +10038,669 @@ func (ec *executionContext) fieldContext_Mutation_unpublishListing(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createBusiness(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createBusiness,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateBusiness(ctx, fc.Args["input"].(model.CreateBusinessInput))
+		},
+		nil,
+		ec.marshalNBusiness2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createBusiness(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Business_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Business_slug(ctx, field)
+			case "name":
+				return ec.fieldContext_Business_name(ctx, field)
+			case "displayName":
+				return ec.fieldContext_Business_displayName(ctx, field)
+			case "description":
+				return ec.fieldContext_Business_description(ctx, field)
+			case "businessType":
+				return ec.fieldContext_Business_businessType(ctx, field)
+			case "registrationNumber":
+				return ec.fieldContext_Business_registrationNumber(ctx, field)
+			case "taxID":
+				return ec.fieldContext_Business_taxID(ctx, field)
+			case "legalEntityType":
+				return ec.fieldContext_Business_legalEntityType(ctx, field)
+			case "email":
+				return ec.fieldContext_Business_email(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Business_phoneNumbers(ctx, field)
+			case "website":
+				return ec.fieldContext_Business_website(ctx, field)
+			case "address":
+				return ec.fieldContext_Business_address(ctx, field)
+			case "location":
+				return ec.fieldContext_Business_location(ctx, field)
+			case "logoURL":
+				return ec.fieldContext_Business_logoURL(ctx, field)
+			case "coverImageURL":
+				return ec.fieldContext_Business_coverImageURL(ctx, field)
+			case "brandColor":
+				return ec.fieldContext_Business_brandColor(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Business_isVerified(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Business_verifiedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_Business_isActive(ctx, field)
+			case "billingEmail":
+				return ec.fieldContext_Business_billingEmail(ctx, field)
+			case "memberCount":
+				return ec.fieldContext_Business_memberCount(ctx, field)
+			case "propertyCount":
+				return ec.fieldContext_Business_propertyCount(ctx, field)
+			case "listingCount":
+				return ec.fieldContext_Business_listingCount(ctx, field)
+			case "members":
+				return ec.fieldContext_Business_members(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Business_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Business_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Business_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Business", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createBusiness_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateBusiness(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateBusiness,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateBusiness(ctx, fc.Args["id"].(uuid.UUID), fc.Args["input"].(model.UpdateBusinessInput))
+		},
+		nil,
+		ec.marshalNBusiness2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateBusiness(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Business_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Business_slug(ctx, field)
+			case "name":
+				return ec.fieldContext_Business_name(ctx, field)
+			case "displayName":
+				return ec.fieldContext_Business_displayName(ctx, field)
+			case "description":
+				return ec.fieldContext_Business_description(ctx, field)
+			case "businessType":
+				return ec.fieldContext_Business_businessType(ctx, field)
+			case "registrationNumber":
+				return ec.fieldContext_Business_registrationNumber(ctx, field)
+			case "taxID":
+				return ec.fieldContext_Business_taxID(ctx, field)
+			case "legalEntityType":
+				return ec.fieldContext_Business_legalEntityType(ctx, field)
+			case "email":
+				return ec.fieldContext_Business_email(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Business_phoneNumbers(ctx, field)
+			case "website":
+				return ec.fieldContext_Business_website(ctx, field)
+			case "address":
+				return ec.fieldContext_Business_address(ctx, field)
+			case "location":
+				return ec.fieldContext_Business_location(ctx, field)
+			case "logoURL":
+				return ec.fieldContext_Business_logoURL(ctx, field)
+			case "coverImageURL":
+				return ec.fieldContext_Business_coverImageURL(ctx, field)
+			case "brandColor":
+				return ec.fieldContext_Business_brandColor(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Business_isVerified(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Business_verifiedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_Business_isActive(ctx, field)
+			case "billingEmail":
+				return ec.fieldContext_Business_billingEmail(ctx, field)
+			case "memberCount":
+				return ec.fieldContext_Business_memberCount(ctx, field)
+			case "propertyCount":
+				return ec.fieldContext_Business_propertyCount(ctx, field)
+			case "listingCount":
+				return ec.fieldContext_Business_listingCount(ctx, field)
+			case "members":
+				return ec.fieldContext_Business_members(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Business_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Business_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Business_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Business", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateBusiness_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteBusiness(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteBusiness,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteBusiness(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteBusiness(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteBusiness_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addBusinessMember(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_addBusinessMember,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().AddBusinessMember(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["userID"].(uuid.UUID), fc.Args["role"].(domain.MemberRole), fc.Args["customPermissions"].(*model.MemberPermissionsInput))
+		},
+		nil,
+		ec.marshalNBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_addBusinessMember(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessMember_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessMember_businessID(ctx, field)
+			case "userID":
+				return ec.fieldContext_BusinessMember_userID(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessMember_role(ctx, field)
+			case "permissions":
+				return ec.fieldContext_BusinessMember_permissions(ctx, field)
+			case "isActive":
+				return ec.fieldContext_BusinessMember_isActive(ctx, field)
+			case "joinedAt":
+				return ec.fieldContext_BusinessMember_joinedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessMember_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_BusinessMember_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessMember", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addBusinessMember_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateMemberRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateMemberRole,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateMemberRole(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["memberID"].(uuid.UUID), fc.Args["role"].(domain.MemberRole))
+		},
+		nil,
+		ec.marshalNBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateMemberRole(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessMember_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessMember_businessID(ctx, field)
+			case "userID":
+				return ec.fieldContext_BusinessMember_userID(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessMember_role(ctx, field)
+			case "permissions":
+				return ec.fieldContext_BusinessMember_permissions(ctx, field)
+			case "isActive":
+				return ec.fieldContext_BusinessMember_isActive(ctx, field)
+			case "joinedAt":
+				return ec.fieldContext_BusinessMember_joinedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessMember_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_BusinessMember_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessMember", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateMemberRole_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateMemberPermissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateMemberPermissions,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateMemberPermissions(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["memberID"].(uuid.UUID), fc.Args["permissions"].(model.MemberPermissionsInput))
+		},
+		nil,
+		ec.marshalNBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateMemberPermissions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessMember_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessMember_businessID(ctx, field)
+			case "userID":
+				return ec.fieldContext_BusinessMember_userID(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessMember_role(ctx, field)
+			case "permissions":
+				return ec.fieldContext_BusinessMember_permissions(ctx, field)
+			case "isActive":
+				return ec.fieldContext_BusinessMember_isActive(ctx, field)
+			case "joinedAt":
+				return ec.fieldContext_BusinessMember_joinedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessMember_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_BusinessMember_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessMember", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateMemberPermissions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeMember(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_removeMember,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RemoveMember(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["memberID"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeMember(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeMember_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_inviteMember(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_inviteMember,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().InviteMember(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["input"].(model.InviteMemberInput))
+		},
+		nil,
+		ec.marshalNBusinessInvitation2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessInvitation,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_inviteMember(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessInvitation_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessInvitation_businessID(ctx, field)
+			case "email":
+				return ec.fieldContext_BusinessInvitation_email(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessInvitation_role(ctx, field)
+			case "status":
+				return ec.fieldContext_BusinessInvitation_status(ctx, field)
+			case "expiresAt":
+				return ec.fieldContext_BusinessInvitation_expiresAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessInvitation_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessInvitation", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_inviteMember_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_acceptInvitation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_acceptInvitation,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().AcceptInvitation(ctx, fc.Args["token"].(string))
+		},
+		nil,
+		ec.marshalNBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_acceptInvitation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessMember_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessMember_businessID(ctx, field)
+			case "userID":
+				return ec.fieldContext_BusinessMember_userID(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessMember_role(ctx, field)
+			case "permissions":
+				return ec.fieldContext_BusinessMember_permissions(ctx, field)
+			case "isActive":
+				return ec.fieldContext_BusinessMember_isActive(ctx, field)
+			case "joinedAt":
+				return ec.fieldContext_BusinessMember_joinedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessMember_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_BusinessMember_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessMember", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_acceptInvitation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_declineInvitation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_declineInvitation,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeclineInvitation(ctx, fc.Args["token"].(string))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_declineInvitation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_declineInvitation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_revokeInvitation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_revokeInvitation,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RevokeInvitation(ctx, fc.Args["invitationID"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_revokeInvitation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_revokeInvitation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *model.PageInfo) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -6955,7 +10817,7 @@ func (ec *executionContext) fieldContext_PageInfo_endCursor(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_id(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_id(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -6984,7 +10846,7 @@ func (ec *executionContext) fieldContext_Profile_id(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_userId(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_userId(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7013,7 +10875,7 @@ func (ec *executionContext) fieldContext_Profile_userId(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_userTypes(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_userTypes(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7042,7 +10904,7 @@ func (ec *executionContext) fieldContext_Profile_userTypes(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_fullName(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_fullName(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7071,7 +10933,7 @@ func (ec *executionContext) fieldContext_Profile_fullName(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_birthDate(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_birthDate(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7100,7 +10962,7 @@ func (ec *executionContext) fieldContext_Profile_birthDate(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_gender(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_gender(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7129,7 +10991,7 @@ func (ec *executionContext) fieldContext_Profile_gender(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_photoUrl(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_photoUrl(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7158,7 +11020,7 @@ func (ec *executionContext) fieldContext_Profile_photoUrl(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_phoneNumbers(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_phoneNumbers(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7187,7 +11049,7 @@ func (ec *executionContext) fieldContext_Profile_phoneNumbers(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_address(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_address(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7216,7 +11078,7 @@ func (ec *executionContext) fieldContext_Profile_address(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_street(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_street(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7245,7 +11107,7 @@ func (ec *executionContext) fieldContext_Profile_street(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_houseNumber(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_houseNumber(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7274,7 +11136,7 @@ func (ec *executionContext) fieldContext_Profile_houseNumber(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_area(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_area(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7303,7 +11165,7 @@ func (ec *executionContext) fieldContext_Profile_area(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_lga(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_lga(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7332,7 +11194,7 @@ func (ec *executionContext) fieldContext_Profile_lga(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_district(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_district(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7361,7 +11223,7 @@ func (ec *executionContext) fieldContext_Profile_district(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_digitalAddress(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_digitalAddress(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7390,7 +11252,7 @@ func (ec *executionContext) fieldContext_Profile_digitalAddress(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_city(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_city(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7419,7 +11281,7 @@ func (ec *executionContext) fieldContext_Profile_city(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_state(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_state(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7448,7 +11310,7 @@ func (ec *executionContext) fieldContext_Profile_state(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_country(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_country(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7477,7 +11339,7 @@ func (ec *executionContext) fieldContext_Profile_country(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_zipCode(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_zipCode(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7506,7 +11368,7 @@ func (ec *executionContext) fieldContext_Profile_zipCode(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_occupation(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_occupation(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7535,7 +11397,7 @@ func (ec *executionContext) fieldContext_Profile_occupation(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_education(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_education(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7564,7 +11426,7 @@ func (ec *executionContext) fieldContext_Profile_education(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_bio(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_bio(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7593,7 +11455,7 @@ func (ec *executionContext) fieldContext_Profile_bio(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_skills(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_skills(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7622,7 +11484,7 @@ func (ec *executionContext) fieldContext_Profile_skills(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_languages(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_languages(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7651,7 +11513,7 @@ func (ec *executionContext) fieldContext_Profile_languages(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_interests(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_interests(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7680,7 +11542,7 @@ func (ec *executionContext) fieldContext_Profile_interests(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_hobbies(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_hobbies(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7709,7 +11571,7 @@ func (ec *executionContext) fieldContext_Profile_hobbies(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_funFact(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_funFact(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7738,7 +11600,7 @@ func (ec *executionContext) fieldContext_Profile_funFact(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_obsessedWith(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_obsessedWith(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7767,7 +11629,7 @@ func (ec *executionContext) fieldContext_Profile_obsessedWith(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_communityCommitment(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_communityCommitment(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7796,7 +11658,7 @@ func (ec *executionContext) fieldContext_Profile_communityCommitment(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_travelCompanions(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_travelCompanions(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7837,7 +11699,7 @@ func (ec *executionContext) fieldContext_Profile_travelCompanions(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_phoneVerified(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_phoneVerified(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7866,7 +11728,7 @@ func (ec *executionContext) fieldContext_Profile_phoneVerified(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_idVerified(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_idVerified(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7895,7 +11757,7 @@ func (ec *executionContext) fieldContext_Profile_idVerified(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_verificationDate(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_verificationDate(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7924,7 +11786,7 @@ func (ec *executionContext) fieldContext_Profile_verificationDate(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_verificationLevel(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_verificationLevel(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7953,7 +11815,7 @@ func (ec *executionContext) fieldContext_Profile_verificationLevel(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_rating(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_rating(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -7982,7 +11844,7 @@ func (ec *executionContext) fieldContext_Profile_rating(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_reviewsCount(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_reviewsCount(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8011,7 +11873,7 @@ func (ec *executionContext) fieldContext_Profile_reviewsCount(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_trustScore(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_trustScore(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8040,7 +11902,7 @@ func (ec *executionContext) fieldContext_Profile_trustScore(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_badges(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_badges(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8069,7 +11931,7 @@ func (ec *executionContext) fieldContext_Profile_badges(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_bioVisible(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_bioVisible(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8098,7 +11960,7 @@ func (ec *executionContext) fieldContext_Profile_bioVisible(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_allowPersonalizedOffers(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_allowPersonalizedOffers(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8127,7 +11989,7 @@ func (ec *executionContext) fieldContext_Profile_allowPersonalizedOffers(_ conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_enablePerformanceAnalytics(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_enablePerformanceAnalytics(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8156,7 +12018,7 @@ func (ec *executionContext) fieldContext_Profile_enablePerformanceAnalytics(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8185,7 +12047,7 @@ func (ec *executionContext) fieldContext_Profile_createdAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8214,7 +12076,7 @@ func (ec *executionContext) fieldContext_Profile_updatedAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_id(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_id(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8243,7 +12105,7 @@ func (ec *executionContext) fieldContext_Property_id(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_publicId(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_publicId(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8272,7 +12134,7 @@ func (ec *executionContext) fieldContext_Property_publicId(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_unitNumber(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_unitNumber(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8301,7 +12163,7 @@ func (ec *executionContext) fieldContext_Property_unitNumber(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_address(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_address(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8330,7 +12192,7 @@ func (ec *executionContext) fieldContext_Property_address(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_city(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_city(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8359,7 +12221,7 @@ func (ec *executionContext) fieldContext_Property_city(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_state(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_state(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8388,7 +12250,7 @@ func (ec *executionContext) fieldContext_Property_state(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_postalCode(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_postalCode(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8417,7 +12279,7 @@ func (ec *executionContext) fieldContext_Property_postalCode(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_country(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_country(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8446,7 +12308,7 @@ func (ec *executionContext) fieldContext_Property_country(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_location(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_location(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8483,7 +12345,7 @@ func (ec *executionContext) fieldContext_Property_location(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_propertyClass(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_propertyClass(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8512,7 +12374,7 @@ func (ec *executionContext) fieldContext_Property_propertyClass(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_propertyType(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_propertyType(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8541,7 +12403,7 @@ func (ec *executionContext) fieldContext_Property_propertyType(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_furnishingType(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_furnishingType(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8570,7 +12432,7 @@ func (ec *executionContext) fieldContext_Property_furnishingType(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_propertyCondition(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_propertyCondition(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8599,7 +12461,7 @@ func (ec *executionContext) fieldContext_Property_propertyCondition(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_bedrooms(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_bedrooms(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8628,7 +12490,7 @@ func (ec *executionContext) fieldContext_Property_bedrooms(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_bathrooms(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_bathrooms(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8657,7 +12519,7 @@ func (ec *executionContext) fieldContext_Property_bathrooms(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_toilets(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_toilets(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8686,7 +12548,7 @@ func (ec *executionContext) fieldContext_Property_toilets(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_halfBathrooms(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_halfBathrooms(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8715,7 +12577,7 @@ func (ec *executionContext) fieldContext_Property_halfBathrooms(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_floors(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_floors(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8744,7 +12606,7 @@ func (ec *executionContext) fieldContext_Property_floors(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_units(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_units(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8773,7 +12635,7 @@ func (ec *executionContext) fieldContext_Property_units(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_ownerId(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_ownerId(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8802,7 +12664,7 @@ func (ec *executionContext) fieldContext_Property_ownerId(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_squareMeters(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_squareMeters(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8831,7 +12693,7 @@ func (ec *executionContext) fieldContext_Property_squareMeters(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_floorArea(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_floorArea(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8860,7 +12722,7 @@ func (ec *executionContext) fieldContext_Property_floorArea(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_amenities(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_amenities(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8889,7 +12751,7 @@ func (ec *executionContext) fieldContext_Property_amenities(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_featuresCommercial(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_featuresCommercial(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8918,7 +12780,7 @@ func (ec *executionContext) fieldContext_Property_featuresCommercial(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_listings(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_listings(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8967,7 +12829,7 @@ func (ec *executionContext) fieldContext_Property_listings(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -8996,7 +12858,7 @@ func (ec *executionContext) fieldContext_Property_createdAt(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Property_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain.Property) (ret graphql.Marshaler) {
+func (ec *executionContext) _Property_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain1.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -9055,6 +12917,8 @@ func (ec *executionContext) fieldContext_Query_me(_ context.Context, field graph
 				return ec.fieldContext_User_name(ctx, field)
 			case "primaryEmail":
 				return ec.fieldContext_User_primaryEmail(ctx, field)
+			case "avatarUrl":
+				return ec.fieldContext_User_avatarUrl(ctx, field)
 			case "role":
 				return ec.fieldContext_User_role(ctx, field)
 			case "isActive":
@@ -10481,6 +14345,835 @@ func (ec *executionContext) fieldContext_Query_similarListings(ctx context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_business(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_business,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Business(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalOBusiness2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_business(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Business_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Business_slug(ctx, field)
+			case "name":
+				return ec.fieldContext_Business_name(ctx, field)
+			case "displayName":
+				return ec.fieldContext_Business_displayName(ctx, field)
+			case "description":
+				return ec.fieldContext_Business_description(ctx, field)
+			case "businessType":
+				return ec.fieldContext_Business_businessType(ctx, field)
+			case "registrationNumber":
+				return ec.fieldContext_Business_registrationNumber(ctx, field)
+			case "taxID":
+				return ec.fieldContext_Business_taxID(ctx, field)
+			case "legalEntityType":
+				return ec.fieldContext_Business_legalEntityType(ctx, field)
+			case "email":
+				return ec.fieldContext_Business_email(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Business_phoneNumbers(ctx, field)
+			case "website":
+				return ec.fieldContext_Business_website(ctx, field)
+			case "address":
+				return ec.fieldContext_Business_address(ctx, field)
+			case "location":
+				return ec.fieldContext_Business_location(ctx, field)
+			case "logoURL":
+				return ec.fieldContext_Business_logoURL(ctx, field)
+			case "coverImageURL":
+				return ec.fieldContext_Business_coverImageURL(ctx, field)
+			case "brandColor":
+				return ec.fieldContext_Business_brandColor(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Business_isVerified(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Business_verifiedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_Business_isActive(ctx, field)
+			case "billingEmail":
+				return ec.fieldContext_Business_billingEmail(ctx, field)
+			case "memberCount":
+				return ec.fieldContext_Business_memberCount(ctx, field)
+			case "propertyCount":
+				return ec.fieldContext_Business_propertyCount(ctx, field)
+			case "listingCount":
+				return ec.fieldContext_Business_listingCount(ctx, field)
+			case "members":
+				return ec.fieldContext_Business_members(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Business_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Business_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Business_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Business", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_business_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_businessBySlug(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_businessBySlug,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BusinessBySlug(ctx, fc.Args["slug"].(string))
+		},
+		nil,
+		ec.marshalOBusiness2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_businessBySlug(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Business_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Business_slug(ctx, field)
+			case "name":
+				return ec.fieldContext_Business_name(ctx, field)
+			case "displayName":
+				return ec.fieldContext_Business_displayName(ctx, field)
+			case "description":
+				return ec.fieldContext_Business_description(ctx, field)
+			case "businessType":
+				return ec.fieldContext_Business_businessType(ctx, field)
+			case "registrationNumber":
+				return ec.fieldContext_Business_registrationNumber(ctx, field)
+			case "taxID":
+				return ec.fieldContext_Business_taxID(ctx, field)
+			case "legalEntityType":
+				return ec.fieldContext_Business_legalEntityType(ctx, field)
+			case "email":
+				return ec.fieldContext_Business_email(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Business_phoneNumbers(ctx, field)
+			case "website":
+				return ec.fieldContext_Business_website(ctx, field)
+			case "address":
+				return ec.fieldContext_Business_address(ctx, field)
+			case "location":
+				return ec.fieldContext_Business_location(ctx, field)
+			case "logoURL":
+				return ec.fieldContext_Business_logoURL(ctx, field)
+			case "coverImageURL":
+				return ec.fieldContext_Business_coverImageURL(ctx, field)
+			case "brandColor":
+				return ec.fieldContext_Business_brandColor(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Business_isVerified(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Business_verifiedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_Business_isActive(ctx, field)
+			case "billingEmail":
+				return ec.fieldContext_Business_billingEmail(ctx, field)
+			case "memberCount":
+				return ec.fieldContext_Business_memberCount(ctx, field)
+			case "propertyCount":
+				return ec.fieldContext_Business_propertyCount(ctx, field)
+			case "listingCount":
+				return ec.fieldContext_Business_listingCount(ctx, field)
+			case "members":
+				return ec.fieldContext_Business_members(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Business_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Business_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Business_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Business", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_businessBySlug_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myBusinesses(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myBusinesses,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyBusinesses(ctx)
+		},
+		nil,
+		ec.marshalNBusiness2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myBusinesses(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Business_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Business_slug(ctx, field)
+			case "name":
+				return ec.fieldContext_Business_name(ctx, field)
+			case "displayName":
+				return ec.fieldContext_Business_displayName(ctx, field)
+			case "description":
+				return ec.fieldContext_Business_description(ctx, field)
+			case "businessType":
+				return ec.fieldContext_Business_businessType(ctx, field)
+			case "registrationNumber":
+				return ec.fieldContext_Business_registrationNumber(ctx, field)
+			case "taxID":
+				return ec.fieldContext_Business_taxID(ctx, field)
+			case "legalEntityType":
+				return ec.fieldContext_Business_legalEntityType(ctx, field)
+			case "email":
+				return ec.fieldContext_Business_email(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Business_phoneNumbers(ctx, field)
+			case "website":
+				return ec.fieldContext_Business_website(ctx, field)
+			case "address":
+				return ec.fieldContext_Business_address(ctx, field)
+			case "location":
+				return ec.fieldContext_Business_location(ctx, field)
+			case "logoURL":
+				return ec.fieldContext_Business_logoURL(ctx, field)
+			case "coverImageURL":
+				return ec.fieldContext_Business_coverImageURL(ctx, field)
+			case "brandColor":
+				return ec.fieldContext_Business_brandColor(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Business_isVerified(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Business_verifiedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_Business_isActive(ctx, field)
+			case "billingEmail":
+				return ec.fieldContext_Business_billingEmail(ctx, field)
+			case "memberCount":
+				return ec.fieldContext_Business_memberCount(ctx, field)
+			case "propertyCount":
+				return ec.fieldContext_Business_propertyCount(ctx, field)
+			case "listingCount":
+				return ec.fieldContext_Business_listingCount(ctx, field)
+			case "members":
+				return ec.fieldContext_Business_members(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Business_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Business_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Business_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Business", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_allBusinesses(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_allBusinesses,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().AllBusinesses(ctx, fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNBusiness2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_allBusinesses(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Business_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Business_slug(ctx, field)
+			case "name":
+				return ec.fieldContext_Business_name(ctx, field)
+			case "displayName":
+				return ec.fieldContext_Business_displayName(ctx, field)
+			case "description":
+				return ec.fieldContext_Business_description(ctx, field)
+			case "businessType":
+				return ec.fieldContext_Business_businessType(ctx, field)
+			case "registrationNumber":
+				return ec.fieldContext_Business_registrationNumber(ctx, field)
+			case "taxID":
+				return ec.fieldContext_Business_taxID(ctx, field)
+			case "legalEntityType":
+				return ec.fieldContext_Business_legalEntityType(ctx, field)
+			case "email":
+				return ec.fieldContext_Business_email(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Business_phoneNumbers(ctx, field)
+			case "website":
+				return ec.fieldContext_Business_website(ctx, field)
+			case "address":
+				return ec.fieldContext_Business_address(ctx, field)
+			case "location":
+				return ec.fieldContext_Business_location(ctx, field)
+			case "logoURL":
+				return ec.fieldContext_Business_logoURL(ctx, field)
+			case "coverImageURL":
+				return ec.fieldContext_Business_coverImageURL(ctx, field)
+			case "brandColor":
+				return ec.fieldContext_Business_brandColor(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Business_isVerified(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Business_verifiedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_Business_isActive(ctx, field)
+			case "billingEmail":
+				return ec.fieldContext_Business_billingEmail(ctx, field)
+			case "memberCount":
+				return ec.fieldContext_Business_memberCount(ctx, field)
+			case "propertyCount":
+				return ec.fieldContext_Business_propertyCount(ctx, field)
+			case "listingCount":
+				return ec.fieldContext_Business_listingCount(ctx, field)
+			case "members":
+				return ec.fieldContext_Business_members(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Business_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Business_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Business_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Business", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_allBusinesses_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_searchBusinesses(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_searchBusinesses,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().SearchBusinesses(ctx, fc.Args["query"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNBusiness2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_searchBusinesses(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Business_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Business_slug(ctx, field)
+			case "name":
+				return ec.fieldContext_Business_name(ctx, field)
+			case "displayName":
+				return ec.fieldContext_Business_displayName(ctx, field)
+			case "description":
+				return ec.fieldContext_Business_description(ctx, field)
+			case "businessType":
+				return ec.fieldContext_Business_businessType(ctx, field)
+			case "registrationNumber":
+				return ec.fieldContext_Business_registrationNumber(ctx, field)
+			case "taxID":
+				return ec.fieldContext_Business_taxID(ctx, field)
+			case "legalEntityType":
+				return ec.fieldContext_Business_legalEntityType(ctx, field)
+			case "email":
+				return ec.fieldContext_Business_email(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Business_phoneNumbers(ctx, field)
+			case "website":
+				return ec.fieldContext_Business_website(ctx, field)
+			case "address":
+				return ec.fieldContext_Business_address(ctx, field)
+			case "location":
+				return ec.fieldContext_Business_location(ctx, field)
+			case "logoURL":
+				return ec.fieldContext_Business_logoURL(ctx, field)
+			case "coverImageURL":
+				return ec.fieldContext_Business_coverImageURL(ctx, field)
+			case "brandColor":
+				return ec.fieldContext_Business_brandColor(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Business_isVerified(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Business_verifiedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_Business_isActive(ctx, field)
+			case "billingEmail":
+				return ec.fieldContext_Business_billingEmail(ctx, field)
+			case "memberCount":
+				return ec.fieldContext_Business_memberCount(ctx, field)
+			case "propertyCount":
+				return ec.fieldContext_Business_propertyCount(ctx, field)
+			case "listingCount":
+				return ec.fieldContext_Business_listingCount(ctx, field)
+			case "members":
+				return ec.fieldContext_Business_members(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Business_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Business_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Business_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Business", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_searchBusinesses_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_businessMembers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_businessMembers,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BusinessMembers(ctx, fc.Args["businessID"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBusinessMember2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMemberᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_businessMembers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessMember_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessMember_businessID(ctx, field)
+			case "userID":
+				return ec.fieldContext_BusinessMember_userID(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessMember_role(ctx, field)
+			case "permissions":
+				return ec.fieldContext_BusinessMember_permissions(ctx, field)
+			case "isActive":
+				return ec.fieldContext_BusinessMember_isActive(ctx, field)
+			case "joinedAt":
+				return ec.fieldContext_BusinessMember_joinedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessMember_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_BusinessMember_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessMember", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_businessMembers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myMemberships(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myMemberships,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyMemberships(ctx)
+		},
+		nil,
+		ec.marshalNBusinessMember2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMemberᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myMemberships(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessMember_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessMember_businessID(ctx, field)
+			case "userID":
+				return ec.fieldContext_BusinessMember_userID(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessMember_role(ctx, field)
+			case "permissions":
+				return ec.fieldContext_BusinessMember_permissions(ctx, field)
+			case "isActive":
+				return ec.fieldContext_BusinessMember_isActive(ctx, field)
+			case "joinedAt":
+				return ec.fieldContext_BusinessMember_joinedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessMember_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_BusinessMember_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessMember", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_businessMember(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_businessMember,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BusinessMember(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["userID"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalOBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_businessMember(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessMember_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessMember_businessID(ctx, field)
+			case "userID":
+				return ec.fieldContext_BusinessMember_userID(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessMember_role(ctx, field)
+			case "permissions":
+				return ec.fieldContext_BusinessMember_permissions(ctx, field)
+			case "isActive":
+				return ec.fieldContext_BusinessMember_isActive(ctx, field)
+			case "joinedAt":
+				return ec.fieldContext_BusinessMember_joinedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessMember_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_BusinessMember_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessMember", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_businessMember_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_businessInvitations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_businessInvitations,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BusinessInvitations(ctx, fc.Args["businessID"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBusinessInvitation2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessInvitationᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_businessInvitations(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessInvitation_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessInvitation_businessID(ctx, field)
+			case "email":
+				return ec.fieldContext_BusinessInvitation_email(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessInvitation_role(ctx, field)
+			case "status":
+				return ec.fieldContext_BusinessInvitation_status(ctx, field)
+			case "expiresAt":
+				return ec.fieldContext_BusinessInvitation_expiresAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessInvitation_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessInvitation", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_businessInvitations_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myInvitations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myInvitations,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyInvitations(ctx, fc.Args["email"].(string))
+		},
+		nil,
+		ec.marshalNBusinessInvitation2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessInvitationᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myInvitations(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_BusinessInvitation_id(ctx, field)
+			case "businessID":
+				return ec.fieldContext_BusinessInvitation_businessID(ctx, field)
+			case "email":
+				return ec.fieldContext_BusinessInvitation_email(ctx, field)
+			case "role":
+				return ec.fieldContext_BusinessInvitation_role(ctx, field)
+			case "status":
+				return ec.fieldContext_BusinessInvitation_status(ctx, field)
+			case "expiresAt":
+				return ec.fieldContext_BusinessInvitation_expiresAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_BusinessInvitation_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BusinessInvitation", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myInvitations_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myBusinessPermissions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myBusinessPermissions,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyBusinessPermissions(ctx, fc.Args["businessID"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalOMemberPermissions2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberPermissions,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myBusinessPermissions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "canCreateListings":
+				return ec.fieldContext_MemberPermissions_canCreateListings(ctx, field)
+			case "canEditListings":
+				return ec.fieldContext_MemberPermissions_canEditListings(ctx, field)
+			case "canDeleteListings":
+				return ec.fieldContext_MemberPermissions_canDeleteListings(ctx, field)
+			case "canPublishListings":
+				return ec.fieldContext_MemberPermissions_canPublishListings(ctx, field)
+			case "canManageMedia":
+				return ec.fieldContext_MemberPermissions_canManageMedia(ctx, field)
+			case "canViewAnalytics":
+				return ec.fieldContext_MemberPermissions_canViewAnalytics(ctx, field)
+			case "canManageMembers":
+				return ec.fieldContext_MemberPermissions_canManageMembers(ctx, field)
+			case "canEditBusiness":
+				return ec.fieldContext_MemberPermissions_canEditBusiness(ctx, field)
+			case "canViewFinancials":
+				return ec.fieldContext_MemberPermissions_canViewFinancials(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MemberPermissions", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myBusinessPermissions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -10589,7 +15282,7 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_rentalPrice(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_rentalPrice(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10618,7 +15311,7 @@ func (ec *executionContext) fieldContext_RentalDetail_rentalPrice(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_rentalPricePeriod(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_rentalPricePeriod(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10647,7 +15340,7 @@ func (ec *executionContext) fieldContext_RentalDetail_rentalPricePeriod(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_agencyFee(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_agencyFee(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10676,7 +15369,7 @@ func (ec *executionContext) fieldContext_RentalDetail_agencyFee(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_legalFee(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_legalFee(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10705,7 +15398,7 @@ func (ec *executionContext) fieldContext_RentalDetail_legalFee(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_registrationFee(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_registrationFee(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10734,7 +15427,7 @@ func (ec *executionContext) fieldContext_RentalDetail_registrationFee(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_cautionFee(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_cautionFee(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10763,7 +15456,7 @@ func (ec *executionContext) fieldContext_RentalDetail_cautionFee(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_serviceCharge(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_serviceCharge(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10792,7 +15485,7 @@ func (ec *executionContext) fieldContext_RentalDetail_serviceCharge(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_serviceCharges(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_serviceCharges(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10829,7 +15522,7 @@ func (ec *executionContext) fieldContext_RentalDetail_serviceCharges(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_minRentalPeriod(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_minRentalPeriod(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10858,7 +15551,7 @@ func (ec *executionContext) fieldContext_RentalDetail_minRentalPeriod(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_maxRentalPeriod(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_maxRentalPeriod(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10887,7 +15580,7 @@ func (ec *executionContext) fieldContext_RentalDetail_maxRentalPeriod(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_rentalAvailabilityFrom(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_rentalAvailabilityFrom(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10916,7 +15609,7 @@ func (ec *executionContext) fieldContext_RentalDetail_rentalAvailabilityFrom(_ c
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_rentalTerms(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_rentalTerms(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10945,7 +15638,7 @@ func (ec *executionContext) fieldContext_RentalDetail_rentalTerms(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_rentalRules(ctx context.Context, field graphql.CollectedField, obj *domain.RentalDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _RentalDetail_rentalRules(ctx context.Context, field graphql.CollectedField, obj *domain1.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -10980,7 +15673,7 @@ func (ec *executionContext) fieldContext_RentalDetail_rentalRules(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _RuleGroup_category(ctx context.Context, field graphql.CollectedField, obj *domain.RuleGroup) (ret graphql.Marshaler) {
+func (ec *executionContext) _RuleGroup_category(ctx context.Context, field graphql.CollectedField, obj *domain1.RuleGroup) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11009,7 +15702,7 @@ func (ec *executionContext) fieldContext_RuleGroup_category(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _RuleGroup_rules(ctx context.Context, field graphql.CollectedField, obj *domain.RuleGroup) (ret graphql.Marshaler) {
+func (ec *executionContext) _RuleGroup_rules(ctx context.Context, field graphql.CollectedField, obj *domain1.RuleGroup) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11038,7 +15731,7 @@ func (ec *executionContext) fieldContext_RuleGroup_rules(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_salePrice(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_salePrice(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11067,7 +15760,7 @@ func (ec *executionContext) fieldContext_SaleDetail_salePrice(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_ownershipTitle(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_ownershipTitle(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11096,7 +15789,7 @@ func (ec *executionContext) fieldContext_SaleDetail_ownershipTitle(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_paymentPlan(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_paymentPlan(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11125,7 +15818,7 @@ func (ec *executionContext) fieldContext_SaleDetail_paymentPlan(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_yearBuilt(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_yearBuilt(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11154,7 +15847,7 @@ func (ec *executionContext) fieldContext_SaleDetail_yearBuilt(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_yearRenovated(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_yearRenovated(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11183,7 +15876,7 @@ func (ec *executionContext) fieldContext_SaleDetail_yearRenovated(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_agencyFee(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_agencyFee(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11212,7 +15905,7 @@ func (ec *executionContext) fieldContext_SaleDetail_agencyFee(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_legalFee(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_legalFee(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11241,7 +15934,7 @@ func (ec *executionContext) fieldContext_SaleDetail_legalFee(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_surveyFee(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_surveyFee(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11270,7 +15963,7 @@ func (ec *executionContext) fieldContext_SaleDetail_surveyFee(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_titleProcessingFee(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_titleProcessingFee(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11299,7 +15992,7 @@ func (ec *executionContext) fieldContext_SaleDetail_titleProcessingFee(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_developmentFee(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_developmentFee(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11328,7 +16021,7 @@ func (ec *executionContext) fieldContext_SaleDetail_developmentFee(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_otherFees(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_otherFees(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11357,7 +16050,7 @@ func (ec *executionContext) fieldContext_SaleDetail_otherFees(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_serviceCharge(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_serviceCharge(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11386,7 +16079,7 @@ func (ec *executionContext) fieldContext_SaleDetail_serviceCharge(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_serviceCharges(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_serviceCharges(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11423,7 +16116,7 @@ func (ec *executionContext) fieldContext_SaleDetail_serviceCharges(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_saleTerms(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_saleTerms(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11452,7 +16145,7 @@ func (ec *executionContext) fieldContext_SaleDetail_saleTerms(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_saleAvailabilityFrom(ctx context.Context, field graphql.CollectedField, obj *domain.SaleDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _SaleDetail_saleAvailabilityFrom(ctx context.Context, field graphql.CollectedField, obj *domain1.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11630,7 +16323,7 @@ func (ec *executionContext) fieldContext_ScoredListing_ranking(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _ServiceCharge_name(ctx context.Context, field graphql.CollectedField, obj *domain.ServiceCharge) (ret graphql.Marshaler) {
+func (ec *executionContext) _ServiceCharge_name(ctx context.Context, field graphql.CollectedField, obj *domain1.ServiceCharge) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11659,7 +16352,7 @@ func (ec *executionContext) fieldContext_ServiceCharge_name(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _ServiceCharge_period(ctx context.Context, field graphql.CollectedField, obj *domain.ServiceCharge) (ret graphql.Marshaler) {
+func (ec *executionContext) _ServiceCharge_period(ctx context.Context, field graphql.CollectedField, obj *domain1.ServiceCharge) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11688,7 +16381,7 @@ func (ec *executionContext) fieldContext_ServiceCharge_period(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _ServiceCharge_amount(ctx context.Context, field graphql.CollectedField, obj *domain.ServiceCharge) (ret graphql.Marshaler) {
+func (ec *executionContext) _ServiceCharge_amount(ctx context.Context, field graphql.CollectedField, obj *domain1.ServiceCharge) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11717,7 +16410,7 @@ func (ec *executionContext) fieldContext_ServiceCharge_amount(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_nightlyRate(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_nightlyRate(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11746,7 +16439,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_nightlyRate(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_cautionFee(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_cautionFee(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11775,7 +16468,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_cautionFee(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_cleaningFee(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_cleaningFee(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11804,7 +16497,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_cleaningFee(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_serviceFee(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_serviceFee(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11833,7 +16526,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_serviceFee(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_extraGuestFee(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_extraGuestFee(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11862,7 +16555,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_extraGuestFee(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_minNights(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_minNights(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11891,7 +16584,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_minNights(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_maxNights(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_maxNights(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11920,7 +16613,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_maxNights(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_maxGuests(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_maxGuests(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11949,7 +16642,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_maxGuests(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_baseGuestCount(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_baseGuestCount(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -11978,7 +16671,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_baseGuestCount(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_checkInTime(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_checkInTime(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12007,7 +16700,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_checkInTime(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_checkOutTime(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_checkOutTime(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12036,7 +16729,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_checkOutTime(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_accommodationType(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_accommodationType(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12065,7 +16758,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_accommodationType(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_calendarMonthsAhead(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_calendarMonthsAhead(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12094,7 +16787,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_calendarMonthsAhead(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_autoGenerateCalendar(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_autoGenerateCalendar(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12123,7 +16816,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_autoGenerateCalendar(_ c
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_rules(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_rules(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12158,7 +16851,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_rules(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_amenitiesHighlights(ctx context.Context, field graphql.CollectedField, obj *domain.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_amenitiesHighlights(ctx context.Context, field graphql.CollectedField, obj *domain1.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12195,7 +16888,7 @@ func (ec *executionContext) fieldContext_ShortletDetail_amenitiesHighlights(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _Thumbnail_key(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+func (ec *executionContext) _Thumbnail_key(ctx context.Context, field graphql.CollectedField, obj *domain1.Thumbnail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12224,7 +16917,7 @@ func (ec *executionContext) fieldContext_Thumbnail_key(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Thumbnail_url(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+func (ec *executionContext) _Thumbnail_url(ctx context.Context, field graphql.CollectedField, obj *domain1.Thumbnail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12253,7 +16946,7 @@ func (ec *executionContext) fieldContext_Thumbnail_url(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Thumbnail_width(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+func (ec *executionContext) _Thumbnail_width(ctx context.Context, field graphql.CollectedField, obj *domain1.Thumbnail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12282,7 +16975,7 @@ func (ec *executionContext) fieldContext_Thumbnail_width(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Thumbnail_height(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+func (ec *executionContext) _Thumbnail_height(ctx context.Context, field graphql.CollectedField, obj *domain1.Thumbnail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12311,7 +17004,7 @@ func (ec *executionContext) fieldContext_Thumbnail_height(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Thumbnail_sizeBytes(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+func (ec *executionContext) _Thumbnail_sizeBytes(ctx context.Context, field graphql.CollectedField, obj *domain1.Thumbnail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12340,7 +17033,7 @@ func (ec *executionContext) fieldContext_Thumbnail_sizeBytes(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Thumbnail_mimeType(ctx context.Context, field graphql.CollectedField, obj *domain.Thumbnail) (ret graphql.Marshaler) {
+func (ec *executionContext) _Thumbnail_mimeType(ctx context.Context, field graphql.CollectedField, obj *domain1.Thumbnail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12369,7 +17062,7 @@ func (ec *executionContext) fieldContext_Thumbnail_mimeType(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _ThumbnailVariant_size(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+func (ec *executionContext) _ThumbnailVariant_size(ctx context.Context, field graphql.CollectedField, obj *domain1.ThumbnailVariant) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12398,7 +17091,7 @@ func (ec *executionContext) fieldContext_ThumbnailVariant_size(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _ThumbnailVariant_key(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+func (ec *executionContext) _ThumbnailVariant_key(ctx context.Context, field graphql.CollectedField, obj *domain1.ThumbnailVariant) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12427,7 +17120,7 @@ func (ec *executionContext) fieldContext_ThumbnailVariant_key(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _ThumbnailVariant_url(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+func (ec *executionContext) _ThumbnailVariant_url(ctx context.Context, field graphql.CollectedField, obj *domain1.ThumbnailVariant) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12456,7 +17149,7 @@ func (ec *executionContext) fieldContext_ThumbnailVariant_url(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _ThumbnailVariant_width(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+func (ec *executionContext) _ThumbnailVariant_width(ctx context.Context, field graphql.CollectedField, obj *domain1.ThumbnailVariant) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12485,7 +17178,7 @@ func (ec *executionContext) fieldContext_ThumbnailVariant_width(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ThumbnailVariant_height(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+func (ec *executionContext) _ThumbnailVariant_height(ctx context.Context, field graphql.CollectedField, obj *domain1.ThumbnailVariant) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12514,7 +17207,7 @@ func (ec *executionContext) fieldContext_ThumbnailVariant_height(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ThumbnailVariant_sizeBytes(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+func (ec *executionContext) _ThumbnailVariant_sizeBytes(ctx context.Context, field graphql.CollectedField, obj *domain1.ThumbnailVariant) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12543,7 +17236,7 @@ func (ec *executionContext) fieldContext_ThumbnailVariant_sizeBytes(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ThumbnailVariant_mimeType(ctx context.Context, field graphql.CollectedField, obj *domain.ThumbnailVariant) (ret graphql.Marshaler) {
+func (ec *executionContext) _ThumbnailVariant_mimeType(ctx context.Context, field graphql.CollectedField, obj *domain1.ThumbnailVariant) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12572,7 +17265,7 @@ func (ec *executionContext) fieldContext_ThumbnailVariant_mimeType(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_name(ctx context.Context, field graphql.CollectedField, obj *domain1.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_name(ctx context.Context, field graphql.CollectedField, obj *domain2.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12601,7 +17294,7 @@ func (ec *executionContext) fieldContext_TravelCompanion_name(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_ageGroup(ctx context.Context, field graphql.CollectedField, obj *domain1.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_ageGroup(ctx context.Context, field graphql.CollectedField, obj *domain2.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12630,7 +17323,7 @@ func (ec *executionContext) fieldContext_TravelCompanion_ageGroup(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_phone(ctx context.Context, field graphql.CollectedField, obj *domain1.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_phone(ctx context.Context, field graphql.CollectedField, obj *domain2.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12659,7 +17352,7 @@ func (ec *executionContext) fieldContext_TravelCompanion_phone(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_relationship(ctx context.Context, field graphql.CollectedField, obj *domain1.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_relationship(ctx context.Context, field graphql.CollectedField, obj *domain2.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12688,7 +17381,7 @@ func (ec *executionContext) fieldContext_TravelCompanion_relationship(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_photoUrl(ctx context.Context, field graphql.CollectedField, obj *domain1.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_photoUrl(ctx context.Context, field graphql.CollectedField, obj *domain2.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12862,7 +17555,7 @@ func (ec *executionContext) fieldContext_UploadResult_travelCompanionID(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *domain2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12891,7 +17584,7 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	return fc, nil
 }
 
-func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *domain2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12920,7 +17613,7 @@ func (ec *executionContext) fieldContext_User_name(_ context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_primaryEmail(ctx context.Context, field graphql.CollectedField, obj *domain2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_primaryEmail(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12949,7 +17642,36 @@ func (ec *executionContext) fieldContext_User_primaryEmail(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *domain2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_avatarUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.AvatarURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_avatarUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -12978,7 +17700,7 @@ func (ec *executionContext) fieldContext_User_role(_ context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_isActive(ctx context.Context, field graphql.CollectedField, obj *domain2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_isActive(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13007,7 +17729,7 @@ func (ec *executionContext) fieldContext_User_isActive(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _User_lastLoginAt(ctx context.Context, field graphql.CollectedField, obj *domain2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_lastLoginAt(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13036,7 +17758,7 @@ func (ec *executionContext) fieldContext_User_lastLoginAt(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13065,7 +17787,7 @@ func (ec *executionContext) fieldContext_User_createdAt(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13094,7 +17816,7 @@ func (ec *executionContext) fieldContext_User_updatedAt(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_identities(ctx context.Context, field graphql.CollectedField, obj *domain2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_identities(ctx context.Context, field graphql.CollectedField, obj *domain3.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13139,7 +17861,7 @@ func (ec *executionContext) fieldContext_User_identities(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_id(ctx context.Context, field graphql.CollectedField, obj *domain2.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_id(ctx context.Context, field graphql.CollectedField, obj *domain3.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13168,7 +17890,7 @@ func (ec *executionContext) fieldContext_UserIdentity_id(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_userId(ctx context.Context, field graphql.CollectedField, obj *domain2.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_userId(ctx context.Context, field graphql.CollectedField, obj *domain3.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13197,7 +17919,7 @@ func (ec *executionContext) fieldContext_UserIdentity_userId(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_provider(ctx context.Context, field graphql.CollectedField, obj *domain2.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_provider(ctx context.Context, field graphql.CollectedField, obj *domain3.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13226,7 +17948,7 @@ func (ec *executionContext) fieldContext_UserIdentity_provider(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_email(ctx context.Context, field graphql.CollectedField, obj *domain2.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_email(ctx context.Context, field graphql.CollectedField, obj *domain3.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13255,7 +17977,7 @@ func (ec *executionContext) fieldContext_UserIdentity_email(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_emailVerified(ctx context.Context, field graphql.CollectedField, obj *domain2.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_emailVerified(ctx context.Context, field graphql.CollectedField, obj *domain3.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13284,7 +18006,7 @@ func (ec *executionContext) fieldContext_UserIdentity_emailVerified(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *domain2.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *domain3.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -13313,7 +18035,7 @@ func (ec *executionContext) fieldContext_UserIdentity_lastUsedAt(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain2.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain3.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -14829,6 +19551,228 @@ func (ec *executionContext) unmarshalInputAmenityHighlightInput(ctx context.Cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputBusinessAddressInput(ctx context.Context, obj any) (model.BusinessAddressInput, error) {
+	var it model.BusinessAddressInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"houseNumber", "street", "area", "lga", "city", "state", "country", "postalCode", "district", "digitalAddress"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "houseNumber":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("houseNumber"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.HouseNumber = data
+		case "street":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("street"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Street = data
+		case "area":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("area"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Area = data
+		case "lga":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lga"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lga = data
+		case "city":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("city"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.City = data
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
+		case "country":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("country"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Country = data
+		case "postalCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postalCode"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PostalCode = data
+		case "district":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("district"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.District = data
+		case "digitalAddress":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("digitalAddress"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DigitalAddress = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCreateBusinessInput(ctx context.Context, obj any) (model.CreateBusinessInput, error) {
+	var it model.CreateBusinessInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "displayName", "description", "businessType", "registrationNumber", "taxID", "legalEntityType", "email", "phoneNumbers", "website", "address", "location", "logoURL", "coverImageURL", "brandColor", "billingEmail"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "displayName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisplayName = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "businessType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("businessType"))
+			data, err := ec.unmarshalNBusinessType2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BusinessType = data
+		case "registrationNumber":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("registrationNumber"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RegistrationNumber = data
+		case "taxID":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("taxID"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TaxID = data
+		case "legalEntityType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("legalEntityType"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LegalEntityType = data
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phoneNumbers":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phoneNumbers"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumbers = data
+		case "website":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("website"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Website = data
+		case "address":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+			data, err := ec.unmarshalNBusinessAddressInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBusinessAddressInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Address = data
+		case "location":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("location"))
+			data, err := ec.unmarshalOLocationInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLocationInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Location = data
+		case "logoURL":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("logoURL"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LogoURL = data
+		case "coverImageURL":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("coverImageURL"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CoverImageURL = data
+		case "brandColor":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("brandColor"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BrandColor = data
+		case "billingEmail":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("billingEmail"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BillingEmail = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateListingInput(ctx context.Context, obj any) (model.CreateListingInput, error) {
 	var it model.CreateListingInput
 	asMap := map[string]any{}
@@ -15086,6 +20030,47 @@ func (ec *executionContext) unmarshalInputCreateListingPropertyInput(ctx context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context, obj any) (model.InviteMemberInput, error) {
+	var it model.InviteMemberInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"email", "role", "customPermissions"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "role":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+			data, err := ec.unmarshalNMemberRole2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberRole(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Role = data
+		case "customPermissions":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("customPermissions"))
+			data, err := ec.unmarshalOMemberPermissionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CustomPermissions = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputListingFilterInput(ctx context.Context, obj any) (model.ListingFilterInput, error) {
 	var it model.ListingFilterInput
 	asMap := map[string]any{}
@@ -15245,6 +20230,89 @@ func (ec *executionContext) unmarshalInputMediaInput(ctx context.Context, obj an
 				return it, err
 			}
 			it.Order = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputMemberPermissionsInput(ctx context.Context, obj any) (model.MemberPermissionsInput, error) {
+	var it model.MemberPermissionsInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"canCreateListings", "canEditListings", "canDeleteListings", "canPublishListings", "canManageMedia", "canViewAnalytics", "canManageMembers", "canEditBusiness", "canViewFinancials"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "canCreateListings":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("canCreateListings"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CanCreateListings = data
+		case "canEditListings":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("canEditListings"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CanEditListings = data
+		case "canDeleteListings":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("canDeleteListings"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CanDeleteListings = data
+		case "canPublishListings":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("canPublishListings"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CanPublishListings = data
+		case "canManageMedia":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("canManageMedia"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CanManageMedia = data
+		case "canViewAnalytics":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("canViewAnalytics"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CanViewAnalytics = data
+		case "canManageMembers":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("canManageMembers"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CanManageMembers = data
+		case "canEditBusiness":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("canEditBusiness"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CanEditBusiness = data
+		case "canViewFinancials":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("canViewFinancials"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CanViewFinancials = data
 		}
 	}
 
@@ -15749,6 +20817,103 @@ func (ec *executionContext) unmarshalInputTravelCompanionInput(ctx context.Conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateBusinessInput(ctx context.Context, obj any) (model.UpdateBusinessInput, error) {
+	var it model.UpdateBusinessInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"displayName", "description", "email", "phoneNumbers", "website", "address", "location", "logoURL", "coverImageURL", "brandColor", "billingEmail"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "displayName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayName"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisplayName = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
+		case "phoneNumbers":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phoneNumbers"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PhoneNumbers = data
+		case "website":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("website"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Website = data
+		case "address":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+			data, err := ec.unmarshalOBusinessAddressInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBusinessAddressInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Address = data
+		case "location":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("location"))
+			data, err := ec.unmarshalOLocationInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLocationInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Location = data
+		case "logoURL":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("logoURL"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LogoURL = data
+		case "coverImageURL":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("coverImageURL"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CoverImageURL = data
+		case "brandColor":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("brandColor"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BrandColor = data
+		case "billingEmail":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("billingEmail"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BillingEmail = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateListingInput(ctx context.Context, obj any) (model.UpdateListingInput, error) {
 	var it model.UpdateListingInput
 	asMap := map[string]any{}
@@ -16232,7 +21397,7 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 
 var amenityHighlightImplementors = []string{"AmenityHighlight"}
 
-func (ec *executionContext) _AmenityHighlight(ctx context.Context, sel ast.SelectionSet, obj *domain.AmenityHighlight) graphql.Marshaler {
+func (ec *executionContext) _AmenityHighlight(ctx context.Context, sel ast.SelectionSet, obj *domain1.AmenityHighlight) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, amenityHighlightImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -16279,9 +21444,414 @@ func (ec *executionContext) _AmenityHighlight(ctx context.Context, sel ast.Selec
 	return out
 }
 
+var businessImplementors = []string{"Business"}
+
+func (ec *executionContext) _Business(ctx context.Context, sel ast.SelectionSet, obj *domain.Business) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, businessImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Business")
+		case "id":
+			out.Values[i] = ec._Business_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "slug":
+			out.Values[i] = ec._Business_slug(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "name":
+			out.Values[i] = ec._Business_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "displayName":
+			out.Values[i] = ec._Business_displayName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "description":
+			out.Values[i] = ec._Business_description(ctx, field, obj)
+		case "businessType":
+			out.Values[i] = ec._Business_businessType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "registrationNumber":
+			out.Values[i] = ec._Business_registrationNumber(ctx, field, obj)
+		case "taxID":
+			out.Values[i] = ec._Business_taxID(ctx, field, obj)
+		case "legalEntityType":
+			out.Values[i] = ec._Business_legalEntityType(ctx, field, obj)
+		case "email":
+			out.Values[i] = ec._Business_email(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "phoneNumbers":
+			out.Values[i] = ec._Business_phoneNumbers(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "website":
+			out.Values[i] = ec._Business_website(ctx, field, obj)
+		case "address":
+			out.Values[i] = ec._Business_address(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "location":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Business_location(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "logoURL":
+			out.Values[i] = ec._Business_logoURL(ctx, field, obj)
+		case "coverImageURL":
+			out.Values[i] = ec._Business_coverImageURL(ctx, field, obj)
+		case "brandColor":
+			out.Values[i] = ec._Business_brandColor(ctx, field, obj)
+		case "isVerified":
+			out.Values[i] = ec._Business_isVerified(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "verifiedAt":
+			out.Values[i] = ec._Business_verifiedAt(ctx, field, obj)
+		case "isActive":
+			out.Values[i] = ec._Business_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "billingEmail":
+			out.Values[i] = ec._Business_billingEmail(ctx, field, obj)
+		case "memberCount":
+			out.Values[i] = ec._Business_memberCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "propertyCount":
+			out.Values[i] = ec._Business_propertyCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "listingCount":
+			out.Values[i] = ec._Business_listingCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "members":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Business_members(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "createdBy":
+			out.Values[i] = ec._Business_createdBy(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._Business_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._Business_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var businessAddressImplementors = []string{"BusinessAddress"}
+
+func (ec *executionContext) _BusinessAddress(ctx context.Context, sel ast.SelectionSet, obj *domain.Address) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, businessAddressImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BusinessAddress")
+		case "houseNumber":
+			out.Values[i] = ec._BusinessAddress_houseNumber(ctx, field, obj)
+		case "street":
+			out.Values[i] = ec._BusinessAddress_street(ctx, field, obj)
+		case "area":
+			out.Values[i] = ec._BusinessAddress_area(ctx, field, obj)
+		case "lga":
+			out.Values[i] = ec._BusinessAddress_lga(ctx, field, obj)
+		case "city":
+			out.Values[i] = ec._BusinessAddress_city(ctx, field, obj)
+		case "state":
+			out.Values[i] = ec._BusinessAddress_state(ctx, field, obj)
+		case "country":
+			out.Values[i] = ec._BusinessAddress_country(ctx, field, obj)
+		case "postalCode":
+			out.Values[i] = ec._BusinessAddress_postalCode(ctx, field, obj)
+		case "district":
+			out.Values[i] = ec._BusinessAddress_district(ctx, field, obj)
+		case "digitalAddress":
+			out.Values[i] = ec._BusinessAddress_digitalAddress(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var businessInvitationImplementors = []string{"BusinessInvitation"}
+
+func (ec *executionContext) _BusinessInvitation(ctx context.Context, sel ast.SelectionSet, obj *domain.BusinessInvitation) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, businessInvitationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BusinessInvitation")
+		case "id":
+			out.Values[i] = ec._BusinessInvitation_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "businessID":
+			out.Values[i] = ec._BusinessInvitation_businessID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "email":
+			out.Values[i] = ec._BusinessInvitation_email(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "role":
+			out.Values[i] = ec._BusinessInvitation_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._BusinessInvitation_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "expiresAt":
+			out.Values[i] = ec._BusinessInvitation_expiresAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._BusinessInvitation_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var businessMemberImplementors = []string{"BusinessMember"}
+
+func (ec *executionContext) _BusinessMember(ctx context.Context, sel ast.SelectionSet, obj *domain.BusinessMember) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, businessMemberImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BusinessMember")
+		case "id":
+			out.Values[i] = ec._BusinessMember_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "businessID":
+			out.Values[i] = ec._BusinessMember_businessID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "userID":
+			out.Values[i] = ec._BusinessMember_userID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "role":
+			out.Values[i] = ec._BusinessMember_role(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "permissions":
+			out.Values[i] = ec._BusinessMember_permissions(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isActive":
+			out.Values[i] = ec._BusinessMember_isActive(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "joinedAt":
+			out.Values[i] = ec._BusinessMember_joinedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._BusinessMember_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._BusinessMember_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var listingImplementors = []string{"Listing"}
 
-func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, obj *domain.Listing) graphql.Marshaler {
+func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, obj *domain1.Listing) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, listingImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -16463,7 +22033,7 @@ func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, 
 
 var listingCompletenessImplementors = []string{"ListingCompleteness"}
 
-func (ec *executionContext) _ListingCompleteness(ctx context.Context, sel ast.SelectionSet, obj *domain.ListingCompleteness) graphql.Marshaler {
+func (ec *executionContext) _ListingCompleteness(ctx context.Context, sel ast.SelectionSet, obj *domain1.ListingCompleteness) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, listingCompletenessImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -16645,7 +22215,7 @@ func (ec *executionContext) _ListingEdge(ctx context.Context, sel ast.SelectionS
 
 var listingMediaImplementors = []string{"ListingMedia"}
 
-func (ec *executionContext) _ListingMedia(ctx context.Context, sel ast.SelectionSet, obj *domain.ListingMedia) graphql.Marshaler {
+func (ec *executionContext) _ListingMedia(ctx context.Context, sel ast.SelectionSet, obj *domain1.ListingMedia) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, listingMediaImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -16822,7 +22392,7 @@ func (ec *executionContext) _ListingWithDistance(ctx context.Context, sel ast.Se
 
 var locationImplementors = []string{"Location"}
 
-func (ec *executionContext) _Location(ctx context.Context, sel ast.SelectionSet, obj *domain.Location) graphql.Marshaler {
+func (ec *executionContext) _Location(ctx context.Context, sel ast.SelectionSet, obj *domain1.Location) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, locationImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -16843,6 +22413,85 @@ func (ec *executionContext) _Location(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "srid":
 			out.Values[i] = ec._Location_srid(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var memberPermissionsImplementors = []string{"MemberPermissions"}
+
+func (ec *executionContext) _MemberPermissions(ctx context.Context, sel ast.SelectionSet, obj *domain.MemberPermissions) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, memberPermissionsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MemberPermissions")
+		case "canCreateListings":
+			out.Values[i] = ec._MemberPermissions_canCreateListings(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "canEditListings":
+			out.Values[i] = ec._MemberPermissions_canEditListings(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "canDeleteListings":
+			out.Values[i] = ec._MemberPermissions_canDeleteListings(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "canPublishListings":
+			out.Values[i] = ec._MemberPermissions_canPublishListings(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "canManageMedia":
+			out.Values[i] = ec._MemberPermissions_canManageMedia(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "canViewAnalytics":
+			out.Values[i] = ec._MemberPermissions_canViewAnalytics(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "canManageMembers":
+			out.Values[i] = ec._MemberPermissions_canManageMembers(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "canEditBusiness":
+			out.Values[i] = ec._MemberPermissions_canEditBusiness(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "canViewFinancials":
+			out.Values[i] = ec._MemberPermissions_canViewFinancials(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -16965,6 +22614,83 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "createBusiness":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createBusiness(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateBusiness":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateBusiness(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteBusiness":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteBusiness(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addBusinessMember":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addBusinessMember(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateMemberRole":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateMemberRole(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateMemberPermissions":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateMemberPermissions(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "removeMember":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeMember(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "inviteMember":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_inviteMember(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "acceptInvitation":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_acceptInvitation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "declineInvitation":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_declineInvitation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "revokeInvitation":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_revokeInvitation(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17038,7 +22764,7 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 
 var profileImplementors = []string{"Profile"}
 
-func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, obj *domain1.Profile) graphql.Marshaler {
+func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, obj *domain2.Profile) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, profileImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -17258,7 +22984,7 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 
 var propertyImplementors = []string{"Property"}
 
-func (ec *executionContext) _Property(ctx context.Context, sel ast.SelectionSet, obj *domain.Property) graphql.Marshaler {
+func (ec *executionContext) _Property(ctx context.Context, sel ast.SelectionSet, obj *domain1.Property) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, propertyImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -17826,6 +23552,236 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "business":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_business(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "businessBySlug":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_businessBySlug(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myBusinesses":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myBusinesses(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "allBusinesses":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allBusinesses(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "searchBusinesses":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_searchBusinesses(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "businessMembers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_businessMembers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myMemberships":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myMemberships(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "businessMember":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_businessMember(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "businessInvitations":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_businessInvitations(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myInvitations":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myInvitations(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myBusinessPermissions":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myBusinessPermissions(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -17859,7 +23815,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var rentalDetailImplementors = []string{"RentalDetail"}
 
-func (ec *executionContext) _RentalDetail(ctx context.Context, sel ast.SelectionSet, obj *domain.RentalDetail) graphql.Marshaler {
+func (ec *executionContext) _RentalDetail(ctx context.Context, sel ast.SelectionSet, obj *domain1.RentalDetail) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, rentalDetailImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -17962,7 +23918,7 @@ func (ec *executionContext) _RentalDetail(ctx context.Context, sel ast.Selection
 
 var ruleGroupImplementors = []string{"RuleGroup"}
 
-func (ec *executionContext) _RuleGroup(ctx context.Context, sel ast.SelectionSet, obj *domain.RuleGroup) graphql.Marshaler {
+func (ec *executionContext) _RuleGroup(ctx context.Context, sel ast.SelectionSet, obj *domain1.RuleGroup) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, ruleGroupImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -18006,7 +23962,7 @@ func (ec *executionContext) _RuleGroup(ctx context.Context, sel ast.SelectionSet
 
 var saleDetailImplementors = []string{"SaleDetail"}
 
-func (ec *executionContext) _SaleDetail(ctx context.Context, sel ast.SelectionSet, obj *domain.SaleDetail) graphql.Marshaler {
+func (ec *executionContext) _SaleDetail(ctx context.Context, sel ast.SelectionSet, obj *domain1.SaleDetail) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, saleDetailImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -18159,7 +24115,7 @@ func (ec *executionContext) _ScoredListing(ctx context.Context, sel ast.Selectio
 
 var serviceChargeImplementors = []string{"ServiceCharge"}
 
-func (ec *executionContext) _ServiceCharge(ctx context.Context, sel ast.SelectionSet, obj *domain.ServiceCharge) graphql.Marshaler {
+func (ec *executionContext) _ServiceCharge(ctx context.Context, sel ast.SelectionSet, obj *domain1.ServiceCharge) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, serviceChargeImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -18208,7 +24164,7 @@ func (ec *executionContext) _ServiceCharge(ctx context.Context, sel ast.Selectio
 
 var shortletDetailImplementors = []string{"ShortletDetail"}
 
-func (ec *executionContext) _ShortletDetail(ctx context.Context, sel ast.SelectionSet, obj *domain.ShortletDetail) graphql.Marshaler {
+func (ec *executionContext) _ShortletDetail(ctx context.Context, sel ast.SelectionSet, obj *domain1.ShortletDetail) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, shortletDetailImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -18298,7 +24254,7 @@ func (ec *executionContext) _ShortletDetail(ctx context.Context, sel ast.Selecti
 
 var thumbnailImplementors = []string{"Thumbnail"}
 
-func (ec *executionContext) _Thumbnail(ctx context.Context, sel ast.SelectionSet, obj *domain.Thumbnail) graphql.Marshaler {
+func (ec *executionContext) _Thumbnail(ctx context.Context, sel ast.SelectionSet, obj *domain1.Thumbnail) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, thumbnailImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -18362,7 +24318,7 @@ func (ec *executionContext) _Thumbnail(ctx context.Context, sel ast.SelectionSet
 
 var thumbnailVariantImplementors = []string{"ThumbnailVariant"}
 
-func (ec *executionContext) _ThumbnailVariant(ctx context.Context, sel ast.SelectionSet, obj *domain.ThumbnailVariant) graphql.Marshaler {
+func (ec *executionContext) _ThumbnailVariant(ctx context.Context, sel ast.SelectionSet, obj *domain1.ThumbnailVariant) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, thumbnailVariantImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -18431,7 +24387,7 @@ func (ec *executionContext) _ThumbnailVariant(ctx context.Context, sel ast.Selec
 
 var travelCompanionImplementors = []string{"TravelCompanion"}
 
-func (ec *executionContext) _TravelCompanion(ctx context.Context, sel ast.SelectionSet, obj *domain1.TravelCompanion) graphql.Marshaler {
+func (ec *executionContext) _TravelCompanion(ctx context.Context, sel ast.SelectionSet, obj *domain2.TravelCompanion) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, travelCompanionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -18602,7 +24558,7 @@ func (ec *executionContext) _UploadResult(ctx context.Context, sel ast.Selection
 
 var userImplementors = []string{"User"}
 
-func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *domain2.User) graphql.Marshaler {
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *domain3.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -18626,6 +24582,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "avatarUrl":
+			out.Values[i] = ec._User_avatarUrl(ctx, field, obj)
 		case "role":
 			out.Values[i] = ec._User_role(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -18675,7 +24633,7 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 
 var userIdentityImplementors = []string{"UserIdentity"}
 
-func (ec *executionContext) _UserIdentity(ctx context.Context, sel ast.SelectionSet, obj *domain2.UserIdentity) graphql.Marshaler {
+func (ec *executionContext) _UserIdentity(ctx context.Context, sel ast.SelectionSet, obj *domain3.UserIdentity) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userIdentityImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -19074,13 +25032,13 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) unmarshalNAccommodationType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx context.Context, v any) (domain.AccommodationType, error) {
+func (ec *executionContext) unmarshalNAccommodationType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx context.Context, v any) (domain1.AccommodationType, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.AccommodationType(tmp)
+	res := domain1.AccommodationType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNAccommodationType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx context.Context, sel ast.SelectionSet, v domain.AccommodationType) graphql.Marshaler {
+func (ec *executionContext) marshalNAccommodationType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx context.Context, sel ast.SelectionSet, v domain1.AccommodationType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19091,11 +25049,11 @@ func (ec *executionContext) marshalNAccommodationType2hausletᚋinternalᚋmodul
 	return res
 }
 
-func (ec *executionContext) marshalNAmenityHighlight2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityHighlight(ctx context.Context, sel ast.SelectionSet, v domain.AmenityHighlight) graphql.Marshaler {
+func (ec *executionContext) marshalNAmenityHighlight2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityHighlight(ctx context.Context, sel ast.SelectionSet, v domain1.AmenityHighlight) graphql.Marshaler {
 	return ec._AmenityHighlight(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNAmenityHighlight2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityHighlightᚄ(ctx context.Context, sel ast.SelectionSet, v []domain.AmenityHighlight) graphql.Marshaler {
+func (ec *executionContext) marshalNAmenityHighlight2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityHighlightᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.AmenityHighlight) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -19144,13 +25102,13 @@ func (ec *executionContext) unmarshalNAmenityHighlightInput2ᚖhausletᚋinterna
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx context.Context, v any) (domain1.Badge, error) {
+func (ec *executionContext) unmarshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx context.Context, v any) (domain2.Badge, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain1.Badge(tmp)
+	res := domain2.Badge(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx context.Context, sel ast.SelectionSet, v domain1.Badge) graphql.Marshaler {
+func (ec *executionContext) marshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx context.Context, sel ast.SelectionSet, v domain2.Badge) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19161,11 +25119,11 @@ func (ec *executionContext) marshalNBadge2hausletᚋinternalᚋmodulesᚋprofile
 	return res
 }
 
-func (ec *executionContext) unmarshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, v any) ([]domain1.Badge, error) {
+func (ec *executionContext) unmarshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, v any) ([]domain2.Badge, error) {
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]domain1.Badge, len(vSlice))
+	res := make([]domain2.Badge, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx, vSlice[i])
@@ -19176,7 +25134,7 @@ func (ec *executionContext) unmarshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋpr
 	return res, nil
 }
 
-func (ec *executionContext) marshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.Badge) graphql.Marshaler {
+func (ec *executionContext) marshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain2.Badge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -19236,13 +25194,196 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNCountryCode2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCountryCode(ctx context.Context, v any) (domain.CountryCode, error) {
+func (ec *executionContext) marshalNBusiness2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness(ctx context.Context, sel ast.SelectionSet, v domain.Business) graphql.Marshaler {
+	return ec._Business(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBusiness2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain.Business) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBusiness2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBusiness2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness(ctx context.Context, sel ast.SelectionSet, v *domain.Business) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Business(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNBusinessAddress2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐAddress(ctx context.Context, sel ast.SelectionSet, v domain.Address) graphql.Marshaler {
+	return ec._BusinessAddress(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNBusinessAddressInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBusinessAddressInput(ctx context.Context, v any) (*model.BusinessAddressInput, error) {
+	res, err := ec.unmarshalInputBusinessAddressInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNBusinessInvitation2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessInvitation(ctx context.Context, sel ast.SelectionSet, v domain.BusinessInvitation) graphql.Marshaler {
+	return ec._BusinessInvitation(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBusinessInvitation2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessInvitationᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain.BusinessInvitation) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBusinessInvitation2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessInvitation(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBusinessInvitation2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessInvitation(ctx context.Context, sel ast.SelectionSet, v *domain.BusinessInvitation) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BusinessInvitation(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNBusinessMember2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember(ctx context.Context, sel ast.SelectionSet, v domain.BusinessMember) graphql.Marshaler {
+	return ec._BusinessMember(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBusinessMember2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMemberᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain.BusinessMember) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember(ctx context.Context, sel ast.SelectionSet, v *domain.BusinessMember) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BusinessMember(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNBusinessType2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessType(ctx context.Context, v any) (domain.BusinessType, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.CountryCode(tmp)
+	res := domain.BusinessType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCountryCode2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCountryCode(ctx context.Context, sel ast.SelectionSet, v domain.CountryCode) graphql.Marshaler {
+func (ec *executionContext) marshalNBusinessType2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessType(ctx context.Context, sel ast.SelectionSet, v domain.BusinessType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19251,6 +25392,28 @@ func (ec *executionContext) marshalNCountryCode2hausletᚋinternalᚋmodulesᚋp
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNCountryCode2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCountryCode(ctx context.Context, v any) (domain1.CountryCode, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain1.CountryCode(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCountryCode2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCountryCode(ctx context.Context, sel ast.SelectionSet, v domain1.CountryCode) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNCreateBusinessInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateBusinessInput(ctx context.Context, v any) (model.CreateBusinessInput, error) {
+	res, err := ec.unmarshalInputCreateBusinessInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNCreateListingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateListingInput(ctx context.Context, v any) (model.CreateListingInput, error) {
@@ -19263,13 +25426,13 @@ func (ec *executionContext) unmarshalNCreateListingPropertyInput2ᚖhausletᚋin
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCurrencyCode2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx context.Context, v any) (domain.CurrencyCode, error) {
+func (ec *executionContext) unmarshalNCurrencyCode2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx context.Context, v any) (domain1.CurrencyCode, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.CurrencyCode(tmp)
+	res := domain1.CurrencyCode(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCurrencyCode2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx context.Context, sel ast.SelectionSet, v domain.CurrencyCode) graphql.Marshaler {
+func (ec *executionContext) marshalNCurrencyCode2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx context.Context, sel ast.SelectionSet, v domain1.CurrencyCode) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19296,13 +25459,13 @@ func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.S
 	return graphql.WrapContextMarshaler(ctx, res)
 }
 
-func (ec *executionContext) unmarshalNFurnishingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx context.Context, v any) (domain.FurnishingType, error) {
+func (ec *executionContext) unmarshalNFurnishingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx context.Context, v any) (domain1.FurnishingType, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.FurnishingType(tmp)
+	res := domain1.FurnishingType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNFurnishingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx context.Context, sel ast.SelectionSet, v domain.FurnishingType) graphql.Marshaler {
+func (ec *executionContext) marshalNFurnishingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx context.Context, sel ast.SelectionSet, v domain1.FurnishingType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19345,11 +25508,33 @@ func (ec *executionContext) marshalNInt2int64(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) marshalNListing2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing(ctx context.Context, sel ast.SelectionSet, v domain.Listing) graphql.Marshaler {
+func (ec *executionContext) unmarshalNInvitationStatus2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐInvitationStatus(ctx context.Context, v any) (domain.InvitationStatus, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain.InvitationStatus(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInvitationStatus2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐInvitationStatus(ctx context.Context, sel ast.SelectionSet, v domain.InvitationStatus) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNInviteMemberInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInviteMemberInput(ctx context.Context, v any) (model.InviteMemberInput, error) {
+	res, err := ec.unmarshalInputInviteMemberInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNListing2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing(ctx context.Context, sel ast.SelectionSet, v domain1.Listing) graphql.Marshaler {
 	return ec._Listing(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNListing2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing(ctx context.Context, sel ast.SelectionSet, v *domain.Listing) graphql.Marshaler {
+func (ec *executionContext) marshalNListing2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing(ctx context.Context, sel ast.SelectionSet, v *domain1.Listing) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -19427,11 +25612,11 @@ func (ec *executionContext) marshalNListingEdge2ᚖhausletᚋinternalᚋtranspor
 	return ec._ListingEdge(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNListingMedia2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingMedia(ctx context.Context, sel ast.SelectionSet, v domain.ListingMedia) graphql.Marshaler {
+func (ec *executionContext) marshalNListingMedia2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingMedia(ctx context.Context, sel ast.SelectionSet, v domain1.ListingMedia) graphql.Marshaler {
 	return ec._ListingMedia(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNListingMedia2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingMediaᚄ(ctx context.Context, sel ast.SelectionSet, v []domain.ListingMedia) graphql.Marshaler {
+func (ec *executionContext) marshalNListingMedia2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingMediaᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.ListingMedia) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -19475,13 +25660,13 @@ func (ec *executionContext) marshalNListingMedia2ᚕhausletᚋinternalᚋmodules
 	return ret
 }
 
-func (ec *executionContext) unmarshalNListingStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingStatus(ctx context.Context, v any) (domain.ListingStatus, error) {
+func (ec *executionContext) unmarshalNListingStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingStatus(ctx context.Context, v any) (domain1.ListingStatus, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.ListingStatus(tmp)
+	res := domain1.ListingStatus(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNListingStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingStatus(ctx context.Context, sel ast.SelectionSet, v domain.ListingStatus) graphql.Marshaler {
+func (ec *executionContext) marshalNListingStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingStatus(ctx context.Context, sel ast.SelectionSet, v domain1.ListingStatus) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19492,13 +25677,13 @@ func (ec *executionContext) marshalNListingStatus2hausletᚋinternalᚋmodules�
 	return res
 }
 
-func (ec *executionContext) unmarshalNListingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingType(ctx context.Context, v any) (domain.ListingType, error) {
+func (ec *executionContext) unmarshalNListingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingType(ctx context.Context, v any) (domain1.ListingType, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.ListingType(tmp)
+	res := domain1.ListingType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNListingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingType(ctx context.Context, sel ast.SelectionSet, v domain.ListingType) graphql.Marshaler {
+func (ec *executionContext) marshalNListingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingType(ctx context.Context, sel ast.SelectionSet, v domain1.ListingType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19563,13 +25748,13 @@ func (ec *executionContext) marshalNListingWithDistance2ᚖhausletᚋinternalᚋ
 	return ec._ListingWithDistance(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNMediaType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐMediaType(ctx context.Context, v any) (domain.MediaType, error) {
+func (ec *executionContext) unmarshalNMediaType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐMediaType(ctx context.Context, v any) (domain1.MediaType, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.MediaType(tmp)
+	res := domain1.MediaType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNMediaType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐMediaType(ctx context.Context, sel ast.SelectionSet, v domain.MediaType) graphql.Marshaler {
+func (ec *executionContext) marshalNMediaType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐMediaType(ctx context.Context, sel ast.SelectionSet, v domain1.MediaType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19580,13 +25765,39 @@ func (ec *executionContext) marshalNMediaType2hausletᚋinternalᚋmodulesᚋpro
 	return res
 }
 
-func (ec *executionContext) unmarshalNOwnerType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx context.Context, v any) (domain.OwnerType, error) {
-	tmp, err := graphql.UnmarshalString(v)
-	res := domain.OwnerType(tmp)
+func (ec *executionContext) marshalNMemberPermissions2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberPermissions(ctx context.Context, sel ast.SelectionSet, v domain.MemberPermissions) graphql.Marshaler {
+	return ec._MemberPermissions(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNMemberPermissionsInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput(ctx context.Context, v any) (model.MemberPermissionsInput, error) {
+	res, err := ec.unmarshalInputMemberPermissionsInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNOwnerType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx context.Context, sel ast.SelectionSet, v domain.OwnerType) graphql.Marshaler {
+func (ec *executionContext) unmarshalNMemberRole2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberRole(ctx context.Context, v any) (domain.MemberRole, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain.MemberRole(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNMemberRole2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberRole(ctx context.Context, sel ast.SelectionSet, v domain.MemberRole) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNOwnerType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx context.Context, v any) (domain1.OwnerType, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain1.OwnerType(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNOwnerType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx context.Context, sel ast.SelectionSet, v domain1.OwnerType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19607,13 +25818,13 @@ func (ec *executionContext) marshalNPageInfo2ᚖhausletᚋinternalᚋtransport�
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNPaymentPeriod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx context.Context, v any) (domain.PaymentPeriod, error) {
+func (ec *executionContext) unmarshalNPaymentPeriod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx context.Context, v any) (domain1.PaymentPeriod, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.PaymentPeriod(tmp)
+	res := domain1.PaymentPeriod(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPaymentPeriod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx context.Context, sel ast.SelectionSet, v domain.PaymentPeriod) graphql.Marshaler {
+func (ec *executionContext) marshalNPaymentPeriod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx context.Context, sel ast.SelectionSet, v domain1.PaymentPeriod) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19624,11 +25835,11 @@ func (ec *executionContext) marshalNPaymentPeriod2hausletᚋinternalᚋmodules�
 	return res
 }
 
-func (ec *executionContext) marshalNProfile2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v domain1.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalNProfile2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v domain2.Profile) graphql.Marshaler {
 	return ec._Profile(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProfile2ᚕᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfileᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain1.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalNProfile2ᚕᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfileᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain2.Profile) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -19672,7 +25883,7 @@ func (ec *executionContext) marshalNProfile2ᚕᚖhausletᚋinternalᚋmodules�
 	return ret
 }
 
-func (ec *executionContext) marshalNProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain1.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalNProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain2.Profile) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -19682,11 +25893,11 @@ func (ec *executionContext) marshalNProfile2ᚖhausletᚋinternalᚋmodulesᚋpr
 	return ec._Profile(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNProperty2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐProperty(ctx context.Context, sel ast.SelectionSet, v domain.Property) graphql.Marshaler {
+func (ec *executionContext) marshalNProperty2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐProperty(ctx context.Context, sel ast.SelectionSet, v domain1.Property) graphql.Marshaler {
 	return ec._Property(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProperty2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐProperty(ctx context.Context, sel ast.SelectionSet, v *domain.Property) graphql.Marshaler {
+func (ec *executionContext) marshalNProperty2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐProperty(ctx context.Context, sel ast.SelectionSet, v *domain1.Property) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -19696,13 +25907,13 @@ func (ec *executionContext) marshalNProperty2ᚖhausletᚋinternalᚋmodulesᚋp
 	return ec._Property(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNPropertyClass2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, v any) (domain.PropertyClass, error) {
+func (ec *executionContext) unmarshalNPropertyClass2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, v any) (domain1.PropertyClass, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.PropertyClass(tmp)
+	res := domain1.PropertyClass(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPropertyClass2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, sel ast.SelectionSet, v domain.PropertyClass) graphql.Marshaler {
+func (ec *executionContext) marshalNPropertyClass2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, sel ast.SelectionSet, v domain1.PropertyClass) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19713,13 +25924,13 @@ func (ec *executionContext) marshalNPropertyClass2hausletᚋinternalᚋmodules�
 	return res
 }
 
-func (ec *executionContext) unmarshalNPropertyCondition2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx context.Context, v any) (domain.PropertyCondition, error) {
+func (ec *executionContext) unmarshalNPropertyCondition2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx context.Context, v any) (domain1.PropertyCondition, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.PropertyCondition(tmp)
+	res := domain1.PropertyCondition(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPropertyCondition2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx context.Context, sel ast.SelectionSet, v domain.PropertyCondition) graphql.Marshaler {
+func (ec *executionContext) marshalNPropertyCondition2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx context.Context, sel ast.SelectionSet, v domain1.PropertyCondition) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19730,13 +25941,13 @@ func (ec *executionContext) marshalNPropertyCondition2hausletᚋinternalᚋmodul
 	return res
 }
 
-func (ec *executionContext) unmarshalNPropertyType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx context.Context, v any) (domain.PropertyType, error) {
+func (ec *executionContext) unmarshalNPropertyType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx context.Context, v any) (domain1.PropertyType, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.PropertyType(tmp)
+	res := domain1.PropertyType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNPropertyType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx context.Context, sel ast.SelectionSet, v domain.PropertyType) graphql.Marshaler {
+func (ec *executionContext) marshalNPropertyType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx context.Context, sel ast.SelectionSet, v domain1.PropertyType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19747,13 +25958,13 @@ func (ec *executionContext) marshalNPropertyType2hausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
-func (ec *executionContext) unmarshalNReviewStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐReviewStatus(ctx context.Context, v any) (domain.ReviewStatus, error) {
+func (ec *executionContext) unmarshalNReviewStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐReviewStatus(ctx context.Context, v any) (domain1.ReviewStatus, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.ReviewStatus(tmp)
+	res := domain1.ReviewStatus(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNReviewStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐReviewStatus(ctx context.Context, sel ast.SelectionSet, v domain.ReviewStatus) graphql.Marshaler {
+func (ec *executionContext) marshalNReviewStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐReviewStatus(ctx context.Context, sel ast.SelectionSet, v domain1.ReviewStatus) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19764,13 +25975,13 @@ func (ec *executionContext) marshalNReviewStatus2hausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
-func (ec *executionContext) unmarshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, v any) (domain2.UserRole, error) {
+func (ec *executionContext) unmarshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, v any) (domain3.UserRole, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain2.UserRole(tmp)
+	res := domain3.UserRole(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, sel ast.SelectionSet, v domain2.UserRole) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, sel ast.SelectionSet, v domain3.UserRole) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19781,13 +25992,13 @@ func (ec *executionContext) marshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋd
 	return res
 }
 
-func (ec *executionContext) unmarshalNRuleCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleCategory(ctx context.Context, v any) (domain.RuleCategory, error) {
+func (ec *executionContext) unmarshalNRuleCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleCategory(ctx context.Context, v any) (domain1.RuleCategory, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.RuleCategory(tmp)
+	res := domain1.RuleCategory(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNRuleCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleCategory(ctx context.Context, sel ast.SelectionSet, v domain.RuleCategory) graphql.Marshaler {
+func (ec *executionContext) marshalNRuleCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleCategory(ctx context.Context, sel ast.SelectionSet, v domain1.RuleCategory) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -19798,11 +26009,11 @@ func (ec *executionContext) marshalNRuleCategory2hausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
-func (ec *executionContext) marshalNRuleGroup2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroup(ctx context.Context, sel ast.SelectionSet, v domain.RuleGroup) graphql.Marshaler {
+func (ec *executionContext) marshalNRuleGroup2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroup(ctx context.Context, sel ast.SelectionSet, v domain1.RuleGroup) graphql.Marshaler {
 	return ec._RuleGroup(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNRuleGroup2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []domain.RuleGroup) graphql.Marshaler {
+func (ec *executionContext) marshalNRuleGroup2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.RuleGroup) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -19905,7 +26116,7 @@ func (ec *executionContext) marshalNScoredListing2ᚖhausletᚋinternalᚋtransp
 	return ec._ScoredListing(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNServiceCharge2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceCharge(ctx context.Context, sel ast.SelectionSet, v *domain.ServiceCharge) graphql.Marshaler {
+func (ec *executionContext) marshalNServiceCharge2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceCharge(ctx context.Context, sel ast.SelectionSet, v *domain1.ServiceCharge) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -19966,7 +26177,7 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) marshalNThumbnailVariant2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐThumbnailVariantᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain.ThumbnailVariant) graphql.Marshaler {
+func (ec *executionContext) marshalNThumbnailVariant2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐThumbnailVariantᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain1.ThumbnailVariant) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -20010,7 +26221,7 @@ func (ec *executionContext) marshalNThumbnailVariant2ᚕᚖhausletᚋinternalᚋ
 	return ret
 }
 
-func (ec *executionContext) marshalNThumbnailVariant2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐThumbnailVariant(ctx context.Context, sel ast.SelectionSet, v *domain.ThumbnailVariant) graphql.Marshaler {
+func (ec *executionContext) marshalNThumbnailVariant2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐThumbnailVariant(ctx context.Context, sel ast.SelectionSet, v *domain1.ThumbnailVariant) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -20036,11 +26247,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalNTravelCompanion2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐTravelCompanion(ctx context.Context, sel ast.SelectionSet, v domain1.TravelCompanion) graphql.Marshaler {
+func (ec *executionContext) marshalNTravelCompanion2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐTravelCompanion(ctx context.Context, sel ast.SelectionSet, v domain2.TravelCompanion) graphql.Marshaler {
 	return ec._TravelCompanion(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTravelCompanion2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐTravelCompanionᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.TravelCompanion) graphql.Marshaler {
+func (ec *executionContext) marshalNTravelCompanion2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐTravelCompanionᚄ(ctx context.Context, sel ast.SelectionSet, v []domain2.TravelCompanion) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -20098,6 +26309,11 @@ func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx
 	return ec._UUID(ctx, sel, &v)
 }
 
+func (ec *executionContext) unmarshalNUpdateBusinessInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateBusinessInput(ctx context.Context, v any) (model.UpdateBusinessInput, error) {
+	res, err := ec.unmarshalInputUpdateBusinessInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNUpdateListingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateListingInput(ctx context.Context, v any) (model.UpdateListingInput, error) {
 	res, err := ec.unmarshalInputUpdateListingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -20122,17 +26338,17 @@ func (ec *executionContext) marshalNUploadResult2ᚖhausletᚋinternalᚋtranspo
 	return ec._UploadResult(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNUserIdentity2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentity(ctx context.Context, sel ast.SelectionSet, v domain2.UserIdentity) graphql.Marshaler {
+func (ec *executionContext) marshalNUserIdentity2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentity(ctx context.Context, sel ast.SelectionSet, v domain3.UserIdentity) graphql.Marshaler {
 	return ec._UserIdentity(ctx, sel, &v)
 }
 
-func (ec *executionContext) unmarshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx context.Context, v any) (domain1.UserType, error) {
+func (ec *executionContext) unmarshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx context.Context, v any) (domain2.UserType, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain1.UserType(tmp)
+	res := domain2.UserType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx context.Context, sel ast.SelectionSet, v domain1.UserType) graphql.Marshaler {
+func (ec *executionContext) marshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx context.Context, sel ast.SelectionSet, v domain2.UserType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -20143,11 +26359,11 @@ func (ec *executionContext) marshalNUserType2hausletᚋinternalᚋmodulesᚋprof
 	return res
 }
 
-func (ec *executionContext) unmarshalNUserType2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserTypeᚄ(ctx context.Context, v any) ([]domain1.UserType, error) {
+func (ec *executionContext) unmarshalNUserType2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserTypeᚄ(ctx context.Context, v any) ([]domain2.UserType, error) {
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]domain1.UserType, len(vSlice))
+	res := make([]domain2.UserType, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx, vSlice[i])
@@ -20158,7 +26374,7 @@ func (ec *executionContext) unmarshalNUserType2ᚕhausletᚋinternalᚋmodules�
 	return res, nil
 }
 
-func (ec *executionContext) marshalNUserType2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.UserType) graphql.Marshaler {
+func (ec *executionContext) marshalNUserType2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain2.UserType) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -20503,16 +26719,38 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) unmarshalOCountryCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCountryCode(ctx context.Context, v any) (*domain.CountryCode, error) {
+func (ec *executionContext) marshalOBusiness2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness(ctx context.Context, sel ast.SelectionSet, v *domain.Business) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Business(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOBusinessAddressInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBusinessAddressInput(ctx context.Context, v any) (*model.BusinessAddressInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputBusinessAddressInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember(ctx context.Context, sel ast.SelectionSet, v *domain.BusinessMember) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._BusinessMember(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOCountryCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCountryCode(ctx context.Context, v any) (*domain1.CountryCode, error) {
 	if v == nil {
 		return nil, nil
 	}
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.CountryCode(tmp)
+	res := domain1.CountryCode(tmp)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOCountryCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCountryCode(ctx context.Context, sel ast.SelectionSet, v *domain.CountryCode) graphql.Marshaler {
+func (ec *executionContext) marshalOCountryCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCountryCode(ctx context.Context, sel ast.SelectionSet, v *domain1.CountryCode) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20522,16 +26760,16 @@ func (ec *executionContext) marshalOCountryCode2ᚖhausletᚋinternalᚋmodules�
 	return res
 }
 
-func (ec *executionContext) unmarshalOCurrencyCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx context.Context, v any) (*domain.CurrencyCode, error) {
+func (ec *executionContext) unmarshalOCurrencyCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx context.Context, v any) (*domain1.CurrencyCode, error) {
 	if v == nil {
 		return nil, nil
 	}
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.CurrencyCode(tmp)
+	res := domain1.CurrencyCode(tmp)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOCurrencyCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx context.Context, sel ast.SelectionSet, v *domain.CurrencyCode) graphql.Marshaler {
+func (ec *executionContext) marshalOCurrencyCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx context.Context, sel ast.SelectionSet, v *domain1.CurrencyCode) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20558,16 +26796,16 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 	return graphql.WrapContextMarshaler(ctx, res)
 }
 
-func (ec *executionContext) unmarshalOFurnishingType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx context.Context, v any) (*domain.FurnishingType, error) {
+func (ec *executionContext) unmarshalOFurnishingType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx context.Context, v any) (*domain1.FurnishingType, error) {
 	if v == nil {
 		return nil, nil
 	}
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.FurnishingType(tmp)
+	res := domain1.FurnishingType(tmp)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOFurnishingType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx context.Context, sel ast.SelectionSet, v *domain.FurnishingType) graphql.Marshaler {
+func (ec *executionContext) marshalOFurnishingType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx context.Context, sel ast.SelectionSet, v *domain1.FurnishingType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20607,14 +26845,14 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) marshalOListing2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing(ctx context.Context, sel ast.SelectionSet, v *domain.Listing) graphql.Marshaler {
+func (ec *executionContext) marshalOListing2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing(ctx context.Context, sel ast.SelectionSet, v *domain1.Listing) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Listing(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOListingCompleteness2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingCompleteness(ctx context.Context, sel ast.SelectionSet, v *domain.ListingCompleteness) graphql.Marshaler {
+func (ec *executionContext) marshalOListingCompleteness2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingCompleteness(ctx context.Context, sel ast.SelectionSet, v *domain1.ListingCompleteness) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20629,14 +26867,14 @@ func (ec *executionContext) unmarshalOListingFilterInput2ᚖhausletᚋinternal�
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOListingStatus2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingStatusᚄ(ctx context.Context, v any) ([]domain.ListingStatus, error) {
+func (ec *executionContext) unmarshalOListingStatus2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingStatusᚄ(ctx context.Context, v any) ([]domain1.ListingStatus, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]domain.ListingStatus, len(vSlice))
+	res := make([]domain1.ListingStatus, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNListingStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingStatus(ctx, vSlice[i])
@@ -20647,7 +26885,7 @@ func (ec *executionContext) unmarshalOListingStatus2ᚕhausletᚋinternalᚋmodu
 	return res, nil
 }
 
-func (ec *executionContext) marshalOListingStatus2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingStatusᚄ(ctx context.Context, sel ast.SelectionSet, v []domain.ListingStatus) graphql.Marshaler {
+func (ec *executionContext) marshalOListingStatus2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingStatusᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.ListingStatus) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20694,14 +26932,14 @@ func (ec *executionContext) marshalOListingStatus2ᚕhausletᚋinternalᚋmodule
 	return ret
 }
 
-func (ec *executionContext) unmarshalOListingType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingTypeᚄ(ctx context.Context, v any) ([]domain.ListingType, error) {
+func (ec *executionContext) unmarshalOListingType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingTypeᚄ(ctx context.Context, v any) ([]domain1.ListingType, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]domain.ListingType, len(vSlice))
+	res := make([]domain1.ListingType, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNListingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingType(ctx, vSlice[i])
@@ -20712,7 +26950,7 @@ func (ec *executionContext) unmarshalOListingType2ᚕhausletᚋinternalᚋmodule
 	return res, nil
 }
 
-func (ec *executionContext) marshalOListingType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain.ListingType) graphql.Marshaler {
+func (ec *executionContext) marshalOListingType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.ListingType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20759,7 +26997,7 @@ func (ec *executionContext) marshalOListingType2ᚕhausletᚋinternalᚋmodules�
 	return ret
 }
 
-func (ec *executionContext) marshalOLocation2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐLocation(ctx context.Context, sel ast.SelectionSet, v *domain.Location) graphql.Marshaler {
+func (ec *executionContext) marshalOLocation2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐLocation(ctx context.Context, sel ast.SelectionSet, v *domain1.Location) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20774,14 +27012,29 @@ func (ec *executionContext) unmarshalOLocationInput2ᚖhausletᚋinternalᚋtran
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOOwnerType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerTypeᚄ(ctx context.Context, v any) ([]domain.OwnerType, error) {
+func (ec *executionContext) marshalOMemberPermissions2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberPermissions(ctx context.Context, sel ast.SelectionSet, v *domain.MemberPermissions) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._MemberPermissions(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOMemberPermissionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput(ctx context.Context, v any) (*model.MemberPermissionsInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputMemberPermissionsInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOOwnerType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerTypeᚄ(ctx context.Context, v any) ([]domain1.OwnerType, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]domain.OwnerType, len(vSlice))
+	res := make([]domain1.OwnerType, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNOwnerType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx, vSlice[i])
@@ -20792,7 +27045,7 @@ func (ec *executionContext) unmarshalOOwnerType2ᚕhausletᚋinternalᚋmodules�
 	return res, nil
 }
 
-func (ec *executionContext) marshalOOwnerType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain.OwnerType) graphql.Marshaler {
+func (ec *executionContext) marshalOOwnerType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.OwnerType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20839,16 +27092,16 @@ func (ec *executionContext) marshalOOwnerType2ᚕhausletᚋinternalᚋmodulesᚋ
 	return ret
 }
 
-func (ec *executionContext) unmarshalOOwnerType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx context.Context, v any) (*domain.OwnerType, error) {
+func (ec *executionContext) unmarshalOOwnerType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx context.Context, v any) (*domain1.OwnerType, error) {
 	if v == nil {
 		return nil, nil
 	}
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.OwnerType(tmp)
+	res := domain1.OwnerType(tmp)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOOwnerType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx context.Context, sel ast.SelectionSet, v *domain.OwnerType) graphql.Marshaler {
+func (ec *executionContext) marshalOOwnerType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx context.Context, sel ast.SelectionSet, v *domain1.OwnerType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20858,23 +27111,23 @@ func (ec *executionContext) marshalOOwnerType2ᚖhausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
-func (ec *executionContext) marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain1.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain2.Profile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Profile(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOPropertyClass2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, v any) (*domain.PropertyClass, error) {
+func (ec *executionContext) unmarshalOPropertyClass2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, v any) (*domain1.PropertyClass, error) {
 	if v == nil {
 		return nil, nil
 	}
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.PropertyClass(tmp)
+	res := domain1.PropertyClass(tmp)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOPropertyClass2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, sel ast.SelectionSet, v *domain.PropertyClass) graphql.Marshaler {
+func (ec *executionContext) marshalOPropertyClass2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, sel ast.SelectionSet, v *domain1.PropertyClass) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20884,16 +27137,16 @@ func (ec *executionContext) marshalOPropertyClass2ᚖhausletᚋinternalᚋmodule
 	return res
 }
 
-func (ec *executionContext) unmarshalOPropertyCondition2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx context.Context, v any) (*domain.PropertyCondition, error) {
+func (ec *executionContext) unmarshalOPropertyCondition2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx context.Context, v any) (*domain1.PropertyCondition, error) {
 	if v == nil {
 		return nil, nil
 	}
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.PropertyCondition(tmp)
+	res := domain1.PropertyCondition(tmp)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOPropertyCondition2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx context.Context, sel ast.SelectionSet, v *domain.PropertyCondition) graphql.Marshaler {
+func (ec *executionContext) marshalOPropertyCondition2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx context.Context, sel ast.SelectionSet, v *domain1.PropertyCondition) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20903,16 +27156,16 @@ func (ec *executionContext) marshalOPropertyCondition2ᚖhausletᚋinternalᚋmo
 	return res
 }
 
-func (ec *executionContext) unmarshalOPropertyType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx context.Context, v any) (*domain.PropertyType, error) {
+func (ec *executionContext) unmarshalOPropertyType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx context.Context, v any) (*domain1.PropertyType, error) {
 	if v == nil {
 		return nil, nil
 	}
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain.PropertyType(tmp)
+	res := domain1.PropertyType(tmp)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOPropertyType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx context.Context, sel ast.SelectionSet, v *domain.PropertyType) graphql.Marshaler {
+func (ec *executionContext) marshalOPropertyType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx context.Context, sel ast.SelectionSet, v *domain1.PropertyType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20922,7 +27175,7 @@ func (ec *executionContext) marshalOPropertyType2ᚖhausletᚋinternalᚋmodules
 	return res
 }
 
-func (ec *executionContext) marshalORentalDetail2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRentalDetail(ctx context.Context, sel ast.SelectionSet, v *domain.RentalDetail) graphql.Marshaler {
+func (ec *executionContext) marshalORentalDetail2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRentalDetail(ctx context.Context, sel ast.SelectionSet, v *domain1.RentalDetail) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -20937,14 +27190,14 @@ func (ec *executionContext) unmarshalORentalDetailInput2ᚖhausletᚋinternalᚋ
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOReviewStatus2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐReviewStatusᚄ(ctx context.Context, v any) ([]domain.ReviewStatus, error) {
+func (ec *executionContext) unmarshalOReviewStatus2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐReviewStatusᚄ(ctx context.Context, v any) ([]domain1.ReviewStatus, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]domain.ReviewStatus, len(vSlice))
+	res := make([]domain1.ReviewStatus, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNReviewStatus2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐReviewStatus(ctx, vSlice[i])
@@ -20955,7 +27208,7 @@ func (ec *executionContext) unmarshalOReviewStatus2ᚕhausletᚋinternalᚋmodul
 	return res, nil
 }
 
-func (ec *executionContext) marshalOReviewStatus2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐReviewStatusᚄ(ctx context.Context, sel ast.SelectionSet, v []domain.ReviewStatus) graphql.Marshaler {
+func (ec *executionContext) marshalOReviewStatus2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐReviewStatusᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.ReviewStatus) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -21020,7 +27273,7 @@ func (ec *executionContext) unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋ
 	return res, nil
 }
 
-func (ec *executionContext) marshalOSaleDetail2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐSaleDetail(ctx context.Context, sel ast.SelectionSet, v *domain.SaleDetail) graphql.Marshaler {
+func (ec *executionContext) marshalOSaleDetail2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐSaleDetail(ctx context.Context, sel ast.SelectionSet, v *domain1.SaleDetail) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -21035,7 +27288,7 @@ func (ec *executionContext) unmarshalOSaleDetailInput2ᚖhausletᚋinternalᚋtr
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOServiceCharge2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain.ServiceCharge) graphql.Marshaler {
+func (ec *executionContext) marshalOServiceCharge2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain1.ServiceCharge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -21100,7 +27353,7 @@ func (ec *executionContext) unmarshalOServiceChargeInput2ᚕᚖhausletᚋinterna
 	return res, nil
 }
 
-func (ec *executionContext) marshalOShortletDetail2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShortletDetail(ctx context.Context, sel ast.SelectionSet, v *domain.ShortletDetail) graphql.Marshaler {
+func (ec *executionContext) marshalOShortletDetail2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShortletDetail(ctx context.Context, sel ast.SelectionSet, v *domain1.ShortletDetail) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -21222,14 +27475,14 @@ func (ec *executionContext) unmarshalOUpdateListingPropertyInput2ᚖhausletᚋin
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOUser2ᚖhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUser(ctx context.Context, sel ast.SelectionSet, v *domain2.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUser(ctx context.Context, sel ast.SelectionSet, v *domain3.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOUserIdentity2ᚕhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentityᚄ(ctx context.Context, sel ast.SelectionSet, v []domain2.UserIdentity) graphql.Marshaler {
+func (ec *executionContext) marshalOUserIdentity2ᚕhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentityᚄ(ctx context.Context, sel ast.SelectionSet, v []domain3.UserIdentity) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
