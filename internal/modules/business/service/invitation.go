@@ -78,7 +78,23 @@ func (s *BusinessServiceImpl) InviteUser(ctx context.Context, businessID uuid.UU
 	}
 
 	s.log.Logf("INFO Invitation created for %s to join business %s", email, businessID)
-	// TODO: Send invitation email
+	if s.notifier != nil {
+		business, err := s.GetBusiness(ctx, businessID)
+		if err != nil {
+			s.log.Logf("WARN Invitation created but failed to load business %s for email: %v", businessID, err)
+		} else {
+			inviterName := s.getProfileName(ctx, invitedBy)
+			if inviterName == "" {
+				inviterName = business.DisplayName
+			}
+			if inviterName == "" {
+				inviterName = business.Name
+			}
+			if err := s.notifier.SendInvitationEmail(ctx, invitation, business, inviterName); err != nil {
+				s.log.Logf("WARN Failed to send invitation email for business %s: %v", businessID, err)
+			}
+		}
+	}
 	return invitation, nil
 }
 
@@ -154,6 +170,35 @@ func (s *BusinessServiceImpl) AcceptInvitation(ctx context.Context, token string
 		return nil, err
 	}
 
+	if s.notifier != nil {
+		business, err := s.GetBusiness(ctx, invitation.BusinessID)
+		if err != nil {
+			s.log.Logf("WARN Invitation accepted but failed to load business %s for email: %v", invitation.BusinessID, err)
+		} else {
+			acceptedName := s.getProfileName(ctx, userID)
+			if acceptedName == "" {
+				acceptedName = invitation.Email
+			}
+			ownerEmails := make([]string, 0, 2)
+			if business.Email != "" {
+				ownerEmails = append(ownerEmails, business.Email)
+			}
+			if business.BillingEmail != nil && *business.BillingEmail != "" {
+				ownerEmails = append(ownerEmails, *business.BillingEmail)
+			}
+
+			if len(ownerEmails) > 0 {
+				if err := s.notifier.SendInvitationAcceptedEmail(ctx, business, acceptedName, invitation.Email, invitation.Role, ownerEmails); err != nil {
+					s.log.Logf("WARN Failed to send invitation accepted email for business %s: %v", business.ID, err)
+				}
+			}
+
+			if err := s.notifier.SendMemberAddedEmail(ctx, member, business, acceptedName, invitation.Email, "Invitation accepted"); err != nil {
+				s.log.Logf("WARN Failed to send member added email for business %s: %v", business.ID, err)
+			}
+		}
+	}
+
 	s.log.Logf("INFO User %s accepted invitation to business %s", userID, invitation.BusinessID)
 	return member, nil
 }
@@ -183,6 +228,30 @@ func (s *BusinessServiceImpl) DeclineInvitation(ctx context.Context, token strin
 	if err := s.repo.UpdateInvitation(ctx, schemaInvitation); err != nil {
 		s.log.Logf("ERROR Failed to decline invitation: %v", err)
 		return fmt.Errorf("failed to decline invitation: %w", err)
+	}
+
+	if s.notifier != nil {
+		business, err := s.GetBusiness(ctx, invitation.BusinessID)
+		if err != nil {
+			s.log.Logf("WARN Invitation declined but failed to load business %s for email: %v", invitation.BusinessID, err)
+		} else {
+			declinerName := s.getProfileName(ctx, userID)
+			if declinerName == "" {
+				declinerName = invitation.Email
+			}
+			ownerEmails := make([]string, 0, 2)
+			if business.Email != "" {
+				ownerEmails = append(ownerEmails, business.Email)
+			}
+			if business.BillingEmail != nil && *business.BillingEmail != "" {
+				ownerEmails = append(ownerEmails, *business.BillingEmail)
+			}
+			if len(ownerEmails) > 0 {
+				if err := s.notifier.SendInvitationDeclinedEmail(ctx, business, declinerName, invitation.Email, ownerEmails); err != nil {
+					s.log.Logf("WARN Failed to send invitation declined email for business %s: %v", business.ID, err)
+				}
+			}
+		}
 	}
 
 	s.log.Logf("INFO User %s declined invitation to business %s", userID, invitation.BusinessID)

@@ -7,6 +7,8 @@ import (
 	authrepository "hauslet/internal/modules/auth/repository"
 	"hauslet/internal/modules/auth/service"
 	authsession "hauslet/internal/modules/auth/session"
+	businessmiddleware "hauslet/internal/modules/business/middleware"
+	businessnotification "hauslet/internal/modules/business/notification"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
 	profileport "hauslet/internal/modules/profile/port/hooks"
@@ -15,6 +17,7 @@ import (
 	propertyhttp "hauslet/internal/modules/property/port/http"
 	propertyrepository "hauslet/internal/modules/property/repository"
 	propertyservice "hauslet/internal/modules/property/service"
+
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
@@ -37,31 +40,36 @@ func setupRoutes(r chi.Router,
 	// Initialize auth service
 	sessionStore := authsession.NewSessionStore(*rds)
 	authRepo := authrepository.NewAuthRepository(db, sessionStore)
+	emailSubject := cfg.YAML.Queue.Subjects["email"]
 
 	// Initialize profile service
 	profileRepo := profilerepository.NewProfileRepository(db)
 	profileService := profileservice.NewProfileService(profileRepo, r2)
-	profileHooks := profileport.NewAuthHooksAdapter(profileService, cfg.Storage.R2.CDNHost)
+	authProfileAdapter := profileport.NewAuthHooksAdapter(profileService, cfg.Storage.R2.CDNHost)
+	businessProfileAdapter := profileport.NewBusinessProfileAdapter(profileService)
 
-	// Initialize property service
+	// Initialize business service (before property service to enable business adapter)
+	businessRepo := businessrepository.NewBusinessRepository(db)
+	businessnotificationService := businessnotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
+	businessService := businessservice.NewBusinessService(
+		businessRepo,
+		businessnotificationService,
+		businessProfileAdapter,
+		log,
+	)
+	businessMW := businessmiddleware.NewMiddleware(businessService, log)
+
+	// Initialize property service with business adapter
 	propertyRepo := propertyrepository.NewPropertyRepository(db)
 	thumbnailSubject := cfg.YAML.Queue.Subjects["media_thumbnail"]
 	propertyService := propertyservice.NewPropertyService(propertyRepo, r2, q, thumbnailSubject)
 
-	// Initialize business service
-	businessRepo := businessrepository.NewBusinessRepository(db)
-	businessService := businessservice.NewBusinessService(businessRepo, log)
-
-	emailSubject := cfg.YAML.Queue.Subjects["email"]
 	authService := service.NewAuthService(
 		&cfg.Auth,
 		authRepo,
-		log,
-		mC,
-		*rds,
-		q,
+		log, mC, *rds, q,
 		emailSubject,
-		profileHooks,
+		authProfileAdapter,
 	)
 
 	// Initialize auth HTTP handler with context
@@ -79,9 +87,15 @@ func setupRoutes(r chi.Router,
 
 	// Setup property routes with optional rate limiting in production
 	if cfg.App.Env == "production" {
-		propertyHTTP.SetupRoutesWithRateLimiting(r, authService, *rds)
+		r.Group(func(r chi.Router) {
+			r.Use(businessMW.Auth.WithTenantSlug)
+			propertyHTTP.SetupRoutesWithRateLimiting(r, authService, *rds)
+		})
 	} else {
-		propertyHTTP.SetupRoutes(r, authService)
+		r.Group(func(r chi.Router) {
+			r.Use(businessMW.Auth.WithTenantSlug)
+			propertyHTTP.SetupRoutes(r, authService)
+		})
 	}
 
 	// Setup GraphQL routes

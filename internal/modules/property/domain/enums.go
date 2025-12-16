@@ -140,14 +140,29 @@ const (
 type RuleCategory string
 
 const (
-	RuleGeneral    RuleCategory = "general"
-	RuleSecurity   RuleCategory = "security"
-	RuleProhibited RuleCategory = "prohibited"
-	RulePets       RuleCategory = "pets"
-	RuleGuests     RuleCategory = "guests"
-	RuleNoise      RuleCategory = "noise"
-	RuleSmoking    RuleCategory = "smoking"
-	RuleEvents     RuleCategory = "events"
+	RuleHouseRules          RuleCategory = "house_rules"
+	RuleGeneral             RuleCategory = "general"
+	RuleCheckInOut          RuleCategory = "check_in_check_out"
+	RuleCancellationPolicy  RuleCategory = "cancellation_policy"
+	RuleSafetyAndDisclosure RuleCategory = "safety_and_disclosure"
+	RuleCustom              RuleCategory = "custom"
+)
+
+type RuleSubCategory string
+
+const (
+	RuleSecurity                 RuleSubCategory = "security"
+	RuleProhibited               RuleSubCategory = "prohibited_activities"
+	RuleCheckInWindow            RuleSubCategory = "check_in_window"
+	RuleCheckOutTime             RuleSubCategory = "check_out_time"
+	RuleCheckinMethod            RuleSubCategory = "check_in_method"
+	RuleSmoking                  RuleSubCategory = "smoking"
+	RulePets                     RuleSubCategory = "pets"
+	RuleEvents                   RuleSubCategory = "events"
+	RuleGuests                   RuleSubCategory = "guests"
+	RuleSelectCancellationPolicy RuleSubCategory = "cancellation_policy"
+	RuleMustKnow                 RuleSubCategory = "must_know"
+	RuleUserCustom               RuleSubCategory = "custom"
 )
 
 // --- 5. MEDIA TYPES ---

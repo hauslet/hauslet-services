@@ -110,14 +110,27 @@ enum AccommodationType {
 }
 
 enum RuleCategory {
+  house_rules
   general
+  check_in_check_out
+  cancellation_policy
+  safety_and_disclosure
+  custom
+}
+
+enum RuleSubCategory {
   security
-  prohibited
-  pets
-  guests
-  noise
+  prohibited_activities
+  check_in_window
+  check_out_time
+  check_in_method
   smoking
+  pets
   events
+  guests
+  cancellation_policy
+  must_know
+  custom
 }
 
 enum MediaType {
@@ -135,6 +148,11 @@ type Location {
   lat: Float!
   lng: Float!
   srid: Int!
+}
+
+type AmenityGroup {
+  group: String!
+  items: [String!]!
 }
 
 type Property {
@@ -164,8 +182,8 @@ type Property {
   squareMeters: Float!
   floorArea: Float
 
-  amenities: [String!]!
-  featuresCommercial: [String!]!
+  amenities: [AmenityGroup!]!
+  featuresCommercial: [AmenityGroup!]!
 
   # Relationships
   listings(first: Int, after: String): ListingConnection!
@@ -179,10 +197,12 @@ type Listing {
   propertyId: UUID!
   ownerId: UUID!
   ownerType: OwnerType!
+  ownerProfile: Profile
 
   slug: String!
   title: String!
   description: String!
+  extraDescription: String
   currency: CurrencyCode!
 
   listingType: ListingType!
@@ -325,9 +345,14 @@ type AmenityHighlight {
   icon: String!
 }
 
+type RuleItem {
+  name: RuleSubCategory!
+  description: [Map!]!
+}
+
 type RuleGroup {
   category: RuleCategory!
-  rules: [String!]!
+  rules: [RuleItem!]!
 }
 
 type ServiceCharge {
@@ -397,11 +422,18 @@ input LocationInput {
   lng: Float!
 }
 
+input AmenityGroupInput {
+  group: String!
+  items: [String!]!
+}
+
 input CreateListingInput {
   ownerType: OwnerType!
+  businessID: UUID  # Required if ownerType is "business"
   property: CreateListingPropertyInput!
   title: String!
   description: String!
+  extraDescription: String
   currency: CurrencyCode
   listingType: ListingType!
 
@@ -416,14 +448,15 @@ input UpdateListingInput {
   property: UpdateListingPropertyInput
   title: String
   description: String
+  extraDescription: String
   currency: CurrencyCode
   ownerType: OwnerType
 
   hasCalendar: Boolean
 
-  shortletDetails: ShortletDetailInput
-  rentalDetails: RentalDetailInput
-  saleDetails: SaleDetailInput
+  shortletDetails: UpdateShortletDetailInput
+  rentalDetails: UpdateRentalDetailInput
+  saleDetails: UpdateSaleDetailInput
 }
 
 input ShortletDetailInput {
@@ -490,15 +523,85 @@ input SaleDetailInput {
   saleAvailabilityFrom: Time
 }
 
+# Update input types - all fields optional for partial updates
+input UpdateShortletDetailInput {
+  nightlyRate: Float
+  cautionFee: Float
+  cleaningFee: Float
+  serviceFee: Float
+  extraGuestFee: Float
+
+  minNights: Int
+  maxNights: Int
+  maxGuests: Int
+  baseGuestCount: Int
+
+  checkInTime: String
+  checkOutTime: String
+
+  accommodationType: AccommodationType
+
+  calendarMonthsAhead: Int
+  autoGenerateCalendar: Boolean
+
+  rules: [RuleGroupInput!]
+  amenitiesHighlights: [AmenityHighlightInput!]
+}
+
+input UpdateRentalDetailInput {
+  rentalPrice: Float
+  rentalPricePeriod: PaymentPeriod
+
+  agencyFee: Float
+  legalFee: Float
+  registrationFee: Float
+  cautionFee: Float
+  serviceCharge: Float
+  serviceCharges: [ServiceChargeInput!]
+
+  minRentalPeriod: Int
+  maxRentalPeriod: Int
+  rentalAvailabilityFrom: Time
+
+  rentalTerms: String
+  rentalRules: [RuleGroupInput!]
+}
+
+input UpdateSaleDetailInput {
+  salePrice: Float
+  ownershipTitle: String
+  paymentPlan: Boolean
+
+  yearBuilt: Int
+  yearRenovated: Int
+
+  agencyFee: Float
+  legalFee: Float
+  surveyFee: Float
+  titleProcessingFee: Float
+  developmentFee: Float
+  otherFees: Float
+  serviceCharge: Float
+  serviceCharges: [ServiceChargeInput!]
+
+  saleTerms: String
+  saleAvailabilityFrom: Time
+}
+
 input AmenityHighlightInput {
   title: String!
   summary: String!
   icon: String!
 }
 
+input RuleItemInput {
+  name: RuleSubCategory!
+  description: [Map!]
+}
+
 input RuleGroupInput {
   category: RuleCategory!
-  rules: [String!]!
+  rules: [RuleItemInput!]!
 }
 
 input ServiceChargeInput {
@@ -539,8 +642,8 @@ input CreateListingPropertyInput {
   squareMeters: Float
   floorArea: Float
 
-  amenities: [String!]
-  featuresCommercial: [String!]
+  amenities: [AmenityGroupInput!]
+  featuresCommercial: [AmenityGroupInput!]
 }
 
 input UpdateListingPropertyInput {
@@ -567,8 +670,8 @@ input UpdateListingPropertyInput {
   squareMeters: Float
   floorArea: Float
 
-  amenities: [String!]
-  featuresCommercial: [String!]
+  amenities: [AmenityGroupInput!]
+  featuresCommercial: [AmenityGroupInput!]
 }
 
 input ListingFilterInput {
@@ -595,6 +698,10 @@ extend type Query {
   listingsByProperty(propertyId: UUID!, first: Int, after: String): ListingConnection!
   myListings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
   listingCompleteness(listingId: UUID!): ListingCompleteness
+
+  # Business-specific queries
+  businessListings(businessId: UUID!, filter: ListingFilterInput, first: Int, after: String): ListingConnection!
+  myIndividualListings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
 
   # Geospatial
   listingsNearPoint(lat: Float!, lng: Float!, radiusMeters: Float!, filter: ListingFilterInput, limit: Int): [ListingWithDistance!]!

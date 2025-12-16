@@ -251,6 +251,163 @@ func mapSaleInputToDomain(input *model.SaleDetailInput) *domain.SaleDetail {
 	}
 }
 
+// Update input mappers for partial updates
+func mapUpdateShortletInputToDomain(input *model.UpdateShortletDetailInput) map[string]any {
+	if input == nil {
+		return map[string]any{}
+	}
+	updates := map[string]any{}
+	if input.NightlyRate != nil {
+		updates["nightly_rate"] = *input.NightlyRate
+	}
+	if input.CautionFee != nil {
+		updates["caution_fee"] = *input.CautionFee
+	}
+	if input.CleaningFee != nil {
+		updates["cleaning_fee"] = *input.CleaningFee
+	}
+	if input.ServiceFee != nil {
+		updates["service_fee"] = *input.ServiceFee
+	}
+	if input.ExtraGuestFee != nil {
+		updates["extra_guest_fee"] = *input.ExtraGuestFee
+	}
+	if input.MinNights != nil {
+		updates["min_nights"] = *input.MinNights
+	}
+	if input.MaxNights != nil {
+		updates["max_nights"] = *input.MaxNights
+	}
+	if input.MaxGuests != nil {
+		updates["max_guests"] = *input.MaxGuests
+	}
+	if input.BaseGuestCount != nil {
+		updates["base_guest_count"] = *input.BaseGuestCount
+	}
+	if input.CheckInTime != nil {
+		updates["check_in_time"] = *input.CheckInTime
+	}
+	if input.CheckOutTime != nil {
+		updates["check_out_time"] = *input.CheckOutTime
+	}
+	if input.AccommodationType != nil {
+		updates["accommodation_type"] = *input.AccommodationType
+	}
+	if input.CalendarMonthsAhead != nil {
+		updates["calendar_months_ahead"] = *input.CalendarMonthsAhead
+	}
+	if input.AutoGenerateCalendar != nil {
+		updates["auto_generate_calendar"] = *input.AutoGenerateCalendar
+	}
+	if input.Rules != nil {
+		updates["rules"] = mapRuleGroupInputs(input.Rules)
+	}
+	if input.AmenitiesHighlights != nil {
+		updates["amenities_highlights"] = mapAmenityHighlightInputs(input.AmenitiesHighlights)
+	}
+	return updates
+}
+
+func mapUpdateRentalInputToDomain(input *model.UpdateRentalDetailInput) map[string]any {
+	if input == nil {
+		return map[string]any{}
+	}
+	updates := map[string]any{}
+	if input.RentalPrice != nil {
+		updates["rental_price"] = *input.RentalPrice
+	}
+	if input.RentalPricePeriod != nil {
+		updates["rental_price_period"] = *input.RentalPricePeriod
+	}
+	if input.AgencyFee != nil {
+		updates["agency_fee"] = *input.AgencyFee
+	}
+	if input.LegalFee != nil {
+		updates["legal_fee"] = *input.LegalFee
+	}
+	if input.RegistrationFee != nil {
+		updates["registration_fee"] = *input.RegistrationFee
+	}
+	if input.CautionFee != nil {
+		updates["caution_fee"] = *input.CautionFee
+	}
+	if input.ServiceCharge != nil {
+		updates["service_charge"] = *input.ServiceCharge
+	}
+	if input.ServiceCharges != nil {
+		updates["service_charge_breakdown"] = mapServiceChargeInputs(input.ServiceCharges)
+	}
+	if input.MinRentalPeriod != nil {
+		updates["min_rental_period"] = *input.MinRentalPeriod
+	}
+	if input.MaxRentalPeriod != nil {
+		updates["max_rental_period"] = *input.MaxRentalPeriod
+	}
+	if input.RentalAvailabilityFrom != nil {
+		updates["rental_availability_from"] = *input.RentalAvailabilityFrom
+	}
+	if input.RentalTerms != nil {
+		updates["rental_terms"] = *input.RentalTerms
+	}
+	if input.RentalRules != nil {
+		updates["rental_rules"] = mapRuleGroupInputs(input.RentalRules)
+	}
+	return updates
+}
+
+func mapUpdateSaleInputToDomain(input *model.UpdateSaleDetailInput) map[string]any {
+	if input == nil {
+		return map[string]any{}
+	}
+	updates := map[string]any{}
+	if input.SalePrice != nil {
+		updates["sale_price"] = *input.SalePrice
+	}
+	if input.OwnershipTitle != nil {
+		updates["ownership_title"] = *input.OwnershipTitle
+	}
+	if input.PaymentPlan != nil {
+		updates["payment_plan"] = *input.PaymentPlan
+	}
+	if input.YearBuilt != nil {
+		updates["year_built"] = *input.YearBuilt
+	}
+	if input.YearRenovated != nil {
+		updates["year_renovated"] = *input.YearRenovated
+	}
+	if input.AgencyFee != nil {
+		updates["agency_fee"] = *input.AgencyFee
+	}
+	if input.LegalFee != nil {
+		updates["legal_fee"] = *input.LegalFee
+	}
+	if input.SurveyFee != nil {
+		updates["survey_fee"] = *input.SurveyFee
+	}
+	if input.TitleProcessingFee != nil {
+		updates["title_processing_fee"] = *input.TitleProcessingFee
+	}
+	if input.DevelopmentFee != nil {
+		updates["development_fee"] = *input.DevelopmentFee
+	}
+	if input.OtherFees != nil {
+		updates["other_fees"] = *input.OtherFees
+	}
+	if input.ServiceCharge != nil {
+		updates["service_charge"] = *input.ServiceCharge
+	}
+	if input.ServiceCharges != nil {
+		updates["service_charge_breakdown"] = mapServiceChargeInputs(input.ServiceCharges)
+	}
+	if input.SaleTerms != nil {
+		updates["sale_terms"] = *input.SaleTerms
+	}
+	if input.SaleAvailabilityFrom != nil {
+		updates["sale_availability_from"] = *input.SaleAvailabilityFrom
+	}
+	return updates
+}
+
 func mapRuleGroupInputs(inputs []*model.RuleGroupInput) []domain.RuleGroup {
 	if len(inputs) == 0 {
 		return []domain.RuleGroup{}
@@ -262,10 +419,32 @@ func mapRuleGroupInputs(inputs []*model.RuleGroupInput) []domain.RuleGroup {
 		}
 		rules[i] = domain.RuleGroup{
 			Category: domain.RuleCategory(input.Category),
-			Rules:    input.Rules,
+			Rules:    mapRuleItems(input.Rules),
 		}
 	}
 	return rules
+}
+
+func mapRuleItems(inputs []*model.RuleItemInput) []domain.RuleItem {
+	if len(inputs) == 0 {
+		return []domain.RuleItem{}
+	}
+	items := make([]domain.RuleItem, len(inputs))
+	for i, input := range inputs {
+		if input == nil {
+			continue
+		}
+		// Default to empty description if not provided
+		description := []map[string]any{}
+		if input.Description != nil {
+			description = input.Description
+		}
+		items[i] = domain.RuleItem{
+			Name:        domain.RuleSubCategory(input.Name),
+			Description: description,
+		}
+	}
+	return items
 }
 
 func mapAmenityHighlightInputs(inputs []*model.AmenityHighlightInput) []domain.AmenityHighlight {
@@ -304,6 +483,24 @@ func mapServiceChargeInputs(inputs []*model.ServiceChargeInput) *[]domain.Servic
 	return &charges
 }
 
+// mapAmenityGroupInputsToDomain converts AmenityGroupInput slice to domain AmenityGroup slice
+func mapAmenityGroupInputsToDomain(inputs []*model.AmenityGroupInput) []domain.AmenityGroup {
+	if len(inputs) == 0 {
+		return []domain.AmenityGroup{}
+	}
+	groups := make([]domain.AmenityGroup, len(inputs))
+	for i, input := range inputs {
+		if input == nil {
+			continue
+		}
+		groups[i] = domain.AmenityGroup{
+			Group: input.Group,
+			Items: input.Items,
+		}
+	}
+	return groups
+}
+
 // mapCreateListingInput converts the CreateListingInput into a domain listing with sane defaults.
 func mapCreateListingInput(input model.CreateListingInput, ownerID uuid.UUID) domain.Listing {
 	listing := domain.Listing{
@@ -311,6 +508,7 @@ func mapCreateListingInput(input model.CreateListingInput, ownerID uuid.UUID) do
 		OwnerType:          input.OwnerType,
 		Title:              input.Title,
 		Description:        input.Description,
+		ExtraDescription:   stringOrDefault(input.ExtraDescription, ""),
 		Currency:           defaultCurrency(input.Currency),
 		ListingType:        input.ListingType,
 		Status:             domain.StatusDraft,
@@ -345,6 +543,9 @@ func mapListingUpdateInput(input *model.UpdateListingInput) map[string]any {
 	if input.Description != nil {
 		updates["description"] = *input.Description
 	}
+	if input.ExtraDescription != nil {
+		updates["extra_description"] = *input.ExtraDescription
+	}
 	if input.Currency != nil {
 		updates["currency"] = *input.Currency
 	}
@@ -355,13 +556,13 @@ func mapListingUpdateInput(input *model.UpdateListingInput) map[string]any {
 		updates["has_calendar"] = *input.HasCalendar
 	}
 	if input.ShortletDetails != nil {
-		updates["shortlet_details"] = mapShortletInputToDomain(input.ShortletDetails)
+		updates["shortlet_details"] = mapUpdateShortletInputToDomain(input.ShortletDetails)
 	}
 	if input.RentalDetails != nil {
-		updates["rental_details"] = mapRentalInputToDomain(input.RentalDetails)
+		updates["rental_details"] = mapUpdateRentalInputToDomain(input.RentalDetails)
 	}
 	if input.SaleDetails != nil {
-		updates["sale_details"] = mapSaleInputToDomain(input.SaleDetails)
+		updates["sale_details"] = mapUpdateSaleInputToDomain(input.SaleDetails)
 	}
 	return updates
 }
@@ -372,27 +573,25 @@ func mapCreateListingPropertyInput(input *model.CreateListingPropertyInput, owne
 		return nil
 	}
 	prop := &domain.Property{
-		UnitNumber:         stringOrDefault(input.UnitNumber, ""),
-		Address:            input.Address,
-		City:               input.City,
-		State:              input.State,
-		PostalCode:         stringOrDefault(input.PostalCode, ""),
-		Country:            input.Country,
-		PropertyClass:      input.PropertyClass,
-		PropertyType:       input.PropertyType,
-		FurnishingType:     furnishingTypeOrDefault(input.FurnishingType),
-		PropertyCondition:  propertyConditionOrDefault(input.PropertyCondition),
-		OwnerID:            ownerID,
-		Bedrooms:           input.Bedrooms,
-		Bathrooms:          input.Bathrooms,
-		Toilets:            input.Toilets,
-		HalfBathrooms:      input.HalfBathrooms,
-		Floors:             input.Floors,
-		Units:              intOrDefault(input.Units, 1),
-		SquareMeters:       floatOrDefault(input.SquareMeters, 0),
-		FloorArea:          input.FloorArea,
-		Amenities:          input.Amenities,
-		FeaturesCommercial: input.FeaturesCommercial,
+		UnitNumber:        stringOrDefault(input.UnitNumber, ""),
+		Address:           input.Address,
+		City:              input.City,
+		State:             input.State,
+		PostalCode:        stringOrDefault(input.PostalCode, ""),
+		Country:           input.Country,
+		PropertyClass:     input.PropertyClass,
+		PropertyType:      input.PropertyType,
+		FurnishingType:    furnishingTypeOrDefault(input.FurnishingType),
+		PropertyCondition: propertyConditionOrDefault(input.PropertyCondition),
+		OwnerID:           ownerID,
+		Bedrooms:          input.Bedrooms,
+		Bathrooms:         input.Bathrooms,
+		Toilets:           input.Toilets,
+		HalfBathrooms:     input.HalfBathrooms,
+		Floors:            input.Floors,
+		Units:             intOrDefault(input.Units, 1),
+		SquareMeters:      floatOrDefault(input.SquareMeters, 0),
+		FloorArea:         input.FloorArea,
 	}
 	if input.Location != nil {
 		prop.Location = &domain.Location{
@@ -401,6 +600,15 @@ func mapCreateListingPropertyInput(input *model.CreateListingPropertyInput, owne
 			SRID: 4326,
 		}
 	}
+
+	// Convert AmenityGroupInput to domain AmenityGroup
+	if len(input.Amenities) > 0 {
+		prop.Amenities = mapAmenityGroupInputsToDomain(input.Amenities)
+	}
+	if len(input.FeaturesCommercial) > 0 {
+		prop.FeaturesCommercial = mapAmenityGroupInputsToDomain(input.FeaturesCommercial)
+	}
+
 	return prop
 }
 
@@ -465,10 +673,10 @@ func mapUpdateListingPropertyInput(input *model.UpdateListingPropertyInput) map[
 		updates["floor_area"] = *input.FloorArea
 	}
 	if input.Amenities != nil {
-		updates["amenities"] = input.Amenities
+		updates["amenities"] = mapAmenityGroupInputsToDomain(input.Amenities)
 	}
 	if input.FeaturesCommercial != nil {
-		updates["features_commercial"] = input.FeaturesCommercial
+		updates["features_commercial"] = mapAmenityGroupInputsToDomain(input.FeaturesCommercial)
 	}
 	if input.Location != nil {
 		updates["location"] = &domain.Location{

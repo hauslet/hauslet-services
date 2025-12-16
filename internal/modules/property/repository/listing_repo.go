@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"hauslet/internal/modules/property/repository/schema"
-	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -89,42 +88,12 @@ func (r *GormRepository) UpdateListing(ctx context.Context, listing *schema.List
 	return nil
 }
 
-// UpdateListingTx updates all fields on an existing listing within a transaction.
-func (r *GormRepository) UpdateListingTx(ctx context.Context, tx *gorm.DB, listing *schema.Listing) error {
-	result := tx.WithContext(ctx).Save(listing)
-	if result.Error != nil {
-		return fmt.Errorf("failed to update listing: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("listing not found: %w", gorm.ErrRecordNotFound)
-	}
-	return nil
-}
-
 // PatchListing applies partial updates to a listing by ID.
 func (r *GormRepository) PatchListing(ctx context.Context, id uuid.UUID, updates map[string]any) error {
 	if len(updates) == 0 {
 		return nil
 	}
 	result := r.db.WithContext(ctx).
-		Model(&schema.Listing{}).
-		Where("id = ?", id).
-		Updates(updates)
-	if result.Error != nil {
-		return fmt.Errorf("failed to patch listing: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("listing not found: %w", gorm.ErrRecordNotFound)
-	}
-	return nil
-}
-
-// PatchListingTx applies partial updates to a listing by ID within a transaction.
-func (r *GormRepository) PatchListingTx(ctx context.Context, tx *gorm.DB, id uuid.UUID, updates map[string]any) error {
-	if len(updates) == 0 {
-		return nil
-	}
-	result := tx.WithContext(ctx).
 		Model(&schema.Listing{}).
 		Where("id = ?", id).
 		Updates(updates)
@@ -255,21 +224,6 @@ func (r *GormRepository) ListListingsByPropertyID(ctx context.Context, propertyI
 	}, nil
 }
 
-// CountListings returns the count of listings matching the filter.
-func (r *GormRepository) CountListings(ctx context.Context, filter ListingFilter) (int64, error) {
-	var count int64
-	query := r.db.WithContext(ctx).Model(&schema.Listing{})
-	if !filter.IncludeDeleted {
-		query = query.Where("deleted_at IS NULL")
-	}
-	query = applyListingFilter(query, filter)
-
-	if err := query.Count(&count).Error; err != nil {
-		return 0, fmt.Errorf("failed to count listings: %w", err)
-	}
-	return count, nil
-}
-
 // ListingExists checks if a listing exists by ID.
 func (r *GormRepository) ListingExists(ctx context.Context, id uuid.UUID) (bool, error) {
 	var count int64
@@ -315,125 +269,6 @@ func (r *GormRepository) GetListingsByPropertyIDs(ctx context.Context, propertyI
 	return listings, nil
 }
 
-// BulkCreateListings inserts multiple listings in batches.
-func (r *GormRepository) BulkCreateListings(ctx context.Context, listings []schema.Listing) error {
-	if len(listings) == 0 {
-		return nil
-	}
-
-	// Collect property IDs and ensure no duplicates within the batch.
-	propertyIDs := make([]uuid.UUID, 0, len(listings))
-	seenProps := make(map[uuid.UUID]struct{})
-	for _, l := range listings {
-		if l.PropertyID == uuid.Nil {
-			return fmt.Errorf("listing property_id cannot be nil")
-		}
-		if _, ok := seenProps[l.PropertyID]; ok {
-			return fmt.Errorf("duplicate property_id %s in bulk listings", l.PropertyID)
-		}
-		seenProps[l.PropertyID] = struct{}{}
-		propertyIDs = append(propertyIDs, l.PropertyID)
-	}
-
-	// Ensure all referenced properties exist.
-	var propsCount int64
-	if err := r.db.WithContext(ctx).
-		Model(&schema.Property{}).
-		Where("id IN ?", propertyIDs).
-		Count(&propsCount).Error; err != nil {
-		return fmt.Errorf("failed to verify properties for listings: %w", err)
-	}
-	if propsCount != int64(len(propertyIDs)) {
-		return fmt.Errorf("one or more properties referenced by listings do not exist")
-	}
-
-	// Ensure no existing listings already use these properties.
-	var existing int64
-	if err := r.db.WithContext(ctx).
-		Model(&schema.Listing{}).
-		Where("property_id IN ?", propertyIDs).
-		Count(&existing).Error; err != nil {
-		return fmt.Errorf("failed to check existing listings for properties: %w", err)
-	}
-	if existing > 0 {
-		return fmt.Errorf("one or more properties already have listings; bulk create aborted")
-	}
-
-	if err := r.db.WithContext(ctx).CreateInBatches(listings, BatchInsertSize).Error; err != nil {
-		return fmt.Errorf("failed to bulk create listings: %w", err)
-	}
-	return nil
-}
-
-// BulkDeleteListings deletes multiple listings by IDs.
-func (r *GormRepository) BulkDeleteListings(ctx context.Context, ids []uuid.UUID, hard bool) error {
-	if len(ids) == 0 {
-		return nil
-	}
-
-	query := r.db.WithContext(ctx)
-	if hard {
-		query = query.Unscoped()
-	}
-
-	result := query.Delete(&schema.Listing{}, "id IN ?", ids)
-	if result.Error != nil {
-		return fmt.Errorf("failed to bulk delete listings: %w", result.Error)
-	}
-
-	return nil
-}
-
-// UpdateListingStatus updates the status, reason, and audit fields for a listing.
-func (r *GormRepository) UpdateListingStatus(ctx context.Context, id uuid.UUID, status schema.ListingStatus, reason string, changedBy *uuid.UUID) error {
-	updates := map[string]any{
-		"status":            status,
-		"change_reason":     reason,
-		"status_changed_at": time.Now(),
-	}
-	if changedBy != nil {
-		updates["updated_by"] = *changedBy
-	}
-	result := r.db.WithContext(ctx).
-		Model(&schema.Listing{}).
-		Where("id = ?", id).
-		Updates(updates)
-	if result.Error != nil {
-		return fmt.Errorf("failed to update listing status: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("listing not found: %w", gorm.ErrRecordNotFound)
-	}
-	return nil
-}
-
-// UpdatePublishState toggles publish state and timestamp.
-func (r *GormRepository) UpdatePublishState(ctx context.Context, id uuid.UUID, published bool, publishedAt *time.Time) error {
-	updates := map[string]any{
-		"published": published,
-	}
-	if published {
-		if publishedAt != nil {
-			updates["published_at"] = *publishedAt
-		} else {
-			updates["published_at"] = time.Now()
-		}
-	} else {
-		updates["published_at"] = nil
-	}
-	result := r.db.WithContext(ctx).
-		Model(&schema.Listing{}).
-		Where("id = ?", id).
-		Updates(updates)
-	if result.Error != nil {
-		return fmt.Errorf("failed to update publish state: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("listing not found: %w", gorm.ErrRecordNotFound)
-	}
-	return nil
-}
-
 // SoftDeleteListing marks a listing as deleted.
 func (r *GormRepository) SoftDeleteListing(ctx context.Context, id uuid.UUID) error {
 	result := r.db.WithContext(ctx).Delete(&schema.Listing{}, "id = ?", id)
@@ -451,23 +286,6 @@ func (r *GormRepository) HardDeleteListing(ctx context.Context, id uuid.UUID) er
 	result := r.db.WithContext(ctx).Unscoped().Delete(&schema.Listing{}, "id = ?", id)
 	if result.Error != nil {
 		return fmt.Errorf("failed to hard delete listing: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("listing not found: %w", gorm.ErrRecordNotFound)
-	}
-	return nil
-}
-
-// IncrementView increments the view counter and updates the last viewed timestamp.
-func (r *GormRepository) IncrementView(ctx context.Context, id uuid.UUID, viewedAt time.Time) error {
-	result := r.db.WithContext(ctx).Model(&schema.Listing{}).
-		Where("id = ?", id).
-		Updates(map[string]any{
-			"view_count":     gorm.Expr("view_count + 1"),
-			"last_viewed_at": viewedAt,
-		})
-	if result.Error != nil {
-		return fmt.Errorf("failed to increment view count: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("listing not found: %w", gorm.ErrRecordNotFound)

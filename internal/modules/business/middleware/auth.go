@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 
 	"hauslet/internal/modules/business/domain"
 	"hauslet/internal/modules/business/service"
@@ -18,6 +19,8 @@ type BusinessAuthMiddleware struct {
 	businessService service.BusinessService
 	log             *lgr.Logger
 }
+
+var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 // NewBusinessAuthMiddleware creates a new business authorization middleware
 func NewBusinessAuthMiddleware(businessService service.BusinessService, log *lgr.Logger) *BusinessAuthMiddleware {
@@ -204,6 +207,74 @@ func (m *BusinessAuthMiddleware) RequirePermission(permission string) func(http.
 			next.ServeHTTP(w, r)
 		}))
 	}
+}
+
+// WithTenantSlug resolves X-Tenant-Slug to a business, enforces membership, and injects business context.
+// If the header is absent, it simply forwards the request.
+func (m *BusinessAuthMiddleware) WithTenantSlug(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		slug := r.Header.Get("X-Tenant-Slug")
+		if slug == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if !slugPattern.MatchString(slug) {
+			m.log.Logf("WARN Invalid tenant slug format")
+			http.Error(w, "Invalid tenant slug", http.StatusBadRequest)
+			return
+		}
+
+		// Resolve business by slug
+		business, err := m.businessService.GetBusinessBySlug(ctx, slug)
+		if err != nil || business == nil {
+			m.log.Logf("WARN Business not found for slug %s", slug)
+			http.Error(w, "Business not found", http.StatusNotFound)
+			return
+		}
+
+		// Must be authenticated to use business context
+		v := viewer.FromContext(ctx)
+		if v == nil || v.UserID == "" {
+			m.log.Logf("WARN Unauthenticated request with tenant slug %s", slug)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		userID, err := uuid.Parse(v.UserID)
+		if err != nil {
+			m.log.Logf("ERROR Invalid user ID: %v", err)
+			http.Error(w, "Invalid user ID", http.StatusBadRequest)
+			return
+		}
+
+		// Validate membership
+		membership, err := m.businessService.GetMember(ctx, business.ID, userID)
+		if err != nil {
+			if err == domain.ErrMemberNotFound {
+				m.log.Logf("WARN User %s is not a member of business %s (slug %s)", userID, business.ID, slug)
+				http.Error(w, "Forbidden: Not a business member", http.StatusForbidden)
+				return
+			}
+			m.log.Logf("ERROR Failed to get membership for slug %s: %v", slug, err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// Inject context and continue
+		ctx = WithBusinessContext(ctx, &BusinessContext{
+			BusinessID:  business.ID,
+			Business:    business,
+			Membership:  membership,
+			Permissions: &membership.Permissions,
+			IsOwner:     membership.IsOwner(),
+			IsAdmin:     membership.IsAdmin(),
+		})
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
 
 // LoadBusinessContext loads business context from businessID URL parameter

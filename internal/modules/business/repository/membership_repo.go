@@ -39,14 +39,6 @@ func (r *BusinessRepositoryImpl) UpdateMember(ctx context.Context, member *schem
 	return r.db.WithContext(ctx).Save(member).Error
 }
 
-// PatchMember updates specific fields of a member
-func (r *BusinessRepositoryImpl) PatchMember(ctx context.Context, memberID uuid.UUID, updates map[string]any) error {
-	return r.db.WithContext(ctx).
-		Model(&schema.BusinessMember{}).
-		Where("id = ?", memberID).
-		Updates(updates).Error
-}
-
 // RemoveMember removes a member from a business
 func (r *BusinessRepositoryImpl) RemoveMember(ctx context.Context, businessID, userID uuid.UUID) error {
 	return r.db.WithContext(ctx).
@@ -73,16 +65,6 @@ func (r *BusinessRepositoryImpl) ListUserMemberships(ctx context.Context, userID
 		Order("joined_at DESC").
 		Find(&members).Error
 	return members, err
-}
-
-// GetActiveMemberCount returns the count of active members in a business
-func (r *BusinessRepositoryImpl) GetActiveMemberCount(ctx context.Context, businessID uuid.UUID) (int, error) {
-	var count int64
-	err := r.db.WithContext(ctx).
-		Model(&schema.BusinessMember{}).
-		Where("business_id = ? AND is_active = ?", businessID, true).
-		Count(&count).Error
-	return int(count), err
 }
 
 // IsMember checks if a user is a member of a business

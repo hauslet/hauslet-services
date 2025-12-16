@@ -3,12 +3,26 @@
 package model
 
 import (
+	"bytes"
+	"fmt"
 	"hauslet/internal/modules/business/domain"
 	domain1 "hauslet/internal/modules/property/domain"
+	"io"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type AmenityGroup struct {
+	Group string   `json:"group"`
+	Items []string `json:"items"`
+}
+
+type AmenityGroupInput struct {
+	Group string   `json:"group"`
+	Items []string `json:"items"`
+}
 
 type AmenityHighlightInput struct {
 	Title   string `json:"title"`
@@ -49,16 +63,18 @@ type CreateBusinessInput struct {
 }
 
 type CreateListingInput struct {
-	OwnerType       domain1.OwnerType           `json:"ownerType"`
-	Property        *CreateListingPropertyInput `json:"property"`
-	Title           string                      `json:"title"`
-	Description     string                      `json:"description"`
-	Currency        *domain1.CurrencyCode       `json:"currency,omitempty"`
-	ListingType     domain1.ListingType         `json:"listingType"`
-	HasCalendar     *bool                       `json:"hasCalendar,omitempty"`
-	ShortletDetails *ShortletDetailInput        `json:"shortletDetails,omitempty"`
-	RentalDetails   *RentalDetailInput          `json:"rentalDetails,omitempty"`
-	SaleDetails     *SaleDetailInput            `json:"saleDetails,omitempty"`
+	OwnerType        domain1.OwnerType           `json:"ownerType"`
+	BusinessID       *uuid.UUID                  `json:"businessID,omitempty"`
+	Property         *CreateListingPropertyInput `json:"property"`
+	Title            string                      `json:"title"`
+	Description      string                      `json:"description"`
+	ExtraDescription *string                     `json:"extraDescription,omitempty"`
+	Currency         *domain1.CurrencyCode       `json:"currency,omitempty"`
+	ListingType      domain1.ListingType         `json:"listingType"`
+	HasCalendar      *bool                       `json:"hasCalendar,omitempty"`
+	ShortletDetails  *ShortletDetailInput        `json:"shortletDetails,omitempty"`
+	RentalDetails    *RentalDetailInput          `json:"rentalDetails,omitempty"`
+	SaleDetails      *SaleDetailInput            `json:"saleDetails,omitempty"`
 }
 
 type CreateListingPropertyInput struct {
@@ -81,8 +97,8 @@ type CreateListingPropertyInput struct {
 	Units              *int                       `json:"units,omitempty"`
 	SquareMeters       *float64                   `json:"squareMeters,omitempty"`
 	FloorArea          *float64                   `json:"floorArea,omitempty"`
-	Amenities          []string                   `json:"amenities,omitempty"`
-	FeaturesCommercial []string                   `json:"featuresCommercial,omitempty"`
+	Amenities          []*AmenityGroupInput       `json:"amenities,omitempty"`
+	FeaturesCommercial []*AmenityGroupInput       `json:"featuresCommercial,omitempty"`
 }
 
 type InviteMemberInput struct {
@@ -175,7 +191,17 @@ type RentalDetailInput struct {
 
 type RuleGroupInput struct {
 	Category domain1.RuleCategory `json:"category"`
-	Rules    []string             `json:"rules"`
+	Rules    []*RuleItemInput     `json:"rules"`
+}
+
+type RuleItem struct {
+	Name        RuleSubCategory  `json:"name"`
+	Description []map[string]any `json:"description"`
+}
+
+type RuleItemInput struct {
+	Name        RuleSubCategory  `json:"name"`
+	Description []map[string]any `json:"description,omitempty"`
 }
 
 type SaleDetailInput struct {
@@ -250,15 +276,16 @@ type UpdateBusinessInput struct {
 }
 
 type UpdateListingInput struct {
-	Property        *UpdateListingPropertyInput `json:"property,omitempty"`
-	Title           *string                     `json:"title,omitempty"`
-	Description     *string                     `json:"description,omitempty"`
-	Currency        *domain1.CurrencyCode       `json:"currency,omitempty"`
-	OwnerType       *domain1.OwnerType          `json:"ownerType,omitempty"`
-	HasCalendar     *bool                       `json:"hasCalendar,omitempty"`
-	ShortletDetails *ShortletDetailInput        `json:"shortletDetails,omitempty"`
-	RentalDetails   *RentalDetailInput          `json:"rentalDetails,omitempty"`
-	SaleDetails     *SaleDetailInput            `json:"saleDetails,omitempty"`
+	Property         *UpdateListingPropertyInput `json:"property,omitempty"`
+	Title            *string                     `json:"title,omitempty"`
+	Description      *string                     `json:"description,omitempty"`
+	ExtraDescription *string                     `json:"extraDescription,omitempty"`
+	Currency         *domain1.CurrencyCode       `json:"currency,omitempty"`
+	OwnerType        *domain1.OwnerType          `json:"ownerType,omitempty"`
+	HasCalendar      *bool                       `json:"hasCalendar,omitempty"`
+	ShortletDetails  *UpdateShortletDetailInput  `json:"shortletDetails,omitempty"`
+	RentalDetails    *UpdateRentalDetailInput    `json:"rentalDetails,omitempty"`
+	SaleDetails      *UpdateSaleDetailInput      `json:"saleDetails,omitempty"`
 }
 
 type UpdateListingPropertyInput struct {
@@ -281,8 +308,8 @@ type UpdateListingPropertyInput struct {
 	Units              *int                       `json:"units,omitempty"`
 	SquareMeters       *float64                   `json:"squareMeters,omitempty"`
 	FloorArea          *float64                   `json:"floorArea,omitempty"`
-	Amenities          []string                   `json:"amenities,omitempty"`
-	FeaturesCommercial []string                   `json:"featuresCommercial,omitempty"`
+	Amenities          []*AmenityGroupInput       `json:"amenities,omitempty"`
+	FeaturesCommercial []*AmenityGroupInput       `json:"featuresCommercial,omitempty"`
 }
 
 type UpdateProfileInput struct {
@@ -317,10 +344,138 @@ type UpdateProfileInput struct {
 	EnablePerformanceAnalytics *bool      `json:"enablePerformanceAnalytics,omitempty"`
 }
 
+type UpdateRentalDetailInput struct {
+	RentalPrice            *float64               `json:"rentalPrice,omitempty"`
+	RentalPricePeriod      *domain1.PaymentPeriod `json:"rentalPricePeriod,omitempty"`
+	AgencyFee              *float64               `json:"agencyFee,omitempty"`
+	LegalFee               *float64               `json:"legalFee,omitempty"`
+	RegistrationFee        *float64               `json:"registrationFee,omitempty"`
+	CautionFee             *float64               `json:"cautionFee,omitempty"`
+	ServiceCharge          *float64               `json:"serviceCharge,omitempty"`
+	ServiceCharges         []*ServiceChargeInput  `json:"serviceCharges,omitempty"`
+	MinRentalPeriod        *int                   `json:"minRentalPeriod,omitempty"`
+	MaxRentalPeriod        *int                   `json:"maxRentalPeriod,omitempty"`
+	RentalAvailabilityFrom *time.Time             `json:"rentalAvailabilityFrom,omitempty"`
+	RentalTerms            *string                `json:"rentalTerms,omitempty"`
+	RentalRules            []*RuleGroupInput      `json:"rentalRules,omitempty"`
+}
+
+type UpdateSaleDetailInput struct {
+	SalePrice            *float64              `json:"salePrice,omitempty"`
+	OwnershipTitle       *string               `json:"ownershipTitle,omitempty"`
+	PaymentPlan          *bool                 `json:"paymentPlan,omitempty"`
+	YearBuilt            *int                  `json:"yearBuilt,omitempty"`
+	YearRenovated        *int                  `json:"yearRenovated,omitempty"`
+	AgencyFee            *float64              `json:"agencyFee,omitempty"`
+	LegalFee             *float64              `json:"legalFee,omitempty"`
+	SurveyFee            *float64              `json:"surveyFee,omitempty"`
+	TitleProcessingFee   *float64              `json:"titleProcessingFee,omitempty"`
+	DevelopmentFee       *float64              `json:"developmentFee,omitempty"`
+	OtherFees            *float64              `json:"otherFees,omitempty"`
+	ServiceCharge        *float64              `json:"serviceCharge,omitempty"`
+	ServiceCharges       []*ServiceChargeInput `json:"serviceCharges,omitempty"`
+	SaleTerms            *string               `json:"saleTerms,omitempty"`
+	SaleAvailabilityFrom *time.Time            `json:"saleAvailabilityFrom,omitempty"`
+}
+
+type UpdateShortletDetailInput struct {
+	NightlyRate          *float64                   `json:"nightlyRate,omitempty"`
+	CautionFee           *float64                   `json:"cautionFee,omitempty"`
+	CleaningFee          *float64                   `json:"cleaningFee,omitempty"`
+	ServiceFee           *float64                   `json:"serviceFee,omitempty"`
+	ExtraGuestFee        *float64                   `json:"extraGuestFee,omitempty"`
+	MinNights            *int                       `json:"minNights,omitempty"`
+	MaxNights            *int                       `json:"maxNights,omitempty"`
+	MaxGuests            *int                       `json:"maxGuests,omitempty"`
+	BaseGuestCount       *int                       `json:"baseGuestCount,omitempty"`
+	CheckInTime          *string                    `json:"checkInTime,omitempty"`
+	CheckOutTime         *string                    `json:"checkOutTime,omitempty"`
+	AccommodationType    *domain1.AccommodationType `json:"accommodationType,omitempty"`
+	CalendarMonthsAhead  *int                       `json:"calendarMonthsAhead,omitempty"`
+	AutoGenerateCalendar *bool                      `json:"autoGenerateCalendar,omitempty"`
+	Rules                []*RuleGroupInput          `json:"rules,omitempty"`
+	AmenitiesHighlights  []*AmenityHighlightInput   `json:"amenitiesHighlights,omitempty"`
+}
+
 type UploadResult struct {
 	UserID            string     `json:"userID"`
 	Filename          string     `json:"filename"`
 	UploadURL         string     `json:"uploadURL"`
 	Key               string     `json:"key"`
 	TravelCompanionID *uuid.UUID `json:"travelCompanionID,omitempty"`
+}
+
+type RuleSubCategory string
+
+const (
+	RuleSubCategorySecurity             RuleSubCategory = "security"
+	RuleSubCategoryProhibitedActivities RuleSubCategory = "prohibited_activities"
+	RuleSubCategoryCheckInWindow        RuleSubCategory = "check_in_window"
+	RuleSubCategoryCheckOutTime         RuleSubCategory = "check_out_time"
+	RuleSubCategoryCheckInMethod        RuleSubCategory = "check_in_method"
+	RuleSubCategorySmoking              RuleSubCategory = "smoking"
+	RuleSubCategoryPets                 RuleSubCategory = "pets"
+	RuleSubCategoryEvents               RuleSubCategory = "events"
+	RuleSubCategoryGuests               RuleSubCategory = "guests"
+	RuleSubCategoryCancellationPolicy   RuleSubCategory = "cancellation_policy"
+	RuleSubCategoryMustKnow             RuleSubCategory = "must_know"
+	RuleSubCategoryCustom               RuleSubCategory = "custom"
+)
+
+var AllRuleSubCategory = []RuleSubCategory{
+	RuleSubCategorySecurity,
+	RuleSubCategoryProhibitedActivities,
+	RuleSubCategoryCheckInWindow,
+	RuleSubCategoryCheckOutTime,
+	RuleSubCategoryCheckInMethod,
+	RuleSubCategorySmoking,
+	RuleSubCategoryPets,
+	RuleSubCategoryEvents,
+	RuleSubCategoryGuests,
+	RuleSubCategoryCancellationPolicy,
+	RuleSubCategoryMustKnow,
+	RuleSubCategoryCustom,
+}
+
+func (e RuleSubCategory) IsValid() bool {
+	switch e {
+	case RuleSubCategorySecurity, RuleSubCategoryProhibitedActivities, RuleSubCategoryCheckInWindow, RuleSubCategoryCheckOutTime, RuleSubCategoryCheckInMethod, RuleSubCategorySmoking, RuleSubCategoryPets, RuleSubCategoryEvents, RuleSubCategoryGuests, RuleSubCategoryCancellationPolicy, RuleSubCategoryMustKnow, RuleSubCategoryCustom:
+		return true
+	}
+	return false
+}
+
+func (e RuleSubCategory) String() string {
+	return string(e)
+}
+
+func (e *RuleSubCategory) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RuleSubCategory(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RuleSubCategory", str)
+	}
+	return nil
+}
+
+func (e RuleSubCategory) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RuleSubCategory) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RuleSubCategory) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

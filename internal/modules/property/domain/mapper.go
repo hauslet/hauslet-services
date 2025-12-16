@@ -34,8 +34,8 @@ func MapPropertyFromSchema(schemaProperty *schema.Property) *Property {
 		OwnerID:            schemaProperty.OwnerID,
 		SquareMeters:       schemaProperty.SquareMeters,
 		FloorArea:          schemaProperty.FloorArea,
-		Amenities:          schemaProperty.Amenities,
-		FeaturesCommercial: schemaProperty.FeaturesCommercial,
+		Amenities:          MapAmenityGroupsFromSchema(schemaProperty.Amenities),
+		FeaturesCommercial: MapAmenityGroupsFromSchema(schemaProperty.FeaturesCommercial),
 		CreatedAt:          schemaProperty.CreatedAt,
 		UpdatedAt:          schemaProperty.UpdatedAt,
 	}
@@ -79,8 +79,8 @@ func MapPropertyToSchema(domainProperty *Property) *schema.Property {
 		OwnerID:            domainProperty.OwnerID,
 		SquareMeters:       domainProperty.SquareMeters,
 		FloorArea:          domainProperty.FloorArea,
-		Amenities:          domainProperty.Amenities,
-		FeaturesCommercial: domainProperty.FeaturesCommercial,
+		Amenities:          MapAmenityGroupsToSchema(domainProperty.Amenities),
+		FeaturesCommercial: MapAmenityGroupsToSchema(domainProperty.FeaturesCommercial),
 		CreatedAt:          domainProperty.CreatedAt,
 		UpdatedAt:          domainProperty.UpdatedAt,
 	}
@@ -116,6 +116,36 @@ func MapPropertiesFromSchema(schemaProperties []schema.Property) []Property {
 	return properties
 }
 
+// MapAmenityGroupsFromSchema converts schema amenity groups to domain amenity groups.
+func MapAmenityGroupsFromSchema(src []schema.AmenitiesType) []AmenityGroup {
+	if src == nil {
+		return nil
+	}
+	out := make([]AmenityGroup, len(src))
+	for i, g := range src {
+		out[i] = AmenityGroup{
+			Group: g.Group,
+			Items: g.Items,
+		}
+	}
+	return out
+}
+
+// MapAmenityGroupsToSchema converts domain amenity groups to schema amenity groups.
+func MapAmenityGroupsToSchema(src []AmenityGroup) []schema.AmenitiesType {
+	if src == nil {
+		return nil
+	}
+	out := make([]schema.AmenitiesType, len(src))
+	for i, g := range src {
+		out[i] = schema.AmenitiesType{
+			Group: g.Group,
+			Items: g.Items,
+		}
+	}
+	return out
+}
+
 // --- LISTING MAPPERS ---
 
 // MapListingFromSchema converts repository schema.Listing to domain Listing
@@ -132,6 +162,7 @@ func MapListingFromSchema(schemaListing *schema.Listing) *Listing {
 		Slug:               schemaListing.Slug,
 		Title:              schemaListing.Title,
 		Description:        schemaListing.Description,
+		ExtraDescription:   schemaListing.ExtraDescription,
 		Currency:           CurrencyCode(schemaListing.Currency),
 		ListingType:        ListingType(schemaListing.ListingType),
 		Status:             ListingStatus(schemaListing.Status),
@@ -184,6 +215,7 @@ func MapListingToSchema(domainListing *Listing) *schema.Listing {
 		Slug:               domainListing.Slug,
 		Title:              domainListing.Title,
 		Description:        domainListing.Description,
+		ExtraDescription:   domainListing.ExtraDescription,
 		Currency:           schema.CurrencyCode(domainListing.Currency),
 		ListingType:        schema.ListingType(domainListing.ListingType),
 		Status:             schema.ListingStatus(domainListing.Status),
@@ -239,6 +271,66 @@ func MapListingsFromSchema(schemaListings []schema.Listing) []Listing {
 	return listings
 }
 
+// MapRuleGroupsFromSchema converts schema rule groups to domain rule groups.
+func MapRuleGroupsFromSchema(src []schema.RuleGroup) []RuleGroup {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make([]RuleGroup, len(src))
+	for i, g := range src {
+		out[i] = RuleGroup{
+			Category: RuleCategory(g.Category),
+			Rules:    MapRuleItemsFromSchema(g.Rules),
+		}
+	}
+	return out
+}
+
+// MapRuleGroupsToSchema converts domain rule groups to schema rule groups.
+func MapRuleGroupsToSchema(src []RuleGroup) []schema.RuleGroup {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make([]schema.RuleGroup, len(src))
+	for i, g := range src {
+		out[i] = schema.RuleGroup{
+			Category: schema.RuleCategory(g.Category),
+			Rules:    MapRuleItemsToSchema(g.Rules),
+		}
+	}
+	return out
+}
+
+// MapRuleItemsFromSchema converts schema rule items to domain rule items.
+func MapRuleItemsFromSchema(src []schema.RuleItem) []RuleItem {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make([]RuleItem, len(src))
+	for i, r := range src {
+		out[i] = RuleItem{
+			Name:        RuleSubCategory(r.Name),
+			Description: r.Description,
+		}
+	}
+	return out
+}
+
+// MapRuleItemsToSchema converts domain rule items to schema rule items.
+func MapRuleItemsToSchema(src []RuleItem) []schema.RuleItem {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make([]schema.RuleItem, len(src))
+	for i, r := range src {
+		out[i] = schema.RuleItem{
+			Name:        schema.RuleSubCategory(r.Name),
+			Description: r.Description,
+		}
+	}
+	return out
+}
+
 // --- DETAIL MAPPERS ---
 
 // MapShortletDetailFromSchema converts schema.ShortletDetail to domain ShortletDetail
@@ -265,15 +357,7 @@ func MapShortletDetailFromSchema(schemaDetail *schema.ShortletDetail) *ShortletD
 	}
 
 	// Map rules
-	if len(schemaDetail.Rules) > 0 {
-		detail.Rules = make([]RuleGroup, len(schemaDetail.Rules))
-		for i, rule := range schemaDetail.Rules {
-			detail.Rules[i] = RuleGroup{
-				Category: RuleCategory(rule.Category),
-				Rules:    rule.Rules,
-			}
-		}
-	}
+	detail.Rules = MapRuleGroupsFromSchema(schemaDetail.Rules)
 
 	// Map amenities highlights
 	if len(schemaDetail.AmenitiesHighlights) > 0 {
@@ -314,15 +398,7 @@ func MapShortletDetailToSchema(domainDetail *ShortletDetail) *schema.ShortletDet
 	}
 
 	// Map rules
-	if len(domainDetail.Rules) > 0 {
-		detail.Rules = make([]schema.RuleGroup, len(domainDetail.Rules))
-		for i, rule := range domainDetail.Rules {
-			detail.Rules[i] = schema.RuleGroup{
-				Category: schema.RuleCategory(rule.Category),
-				Rules:    rule.Rules,
-			}
-		}
-	}
+	detail.Rules = MapRuleGroupsToSchema(domainDetail.Rules)
 
 	// Map amenities highlights
 	if len(domainDetail.AmenitiesHighlights) > 0 {
@@ -373,15 +449,7 @@ func MapRentalDetailFromSchema(schemaDetail *schema.RentalDetail) *RentalDetail 
 	}
 
 	// Map rental rules
-	if len(schemaDetail.RentalRules) > 0 {
-		detail.RentalRules = make([]RuleGroup, len(schemaDetail.RentalRules))
-		for i, rule := range schemaDetail.RentalRules {
-			detail.RentalRules[i] = RuleGroup{
-				Category: RuleCategory(rule.Category),
-				Rules:    rule.Rules,
-			}
-		}
-	}
+	detail.RentalRules = MapRuleGroupsFromSchema(schemaDetail.RentalRules)
 
 	return detail
 }
@@ -420,15 +488,7 @@ func MapRentalDetailToSchema(domainDetail *RentalDetail) *schema.RentalDetail {
 	}
 
 	// Map rental rules
-	if len(domainDetail.RentalRules) > 0 {
-		detail.RentalRules = make([]schema.RuleGroup, len(domainDetail.RentalRules))
-		for i, rule := range domainDetail.RentalRules {
-			detail.RentalRules[i] = schema.RuleGroup{
-				Category: schema.RuleCategory(rule.Category),
-				Rules:    rule.Rules,
-			}
-		}
-	}
+	detail.RentalRules = MapRuleGroupsToSchema(domainDetail.RentalRules)
 
 	return detail
 }

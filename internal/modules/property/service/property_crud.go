@@ -22,10 +22,10 @@ func (s *ServiceImpl) CreateProperty(ctx context.Context, p domain.Property) (*d
 
 	// Normalize nil slices
 	if p.Amenities == nil {
-		p.Amenities = []string{}
+		p.Amenities = []domain.AmenityGroup{}
 	}
 	if p.FeaturesCommercial == nil {
-		p.FeaturesCommercial = []string{}
+		p.FeaturesCommercial = []domain.AmenityGroup{}
 	}
 
 	// Set defaults
@@ -58,6 +58,14 @@ func (s *ServiceImpl) UpdateProperty(ctx context.Context, p domain.Property) (*d
 	existing, err := s.ensureProperty(ctx, p.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	// Normalize nil slices to empty groups for JSON serialization
+	if p.Amenities == nil {
+		p.Amenities = []domain.AmenityGroup{}
+	}
+	if p.FeaturesCommercial == nil {
+		p.FeaturesCommercial = []domain.AmenityGroup{}
 	}
 
 	// Preserve created timestamp

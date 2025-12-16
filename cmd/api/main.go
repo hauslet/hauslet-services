@@ -5,6 +5,7 @@ import (
 	"hauslet/cmd/api/server"
 	"hauslet/config"
 	authSchema "hauslet/internal/modules/auth/repository/schema"
+	businessSchema "hauslet/internal/modules/business/repository/schema"
 	profileSchema "hauslet/internal/modules/profile/repository/schema"
 	propertySchema "hauslet/internal/modules/property/repository/schema"
 	"hauslet/internal/platform/database"
@@ -59,6 +60,9 @@ func main() {
 		&propertySchema.Property{},
 		&propertySchema.Listing{},
 		&propertySchema.ListingMedia{},
+		&businessSchema.Business{},
+		&businessSchema.BusinessMember{},
+		&businessSchema.BusinessInvitation{},
 	); err != nil {
 		log.Logf("ERROR failed to run migrations: %v", err)
 		return

@@ -3,6 +3,7 @@ package graph
 import (
 	"hauslet/config"
 	"hauslet/internal/modules/auth/service"
+	businessmiddleware "hauslet/internal/modules/business/middleware"
 	businessservice "hauslet/internal/modules/business/service"
 	profileservice "hauslet/internal/modules/profile/service"
 	propertyservice "hauslet/internal/modules/property/service"
@@ -52,12 +53,15 @@ func SetupGraphQL(r chi.Router,
 	})
 
 	authMiddleware := authService.OAuthService().Middleware()
+	businessMW := businessmiddleware.NewMiddleware(businessService, log)
 	r.Group(func(r chi.Router) {
 
 		// Optional: Middleware to extract User from JWT and put in Context
 		r.Use(authMiddleware.Trace)
 		// Capture viewer info for resolvers (optional auth).
 		r.Use(viewer.WithContext)
+		// Resolve X-Tenant-Slug to business context and enforce membership.
+		r.Use(businessMW.Auth.WithTenantSlug)
 		// DataLoaders to batch profile and property fetches.
 		r.Use(loaders.Middleware(profileService, propertyService))
 

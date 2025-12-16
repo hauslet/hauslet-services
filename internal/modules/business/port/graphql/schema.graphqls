@@ -213,7 +213,6 @@ extend type Query {
   # Businesses
   business(id: UUID!): Business
   businessBySlug(slug: String!): Business
-  myBusinesses: [Business!]!
   allBusinesses(limit: Int, offset: Int): [Business!]!
   searchBusinesses(query: String!, limit: Int, offset: Int): [Business!]!
 

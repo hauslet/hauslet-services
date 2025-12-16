@@ -140,14 +140,29 @@ const (
 type RuleCategory string
 
 const (
-	RuleGeneral    RuleCategory = "general"
-	RuleSecurity   RuleCategory = "security"
-	RuleProhibited RuleCategory = "prohibited"
-	RulePets       RuleCategory = "pets"
-	RuleGuests     RuleCategory = "guests"
-	RuleNoise      RuleCategory = "noise"
-	RuleSmoking    RuleCategory = "smoking"
-	RuleEvents     RuleCategory = "events"
+	RuleHouseRules          RuleCategory = "house_rules"
+	RuleGeneral             RuleCategory = "general"
+	RuleCheckInOut          RuleCategory = "check_in_check_out"
+	RuleCancellationPolicy  RuleCategory = "cancellation_policy"
+	RuleSafetyAndDisclosure RuleCategory = "safety_and_disclosure"
+	RuleCustom              RuleCategory = "custom"
+)
+
+type RuleSubCategory string
+
+const (
+	RuleSecurity                 RuleSubCategory = "security"
+	RuleProhibited               RuleSubCategory = "prohibited_activities"
+	RuleCheckInWindow            RuleSubCategory = "check_in_window"
+	RuleCheckOutTime             RuleSubCategory = "check_out_time"
+	RuleCheckinMethod            RuleSubCategory = "check_in_method"
+	RuleSmoking                  RuleSubCategory = "smoking"
+	RulePets                     RuleSubCategory = "pets"
+	RuleEvents                   RuleSubCategory = "events"
+	RuleGuests                   RuleSubCategory = "guests"
+	RuleSelectCancellationPolicy RuleSubCategory = "cancellation_policy"
+	RuleMustKnow                 RuleSubCategory = "must_know"
+	RuleUserCustom               RuleSubCategory = "custom"
 )
 
 // --- 5. VALIDATION MAPS (Lookup Tables) ---
@@ -176,10 +191,19 @@ func IsValidAmenity(a string) bool {
 	return validAmenities[a]
 }
 
-// IsValidRuleCategory checks the map
+// IsValidRuleCategory checks if a RuleCategory is valid
 func (r RuleCategory) IsValid() bool {
 	switch r {
-	case RuleGeneral, RuleSecurity, RuleProhibited, RulePets, RuleGuests, RuleNoise, RuleSmoking, RuleEvents:
+	case RuleHouseRules, RuleGeneral, RuleCheckInOut, RuleCancellationPolicy, RuleSafetyAndDisclosure, RuleCustom:
+		return true
+	}
+	return false
+}
+
+// IsValidRuleSubCategory checks if a RuleSubCategory is valid
+func (r RuleSubCategory) IsValid() bool {
+	switch r {
+	case RuleSecurity, RuleProhibited, RuleCheckInWindow, RuleCheckOutTime, RuleCheckinMethod, RuleSmoking, RulePets, RuleEvents, RuleGuests, RuleSelectCancellationPolicy, RuleMustKnow, RuleUserCustom:
 		return true
 	}
 	return false

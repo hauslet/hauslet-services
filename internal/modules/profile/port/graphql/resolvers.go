@@ -11,6 +11,7 @@ import (
 	profileservice "hauslet/internal/modules/profile/service"
 	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/model"
+
 	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/go-pkgz/lgr"

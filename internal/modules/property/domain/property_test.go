@@ -190,10 +190,7 @@ func TestMapPropertyFromSchema(t *testing.T) {
 		OwnerID:           ownerID,
 		SquareMeters:      150.5,
 		FloorArea:         floatPtr(120.3),
-		Amenities:         []string{"wifi", "parking_space"},
-		FeaturesCommercial: []string{
-			"frontage",
-		},
+
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
 	}
@@ -239,7 +236,6 @@ func TestMapPropertyToSchema(t *testing.T) {
 		Units:             1,
 		SquareMeters:      90.5,
 		Location:          &Location{Lat: 6.43, Lng: 3.42}, // SRID should default to 4326
-		Amenities:         []string{"wifi"},
 		CreatedAt:         time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
 		UpdatedAt:         time.Date(2024, 3, 2, 0, 0, 0, 0, time.UTC),
 	}
@@ -294,7 +290,6 @@ func TestMapListingFromSchema(t *testing.T) {
 	statusChanged := time.Date(2024, 1, 4, 12, 0, 0, 0, time.UTC)
 	deletedAt := time.Date(2024, 1, 5, 12, 0, 0, 0, time.UTC)
 
-	rules := []schema.RuleGroup{{Category: schema.RuleGeneral, Rules: []string{"no smoking"}}}
 	amenitiesHighlights := []schema.AmenityHighlight{{Title: "Pool", Summary: "Rooftop pool", Icon: "pool"}}
 	serviceCharges := []schema.ServiceCharge{{Name: "Service", Period: schema.PayMonthly, Amount: 2500}}
 	saleCharges := []schema.ServiceCharge{{Name: "Development", Period: schema.PayOneTime, Amount: 5000}}
@@ -329,7 +324,6 @@ func TestMapListingFromSchema(t *testing.T) {
 			AccommodationType:    schema.AccEntirePlace,
 			CalendarMonthsAhead:  6,
 			AutoGenerateCalendar: true,
-			Rules:                rules,
 			AmenitiesHighlights:  amenitiesHighlights,
 		},
 		RentalDetails: &schema.RentalDetail{
@@ -339,7 +333,6 @@ func TestMapListingFromSchema(t *testing.T) {
 			MaxRentalPeriod:        intPtr(24),
 			RentalAvailabilityFrom: &publishedAt,
 			ServiceChargeBreakdown: &serviceCharges,
-			RentalRules:            rules,
 		},
 		SaleDetails: &schema.SaleDetail{
 			SalePrice:              45000000,
@@ -442,9 +435,6 @@ func TestMapListingToSchema(t *testing.T) {
 			AccommodationType:    AccEntirePlace,
 			CalendarMonthsAhead:  3,
 			AutoGenerateCalendar: true,
-			Rules: []RuleGroup{
-				{Category: RuleGuests, Rules: []string{"no parties"}},
-			},
 			AmenitiesHighlights: []AmenityHighlight{
 				{Title: "Wifi", Summary: "Fast fibre", Icon: "wifi"},
 			},

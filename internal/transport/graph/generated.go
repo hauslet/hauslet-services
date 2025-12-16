@@ -53,6 +53,7 @@ type ResolverRoot interface {
 	Property() PropertyResolver
 	Query() QueryResolver
 	RentalDetail() RentalDetailResolver
+	RuleGroup() RuleGroupResolver
 	SaleDetail() SaleDetailResolver
 	TravelCompanion() TravelCompanionResolver
 }
@@ -61,6 +62,11 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AmenityGroup struct {
+		Group func(childComplexity int) int
+		Items func(childComplexity int) int
+	}
+
 	AmenityHighlight struct {
 		Icon    func(childComplexity int) int
 		Summary func(childComplexity int) int
@@ -141,6 +147,7 @@ type ComplexityRoot struct {
 		Currency           func(childComplexity int) int
 		DeletedAt          func(childComplexity int) int
 		Description        func(childComplexity int) int
+		ExtraDescription   func(childComplexity int) int
 		FeaturedUntil      func(childComplexity int) int
 		HasCalendar        func(childComplexity int) int
 		ID                 func(childComplexity int) int
@@ -149,6 +156,7 @@ type ComplexityRoot struct {
 		ListingType        func(childComplexity int) int
 		Media              func(childComplexity int, first *int) int
 		OwnerID            func(childComplexity int) int
+		OwnerProfile       func(childComplexity int) int
 		OwnerType          func(childComplexity int) int
 		Property           func(childComplexity int) int
 		PropertyID         func(childComplexity int) int
@@ -346,6 +354,7 @@ type ComplexityRoot struct {
 		Business                   func(childComplexity int, id uuid.UUID) int
 		BusinessBySlug             func(childComplexity int, slug string) int
 		BusinessInvitations        func(childComplexity int, businessID uuid.UUID) int
+		BusinessListings           func(childComplexity int, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) int
 		BusinessMember             func(childComplexity int, businessID uuid.UUID, userID uuid.UUID) int
 		BusinessMembers            func(childComplexity int, businessID uuid.UUID) int
 		Listing                    func(childComplexity int, id uuid.UUID) int
@@ -357,7 +366,7 @@ type ComplexityRoot struct {
 		ListingsNearPoint          func(childComplexity int, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) int
 		Me                         func(childComplexity int) int
 		MyBusinessPermissions      func(childComplexity int, businessID uuid.UUID) int
-		MyBusinesses               func(childComplexity int) int
+		MyIndividualListings       func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		MyInvitations              func(childComplexity int, email string) int
 		MyListings                 func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		MyMemberships              func(childComplexity int) int
@@ -392,6 +401,11 @@ type ComplexityRoot struct {
 	RuleGroup struct {
 		Category func(childComplexity int) int
 		Rules    func(childComplexity int) int
+	}
+
+	RuleItem struct {
+		Description func(childComplexity int) int
+		Name        func(childComplexity int) int
 	}
 
 	SaleDetail struct {
@@ -508,6 +522,8 @@ type BusinessResolver interface {
 	Members(ctx context.Context, obj *domain.Business) ([]*domain.BusinessMember, error)
 }
 type ListingResolver interface {
+	OwnerProfile(ctx context.Context, obj *domain1.Listing) (*domain2.Profile, error)
+
 	Property(ctx context.Context, obj *domain1.Listing) (*domain1.Property, error)
 }
 type ListingMediaResolver interface {
@@ -541,6 +557,8 @@ type ProfileResolver interface {
 	Gender(ctx context.Context, obj *domain2.Profile) (*string, error)
 }
 type PropertyResolver interface {
+	Amenities(ctx context.Context, obj *domain1.Property) ([]*model.AmenityGroup, error)
+	FeaturesCommercial(ctx context.Context, obj *domain1.Property) ([]*model.AmenityGroup, error)
 	Listings(ctx context.Context, obj *domain1.Property, first *int, after *string) (*model.ListingConnection, error)
 }
 type QueryResolver interface {
@@ -559,12 +577,13 @@ type QueryResolver interface {
 	ListingsByProperty(ctx context.Context, propertyID uuid.UUID, first *int, after *string) (*model.ListingConnection, error)
 	MyListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
 	ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain1.ListingCompleteness, error)
+	BusinessListings(ctx context.Context, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
+	MyIndividualListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
 	ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error)
 	SearchListings(ctx context.Context, query string, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error)
 	SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error)
 	Business(ctx context.Context, id uuid.UUID) (*domain.Business, error)
 	BusinessBySlug(ctx context.Context, slug string) (*domain.Business, error)
-	MyBusinesses(ctx context.Context) ([]*domain.Business, error)
 	AllBusinesses(ctx context.Context, limit *int, offset *int) ([]*domain.Business, error)
 	SearchBusinesses(ctx context.Context, query string, limit *int, offset *int) ([]*domain.Business, error)
 	BusinessMembers(ctx context.Context, businessID uuid.UUID) ([]*domain.BusinessMember, error)
@@ -576,6 +595,9 @@ type QueryResolver interface {
 }
 type RentalDetailResolver interface {
 	ServiceCharges(ctx context.Context, obj *domain1.RentalDetail) ([]*domain1.ServiceCharge, error)
+}
+type RuleGroupResolver interface {
+	Rules(ctx context.Context, obj *domain1.RuleGroup) ([]*model.RuleItem, error)
 }
 type SaleDetailResolver interface {
 	ServiceCharges(ctx context.Context, obj *domain1.SaleDetail) ([]*domain1.ServiceCharge, error)
@@ -604,6 +626,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AmenityGroup.group":
+		if e.complexity.AmenityGroup.Group == nil {
+			break
+		}
+
+		return e.complexity.AmenityGroup.Group(childComplexity), true
+	case "AmenityGroup.items":
+		if e.complexity.AmenityGroup.Items == nil {
+			break
+		}
+
+		return e.complexity.AmenityGroup.Items(childComplexity), true
 
 	case "AmenityHighlight.icon":
 		if e.complexity.AmenityHighlight.Icon == nil {
@@ -994,6 +1029,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Listing.Description(childComplexity), true
+	case "Listing.extraDescription":
+		if e.complexity.Listing.ExtraDescription == nil {
+			break
+		}
+
+		return e.complexity.Listing.ExtraDescription(childComplexity), true
 	case "Listing.featuredUntil":
 		if e.complexity.Listing.FeaturedUntil == nil {
 			break
@@ -1047,6 +1088,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Listing.OwnerID(childComplexity), true
+	case "Listing.ownerProfile":
+		if e.complexity.Listing.OwnerProfile == nil {
+			break
+		}
+
+		return e.complexity.Listing.OwnerProfile(childComplexity), true
 	case "Listing.ownerType":
 		if e.complexity.Listing.OwnerType == nil {
 			break
@@ -2155,6 +2202,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.BusinessInvitations(childComplexity, args["businessID"].(uuid.UUID)), true
+	case "Query.businessListings":
+		if e.complexity.Query.BusinessListings == nil {
+			break
+		}
+
+		args, err := ec.field_Query_businessListings_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BusinessListings(childComplexity, args["businessId"].(uuid.UUID), args["filter"].(*model.ListingFilterInput), args["first"].(*int), args["after"].(*string)), true
 	case "Query.businessMember":
 		if e.complexity.Query.BusinessMember == nil {
 			break
@@ -2271,12 +2329,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyBusinessPermissions(childComplexity, args["businessID"].(uuid.UUID)), true
-	case "Query.myBusinesses":
-		if e.complexity.Query.MyBusinesses == nil {
+	case "Query.myIndividualListings":
+		if e.complexity.Query.MyIndividualListings == nil {
 			break
 		}
 
-		return e.complexity.Query.MyBusinesses(childComplexity), true
+		args, err := ec.field_Query_myIndividualListings_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyIndividualListings(childComplexity, args["filter"].(*model.ListingFilterInput), args["first"].(*int), args["after"].(*string)), true
 	case "Query.myInvitations":
 		if e.complexity.Query.MyInvitations == nil {
 			break
@@ -2502,6 +2565,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RuleGroup.Rules(childComplexity), true
+
+	case "RuleItem.description":
+		if e.complexity.RuleItem.Description == nil {
+			break
+		}
+
+		return e.complexity.RuleItem.Description(childComplexity), true
+	case "RuleItem.name":
+		if e.complexity.RuleItem.Name == nil {
+			break
+		}
+
+		return e.complexity.RuleItem.Name(childComplexity), true
 
 	case "SaleDetail.agencyFee":
 		if e.complexity.SaleDetail.AgencyFee == nil {
@@ -2983,6 +3059,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputAmenityGroupInput,
 		ec.unmarshalInputAmenityHighlightInput,
 		ec.unmarshalInputBusinessAddressInput,
 		ec.unmarshalInputCreateBusinessInput,
@@ -2995,6 +3072,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputMemberPermissionsInput,
 		ec.unmarshalInputRentalDetailInput,
 		ec.unmarshalInputRuleGroupInput,
+		ec.unmarshalInputRuleItemInput,
 		ec.unmarshalInputSaleDetailInput,
 		ec.unmarshalInputServiceChargeInput,
 		ec.unmarshalInputShortletDetailInput,
@@ -3003,6 +3081,9 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateListingInput,
 		ec.unmarshalInputUpdateListingPropertyInput,
 		ec.unmarshalInputUpdateProfileInput,
+		ec.unmarshalInputUpdateRentalDetailInput,
+		ec.unmarshalInputUpdateSaleDetailInput,
+		ec.unmarshalInputUpdateShortletDetailInput,
 	)
 	first := true
 
@@ -3420,14 +3501,27 @@ enum AccommodationType {
 }
 
 enum RuleCategory {
+  house_rules
   general
+  check_in_check_out
+  cancellation_policy
+  safety_and_disclosure
+  custom
+}
+
+enum RuleSubCategory {
   security
-  prohibited
-  pets
-  guests
-  noise
+  prohibited_activities
+  check_in_window
+  check_out_time
+  check_in_method
   smoking
+  pets
   events
+  guests
+  cancellation_policy
+  must_know
+  custom
 }
 
 enum MediaType {
@@ -3445,6 +3539,11 @@ type Location {
   lat: Float!
   lng: Float!
   srid: Int!
+}
+
+type AmenityGroup {
+  group: String!
+  items: [String!]!
 }
 
 type Property {
@@ -3474,8 +3573,8 @@ type Property {
   squareMeters: Float!
   floorArea: Float
 
-  amenities: [String!]!
-  featuresCommercial: [String!]!
+  amenities: [AmenityGroup!]!
+  featuresCommercial: [AmenityGroup!]!
 
   # Relationships
   listings(first: Int, after: String): ListingConnection!
@@ -3489,10 +3588,12 @@ type Listing {
   propertyId: UUID!
   ownerId: UUID!
   ownerType: OwnerType!
+  ownerProfile: Profile
 
   slug: String!
   title: String!
   description: String!
+  extraDescription: String
   currency: CurrencyCode!
 
   listingType: ListingType!
@@ -3635,9 +3736,14 @@ type AmenityHighlight {
   icon: String!
 }
 
+type RuleItem {
+  name: RuleSubCategory!
+  description: [Map!]!
+}
+
 type RuleGroup {
   category: RuleCategory!
-  rules: [String!]!
+  rules: [RuleItem!]!
 }
 
 type ServiceCharge {
@@ -3707,11 +3813,18 @@ input LocationInput {
   lng: Float!
 }
 
+input AmenityGroupInput {
+  group: String!
+  items: [String!]!
+}
+
 input CreateListingInput {
   ownerType: OwnerType!
+  businessID: UUID  # Required if ownerType is "business"
   property: CreateListingPropertyInput!
   title: String!
   description: String!
+  extraDescription: String
   currency: CurrencyCode
   listingType: ListingType!
 
@@ -3726,14 +3839,15 @@ input UpdateListingInput {
   property: UpdateListingPropertyInput
   title: String
   description: String
+  extraDescription: String
   currency: CurrencyCode
   ownerType: OwnerType
 
   hasCalendar: Boolean
 
-  shortletDetails: ShortletDetailInput
-  rentalDetails: RentalDetailInput
-  saleDetails: SaleDetailInput
+  shortletDetails: UpdateShortletDetailInput
+  rentalDetails: UpdateRentalDetailInput
+  saleDetails: UpdateSaleDetailInput
 }
 
 input ShortletDetailInput {
@@ -3800,15 +3914,85 @@ input SaleDetailInput {
   saleAvailabilityFrom: Time
 }
 
+# Update input types - all fields optional for partial updates
+input UpdateShortletDetailInput {
+  nightlyRate: Float
+  cautionFee: Float
+  cleaningFee: Float
+  serviceFee: Float
+  extraGuestFee: Float
+
+  minNights: Int
+  maxNights: Int
+  maxGuests: Int
+  baseGuestCount: Int
+
+  checkInTime: String
+  checkOutTime: String
+
+  accommodationType: AccommodationType
+
+  calendarMonthsAhead: Int
+  autoGenerateCalendar: Boolean
+
+  rules: [RuleGroupInput!]
+  amenitiesHighlights: [AmenityHighlightInput!]
+}
+
+input UpdateRentalDetailInput {
+  rentalPrice: Float
+  rentalPricePeriod: PaymentPeriod
+
+  agencyFee: Float
+  legalFee: Float
+  registrationFee: Float
+  cautionFee: Float
+  serviceCharge: Float
+  serviceCharges: [ServiceChargeInput!]
+
+  minRentalPeriod: Int
+  maxRentalPeriod: Int
+  rentalAvailabilityFrom: Time
+
+  rentalTerms: String
+  rentalRules: [RuleGroupInput!]
+}
+
+input UpdateSaleDetailInput {
+  salePrice: Float
+  ownershipTitle: String
+  paymentPlan: Boolean
+
+  yearBuilt: Int
+  yearRenovated: Int
+
+  agencyFee: Float
+  legalFee: Float
+  surveyFee: Float
+  titleProcessingFee: Float
+  developmentFee: Float
+  otherFees: Float
+  serviceCharge: Float
+  serviceCharges: [ServiceChargeInput!]
+
+  saleTerms: String
+  saleAvailabilityFrom: Time
+}
+
 input AmenityHighlightInput {
   title: String!
   summary: String!
   icon: String!
 }
 
+input RuleItemInput {
+  name: RuleSubCategory!
+  description: [Map!]
+}
+
 input RuleGroupInput {
   category: RuleCategory!
-  rules: [String!]!
+  rules: [RuleItemInput!]!
 }
 
 input ServiceChargeInput {
@@ -3849,8 +4033,8 @@ input CreateListingPropertyInput {
   squareMeters: Float
   floorArea: Float
 
-  amenities: [String!]
-  featuresCommercial: [String!]
+  amenities: [AmenityGroupInput!]
+  featuresCommercial: [AmenityGroupInput!]
 }
 
 input UpdateListingPropertyInput {
@@ -3877,8 +4061,8 @@ input UpdateListingPropertyInput {
   squareMeters: Float
   floorArea: Float
 
-  amenities: [String!]
-  featuresCommercial: [String!]
+  amenities: [AmenityGroupInput!]
+  featuresCommercial: [AmenityGroupInput!]
 }
 
 input ListingFilterInput {
@@ -3905,6 +4089,10 @@ extend type Query {
   listingsByProperty(propertyId: UUID!, first: Int, after: String): ListingConnection!
   myListings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
   listingCompleteness(listingId: UUID!): ListingCompleteness
+
+  # Business-specific queries
+  businessListings(businessId: UUID!, filter: ListingFilterInput, first: Int, after: String): ListingConnection!
+  myIndividualListings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
 
   # Geospatial
   listingsNearPoint(lat: Float!, lng: Float!, radiusMeters: Float!, filter: ListingFilterInput, limit: Int): [ListingWithDistance!]!
@@ -4144,7 +4332,6 @@ extend type Query {
   # Businesses
   business(id: UUID!): Business
   businessBySlug(slug: String!): Business
-  myBusinesses: [Business!]!
   allBusinesses(limit: Int, offset: Int): [Business!]!
   searchBusinesses(query: String!, limit: Int, offset: Int): [Business!]!
 
@@ -4578,6 +4765,32 @@ func (ec *executionContext) field_Query_businessInvitations_args(ctx context.Con
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_businessListings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOListingFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingFilterInput)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg3
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_businessMember_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4741,6 +4954,27 @@ func (ec *executionContext) field_Query_myBusinessPermissions_args(ctx context.C
 		return nil, err
 	}
 	args["businessID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_myIndividualListings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOListingFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingFilterInput)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOString2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg2
 	return args, nil
 }
 
@@ -4986,6 +5220,64 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _AmenityGroup_group(ctx context.Context, field graphql.CollectedField, obj *model.AmenityGroup) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AmenityGroup_group,
+		func(ctx context.Context) (any, error) {
+			return obj.Group, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AmenityGroup_group(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AmenityGroup",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AmenityGroup_items(ctx context.Context, field graphql.CollectedField, obj *model.AmenityGroup) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AmenityGroup_items,
+		func(ctx context.Context) (any, error) {
+			return obj.Items, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AmenityGroup_items(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AmenityGroup",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _AmenityHighlight_title(ctx context.Context, field graphql.CollectedField, obj *domain1.AmenityHighlight) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
@@ -6826,6 +7118,123 @@ func (ec *executionContext) fieldContext_Listing_ownerType(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Listing_ownerProfile(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Listing_ownerProfile,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Listing().OwnerProfile(ctx, obj)
+		},
+		nil,
+		ec.marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Listing_ownerProfile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Listing",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Profile_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_Profile_userId(ctx, field)
+			case "userTypes":
+				return ec.fieldContext_Profile_userTypes(ctx, field)
+			case "fullName":
+				return ec.fieldContext_Profile_fullName(ctx, field)
+			case "birthDate":
+				return ec.fieldContext_Profile_birthDate(ctx, field)
+			case "gender":
+				return ec.fieldContext_Profile_gender(ctx, field)
+			case "photoUrl":
+				return ec.fieldContext_Profile_photoUrl(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
+			case "address":
+				return ec.fieldContext_Profile_address(ctx, field)
+			case "street":
+				return ec.fieldContext_Profile_street(ctx, field)
+			case "houseNumber":
+				return ec.fieldContext_Profile_houseNumber(ctx, field)
+			case "area":
+				return ec.fieldContext_Profile_area(ctx, field)
+			case "lga":
+				return ec.fieldContext_Profile_lga(ctx, field)
+			case "district":
+				return ec.fieldContext_Profile_district(ctx, field)
+			case "digitalAddress":
+				return ec.fieldContext_Profile_digitalAddress(ctx, field)
+			case "city":
+				return ec.fieldContext_Profile_city(ctx, field)
+			case "state":
+				return ec.fieldContext_Profile_state(ctx, field)
+			case "country":
+				return ec.fieldContext_Profile_country(ctx, field)
+			case "zipCode":
+				return ec.fieldContext_Profile_zipCode(ctx, field)
+			case "occupation":
+				return ec.fieldContext_Profile_occupation(ctx, field)
+			case "education":
+				return ec.fieldContext_Profile_education(ctx, field)
+			case "bio":
+				return ec.fieldContext_Profile_bio(ctx, field)
+			case "skills":
+				return ec.fieldContext_Profile_skills(ctx, field)
+			case "languages":
+				return ec.fieldContext_Profile_languages(ctx, field)
+			case "interests":
+				return ec.fieldContext_Profile_interests(ctx, field)
+			case "hobbies":
+				return ec.fieldContext_Profile_hobbies(ctx, field)
+			case "funFact":
+				return ec.fieldContext_Profile_funFact(ctx, field)
+			case "obsessedWith":
+				return ec.fieldContext_Profile_obsessedWith(ctx, field)
+			case "communityCommitment":
+				return ec.fieldContext_Profile_communityCommitment(ctx, field)
+			case "travelCompanions":
+				return ec.fieldContext_Profile_travelCompanions(ctx, field)
+			case "phoneVerified":
+				return ec.fieldContext_Profile_phoneVerified(ctx, field)
+			case "idVerified":
+				return ec.fieldContext_Profile_idVerified(ctx, field)
+			case "verificationDate":
+				return ec.fieldContext_Profile_verificationDate(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Profile_verificationLevel(ctx, field)
+			case "rating":
+				return ec.fieldContext_Profile_rating(ctx, field)
+			case "reviewsCount":
+				return ec.fieldContext_Profile_reviewsCount(ctx, field)
+			case "trustScore":
+				return ec.fieldContext_Profile_trustScore(ctx, field)
+			case "badges":
+				return ec.fieldContext_Profile_badges(ctx, field)
+			case "bioVisible":
+				return ec.fieldContext_Profile_bioVisible(ctx, field)
+			case "allowPersonalizedOffers":
+				return ec.fieldContext_Profile_allowPersonalizedOffers(ctx, field)
+			case "enablePerformanceAnalytics":
+				return ec.fieldContext_Profile_enablePerformanceAnalytics(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Profile_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Profile_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Listing_slug(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -6901,6 +7310,35 @@ func (ec *executionContext) _Listing_description(ctx context.Context, field grap
 }
 
 func (ec *executionContext) fieldContext_Listing_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Listing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Listing_extraDescription(ctx context.Context, field graphql.CollectedField, obj *domain1.Listing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Listing_extraDescription,
+		func(ctx context.Context) (any, error) {
+			return obj.ExtraDescription, nil
+		},
+		nil,
+		ec.marshalOString2string,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Listing_extraDescription(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Listing",
 		Field:      field,
@@ -8227,12 +8665,16 @@ func (ec *executionContext) fieldContext_ListingEdge_node(_ context.Context, fie
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -8798,12 +9240,16 @@ func (ec *executionContext) fieldContext_ListingWithDistance_listing(_ context.C
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -9618,12 +10064,16 @@ func (ec *executionContext) fieldContext_Mutation_createListing(ctx context.Cont
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -9721,12 +10171,16 @@ func (ec *executionContext) fieldContext_Mutation_updateListing(ctx context.Cont
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -9865,12 +10319,16 @@ func (ec *executionContext) fieldContext_Mutation_publishListing(ctx context.Con
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -9968,12 +10426,16 @@ func (ec *executionContext) fieldContext_Mutation_unpublishListing(ctx context.C
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -12729,10 +13191,10 @@ func (ec *executionContext) _Property_amenities(ctx context.Context, field graph
 		field,
 		ec.fieldContext_Property_amenities,
 		func(ctx context.Context) (any, error) {
-			return obj.Amenities, nil
+			return ec.resolvers.Property().Amenities(ctx, obj)
 		},
 		nil,
-		ec.marshalNString2ᚕstringᚄ,
+		ec.marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupᚄ,
 		true,
 		true,
 	)
@@ -12742,10 +13204,16 @@ func (ec *executionContext) fieldContext_Property_amenities(_ context.Context, f
 	fc = &graphql.FieldContext{
 		Object:     "Property",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			switch field.Name {
+			case "group":
+				return ec.fieldContext_AmenityGroup_group(ctx, field)
+			case "items":
+				return ec.fieldContext_AmenityGroup_items(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AmenityGroup", field.Name)
 		},
 	}
 	return fc, nil
@@ -12758,10 +13226,10 @@ func (ec *executionContext) _Property_featuresCommercial(ctx context.Context, fi
 		field,
 		ec.fieldContext_Property_featuresCommercial,
 		func(ctx context.Context) (any, error) {
-			return obj.FeaturesCommercial, nil
+			return ec.resolvers.Property().FeaturesCommercial(ctx, obj)
 		},
 		nil,
-		ec.marshalNString2ᚕstringᚄ,
+		ec.marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupᚄ,
 		true,
 		true,
 	)
@@ -12771,10 +13239,16 @@ func (ec *executionContext) fieldContext_Property_featuresCommercial(_ context.C
 	fc = &graphql.FieldContext{
 		Object:     "Property",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			switch field.Name {
+			case "group":
+				return ec.fieldContext_AmenityGroup_group(ctx, field)
+			case "items":
+				return ec.fieldContext_AmenityGroup_items(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AmenityGroup", field.Name)
 		},
 	}
 	return fc, nil
@@ -13710,12 +14184,16 @@ func (ec *executionContext) fieldContext_Query_listing(ctx context.Context, fiel
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -13813,12 +14291,16 @@ func (ec *executionContext) fieldContext_Query_listingByPublicId(ctx context.Con
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -13916,12 +14398,16 @@ func (ec *executionContext) fieldContext_Query_listingBySlug(ctx context.Context
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -14192,6 +14678,104 @@ func (ec *executionContext) fieldContext_Query_listingCompleteness(ctx context.C
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_listingCompleteness_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_businessListings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_businessListings,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BusinessListings(ctx, fc.Args["businessId"].(uuid.UUID), fc.Args["filter"].(*model.ListingFilterInput), fc.Args["first"].(*int), fc.Args["after"].(*string))
+		},
+		nil,
+		ec.marshalNListingConnection2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingConnection,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_businessListings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "edges":
+				return ec.fieldContext_ListingConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_ListingConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_ListingConnection_totalCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ListingConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_businessListings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myIndividualListings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myIndividualListings,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyIndividualListings(ctx, fc.Args["filter"].(*model.ListingFilterInput), fc.Args["first"].(*int), fc.Args["after"].(*string))
+		},
+		nil,
+		ec.marshalNListingConnection2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingConnection,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myIndividualListings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "edges":
+				return ec.fieldContext_ListingConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_ListingConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_ListingConnection_totalCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ListingConnection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myIndividualListings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -14539,93 +15123,6 @@ func (ec *executionContext) fieldContext_Query_businessBySlug(ctx context.Contex
 	if fc.Args, err = ec.field_Query_businessBySlug_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_myBusinesses(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_myBusinesses,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Query().MyBusinesses(ctx)
-		},
-		nil,
-		ec.marshalNBusiness2ᚕᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_myBusinesses(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Business_id(ctx, field)
-			case "slug":
-				return ec.fieldContext_Business_slug(ctx, field)
-			case "name":
-				return ec.fieldContext_Business_name(ctx, field)
-			case "displayName":
-				return ec.fieldContext_Business_displayName(ctx, field)
-			case "description":
-				return ec.fieldContext_Business_description(ctx, field)
-			case "businessType":
-				return ec.fieldContext_Business_businessType(ctx, field)
-			case "registrationNumber":
-				return ec.fieldContext_Business_registrationNumber(ctx, field)
-			case "taxID":
-				return ec.fieldContext_Business_taxID(ctx, field)
-			case "legalEntityType":
-				return ec.fieldContext_Business_legalEntityType(ctx, field)
-			case "email":
-				return ec.fieldContext_Business_email(ctx, field)
-			case "phoneNumbers":
-				return ec.fieldContext_Business_phoneNumbers(ctx, field)
-			case "website":
-				return ec.fieldContext_Business_website(ctx, field)
-			case "address":
-				return ec.fieldContext_Business_address(ctx, field)
-			case "location":
-				return ec.fieldContext_Business_location(ctx, field)
-			case "logoURL":
-				return ec.fieldContext_Business_logoURL(ctx, field)
-			case "coverImageURL":
-				return ec.fieldContext_Business_coverImageURL(ctx, field)
-			case "brandColor":
-				return ec.fieldContext_Business_brandColor(ctx, field)
-			case "isVerified":
-				return ec.fieldContext_Business_isVerified(ctx, field)
-			case "verifiedAt":
-				return ec.fieldContext_Business_verifiedAt(ctx, field)
-			case "isActive":
-				return ec.fieldContext_Business_isActive(ctx, field)
-			case "billingEmail":
-				return ec.fieldContext_Business_billingEmail(ctx, field)
-			case "memberCount":
-				return ec.fieldContext_Business_memberCount(ctx, field)
-			case "propertyCount":
-				return ec.fieldContext_Business_propertyCount(ctx, field)
-			case "listingCount":
-				return ec.fieldContext_Business_listingCount(ctx, field)
-			case "members":
-				return ec.fieldContext_Business_members(ctx, field)
-			case "createdBy":
-				return ec.fieldContext_Business_createdBy(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Business_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Business_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Business", field.Name)
-		},
 	}
 	return fc, nil
 }
@@ -15709,10 +16206,10 @@ func (ec *executionContext) _RuleGroup_rules(ctx context.Context, field graphql.
 		field,
 		ec.fieldContext_RuleGroup_rules,
 		func(ctx context.Context) (any, error) {
-			return obj.Rules, nil
+			return ec.resolvers.RuleGroup().Rules(ctx, obj)
 		},
 		nil,
-		ec.marshalNString2ᚕstringᚄ,
+		ec.marshalNRuleItem2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemᚄ,
 		true,
 		true,
 	)
@@ -15722,10 +16219,74 @@ func (ec *executionContext) fieldContext_RuleGroup_rules(_ context.Context, fiel
 	fc = &graphql.FieldContext{
 		Object:     "RuleGroup",
 		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_RuleItem_name(ctx, field)
+			case "description":
+				return ec.fieldContext_RuleItem_description(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RuleItem", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RuleItem_name(ctx context.Context, field graphql.CollectedField, obj *model.RuleItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RuleItem_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNRuleSubCategory2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleSubCategory,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RuleItem_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RuleItem",
+		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type RuleSubCategory does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RuleItem_description(ctx context.Context, field graphql.CollectedField, obj *model.RuleItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RuleItem_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalNMap2ᚕmapᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RuleItem_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RuleItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Map does not have child fields")
 		},
 	}
 	return fc, nil
@@ -16206,12 +16767,16 @@ func (ec *executionContext) fieldContext_ScoredListing_listing(_ context.Context
 				return ec.fieldContext_Listing_ownerId(ctx, field)
 			case "ownerType":
 				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
 			case "slug":
 				return ec.fieldContext_Listing_slug(ctx, field)
 			case "title":
 				return ec.fieldContext_Listing_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
 			case "currency":
 				return ec.fieldContext_Listing_currency(ctx, field)
 			case "listingType":
@@ -19510,6 +20075,40 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAmenityGroupInput(ctx context.Context, obj any) (model.AmenityGroupInput, error) {
+	var it model.AmenityGroupInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"group", "items"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "group":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("group"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Group = data
+		case "items":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("items"))
+			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Items = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputAmenityHighlightInput(ctx context.Context, obj any) (model.AmenityHighlightInput, error) {
 	var it model.AmenityHighlightInput
 	asMap := map[string]any{}
@@ -19780,7 +20379,7 @@ func (ec *executionContext) unmarshalInputCreateListingInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ownerType", "property", "title", "description", "currency", "listingType", "hasCalendar", "shortletDetails", "rentalDetails", "saleDetails"}
+	fieldsInOrder := [...]string{"ownerType", "businessID", "property", "title", "description", "extraDescription", "currency", "listingType", "hasCalendar", "shortletDetails", "rentalDetails", "saleDetails"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -19794,6 +20393,13 @@ func (ec *executionContext) unmarshalInputCreateListingInput(ctx context.Context
 				return it, err
 			}
 			it.OwnerType = data
+		case "businessID":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("businessID"))
+			data, err := ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BusinessID = data
 		case "property":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("property"))
 			data, err := ec.unmarshalNCreateListingPropertyInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateListingPropertyInput(ctx, v)
@@ -19815,6 +20421,13 @@ func (ec *executionContext) unmarshalInputCreateListingInput(ctx context.Context
 				return it, err
 			}
 			it.Description = data
+		case "extraDescription":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("extraDescription"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExtraDescription = data
 		case "currency":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currency"))
 			data, err := ec.unmarshalOCurrencyCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx, v)
@@ -20012,14 +20625,14 @@ func (ec *executionContext) unmarshalInputCreateListingPropertyInput(ctx context
 			it.FloorArea = data
 		case "amenities":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amenities"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Amenities = data
 		case "featuresCommercial":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("featuresCommercial"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -20453,11 +21066,45 @@ func (ec *executionContext) unmarshalInputRuleGroupInput(ctx context.Context, ob
 			it.Category = data
 		case "rules":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rules"))
-			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalNRuleItemInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Rules = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRuleItemInput(ctx context.Context, obj any) (model.RuleItemInput, error) {
+	var it model.RuleItemInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "description"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNRuleSubCategory2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleSubCategory(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOMap2ᚕmapᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
 		}
 	}
 
@@ -20921,7 +21568,7 @@ func (ec *executionContext) unmarshalInputUpdateListingInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"property", "title", "description", "currency", "ownerType", "hasCalendar", "shortletDetails", "rentalDetails", "saleDetails"}
+	fieldsInOrder := [...]string{"property", "title", "description", "extraDescription", "currency", "ownerType", "hasCalendar", "shortletDetails", "rentalDetails", "saleDetails"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -20949,6 +21596,13 @@ func (ec *executionContext) unmarshalInputUpdateListingInput(ctx context.Context
 				return it, err
 			}
 			it.Description = data
+		case "extraDescription":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("extraDescription"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExtraDescription = data
 		case "currency":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currency"))
 			data, err := ec.unmarshalOCurrencyCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx, v)
@@ -20972,21 +21626,21 @@ func (ec *executionContext) unmarshalInputUpdateListingInput(ctx context.Context
 			it.HasCalendar = data
 		case "shortletDetails":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shortletDetails"))
-			data, err := ec.unmarshalOShortletDetailInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShortletDetailInput(ctx, v)
+			data, err := ec.unmarshalOUpdateShortletDetailInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateShortletDetailInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.ShortletDetails = data
 		case "rentalDetails":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalDetails"))
-			data, err := ec.unmarshalORentalDetailInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRentalDetailInput(ctx, v)
+			data, err := ec.unmarshalOUpdateRentalDetailInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateRentalDetailInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.RentalDetails = data
 		case "saleDetails":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("saleDetails"))
-			data, err := ec.unmarshalOSaleDetailInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐSaleDetailInput(ctx, v)
+			data, err := ec.unmarshalOUpdateSaleDetailInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateSaleDetailInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -21146,14 +21800,14 @@ func (ec *executionContext) unmarshalInputUpdateListingPropertyInput(ctx context
 			it.FloorArea = data
 		case "amenities":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amenities"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Amenities = data
 		case "featuresCommercial":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("featuresCommercial"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -21387,6 +22041,374 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateRentalDetailInput(ctx context.Context, obj any) (model.UpdateRentalDetailInput, error) {
+	var it model.UpdateRentalDetailInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"rentalPrice", "rentalPricePeriod", "agencyFee", "legalFee", "registrationFee", "cautionFee", "serviceCharge", "serviceCharges", "minRentalPeriod", "maxRentalPeriod", "rentalAvailabilityFrom", "rentalTerms", "rentalRules"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "rentalPrice":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalPrice"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RentalPrice = data
+		case "rentalPricePeriod":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalPricePeriod"))
+			data, err := ec.unmarshalOPaymentPeriod2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RentalPricePeriod = data
+		case "agencyFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("agencyFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AgencyFee = data
+		case "legalFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("legalFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LegalFee = data
+		case "registrationFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("registrationFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RegistrationFee = data
+		case "cautionFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cautionFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CautionFee = data
+		case "serviceCharge":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharge"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ServiceCharge = data
+		case "serviceCharges":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
+			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐServiceChargeInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ServiceCharges = data
+		case "minRentalPeriod":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minRentalPeriod"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinRentalPeriod = data
+		case "maxRentalPeriod":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxRentalPeriod"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxRentalPeriod = data
+		case "rentalAvailabilityFrom":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalAvailabilityFrom"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RentalAvailabilityFrom = data
+		case "rentalTerms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalTerms"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RentalTerms = data
+		case "rentalRules":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalRules"))
+			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RentalRules = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateSaleDetailInput(ctx context.Context, obj any) (model.UpdateSaleDetailInput, error) {
+	var it model.UpdateSaleDetailInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"salePrice", "ownershipTitle", "paymentPlan", "yearBuilt", "yearRenovated", "agencyFee", "legalFee", "surveyFee", "titleProcessingFee", "developmentFee", "otherFees", "serviceCharge", "serviceCharges", "saleTerms", "saleAvailabilityFrom"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "salePrice":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("salePrice"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SalePrice = data
+		case "ownershipTitle":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ownershipTitle"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OwnershipTitle = data
+		case "paymentPlan":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("paymentPlan"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PaymentPlan = data
+		case "yearBuilt":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("yearBuilt"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.YearBuilt = data
+		case "yearRenovated":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("yearRenovated"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.YearRenovated = data
+		case "agencyFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("agencyFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AgencyFee = data
+		case "legalFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("legalFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LegalFee = data
+		case "surveyFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("surveyFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SurveyFee = data
+		case "titleProcessingFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("titleProcessingFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TitleProcessingFee = data
+		case "developmentFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("developmentFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DevelopmentFee = data
+		case "otherFees":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otherFees"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OtherFees = data
+		case "serviceCharge":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharge"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ServiceCharge = data
+		case "serviceCharges":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
+			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐServiceChargeInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ServiceCharges = data
+		case "saleTerms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("saleTerms"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SaleTerms = data
+		case "saleAvailabilityFrom":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("saleAvailabilityFrom"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SaleAvailabilityFrom = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateShortletDetailInput(ctx context.Context, obj any) (model.UpdateShortletDetailInput, error) {
+	var it model.UpdateShortletDetailInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"nightlyRate", "cautionFee", "cleaningFee", "serviceFee", "extraGuestFee", "minNights", "maxNights", "maxGuests", "baseGuestCount", "checkInTime", "checkOutTime", "accommodationType", "calendarMonthsAhead", "autoGenerateCalendar", "rules", "amenitiesHighlights"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "nightlyRate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("nightlyRate"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NightlyRate = data
+		case "cautionFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cautionFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CautionFee = data
+		case "cleaningFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cleaningFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CleaningFee = data
+		case "serviceFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ServiceFee = data
+		case "extraGuestFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("extraGuestFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ExtraGuestFee = data
+		case "minNights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNights"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinNights = data
+		case "maxNights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxNights"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxNights = data
+		case "maxGuests":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxGuests"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxGuests = data
+		case "baseGuestCount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("baseGuestCount"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BaseGuestCount = data
+		case "checkInTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkInTime"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckInTime = data
+		case "checkOutTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkOutTime"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckOutTime = data
+		case "accommodationType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accommodationType"))
+			data, err := ec.unmarshalOAccommodationType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AccommodationType = data
+		case "calendarMonthsAhead":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("calendarMonthsAhead"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CalendarMonthsAhead = data
+		case "autoGenerateCalendar":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoGenerateCalendar"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AutoGenerateCalendar = data
+		case "rules":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rules"))
+			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Rules = data
+		case "amenitiesHighlights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amenitiesHighlights"))
+			data, err := ec.unmarshalOAmenityHighlightInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityHighlightInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AmenitiesHighlights = data
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -21394,6 +22416,50 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var amenityGroupImplementors = []string{"AmenityGroup"}
+
+func (ec *executionContext) _AmenityGroup(ctx context.Context, sel ast.SelectionSet, obj *model.AmenityGroup) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, amenityGroupImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AmenityGroup")
+		case "group":
+			out.Values[i] = ec._AmenityGroup_group(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "items":
+			out.Values[i] = ec._AmenityGroup_items(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
 
 var amenityHighlightImplementors = []string{"AmenityHighlight"}
 
@@ -21880,6 +22946,39 @@ func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "ownerProfile":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Listing_ownerProfile(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "slug":
 			out.Values[i] = ec._Listing_slug(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -21895,6 +22994,8 @@ func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "extraDescription":
+			out.Values[i] = ec._Listing_extraDescription(ctx, field, obj)
 		case "currency":
 			out.Values[i] = ec._Listing_currency(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -23083,15 +24184,77 @@ func (ec *executionContext) _Property(ctx context.Context, sel ast.SelectionSet,
 		case "floorArea":
 			out.Values[i] = ec._Property_floorArea(ctx, field, obj)
 		case "amenities":
-			out.Values[i] = ec._Property_amenities(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Property_amenities(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "featuresCommercial":
-			out.Values[i] = ec._Property_featuresCommercial(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Property_featuresCommercial(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "listings":
 			field := field
 
@@ -23486,6 +24649,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "businessListings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_businessListings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myIndividualListings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myIndividualListings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "listingsNearPoint":
 			field := field
 
@@ -23581,28 +24788,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_businessBySlug(ctx, field)
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "myBusinesses":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_myBusinesses(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
 				return res
 			}
 
@@ -23930,10 +25115,85 @@ func (ec *executionContext) _RuleGroup(ctx context.Context, sel ast.SelectionSet
 		case "category":
 			out.Values[i] = ec._RuleGroup_category(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "rules":
-			out.Values[i] = ec._RuleGroup_rules(ctx, field, obj)
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._RuleGroup_rules(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var ruleItemImplementors = []string{"RuleItem"}
+
+func (ec *executionContext) _RuleItem(ctx context.Context, sel ast.SelectionSet, obj *model.RuleItem) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ruleItemImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RuleItem")
+		case "name":
+			out.Values[i] = ec._RuleItem_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._RuleItem_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -25049,6 +26309,65 @@ func (ec *executionContext) marshalNAccommodationType2hausletᚋinternalᚋmodul
 	return res
 }
 
+func (ec *executionContext) marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AmenityGroup) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAmenityGroup2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroup(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAmenityGroup2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroup(ctx context.Context, sel ast.SelectionSet, v *model.AmenityGroup) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AmenityGroup(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNAmenityGroupInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInput(ctx context.Context, v any) (*model.AmenityGroupInput, error) {
+	res, err := ec.unmarshalInputAmenityGroupInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNAmenityHighlight2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityHighlight(ctx context.Context, sel ast.SelectionSet, v domain1.AmenityHighlight) graphql.Marshaler {
 	return ec._AmenityHighlight(ctx, sel, &v)
 }
@@ -25748,6 +27067,58 @@ func (ec *executionContext) marshalNListingWithDistance2ᚖhausletᚋinternalᚋ
 	return ec._ListingWithDistance(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNMap2map(ctx context.Context, v any) (map[string]any, error) {
+	res, err := graphql.UnmarshalMap(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNMap2map(ctx context.Context, sel ast.SelectionSet, v map[string]any) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	_ = sel
+	res := graphql.MarshalMap(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNMap2ᚕmapᚄ(ctx context.Context, v any) ([]map[string]any, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]map[string]any, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNMap2map(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNMap2ᚕmapᚄ(ctx context.Context, sel ast.SelectionSet, v []map[string]any) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNMap2map(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNMediaType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐMediaType(ctx context.Context, v any) (domain1.MediaType, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain1.MediaType(tmp)
@@ -26060,6 +27431,90 @@ func (ec *executionContext) marshalNRuleGroup2ᚕhausletᚋinternalᚋmodulesᚋ
 func (ec *executionContext) unmarshalNRuleGroupInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInput(ctx context.Context, v any) (*model.RuleGroupInput, error) {
 	res, err := ec.unmarshalInputRuleGroupInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRuleItem2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.RuleItem) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNRuleItem2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItem(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNRuleItem2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItem(ctx context.Context, sel ast.SelectionSet, v *model.RuleItem) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RuleItem(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRuleItemInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemInputᚄ(ctx context.Context, v any) ([]*model.RuleItemInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.RuleItemInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNRuleItemInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNRuleItemInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemInput(ctx context.Context, v any) (*model.RuleItemInput, error) {
+	res, err := ec.unmarshalInputRuleItemInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNRuleSubCategory2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleSubCategory(ctx context.Context, v any) (model.RuleSubCategory, error) {
+	var res model.RuleSubCategory
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRuleSubCategory2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleSubCategory(ctx context.Context, sel ast.SelectionSet, v model.RuleSubCategory) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNScoredListing2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐScoredListingᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ScoredListing) graphql.Marshaler {
@@ -26671,6 +28126,43 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) unmarshalOAccommodationType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx context.Context, v any) (*domain1.AccommodationType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain1.AccommodationType(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAccommodationType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx context.Context, sel ast.SelectionSet, v *domain1.AccommodationType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
+}
+
+func (ec *executionContext) unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx context.Context, v any) ([]*model.AmenityGroupInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.AmenityGroupInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNAmenityGroupInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
 func (ec *executionContext) unmarshalOAmenityHighlightInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityHighlightInputᚄ(ctx context.Context, v any) ([]*model.AmenityHighlightInput, error) {
 	if v == nil {
 		return nil, nil
@@ -27012,6 +28504,42 @@ func (ec *executionContext) unmarshalOLocationInput2ᚖhausletᚋinternalᚋtran
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalOMap2ᚕmapᚄ(ctx context.Context, v any) ([]map[string]any, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]map[string]any, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNMap2map(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOMap2ᚕmapᚄ(ctx context.Context, sel ast.SelectionSet, v []map[string]any) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNMap2map(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalOMemberPermissions2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐMemberPermissions(ctx context.Context, sel ast.SelectionSet, v *domain.MemberPermissions) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -27102,6 +28630,25 @@ func (ec *executionContext) unmarshalOOwnerType2ᚖhausletᚋinternalᚋmodules�
 }
 
 func (ec *executionContext) marshalOOwnerType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐOwnerType(ctx context.Context, sel ast.SelectionSet, v *domain1.OwnerType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
+}
+
+func (ec *executionContext) unmarshalOPaymentPeriod2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx context.Context, v any) (*domain1.PaymentPeriod, error) {
+	if v == nil {
+		return nil, nil
+	}
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain1.PaymentPeriod(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOPaymentPeriod2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx context.Context, sel ast.SelectionSet, v *domain1.PaymentPeriod) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -27472,6 +29019,30 @@ func (ec *executionContext) unmarshalOUpdateListingPropertyInput2ᚖhausletᚋin
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputUpdateListingPropertyInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOUpdateRentalDetailInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateRentalDetailInput(ctx context.Context, v any) (*model.UpdateRentalDetailInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUpdateRentalDetailInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOUpdateSaleDetailInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateSaleDetailInput(ctx context.Context, v any) (*model.UpdateSaleDetailInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUpdateSaleDetailInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOUpdateShortletDetailInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateShortletDetailInput(ctx context.Context, v any) (*model.UpdateShortletDetailInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUpdateShortletDetailInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

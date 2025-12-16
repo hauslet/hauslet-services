@@ -2,7 +2,6 @@ package repository_test
 
 import (
 	"context"
-	"database/sql/driver"
 	"testing"
 	"time"
 
@@ -14,14 +13,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-func anyArgs(n int) []driver.Value {
-	args := make([]driver.Value, n)
-	for i := range args {
-		args[i] = sqlmock.AnyArg()
-	}
-	return args
-}
 
 func newMockRepo(t *testing.T) (repository.Repository, sqlmock.Sqlmock, func()) {
 	t.Helper()
@@ -112,7 +103,6 @@ func TestCreateProperty(t *testing.T) {
 		PropertyCondition: schema.ConditionNew,
 		OwnerID:           uuid.New(),
 		Units:             1,
-		Amenities:         []string{"wifi"},
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}

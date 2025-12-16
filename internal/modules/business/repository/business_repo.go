@@ -38,11 +38,6 @@ func (r *BusinessRepositoryImpl) UpdateBusiness(ctx context.Context, business *s
 	return r.db.WithContext(ctx).Save(business).Error
 }
 
-// PatchBusiness updates specific fields of a business
-func (r *BusinessRepositoryImpl) PatchBusiness(ctx context.Context, id uuid.UUID, updates map[string]any) error {
-	return r.db.WithContext(ctx).Model(&schema.Business{}).Where("id = ?", id).Updates(updates).Error
-}
-
 // DeleteBusiness soft deletes a business
 func (r *BusinessRepositoryImpl) DeleteBusiness(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Where("id = ?", id).Delete(&schema.Business{}).Error
@@ -51,13 +46,6 @@ func (r *BusinessRepositoryImpl) DeleteBusiness(ctx context.Context, id uuid.UUI
 // HardDeleteBusiness permanently deletes a business
 func (r *BusinessRepositoryImpl) HardDeleteBusiness(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Unscoped().Where("id = ?", id).Delete(&schema.Business{}).Error
-}
-
-// BusinessExists checks if a business exists by ID
-func (r *BusinessRepositoryImpl) BusinessExists(ctx context.Context, id uuid.UUID) (bool, error) {
-	var count int64
-	err := r.db.WithContext(ctx).Model(&schema.Business{}).Where("id = ?", id).Count(&count).Error
-	return count > 0, err
 }
 
 // SlugExists checks if a slug is already taken
@@ -73,16 +61,6 @@ func (r *BusinessRepositoryImpl) ListBusinesses(ctx context.Context, limit, offs
 	err := r.db.WithContext(ctx).
 		Limit(limit).
 		Offset(offset).
-		Order("created_at DESC").
-		Find(&businesses).Error
-	return businesses, err
-}
-
-// ListBusinessesByCreator lists all businesses created by a specific user
-func (r *BusinessRepositoryImpl) ListBusinessesByCreator(ctx context.Context, creatorID uuid.UUID) ([]*schema.Business, error) {
-	var businesses []*schema.Business
-	err := r.db.WithContext(ctx).
-		Where("created_by = ?", creatorID).
 		Order("created_at DESC").
 		Find(&businesses).Error
 	return businesses, err

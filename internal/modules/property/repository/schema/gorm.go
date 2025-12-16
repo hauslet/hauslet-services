@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -27,10 +28,10 @@ type Property struct {
 	// Enums
 	Country CountryCode `gorm:"type:varchar(50);default:'NG'"`
 
-	// PostGIS geospatial location (preferred for queries)
+	// PostGIS geospatial location
 	Location *GeographyPoint `gorm:"type:geography(Point,4326);index:idx_properties_location_gist,type:gist" json:"location,omitempty"`
 
-	// Classification (Using Enums)
+	// Classification
 	PropertyClass     PropertyClass     `gorm:"type:varchar(50);default:'residential';index"`
 	PropertyType      PropertyType      `gorm:"type:varchar(50);default:'apartment';index"`
 	FurnishingType    FurnishingType    `gorm:"type:varchar(50);default:'furnished'"`
@@ -49,39 +50,38 @@ type Property struct {
 	SquareMeters float64  `gorm:"type:float;default:0"`
 	FloorArea    *float64 `gorm:"type:float"`
 
-	// JSON fields (Validated via Hook)
-	Amenities          []string `gorm:"serializer:json"`
-	FeaturesCommercial []string `gorm:"serializer:json"`
+	// JSON fields
+	Amenities          []AmenitiesType `gorm:"type:jsonb;serializer:json"`
+	FeaturesCommercial []AmenitiesType `gorm:"type:jsonb;erializer:json"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }
 
-// Hook to validate Property Enums before writing to DB
+// Hook to validate Property Enums
 func (p *Property) BeforeSave(tx *gorm.DB) error {
-	// Validate Amenities
 	for _, a := range p.Amenities {
-		if !IsValidAmenity(a) {
-			return fmt.Errorf("invalid amenity: %s", a)
+		for _, item := range a.Items {
+			if !IsValidAmenity(item) {
+				return fmt.Errorf("invalid amenity: %s", item)
+			}
 		}
 	}
 	return nil
 }
 
-// BeforeCreate hook to generate PublicID if not set
+// BeforeCreate hook to generate PublicID
 func (p *Property) BeforeCreate(tx *gorm.DB) error {
 	if p.PublicID == "" {
-		// Try to generate unique public ID with retries
 		for range 10 {
-			publicID, err := generatePropertyPublicID()
+			publicID, err := generateRandomString("H", 8)
 			if err != nil {
 				return fmt.Errorf("failed to generate public ID: %w", err)
 			}
 
-			// Check if this ID already exists
 			var count int64
 			if err := tx.Model(&Property{}).Where("public_id = ?", publicID).Count(&count).Error; err != nil {
-				return fmt.Errorf("failed to check public ID uniqueness: %w", err)
+				return fmt.Errorf("check public ID: %w", err)
 			}
 
 			if count == 0 {
@@ -89,46 +89,25 @@ func (p *Property) BeforeCreate(tx *gorm.DB) error {
 				return nil
 			}
 		}
-		return fmt.Errorf("failed to generate unique public ID after 10 attempts")
+		return fmt.Errorf("failed to generate unique public ID")
 	}
 	return nil
-}
-
-// generatePropertyPublicID generates a random public ID in format H + 7 alphanumeric chars
-func generatePropertyPublicID() (string, error) {
-	const (
-		prefix = "H"
-		length = 8
-		chars  = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // Exclude 0, O, 1, I
-	)
-
-	b := make([]byte, length-1)
-	if _, err := rand.Read(b); err != nil {
-		return "", fmt.Errorf("failed to generate random bytes: %w", err)
-	}
-
-	result := make([]byte, length)
-	result[0] = prefix[0]
-
-	for i := 1; i < length; i++ {
-		result[i] = chars[int(b[i-1])%len(chars)]
-	}
-
-	return string(result), nil
 }
 
 // --- 2. LISTING (The Commercial Offer) ---
 type Listing struct {
 	ID uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 
+	// Removed uniqueIndex from PropertyID to allow multiple listings per property
 	PropertyID uuid.UUID `gorm:"type:uuid;not null;index;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	OwnerID    uuid.UUID `gorm:"type:uuid;not null;index"`
-	OwnerType  OwnerType `gorm:"size:50;not null"` // "landlord", "agent", etc.
+	OwnerType  OwnerType `gorm:"size:50;not null"`
 
-	Slug        string       `gorm:"uniqueIndex;not null"`
-	Title       string       `gorm:"not null"`
-	Description string       `gorm:"type:text"`
-	Currency    CurrencyCode `gorm:"size:3;default:'NGN'"`
+	Slug             string       `gorm:"uniqueIndex;not null"`
+	Title            string       `gorm:"not null"`
+	Description      string       `gorm:"type:text"`
+	ExtraDescription string       `gorm:"type:text"`
+	Currency         CurrencyCode `gorm:"size:3;default:'NGN'"`
 
 	// Classification
 	ListingType ListingType   `gorm:"size:50;index;not null"` // "sale", "rent", "shortlet"
@@ -160,13 +139,11 @@ type Listing struct {
 	RentalDetails   *RentalDetail   `gorm:"type:jsonb;serializer:json"`
 	SaleDetails     *SaleDetail     `gorm:"type:jsonb;serializer:json"`
 
-	// Vector embeddings for similarity search
-	TextEmbedding *VectorEmbedding `gorm:"type:vector(768)" json:"text_embedding,omitempty"`
-
-	// Embedding metadata
-	EmbeddingModel       *string    `gorm:"type:varchar(100)" json:"embedding_model,omitempty"`
-	EmbeddingVersion     *string    `gorm:"type:varchar(50)" json:"embedding_version,omitempty"`
-	EmbeddingGeneratedAt *time.Time `json:"embedding_generated_at,omitempty"`
+	// Vector embeddings
+	TextEmbedding        *VectorEmbedding `gorm:"type:vector(768)" json:"text_embedding,omitempty"`
+	EmbeddingModel       *string          `gorm:"type:varchar(100)" json:"embedding_model,omitempty"`
+	EmbeddingVersion     *string          `gorm:"type:varchar(50)" json:"embedding_version,omitempty"`
+	EmbeddingGeneratedAt *time.Time       `json:"embedding_generated_at,omitempty"`
 
 	// Media
 	Media []ListingMedia `gorm:"foreignKey:ListingID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -176,13 +153,44 @@ type Listing struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
-// Hook to validate Listing Enums
+// BeforeCreate hook for Listing to ensure unique Slug
+func (l *Listing) BeforeCreate(tx *gorm.DB) error {
+	if l.Slug == "" {
+		// Fallback slug generation if not provided
+		baseSlug := strings.ReplaceAll(strings.ToLower(l.Title), " ", "-")
+		if len(baseSlug) > 50 {
+			baseSlug = baseSlug[:50]
+		}
+
+		// Try to generate unique slug
+		for i := range 10 {
+			candidate := baseSlug
+			if i > 0 {
+				rnd, _ := generateRandomString("", 4)
+				candidate = fmt.Sprintf("%s-%s", baseSlug, rnd)
+			}
+
+			var count int64
+			if err := tx.Model(&Listing{}).Where("slug = ?", candidate).Count(&count).Error; err != nil {
+				return err
+			}
+			if count == 0 {
+				l.Slug = candidate
+				return nil
+			}
+		}
+		return fmt.Errorf("failed to generate unique slug")
+	}
+	return nil
+}
+
+// BeforeSave Hook: Validates Enums AND Enforces "One Active Listing" Rule
 func (l *Listing) BeforeSave(tx *gorm.DB) error {
 	changed := func(field string) bool {
 		return tx != nil && tx.Statement != nil && tx.Statement.Changed(field)
 	}
 
-	// Validate OwnerType when modified
+	// 1. Enum Validation
 	if changed("owner_type") {
 		switch l.OwnerType {
 		case OwnerLandlord, OwnerAgent, OwnerBusiness, OwnerIndividual:
@@ -190,8 +198,6 @@ func (l *Listing) BeforeSave(tx *gorm.DB) error {
 			return fmt.Errorf("invalid owner type: %s", l.OwnerType)
 		}
 	}
-
-	// Validate Currency when modified
 	if changed("currency") {
 		switch l.Currency {
 		case CurrencyNGN, CurrencyGHS, CurrencyUSD, CurrencyEUR:
@@ -199,8 +205,6 @@ func (l *Listing) BeforeSave(tx *gorm.DB) error {
 			return fmt.Errorf("invalid currency: %s", l.Currency)
 		}
 	}
-
-	// Validate Status when modified
 	if changed("status") {
 		switch l.Status {
 		case StatusActive, StatusInactive, StatusDraft, StatusSold, StatusRented,
@@ -211,10 +215,31 @@ func (l *Listing) BeforeSave(tx *gorm.DB) error {
 		}
 	}
 
+	// 2. Logic Check: Enforce One "Active" Listing per Type per Property
+	// We only care if the status is currently set to ACTIVE
+	if l.Status == StatusActive {
+		var count int64
+		query := tx.Model(&Listing{}).
+			Where("property_id = ?", l.PropertyID).
+			Where("listing_type = ?", l.ListingType).
+			Where("status = ?", StatusActive)
+
+		// If this is an update (ID exists), exclude the current record from the check
+		if l.ID != uuid.Nil {
+			query = query.Where("id != ?", l.ID)
+		}
+
+		if err := query.Count(&count).Error; err != nil {
+			return fmt.Errorf("failed to validate active listings: %w", err)
+		}
+
+		if count > 0 {
+			return fmt.Errorf("property already has an active '%s' listing. archive it before activating this one", l.ListingType)
+		}
+	}
+
 	return nil
 }
-
-// --- 3. HELPER STRUCTS (Embedded in JSONB) ---
 
 type AmenityHighlight struct {
 	Title   string `json:"title"`
@@ -222,42 +247,47 @@ type AmenityHighlight struct {
 	Icon    string `json:"icon"`
 }
 
+type RuleItem struct {
+	Name        RuleSubCategory  `json:"name" validate:"required"`
+	Description []map[string]any `json:"description" validate:"required,min=1"`
+}
+
 type RuleGroup struct {
 	Category RuleCategory `json:"category" validate:"required"`
-	Rules    []string     `json:"rules" validate:"required,min=1"`
+	Rules    []RuleItem   `json:"rules" validate:"required,min=1"`
 }
 
 type ServiceCharge struct {
 	Name   string        `json:"name"`
-	Period PaymentPeriod `json:"period"` // e.g., "yearly", "monthly"
+	Period PaymentPeriod `json:"period"`
 	Amount float64       `json:"amount"`
 }
 
+type AmenitiesType struct {
+	Group string   `json:"group"`
+	Items []string `json:"items"`
+}
+
 type ShortletDetail struct {
-	// Pricing
 	NightlyRate   float64  `json:"nightly_rate"`
 	CautionFee    *float64 `json:"caution_fee,omitempty"`
 	CleaningFee   *float64 `json:"cleaning_fee,omitempty"`
 	ServiceFee    *float64 `json:"service_fee,omitempty"`
 	ExtraGuestFee *float64 `json:"extra_guest_fee,omitempty"`
 
-	// Capacity & Rules
 	MinNights      int  `json:"min_nights"`
 	MaxNights      *int `json:"max_nights,omitempty"`
 	MaxGuests      int  `json:"max_guests"`
 	BaseGuestCount *int `json:"base_guest_count,omitempty"`
 
-	// Logistics
 	CheckInTime  *string `json:"check_in_time,omitempty"`
 	CheckOutTime *string `json:"check_out_time,omitempty"`
 
 	AccommodationType AccommodationType `json:"accommodation_type"`
 
-	// Automation
 	CalendarMonthsAhead  int  `json:"calendar_months_ahead"`
 	AutoGenerateCalendar bool `json:"auto_generate_calendar"`
 
-	// Metadata
 	Rules               []RuleGroup        `json:"rules,omitempty"`
 	AmenitiesHighlights []AmenityHighlight `json:"amenities_highlights,omitempty"`
 }
@@ -266,7 +296,6 @@ type RentalDetail struct {
 	RentalPrice       float64       `json:"rental_price"`
 	RentalPricePeriod PaymentPeriod `json:"rental_price_period"`
 
-	// Fees
 	AgencyFee       *float64 `json:"agency_fee,omitempty"`
 	LegalFee        *float64 `json:"legal_fee,omitempty"`
 	RegistrationFee *float64 `json:"registration_fee,omitempty"`
@@ -314,20 +343,16 @@ const (
 	MediaTypeDocument MediaType = "document"
 )
 
-// 1. Define a helper struct for the thumbnail details
 type Thumbnail struct {
-	Key      string `json:"key"`        // S3 Key: "listings/123/kitchen_thumb_sm.jpg"
-	Width    int    `json:"width"`      // 300
-	Height   int    `json:"height"`     // 200
-	Size     int64  `json:"size_bytes"` // File size for optimization checks
-	MimeType string `json:"mime_type"`  // "image/webp"
+	Key      string `json:"key"`
+	Width    int    `json:"width"`
+	Height   int    `json:"height"`
+	Size     int64  `json:"size_bytes"`
+	MimeType string `json:"mime_type"`
 }
 
-// 2. Define the Map for GORM to handle JSONB storage
-// Keys will be "small", "medium", "og", etc.
 type ThumbnailMap map[string]Thumbnail
 
-// Value and Scan are required for GORM to handle custom JSON structures if not using the default serializer
 func (tm ThumbnailMap) Value() (driver.Value, error) {
 	return json.Marshal(tm)
 }
@@ -340,16 +365,11 @@ type ListingMedia struct {
 	ID        uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	ListingID uuid.UUID `gorm:"type:uuid;not null;index"`
 
-	// REQUIRED FIELDS
-	Key  string    `gorm:"not null"` // The Original High-Res Image
+	Key  string    `gorm:"not null"`
 	Type MediaType `gorm:"size:20;default:'image'"`
 
-	// --- NEW FIELD ---
-	// Stores variations like {"small": {Key: "...", Width: 300...}, "medium": {...}}
 	Thumbnails ThumbnailMap `gorm:"type:jsonb;serializer:json"`
-	// -----------------
 
-	// OPTIONAL Metadata
 	Group    *string `gorm:"type:varchar(100);index"`
 	Caption  *string `gorm:"size:100"`
 	MimeType *string `gorm:"size:50"`
@@ -361,10 +381,9 @@ type ListingMedia struct {
 	IsGroupCover bool `gorm:"default:false"`
 	Order        int  `gorm:"default:0;index"`
 
-	ImageEmbedding *VectorEmbedding `gorm:"type:vector(512)"`
-
-	EmbeddingModel       *string `gorm:"type:varchar(100)"`
-	EmbeddingVersion     *string `gorm:"type:varchar(50)"`
+	ImageEmbedding       *VectorEmbedding `gorm:"type:vector(512)"`
+	EmbeddingModel       *string          `gorm:"type:varchar(100)"`
+	EmbeddingVersion     *string          `gorm:"type:varchar(50)"`
 	EmbeddingGeneratedAt *time.Time
 
 	UrlGeneratedAt time.Time `gorm:"index"`
@@ -375,15 +394,11 @@ type ListingMedia struct {
 	UpdatedAt time.Time
 }
 
-// Validation to ensure Type is correct
 func (m *ListingMedia) BeforeSave(tx *gorm.DB) error {
-	// Skip validation if Type isn't being changed, but only when the statement
-	// is operating on a single struct. Calling Changed on a slice/ptr to slice
-	// causes a reflect panic during batch inserts.
 	if tx != nil && tx.Statement != nil {
 		rv := tx.Statement.ReflectValue
 		if rv.IsValid() {
-			for rv.Kind() == reflect.Ptr && !rv.IsNil() {
+			for rv.Kind() == reflect.Pointer && !rv.IsNil() {
 				rv = rv.Elem()
 			}
 			if rv.IsValid() && rv.Kind() == reflect.Struct {
@@ -400,4 +415,28 @@ func (m *ListingMedia) BeforeSave(tx *gorm.DB) error {
 	default:
 		return fmt.Errorf("invalid media type: %s", m.Type)
 	}
+}
+
+// generateRandomString creates a random string of specified total length,
+func generateRandomString(prefix string, totalLength int) (string, error) {
+	// If prefix is "H" and totalLength is 8, we need 7 random chars
+	randomLen := totalLength - len(prefix)
+	if randomLen < 1 {
+		return "", fmt.Errorf("prefix is longer than total length")
+	}
+
+	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	b := make([]byte, randomLen)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+
+	var result strings.Builder
+	result.WriteString(prefix)
+
+	for i := 0; i < randomLen; i++ {
+		result.WriteByte(chars[int(b[i])%len(chars)])
+	}
+
+	return result.String(), nil
 }

@@ -43,69 +43,74 @@ func (r *businessResolver) Members(ctx context.Context, obj *domain3.Business) (
 	return result, nil
 }
 
+// OwnerProfile is the resolver for the ownerProfile field.
+func (r *listingResolver) OwnerProfile(ctx context.Context, obj *domain.Listing) (*domain1.Profile, error) {
+	return r.PropertyResolver.OwnerProfile(ctx, obj)
+}
+
 // Property is the resolver for the property field.
 func (r *listingResolver) Property(ctx context.Context, obj *domain.Listing) (*domain.Property, error) {
-	panic(fmt.Errorf("not implemented: Property - property"))
+	return r.PropertyResolver.ListingProperty(ctx, obj)
 }
 
 // Thumbnails is the resolver for the thumbnails field.
 func (r *listingMediaResolver) Thumbnails(ctx context.Context, obj *domain.ListingMedia) ([]*domain.ThumbnailVariant, error) {
-	panic(fmt.Errorf("not implemented: Thumbnails - thumbnails"))
+	return r.PropertyResolver.ListingMediaThumbnails(ctx, obj)
 }
 
 // Ping is the resolver for the ping field.
 func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
-	panic(fmt.Errorf("not implemented: Ping - ping"))
+	return "pong", nil
 }
 
 // UpdateProfile is the resolver for the updateProfile field.
 func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain1.Profile, error) {
-	panic(fmt.Errorf("not implemented: UpdateProfile - updateProfile"))
+	return r.ProfileResolver.UpdateProfile(ctx, input)
 }
 
 // AddTravelCompanion is the resolver for the addTravelCompanion field.
 func (r *mutationResolver) AddTravelCompanion(ctx context.Context, userID string, input model.TravelCompanionInput) (bool, error) {
-	panic(fmt.Errorf("not implemented: AddTravelCompanion - addTravelCompanion"))
+	return r.ProfileResolver.AddTravelCompanion(ctx, userID, input)
 }
 
 // UpdateTravelCompanion is the resolver for the updateTravelCompanion field.
 func (r *mutationResolver) UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input model.TravelCompanionInput) (bool, error) {
-	panic(fmt.Errorf("not implemented: UpdateTravelCompanion - updateTravelCompanion"))
+	return r.ProfileResolver.UpdateTravelCompanion(ctx, userID, companionID, input)
 }
 
 // DeleteTravelCompanion is the resolver for the deleteTravelCompanion field.
 func (r *mutationResolver) DeleteTravelCompanion(ctx context.Context, userID string, companionID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteTravelCompanion - deleteTravelCompanion"))
+	return r.ProfileResolver.DeleteTravelCompanion(ctx, userID, companionID)
 }
 
 // DeleteProfile is the resolver for the deleteProfile field.
 func (r *mutationResolver) DeleteProfile(ctx context.Context, userID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteProfile - deleteProfile"))
+	return r.ProfileResolver.DeleteProfile(ctx, userID)
 }
 
 // CreateListing is the resolver for the createListing field.
 func (r *mutationResolver) CreateListing(ctx context.Context, input model.CreateListingInput) (*domain.Listing, error) {
-	panic(fmt.Errorf("not implemented: CreateListing - createListing"))
+	return r.PropertyResolver.CreateListing(ctx, input)
 }
 
 // UpdateListing is the resolver for the updateListing field.
 func (r *mutationResolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.UpdateListingInput) (*domain.Listing, error) {
-	panic(fmt.Errorf("not implemented: UpdateListing - updateListing"))
+	return r.PropertyResolver.UpdateListing(ctx, id, input)
 }
 
 // DeleteListing is the resolver for the deleteListing field.
 func (r *mutationResolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteListing - deleteListing"))
+	return r.PropertyResolver.DeleteListing(ctx, id, hard)
 }
 
 // PublishListing is the resolver for the publishListing field.
 func (r *mutationResolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
-	panic(fmt.Errorf("not implemented: PublishListing - publishListing"))
+	return r.PropertyResolver.PublishListing(ctx, id)
 }
 
 // UnpublishListing is the resolver for the unpublishListing field.
 func (r *mutationResolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
-	panic(fmt.Errorf("not implemented: UnpublishListing - unpublishListing"))
+	return r.PropertyResolver.UnpublishListing(ctx, id)
 }
 
 // CreateBusiness is the resolver for the createBusiness field.
@@ -168,99 +173,177 @@ func (r *profileResolver) Gender(ctx context.Context, obj *domain1.Profile) (*st
 	panic(fmt.Errorf("not implemented: Gender - gender"))
 }
 
+// Amenities is the resolver for the amenities field.
+func (r *propertyResolver) Amenities(ctx context.Context, obj *domain.Property) ([]*model.AmenityGroup, error) {
+	if obj == nil || len(obj.Amenities) == 0 {
+		return []*model.AmenityGroup{}, nil
+	}
+
+	// Convert domain.AmenityGroup to model.AmenityGroup
+	result := make([]*model.AmenityGroup, len(obj.Amenities))
+	for i, group := range obj.Amenities {
+		result[i] = &model.AmenityGroup{
+			Group: group.Group,
+			Items: group.Items,
+		}
+	}
+	return result, nil
+}
+
+// FeaturesCommercial is the resolver for the featuresCommercial field.
+func (r *propertyResolver) FeaturesCommercial(ctx context.Context, obj *domain.Property) ([]*model.AmenityGroup, error) {
+	if obj == nil || len(obj.FeaturesCommercial) == 0 {
+		return []*model.AmenityGroup{}, nil
+	}
+
+	// Convert domain.AmenityGroup to model.AmenityGroup
+	result := make([]*model.AmenityGroup, len(obj.FeaturesCommercial))
+	for i, group := range obj.FeaturesCommercial {
+		result[i] = &model.AmenityGroup{
+			Group: group.Group,
+			Items: group.Items,
+		}
+	}
+	return result, nil
+}
+
 // Listings is the resolver for the listings field.
 func (r *propertyResolver) Listings(ctx context.Context, obj *domain.Property, first *int, after *string) (*model.ListingConnection, error) {
-	panic(fmt.Errorf("not implemented: Listings - listings"))
+	return r.PropertyResolver.PropertyListings(ctx, obj, first, after)
 }
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*domain2.User, error) {
-	panic(fmt.Errorf("not implemented: Me - me"))
+	return r.AuthResolver.Me(ctx)
 }
 
 // Profile is the resolver for the profile field.
 func (r *queryResolver) Profile(ctx context.Context, id uuid.UUID) (*domain1.Profile, error) {
-	panic(fmt.Errorf("not implemented: Profile - profile"))
+	return r.ProfileResolver.Profile(ctx, id)
 }
 
 // ProfileByUserID is the resolver for the profileByUserId field.
 func (r *queryResolver) ProfileByUserID(ctx context.Context, userID string) (*domain1.Profile, error) {
-	panic(fmt.Errorf("not implemented: ProfileByUserID - profileByUserId"))
+	return r.ProfileResolver.ProfileByUserID(ctx, userID)
 }
 
 // Profiles is the resolver for the profiles field.
 func (r *queryResolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*domain1.Profile, error) {
-	panic(fmt.Errorf("not implemented: Profiles - profiles"))
+	return r.ProfileResolver.Profiles(ctx, limit, offset)
 }
 
 // SearchProfiles is the resolver for the searchProfiles field.
 func (r *queryResolver) SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain1.Profile, error) {
-	panic(fmt.Errorf("not implemented: SearchProfiles - searchProfiles"))
+	return r.ProfileResolver.SearchProfiles(ctx, query, limit, offset)
 }
 
 // MyProfile is the resolver for the myProfile field.
 func (r *queryResolver) MyProfile(ctx context.Context) (*domain1.Profile, error) {
-	panic(fmt.Errorf("not implemented: MyProfile - myProfile"))
+	return r.ProfileResolver.MyProfile(ctx)
 }
 
 // UploadProfilePhoto is the resolver for the uploadProfilePhoto field.
 func (r *queryResolver) UploadProfilePhoto(ctx context.Context, userID string, fileName string) (*model.UploadResult, error) {
-	panic(fmt.Errorf("not implemented: UploadProfilePhoto - uploadProfilePhoto"))
+	u, err := r.ProfileResolver.UploadProfilePhoto(ctx, userID, fileName)
+	if err != nil {
+		return nil, err
+	}
+	mdl := &model.UploadResult{
+		UserID:    u.UserID,
+		Filename:  u.Filename,
+		UploadURL: u.URL,
+		Key:       u.Key,
+	}
+	tc := u.TravelCompanionID
+	if tc != uuid.Nil {
+		mdl.TravelCompanionID = &tc
+	}
+
+	return mdl, nil
 }
 
 // UploadTravelCompanionPhoto is the resolver for the uploadTravelCompanionPhoto field.
 func (r *queryResolver) UploadTravelCompanionPhoto(ctx context.Context, userID string, companionID string, fileName string) (*model.UploadResult, error) {
-	panic(fmt.Errorf("not implemented: UploadTravelCompanionPhoto - uploadTravelCompanionPhoto"))
+	companionUUID, err := uuid.Parse(companionID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid companionID: %w", err)
+	}
+	u, err := r.ProfileResolver.UploadTravelCompanionPhoto(ctx, companionUUID, userID, fileName)
+	if err != nil {
+		return nil, err
+	}
+	mdl := &model.UploadResult{
+		UserID:    u.UserID,
+		Filename:  u.Filename,
+		UploadURL: u.URL,
+		Key:       u.Key,
+	}
+	tc := u.TravelCompanionID
+	if tc != uuid.Nil {
+		mdl.TravelCompanionID = &tc
+	}
+
+	return mdl, nil
 }
 
 // Listing is the resolver for the listing field.
 func (r *queryResolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
-	panic(fmt.Errorf("not implemented: Listing - listing"))
+	return r.PropertyResolver.Listing(ctx, id)
 }
 
 // ListingByPublicID is the resolver for the listingByPublicId field.
 func (r *queryResolver) ListingByPublicID(ctx context.Context, publicID string) (*domain.Listing, error) {
-	panic(fmt.Errorf("not implemented: ListingByPublicID - listingByPublicId"))
+	return r.PropertyResolver.ListingByPublicId(ctx, publicID)
 }
 
 // ListingBySlug is the resolver for the listingBySlug field.
 func (r *queryResolver) ListingBySlug(ctx context.Context, slug string) (*domain.Listing, error) {
-	panic(fmt.Errorf("not implemented: ListingBySlug - listingBySlug"))
+	return r.PropertyResolver.ListingBySlug(ctx, slug)
 }
 
 // Listings is the resolver for the listings field.
 func (r *queryResolver) Listings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
-	panic(fmt.Errorf("not implemented: Listings - listings"))
+	return r.PropertyResolver.Listings(ctx, filter, first, after)
 }
 
 // ListingsByProperty is the resolver for the listingsByProperty field.
 func (r *queryResolver) ListingsByProperty(ctx context.Context, propertyID uuid.UUID, first *int, after *string) (*model.ListingConnection, error) {
-	panic(fmt.Errorf("not implemented: ListingsByProperty - listingsByProperty"))
+	return r.PropertyResolver.ListingsByProperty(ctx, propertyID, first, after)
 }
 
 // MyListings is the resolver for the myListings field.
 func (r *queryResolver) MyListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
-	panic(fmt.Errorf("not implemented: MyListings - myListings"))
+	return r.PropertyResolver.MyListings(ctx, filter, first, after)
 }
 
 // ListingCompleteness is the resolver for the listingCompleteness field.
 func (r *queryResolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain.ListingCompleteness, error) {
-	panic(fmt.Errorf("not implemented: ListingCompleteness - listingCompleteness"))
+	return r.PropertyResolver.ListingCompleteness(ctx, listingID)
+}
+
+// BusinessListings is the resolver for the businessListings field.
+func (r *queryResolver) BusinessListings(ctx context.Context, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
+	return r.PropertyResolver.BusinessListings(ctx, businessID, filter, first, after)
+}
+
+// MyIndividualListings is the resolver for the myIndividualListings field.
+func (r *queryResolver) MyIndividualListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
+	return r.PropertyResolver.MyIndividualListings(ctx, filter, first, after)
 }
 
 // ListingsNearPoint is the resolver for the listingsNearPoint field.
 func (r *queryResolver) ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error) {
-	panic(fmt.Errorf("not implemented: ListingsNearPoint - listingsNearPoint"))
+	return r.PropertyResolver.ListingsNearPoint(ctx, lat, lng, radiusMeters, filter, limit)
 }
 
 // SearchListings is the resolver for the searchListings field.
 func (r *queryResolver) SearchListings(ctx context.Context, query string, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error) {
-	panic(fmt.Errorf("not implemented: SearchListings - searchListings"))
+	return r.PropertyResolver.SearchListings(ctx, query, filter, limit)
 }
 
 // SimilarListings is the resolver for the similarListings field.
 func (r *queryResolver) SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error) {
-	panic(fmt.Errorf("not implemented: SimilarListings - similarListings"))
+	return r.PropertyResolver.SimilarListings(ctx, listingID, limit, minSimilarity)
 }
 
 // Business is the resolver for the business field.
@@ -271,19 +354,6 @@ func (r *queryResolver) Business(ctx context.Context, id uuid.UUID) (*domain3.Bu
 // BusinessBySlug is the resolver for the businessBySlug field.
 func (r *queryResolver) BusinessBySlug(ctx context.Context, slug string) (*domain3.Business, error) {
 	return r.BusinessResolver.BusinessBySlug(ctx, slug)
-}
-
-// MyBusinesses is the resolver for the myBusinesses field.
-func (r *queryResolver) MyBusinesses(ctx context.Context) ([]*domain3.Business, error) {
-	businesses, err := r.BusinessResolver.MyBusinesses(ctx)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*domain3.Business, len(businesses))
-	for i := range businesses {
-		result[i] = &businesses[i]
-	}
-	return result, nil
 }
 
 // AllBusinesses is the resolver for the allBusinesses field.
@@ -379,6 +449,23 @@ func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain.R
 	panic(fmt.Errorf("not implemented: ServiceCharges - serviceCharges"))
 }
 
+// Rules is the resolver for the rules field.
+func (r *ruleGroupResolver) Rules(ctx context.Context, obj *domain.RuleGroup) ([]*model.RuleItem, error) {
+	if obj == nil || len(obj.Rules) == 0 {
+		return []*model.RuleItem{}, nil
+	}
+
+	// Convert domain.RuleItem to model.RuleItem
+	rules := make([]*model.RuleItem, len(obj.Rules))
+	for i, item := range obj.Rules {
+		rules[i] = &model.RuleItem{
+			Name:        model.RuleSubCategory(item.Name),
+			Description: item.Description,
+		}
+	}
+	return rules, nil
+}
+
 // ServiceCharges is the resolver for the serviceCharges field.
 func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain.SaleDetail) ([]*domain.ServiceCharge, error) {
 	panic(fmt.Errorf("not implemented: ServiceCharges - serviceCharges"))
@@ -418,6 +505,9 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 // RentalDetail returns RentalDetailResolver implementation.
 func (r *Resolver) RentalDetail() RentalDetailResolver { return &rentalDetailResolver{r} }
 
+// RuleGroup returns RuleGroupResolver implementation.
+func (r *Resolver) RuleGroup() RuleGroupResolver { return &ruleGroupResolver{r} }
+
 // SaleDetail returns SaleDetailResolver implementation.
 func (r *Resolver) SaleDetail() SaleDetailResolver { return &saleDetailResolver{r} }
 
@@ -432,5 +522,6 @@ type profileResolver struct{ *Resolver }
 type propertyResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type rentalDetailResolver struct{ *Resolver }
+type ruleGroupResolver struct{ *Resolver }
 type saleDetailResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }

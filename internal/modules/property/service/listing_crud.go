@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"hauslet/internal/modules/property/domain"
@@ -195,25 +196,6 @@ func (s *ServiceImpl) ListListings(ctx context.Context, filter ListingFilter, pa
 	return listings, result.TotalCount, nil
 }
 
-// ListListingsByProperty retrieves listings for a specific property.
-func (s *ServiceImpl) ListListingsByProperty(ctx context.Context, propertyID uuid.UUID, page Pagination) ([]domain.Listing, int64, error) {
-	if propertyID == uuid.Nil {
-		return nil, 0, domain.ErrInvalidPropertyID
-	}
-
-	repoPagination := repository.Pagination{
-		Limit:  page.Limit,
-		Offset: page.Offset,
-	}
-
-	result, err := s.repo.ListListingsByPropertyID(ctx, propertyID, repoPagination)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return domain.MapListingsFromSchema(result.Items), result.TotalCount, nil
-}
-
 // DeleteListing deletes a listing (soft or hard).
 func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool) error {
 	if id == uuid.Nil {
@@ -225,48 +207,6 @@ func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool
 	}
 
 	return s.repo.SoftDeleteListing(ctx, id)
-}
-
-// UpdateListingStatus updates the status of a listing.
-func (s *ServiceImpl) UpdateListingStatus(ctx context.Context, id uuid.UUID, status domain.ListingStatus, reason string, changedBy *uuid.UUID) error {
-	if id == uuid.Nil {
-		return domain.ErrInvalidListingID
-	}
-
-	return s.repo.UpdateListingStatus(ctx, id, schema.ListingStatus(status), reason, changedBy)
-}
-
-// UpdatePublishState updates the publish state of a listing.
-func (s *ServiceImpl) UpdatePublishState(ctx context.Context, id uuid.UUID, published bool, publishedAt *time.Time) error {
-	if id == uuid.Nil {
-		return domain.ErrInvalidListingID
-	}
-
-	return s.repo.UpdatePublishState(ctx, id, published, publishedAt)
-}
-
-// PublishListing publishes a listing.
-func (s *ServiceImpl) PublishListing(ctx context.Context, id uuid.UUID, publishedAt *time.Time, changedBy *uuid.UUID) (*domain.Listing, error) {
-	if err := s.UpdatePublishState(ctx, id, true, publishedAt); err != nil {
-		return nil, err
-	}
-	return s.ensureListing(ctx, id, false)
-}
-
-// UnpublishListing unpublishes a listing.
-func (s *ServiceImpl) UnpublishListing(ctx context.Context, id uuid.UUID, changedBy *uuid.UUID) (*domain.Listing, error) {
-	if err := s.UpdatePublishState(ctx, id, false, nil); err != nil {
-		return nil, err
-	}
-	return s.ensureListing(ctx, id, false)
-}
-
-// IncrementListingView increments the view count for a listing.
-func (s *ServiceImpl) IncrementListingView(ctx context.Context, id uuid.UUID, viewedAt time.Time) error {
-	if id == uuid.Nil {
-		return domain.ErrInvalidListingID
-	}
-	return s.repo.IncrementView(ctx, id, viewedAt)
 }
 
 // mapListingFilterToRepo converts service filters to repository filters.
@@ -333,44 +273,98 @@ func mapListingSortBy(sortBy ListingSortBy) repository.ListingSortBy {
 	}
 }
 
-// BulkUpdateListingStatus updates the status of multiple listings.
-func (s *ServiceImpl) BulkUpdateListingStatus(ctx context.Context, ids []uuid.UUID, status domain.ListingStatus, reason string, changedBy *uuid.UUID) error {
-	// TODO: Implement
-	return nil
-}
-
-// BulkArchiveListings archives multiple listings.
-func (s *ServiceImpl) BulkArchiveListings(ctx context.Context, ids []uuid.UUID, changedBy *uuid.UUID) error {
-	// TODO: Implement
-	return nil
-}
-
-// OnModerationComplete handles the completion of moderation for a listing.
-func (s *ServiceImpl) OnModerationComplete(ctx context.Context, listingID uuid.UUID, approved bool, reason string) error {
-	// TODO: Implement
-	return nil
-}
-
-// UpdateMediaReviewStatus updates the review status of media.
-func (s *ServiceImpl) UpdateMediaReviewStatus(ctx context.Context, mediaID uuid.UUID, approved bool, reason string) error {
-	// TODO: Implement
-	return nil
-}
-
 // GetListingCompleteness calculates the completeness of a listing.
 func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid.UUID, requesterID uuid.UUID) (*domain.ListingCompleteness, error) {
-	// TODO: Implement
-	return nil, nil
-}
+	if listingID == uuid.Nil {
+		return nil, domain.ErrInvalidListingID
+	}
+	if requesterID == uuid.Nil {
+		return nil, domain.ErrUnauthorized
+	}
 
-// GetUserListings retrieves listings owned by a specific user.
-func (s *ServiceImpl) GetUserListings(ctx context.Context, ownerID uuid.UUID, filter ListingFilter, page Pagination) ([]domain.Listing, int64, error) {
-	// TODO: Implement
-	return nil, 0, nil
-}
+	listing, err := s.ensureListing(ctx, listingID, true)
+	if err != nil {
+		return nil, err
+	}
+	if listing.OwnerID != requesterID {
+		return nil, domain.ErrForbidden
+	}
 
-// SearchListings searches for listings using text similarity.
-func (s *ServiceImpl) SearchListings(ctx context.Context, sim SimilarityQuery, filter ListingFilter) ([]ScoredResult[domain.Listing], error) {
-	// TODO: Implement
-	return nil, nil
+	property, err := s.ensureProperty(ctx, listing.PropertyID)
+	if err != nil {
+		return nil, err
+	}
+
+	hasBasicInfo := listing.Title != "" && listing.Slug != "" && listing.ListingType != ""
+	hasPropertyInfo := property.Address != "" && property.City != "" &&
+		property.State != "" && property.Country != "" && property.PropertyType != ""
+
+	hasPricingInfo := false
+	switch listing.ListingType {
+	case domain.ListingShortLet:
+		hasPricingInfo = listing.ShortletDetails != nil && listing.ShortletDetails.NightlyRate > 0
+	case domain.ListingRent:
+		hasPricingInfo = listing.RentalDetails != nil && listing.RentalDetails.RentalPrice > 0
+	case domain.ListingSale:
+		hasPricingInfo = listing.SaleDetails != nil && listing.SaleDetails.SalePrice > 0
+	}
+
+	hasImages := len(listing.Media) > 0
+	hasDescription := strings.TrimSpace(listing.Description) != ""
+
+	trueCount := 0
+	missingFields := make([]string, 0, 5)
+	recommendations := make([]string, 0, 5)
+
+	if hasBasicInfo {
+		trueCount++
+	} else {
+		missingFields = append(missingFields, "basic_info")
+		recommendations = append(recommendations, "Add a title and listing type.")
+	}
+
+	if hasPropertyInfo {
+		trueCount++
+	} else {
+		missingFields = append(missingFields, "property_info")
+		recommendations = append(recommendations, "Provide address, city, state, country, and property type.")
+	}
+
+	if hasPricingInfo {
+		trueCount++
+	} else {
+		missingFields = append(missingFields, "pricing")
+		recommendations = append(recommendations, "Set pricing details based on the listing type.")
+	}
+
+	if hasImages {
+		trueCount++
+	} else {
+		missingFields = append(missingFields, "images")
+		recommendations = append(recommendations, "Upload at least one image.")
+	}
+
+	if hasDescription {
+		trueCount++
+	} else {
+		missingFields = append(missingFields, "description")
+		recommendations = append(recommendations, "Add a description to highlight the property.")
+	}
+
+	readyToPublish := hasBasicInfo && hasPropertyInfo && hasPricingInfo && hasImages && hasDescription
+	completionScore := trueCount * 20
+
+	return &domain.ListingCompleteness{
+		ListingID:        listingID,
+		HasBasicInfo:     hasBasicInfo,
+		HasPropertyInfo:  hasPropertyInfo,
+		HasPricingInfo:   hasPricingInfo,
+		HasImages:        hasImages,
+		HasDescription:   hasDescription,
+		CompletionScore:  completionScore,
+		ReadyToPublish:   readyToPublish,
+		MissingFields:    missingFields,
+		Recommendations:  recommendations,
+		LastCalculatedAt: time.Now(),
+	}, nil
 }

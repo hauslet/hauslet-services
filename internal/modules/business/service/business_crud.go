@@ -115,6 +115,21 @@ func (s *BusinessServiceImpl) CreateBusiness(ctx context.Context, input domain.C
 	}
 
 	s.log.Logf("INFO Business created: %s (ID: %s) by user %s", business.Name, business.ID, creatorID)
+
+	// Fire-and-forget welcome email for the creator/business contact.
+	if s.notifier != nil && business.Email != "" {
+		creatorName := s.getProfileName(ctx, creatorID)
+		if creatorName == "" {
+			creatorName = business.DisplayName
+		}
+		if creatorName == "" {
+			creatorName = business.Name
+		}
+		if err := s.notifier.SendBusinessCreatedEmail(ctx, business, creatorName, business.Email); err != nil {
+			s.log.Logf("WARN Failed to send business created email for %s: %v", business.ID, err)
+		}
+	}
+
 	return business, nil
 }
 

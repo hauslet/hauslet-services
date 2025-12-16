@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"hauslet/config"
+	profiledomain "hauslet/internal/modules/profile/domain"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/service"
 	"hauslet/internal/transport/graph/helpers"
@@ -173,38 +174,112 @@ func (r *Resolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID)
 	return completeness, nil
 }
 
-// ListingsNearPoint finds listings near a geographic point.
-func (r *Resolver) ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error) {
-	query := service.NearPointQuery{
-		Lat:          lat,
-		Lng:          lng,
-		RadiusMeters: radiusMeters,
-		Limit:        20,
-		Offset:       0,
+// BusinessListings retrieves all listings owned by a specific business.
+func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
+	if businessID == uuid.Nil {
+		r.log.Logf("WARN BusinessListings called with nil businessID")
+		return nil, fmt.Errorf("businessID is required")
 	}
 
-	if limit != nil && *limit > 0 {
-		query.Limit = min(*limit, 100)
+	limit := 20
+	offset := 0
+
+	if first != nil && *first > 0 {
+		limit = min(*first, 100)
 	}
 
-	serviceFilter := mapListingFilterToService(filter)
-	results, _, err := r.propertyService.FindListingsNearPoint(ctx, query, serviceFilter)
-	if err != nil {
-		r.log.Logf("ERROR Failed to find listings near point (lat: %f, lng: %f): %v", lat, lng, err)
-		return nil, err
-	}
-
-	v := viewer.FromContext(ctx)
-	wrapped := make([]*model.ListingWithDistance, len(results))
-	for i, result := range results {
-		wrapped[i] = &model.ListingWithDistance{
-			Listing:        sanitizeListingForViewer(&result.Item, v),
-			DistanceMeters: result.DistanceMeters,
-			Score:          &result.SimilarityScore,
+	if after != nil {
+		var err error
+		offset, err = decodeCursor(*after)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cursor: %w", err)
 		}
 	}
 
-	return wrapped, nil
+	serviceFilter := mapListingFilterToService(filter)
+	servicePage := service.Pagination{
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	// filter scoped to business owner
+	ownerType := domain.OwnerBusiness
+	serviceFilter.OwnerID = &businessID
+	serviceFilter.OwnerTypes = []domain.OwnerType{ownerType}
+
+	listings, total, err := r.propertyService.ListListings(ctx, serviceFilter, servicePage)
+	if err != nil {
+		r.log.Logf("ERROR Failed to get business listings for %s: %v", businessID, err)
+		return nil, err
+	}
+
+	for i := range listings {
+		if len(listings[i].Media) > 0 {
+			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
+		}
+	}
+
+	return buildListingConnection(listings, total, offset, limit, viewer.FromContext(ctx)), nil
+}
+
+// MyIndividualListings retrieves individual listings owned by the authenticated user.
+func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
+	v := viewer.FromContext(ctx)
+	if v == nil || v.UserID == "" {
+		r.log.Logf("WARN Unauthenticated attempt to access myIndividualListings")
+		return nil, fmt.Errorf("unauthenticated")
+	}
+
+	userID, err := uuid.Parse(v.UserID)
+	if err != nil {
+		r.log.Logf("ERROR Invalid user ID in myIndividualListings: %s", v.UserID)
+		return nil, fmt.Errorf("invalid user ID")
+	}
+
+	limit := 20
+	offset := 0
+
+	if first != nil && *first > 0 {
+		limit = min(*first, 100)
+	}
+
+	if after != nil {
+		var err error
+		offset, err = decodeCursor(*after)
+		if err != nil {
+			return nil, fmt.Errorf("invalid cursor: %w", err)
+		}
+	}
+
+	serviceFilter := mapListingFilterToService(filter)
+	servicePage := service.Pagination{
+		Limit:  limit,
+		Offset: offset,
+	}
+
+	ownerType := domain.OwnerIndividual
+	serviceFilter.OwnerID = &userID
+	serviceFilter.OwnerTypes = []domain.OwnerType{ownerType}
+
+	listings, total, err := r.propertyService.ListListings(ctx, serviceFilter, servicePage)
+	if err != nil {
+		r.log.Logf("ERROR Failed to get individual listings for user %s: %v", v.UserID, err)
+		return nil, err
+	}
+
+	for i := range listings {
+		if len(listings[i].Media) > 0 {
+			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
+		}
+	}
+
+	return buildListingConnection(listings, total, offset, limit, v), nil
+}
+
+// ListingsNearPoint finds listings near a geographic point.
+func (r *Resolver) ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error) {
+	r.log.Logf("WARN listingsNearPoint not supported")
+	return nil, fmt.Errorf("listingsNearPoint not supported")
 }
 
 // SearchListings performs full-text search on listings.
@@ -225,23 +300,8 @@ func (r *Resolver) SimilarListings(ctx context.Context, listingID uuid.UUID, lim
 		minSim = *minSimilarity
 	}
 
-	results, err := r.propertyService.FindSimilarListings(ctx, listingID, searchLimit, minSim)
-	if err != nil {
-		r.log.Logf("ERROR Failed to find similar listings for %s: %v", listingID, err)
-		return nil, err
-	}
-
-	v := viewer.FromContext(ctx)
-	scored := make([]*model.ScoredListing, len(results))
-	for i, result := range results {
-		scored[i] = &model.ScoredListing{
-			Listing: sanitizeListingForViewer(&result.Item, v),
-			Score:   result.SimilarityScore,
-			Ranking: result.Ranking,
-		}
-	}
-
-	return scored, nil
+	r.log.Logf("WARN similarListings not supported")
+	return nil, fmt.Errorf("similarListings not supported, %f, %d", minSim, searchLimit)
 }
 
 // ===========================
@@ -256,7 +316,7 @@ func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingI
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
-	ownerID, err := uuid.Parse(v.UserID)
+	userID, err := uuid.Parse(v.UserID)
 	if err != nil {
 		r.log.Logf("ERROR Invalid user ID in createListing: %s", v.UserID)
 		return nil, fmt.Errorf("invalid user ID")
@@ -267,11 +327,26 @@ func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingI
 		return nil, fmt.Errorf("property payload is required")
 	}
 
+	// Determine ownerID based on ownerType
+	var ownerID uuid.UUID
+	if input.OwnerType == domain.OwnerBusiness {
+		// For business listings, businessID must be provided
+		if input.BusinessID == nil {
+			r.log.Logf("WARN CreateListing called with business ownerType but no businessID by user %s", v.UserID)
+			return nil, fmt.Errorf("businessID is required when ownerType is business")
+		}
+		ownerID = *input.BusinessID
+		r.log.Logf("INFO Creating business listing for business %s by user %s", ownerID, v.UserID)
+	} else {
+		// For individual listings, use userID
+		ownerID = userID
+		r.log.Logf("INFO Creating individual listing for user %s", v.UserID)
+	}
+
 	// Map inputs to domain models
 	property := mapCreateListingPropertyInput(input.Property, ownerID)
 	listing := mapCreateListingInput(input, ownerID)
 
-	// Create property and listing atomically in a transaction
 	createdProperty, createdListing, err := r.propertyService.CreatePropertyWithListing(ctx, *property, listing)
 	if err != nil {
 		r.log.Logf("ERROR Failed to create property with listing for user %s: %v", v.UserID, err)
@@ -387,15 +462,8 @@ func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Li
 		return nil, fmt.Errorf("forbidden: not the owner")
 	}
 
-	changedBy, _ := uuid.Parse(v.UserID)
-	published, err := r.propertyService.PublishListing(ctx, id, nil, &changedBy)
-	if err != nil {
-		r.log.Logf("ERROR Failed to publish listing %s: %v", id, err)
-		return nil, err
-	}
-
-	r.log.Logf("INFO Listing %s published by user %s", id, v.UserID)
-	return sanitizeListingForViewer(published, v), nil
+	r.log.Logf("WARN PublishListing not supported")
+	return nil, fmt.Errorf("publish listing not supported")
 }
 
 // UnpublishListing unpublishes a listing.
@@ -417,15 +485,8 @@ func (r *Resolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.
 		return nil, fmt.Errorf("forbidden: not the owner")
 	}
 
-	changedBy, _ := uuid.Parse(v.UserID)
-	unpublished, err := r.propertyService.UnpublishListing(ctx, id, &changedBy)
-	if err != nil {
-		r.log.Logf("ERROR Failed to unpublish listing %s: %v", id, err)
-		return nil, err
-	}
-
-	r.log.Logf("INFO Listing %s unpublished by user %s", id, v.UserID)
-	return sanitizeListingForViewer(unpublished, v), nil
+	r.log.Logf("WARN UnpublishListing not supported")
+	return nil, fmt.Errorf("unpublish listing not supported")
 }
 
 // ===========================
@@ -607,7 +668,7 @@ func (r *Resolver) ListingFloorArea(ctx context.Context, obj *domain.Listing) (*
 	return property.FloorArea, nil
 }
 
-func (r *Resolver) ListingAmenities(ctx context.Context, obj *domain.Listing) ([]string, error) {
+func (r *Resolver) ListingAmenities(ctx context.Context, obj *domain.Listing) ([]domain.AmenityGroup, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
 		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
@@ -616,7 +677,7 @@ func (r *Resolver) ListingAmenities(ctx context.Context, obj *domain.Listing) ([
 	return property.Amenities, nil
 }
 
-func (r *Resolver) ListingFeaturesCommercial(ctx context.Context, obj *domain.Listing) ([]string, error) {
+func (r *Resolver) ListingFeaturesCommercial(ctx context.Context, obj *domain.Listing) ([]domain.AmenityGroup, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
 		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
@@ -711,4 +772,22 @@ func (r *Resolver) ListingMediaThumbnails(ctx context.Context, obj *domain.Listi
 	}
 
 	return thumbnails, nil
+}
+
+// OwnerProfile resolves the profile of the listing owner.
+func (r *Resolver) OwnerProfile(ctx context.Context, obj *domain.Listing) (*profiledomain.Profile, error) {
+	if obj == nil || obj.OwnerID == uuid.Nil {
+		return nil, nil
+	}
+
+	if l := loaders.For(ctx); l != nil && l.Profile != nil {
+		profile, err := l.Profile.Load(ctx, obj.OwnerID.String())
+		if err != nil {
+			r.log.Logf("ERROR Failed to load profile for owner %s: %v", obj.OwnerID, err)
+			return nil, err
+		}
+		return profile, nil
+	}
+
+	return nil, fmt.Errorf("profile loader unavailable")
 }

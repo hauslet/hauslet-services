@@ -49,42 +49,12 @@ func (r *GormRepository) UpdateProperty(ctx context.Context, property *schema.Pr
 	return nil
 }
 
-// UpdatePropertyTx updates all fields on an existing property within a transaction.
-func (r *GormRepository) UpdatePropertyTx(ctx context.Context, tx *gorm.DB, property *schema.Property) error {
-	result := tx.WithContext(ctx).Save(property)
-	if result.Error != nil {
-		return fmt.Errorf("failed to update property: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("property not found: %w", gorm.ErrRecordNotFound)
-	}
-	return nil
-}
-
 // PatchProperty applies partial updates to a property by ID.
 func (r *GormRepository) PatchProperty(ctx context.Context, id uuid.UUID, updates map[string]any) error {
 	if len(updates) == 0 {
 		return nil
 	}
 	result := r.db.WithContext(ctx).
-		Model(&schema.Property{}).
-		Where("id = ?", id).
-		Updates(updates)
-	if result.Error != nil {
-		return fmt.Errorf("failed to patch property: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("property not found: %w", gorm.ErrRecordNotFound)
-	}
-	return nil
-}
-
-// PatchPropertyTx applies partial updates to a property by ID within a transaction.
-func (r *GormRepository) PatchPropertyTx(ctx context.Context, tx *gorm.DB, id uuid.UUID, updates map[string]any) error {
-	if len(updates) == 0 {
-		return nil
-	}
-	result := tx.WithContext(ctx).
 		Model(&schema.Property{}).
 		Where("id = ?", id).
 		Updates(updates)
@@ -142,21 +112,6 @@ func (r *GormRepository) ListProperties(ctx context.Context, filter PropertyFilt
 	}, nil
 }
 
-// CountProperties returns the count of properties matching the filter.
-func (r *GormRepository) CountProperties(ctx context.Context, filter PropertyFilter) (int64, error) {
-	var count int64
-	query := r.db.WithContext(ctx).Model(&schema.Property{})
-	if !filter.IncludeDeleted {
-		query = query.Where("deleted_at IS NULL")
-	}
-	query = applyPropertyFilter(query, filter)
-
-	if err := query.Count(&count).Error; err != nil {
-		return 0, fmt.Errorf("failed to count properties: %w", err)
-	}
-	return count, nil
-}
-
 // PropertyExists checks if a property exists by ID.
 func (r *GormRepository) PropertyExists(ctx context.Context, id uuid.UUID) (bool, error) {
 	var count int64
@@ -178,36 +133,6 @@ func (r *GormRepository) GetPropertiesByIDs(ctx context.Context, ids []uuid.UUID
 	}
 
 	return properties, nil
-}
-
-// BulkCreateProperties inserts multiple properties in batches.
-func (r *GormRepository) BulkCreateProperties(ctx context.Context, properties []schema.Property) error {
-	if len(properties) == 0 {
-		return nil
-	}
-	if err := r.db.WithContext(ctx).CreateInBatches(properties, BatchInsertSize).Error; err != nil {
-		return fmt.Errorf("failed to bulk create properties: %w", err)
-	}
-	return nil
-}
-
-// BulkDeleteProperties deletes multiple properties by IDs.
-func (r *GormRepository) BulkDeleteProperties(ctx context.Context, ids []uuid.UUID, hard bool) error {
-	if len(ids) == 0 {
-		return nil
-	}
-
-	query := r.db.WithContext(ctx)
-	if hard {
-		query = query.Unscoped()
-	}
-
-	result := query.Delete(&schema.Property{}, "id IN ?", ids)
-	if result.Error != nil {
-		return fmt.Errorf("failed to bulk delete properties: %w", result.Error)
-	}
-
-	return nil
 }
 
 // SoftDeleteProperty marks a property as deleted.

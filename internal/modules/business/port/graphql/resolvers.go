@@ -32,9 +32,9 @@ func NewResolver(businessService businessservice.BusinessService, log *lgr.Logge
 
 // Business retrieves a business by ID
 func (r *Resolver) Business(ctx context.Context, id string) (*domain.Business, error) {
-	businessID, err := uuid.Parse(id)
+	businessID, err := parseUUID(id, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
+		return nil, err
 	}
 
 	business, err := r.businessService.GetBusiness(ctx, businessID)
@@ -55,28 +55,6 @@ func (r *Resolver) BusinessBySlug(ctx context.Context, slug string) (*domain.Bus
 	}
 
 	return business, nil
-}
-
-// MyBusinesses retrieves all businesses the authenticated user is a member of
-func (r *Resolver) MyBusinesses(ctx context.Context) ([]domain.Business, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to get businesses")
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
-	businesses, err := r.businessService.ListUserBusinesses(ctx, userID)
-	if err != nil {
-		r.log.Logf("ERROR Failed to get businesses for user %s: %v", v.UserID, err)
-		return nil, err
-	}
-
-	return businesses, nil
 }
 
 // AllBusinesses retrieves all businesses with pagination
@@ -121,9 +99,9 @@ func (r *Resolver) SearchBusinesses(ctx context.Context, query string, limit, of
 
 // BusinessMembers retrieves all members of a business
 func (r *Resolver) BusinessMembers(ctx context.Context, businessID string) ([]domain.BusinessMember, error) {
-	id, err := uuid.Parse(businessID)
+	id, err := parseUUID(businessID, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
+		return nil, err
 	}
 
 	members, err := r.businessService.GetBusinessMembers(ctx, id)
@@ -137,20 +115,14 @@ func (r *Resolver) BusinessMembers(ctx context.Context, businessID string) ([]do
 
 // MyMemberships retrieves all memberships for the authenticated user
 func (r *Resolver) MyMemberships(ctx context.Context) ([]domain.BusinessMember, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to get memberships")
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := r.getAuthenticatedUserID(ctx, "get memberships")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
 
 	memberships, err := r.businessService.GetUserMemberships(ctx, userID)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get memberships for user %s: %v", v.UserID, err)
+		r.log.Logf("ERROR Failed to get memberships for user %s: %v", userID, err)
 		return nil, err
 	}
 
@@ -159,14 +131,14 @@ func (r *Resolver) MyMemberships(ctx context.Context) ([]domain.BusinessMember, 
 
 // BusinessMember retrieves a specific member
 func (r *Resolver) BusinessMember(ctx context.Context, businessID, userID string) (*domain.BusinessMember, error) {
-	bid, err := uuid.Parse(businessID)
+	bid, err := parseUUID(businessID, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
+		return nil, err
 	}
 
-	uid, err := uuid.Parse(userID)
+	uid, err := parseUUID(userID, "user")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
 
 	member, err := r.businessService.GetMember(ctx, bid, uid)
@@ -180,9 +152,9 @@ func (r *Resolver) BusinessMember(ctx context.Context, businessID, userID string
 
 // BusinessInvitations retrieves all invitations for a business
 func (r *Resolver) BusinessInvitations(ctx context.Context, businessID string) ([]domain.BusinessInvitation, error) {
-	id, err := uuid.Parse(businessID)
+	id, err := parseUUID(businessID, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
+		return nil, err
 	}
 
 	invitations, err := r.businessService.GetBusinessInvitations(ctx, id)
@@ -207,20 +179,14 @@ func (r *Resolver) MyInvitations(ctx context.Context, email string) ([]domain.Bu
 
 // MyBusinessPermissions retrieves the authenticated user's permissions for a business
 func (r *Resolver) MyBusinessPermissions(ctx context.Context, businessID string) (*domain.MemberPermissions, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to get permissions")
-		return nil, fmt.Errorf("unauthenticated")
+	userID, err := r.getAuthenticatedUserID(ctx, "get permissions")
+	if err != nil {
+		return nil, err
 	}
 
-	userID, err := uuid.Parse(v.UserID)
+	bid, err := parseUUID(businessID, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
-	bid, err := uuid.Parse(businessID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
+		return nil, err
 	}
 
 	permissions, err := r.businessService.GetUserPermissions(ctx, userID, bid)
@@ -238,15 +204,9 @@ func (r *Resolver) MyBusinessPermissions(ctx context.Context, businessID string)
 
 // CreateBusiness creates a new business
 func (r *Resolver) CreateBusiness(ctx context.Context, input model.CreateBusinessInput) (*domain.Business, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to create business")
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	creatorID, err := uuid.Parse(v.UserID)
+	creatorID, err := r.getAuthenticatedUserID(ctx, "create business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
 
 	// Convert GraphQL input to domain input
@@ -258,26 +218,20 @@ func (r *Resolver) CreateBusiness(ctx context.Context, input model.CreateBusines
 		return nil, err
 	}
 
-	r.log.Logf("INFO Business created: %s by user %s", business.ID, v.UserID)
+	r.log.Logf("INFO Business created: %s by user %s", business.ID, creatorID)
 	return business, nil
 }
 
 // UpdateBusiness updates an existing business
 func (r *Resolver) UpdateBusiness(ctx context.Context, id string, input model.UpdateBusinessInput) (*domain.Business, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to update business")
-		return nil, fmt.Errorf("unauthenticated")
+	updaterID, err := r.getAuthenticatedUserID(ctx, "update business")
+	if err != nil {
+		return nil, err
 	}
 
-	updaterID, err := uuid.Parse(v.UserID)
+	businessID, err := parseUUID(id, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
-	businessID, err := uuid.Parse(id)
-	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
+		return nil, err
 	}
 
 	// Convert GraphQL input to domain input
@@ -294,20 +248,14 @@ func (r *Resolver) UpdateBusiness(ctx context.Context, id string, input model.Up
 
 // DeleteBusiness deletes a business
 func (r *Resolver) DeleteBusiness(ctx context.Context, id string) (bool, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to delete business")
-		return false, fmt.Errorf("unauthenticated")
+	userID, err := r.getAuthenticatedUserID(ctx, "delete business")
+	if err != nil {
+		return false, err
 	}
 
-	userID, err := uuid.Parse(v.UserID)
+	businessID, err := parseUUID(id, "business")
 	if err != nil {
-		return false, fmt.Errorf("invalid user ID")
-	}
-
-	businessID, err := uuid.Parse(id)
-	if err != nil {
-		return false, fmt.Errorf("invalid business ID")
+		return false, err
 	}
 
 	if err := r.businessService.DeleteBusiness(ctx, businessID, userID); err != nil {
@@ -320,25 +268,19 @@ func (r *Resolver) DeleteBusiness(ctx context.Context, id string) (bool, error) 
 
 // AddBusinessMember adds a member to a business
 func (r *Resolver) AddBusinessMember(ctx context.Context, businessID, userID string, role domain.MemberRole, customPermissions *model.MemberPermissionsInput) (*domain.BusinessMember, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to add business member")
-		return nil, fmt.Errorf("unauthenticated")
+	inviterID, err := r.getAuthenticatedUserID(ctx, "add business member")
+	if err != nil {
+		return nil, err
 	}
 
-	inviterID, err := uuid.Parse(v.UserID)
+	bid, err := parseUUID(businessID, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
 
-	bid, err := uuid.Parse(businessID)
+	uid, err := parseUUID(userID, "user")
 	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
-	}
-
-	uid, err := uuid.Parse(userID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid target user ID")
+		return nil, err
 	}
 
 	// Convert custom permissions if provided
@@ -358,25 +300,19 @@ func (r *Resolver) AddBusinessMember(ctx context.Context, businessID, userID str
 
 // UpdateMemberRole updates a member's role
 func (r *Resolver) UpdateMemberRole(ctx context.Context, businessID, memberID string, role domain.MemberRole) (*domain.BusinessMember, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to update member role")
-		return nil, fmt.Errorf("unauthenticated")
+	updaterID, err := r.getAuthenticatedUserID(ctx, "update member role")
+	if err != nil {
+		return nil, err
 	}
 
-	updaterID, err := uuid.Parse(v.UserID)
+	bid, err := parseUUID(businessID, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
 
-	bid, err := uuid.Parse(businessID)
+	mid, err := parseUUID(memberID, "member")
 	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
-	}
-
-	mid, err := uuid.Parse(memberID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid member ID")
+		return nil, err
 	}
 
 	member, err := r.businessService.UpdateMemberRole(ctx, bid, mid, role, updaterID)
@@ -390,25 +326,19 @@ func (r *Resolver) UpdateMemberRole(ctx context.Context, businessID, memberID st
 
 // UpdateMemberPermissions updates a member's permissions
 func (r *Resolver) UpdateMemberPermissions(ctx context.Context, businessID, memberID string, permissions model.MemberPermissionsInput) (*domain.BusinessMember, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to update member permissions")
-		return nil, fmt.Errorf("unauthenticated")
+	updaterID, err := r.getAuthenticatedUserID(ctx, "update member permissions")
+	if err != nil {
+		return nil, err
 	}
 
-	updaterID, err := uuid.Parse(v.UserID)
+	bid, err := parseUUID(businessID, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
 
-	bid, err := uuid.Parse(businessID)
+	mid, err := parseUUID(memberID, "member")
 	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
-	}
-
-	mid, err := uuid.Parse(memberID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid member ID")
+		return nil, err
 	}
 
 	domainPerms := *convertMemberPermissionsInput(&permissions)
@@ -424,25 +354,19 @@ func (r *Resolver) UpdateMemberPermissions(ctx context.Context, businessID, memb
 
 // RemoveMember removes a member from a business
 func (r *Resolver) RemoveMember(ctx context.Context, businessID, memberID string) (bool, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to remove member")
-		return false, fmt.Errorf("unauthenticated")
+	removerID, err := r.getAuthenticatedUserID(ctx, "remove member")
+	if err != nil {
+		return false, err
 	}
 
-	removerID, err := uuid.Parse(v.UserID)
+	bid, err := parseUUID(businessID, "business")
 	if err != nil {
-		return false, fmt.Errorf("invalid user ID")
+		return false, err
 	}
 
-	bid, err := uuid.Parse(businessID)
+	mid, err := parseUUID(memberID, "member")
 	if err != nil {
-		return false, fmt.Errorf("invalid business ID")
-	}
-
-	mid, err := uuid.Parse(memberID)
-	if err != nil {
-		return false, fmt.Errorf("invalid member ID")
+		return false, err
 	}
 
 	if err := r.businessService.RemoveMember(ctx, bid, mid, removerID); err != nil {
@@ -455,20 +379,14 @@ func (r *Resolver) RemoveMember(ctx context.Context, businessID, memberID string
 
 // InviteMember creates an invitation for a user to join a business
 func (r *Resolver) InviteMember(ctx context.Context, businessID string, input model.InviteMemberInput) (*domain.BusinessInvitation, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to invite member")
-		return nil, fmt.Errorf("unauthenticated")
+	inviterID, err := r.getAuthenticatedUserID(ctx, "invite member")
+	if err != nil {
+		return nil, err
 	}
 
-	inviterID, err := uuid.Parse(v.UserID)
+	bid, err := parseUUID(businessID, "business")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
-	bid, err := uuid.Parse(businessID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
+		return nil, err
 	}
 
 	var domainPerms *domain.MemberPermissions
@@ -487,15 +405,9 @@ func (r *Resolver) InviteMember(ctx context.Context, businessID string, input mo
 
 // AcceptInvitation accepts an invitation and creates a membership
 func (r *Resolver) AcceptInvitation(ctx context.Context, token string) (*domain.BusinessMember, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to accept invitation")
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := r.getAuthenticatedUserID(ctx, "accept invitation")
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
 
 	member, err := r.businessService.AcceptInvitation(ctx, token, userID)
@@ -509,15 +421,9 @@ func (r *Resolver) AcceptInvitation(ctx context.Context, token string) (*domain.
 
 // DeclineInvitation declines an invitation
 func (r *Resolver) DeclineInvitation(ctx context.Context, token string) (bool, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to decline invitation")
-		return false, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := r.getAuthenticatedUserID(ctx, "decline invitation")
 	if err != nil {
-		return false, fmt.Errorf("invalid user ID")
+		return false, err
 	}
 
 	if err := r.businessService.DeclineInvitation(ctx, token, userID); err != nil {
@@ -530,20 +436,14 @@ func (r *Resolver) DeclineInvitation(ctx context.Context, token string) (bool, e
 
 // RevokeInvitation revokes an invitation
 func (r *Resolver) RevokeInvitation(ctx context.Context, invitationID string) (bool, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to revoke invitation")
-		return false, fmt.Errorf("unauthenticated")
+	revokerID, err := r.getAuthenticatedUserID(ctx, "revoke invitation")
+	if err != nil {
+		return false, err
 	}
 
-	revokerID, err := uuid.Parse(v.UserID)
+	iid, err := parseUUID(invitationID, "invitation")
 	if err != nil {
-		return false, fmt.Errorf("invalid user ID")
-	}
-
-	iid, err := uuid.Parse(invitationID)
-	if err != nil {
-		return false, fmt.Errorf("invalid invitation ID")
+		return false, err
 	}
 
 	if err := r.businessService.RevokeInvitation(ctx, iid, revokerID); err != nil {
@@ -557,6 +457,35 @@ func (r *Resolver) RevokeInvitation(ctx context.Context, invitationID string) (b
 // ===========================
 // HELPER FUNCTIONS
 // ===========================
+
+// Authentication Helpers
+
+// getAuthenticatedUserID extracts and validates the user ID from context
+func (r *Resolver) getAuthenticatedUserID(ctx context.Context, operation string) (uuid.UUID, error) {
+	v := viewer.FromContext(ctx)
+	if v == nil || v.UserID == "" {
+		r.log.Logf("WARN Unauthenticated attempt to %s", operation)
+		return uuid.Nil, fmt.Errorf("unauthenticated")
+	}
+
+	userID, err := uuid.Parse(v.UserID)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid user ID")
+	}
+
+	return userID, nil
+}
+
+// parseUUID parses a UUID string with appropriate error message
+func parseUUID(id string, entityType string) (uuid.UUID, error) {
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid %s ID", entityType)
+	}
+	return parsed, nil
+}
+
+// Input Conversion Helpers
 
 func convertCreateBusinessInput(input model.CreateBusinessInput) domain.CreateBusinessInput {
 	domainInput := domain.CreateBusinessInput{

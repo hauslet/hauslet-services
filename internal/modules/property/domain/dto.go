@@ -221,62 +221,44 @@ func ToMediaResponseList(media []ListingMedia) []MediaResponse {
 }
 
 // ToListingMediaInput converts MediaUploadInput to ListingMediaInput
-func ToListingMediaInput(m MediaUploadInput) ListingMediaInput {
-	return ListingMediaInput{
-		Type:         m.Type,
-		Group:        m.Group,
-		Caption:      m.Caption,
-		MimeType:     m.MimeType,
-		SizeBytes:    m.SizeBytes,
-		IsPrimary:    m.IsPrimary,
-		IsGroupCover: m.IsGroupCover,
-		Order:        m.Order,
-		Filename:     m.Filename,
-		Duration:     m.Duration,
-	}
+func (m MediaUploadInput) ToListingMediaInput() ListingMediaInput {
+	return ListingMediaInput(m)
 }
 
 // ToListingMediaInputList converts a list of MediaUploadInput to ListingMediaInput
 func ToListingMediaInputList(media []MediaUploadInput) []ListingMediaInput {
 	result := make([]ListingMediaInput, len(media))
 	for i, m := range media {
-		result[i] = ToListingMediaInput(m)
+		result[i] = m.ToListingMediaInput()
 	}
 	return result
 }
 
 // ToListingMediaDeleteInput converts MediaDeleteInput to ListingMediaDeleteInput
-func ToListingMediaDeleteInput(m MediaDeleteInput) ListingMediaDeleteInput {
-	return ListingMediaDeleteInput{
-		MediaID: m.MediaID,
-		Key:     m.Key,
-	}
+// ToListingMediaDeleteInput converts MediaDeleteInput to ListingMediaDeleteInput
+func (m MediaDeleteInput) ToListingMediaDeleteInput() ListingMediaDeleteInput {
+	return ListingMediaDeleteInput(m)
 }
 
 // ToListingMediaDeleteInputList converts a list of MediaDeleteInput to ListingMediaDeleteInput
 func ToListingMediaDeleteInputList(media []MediaDeleteInput) []ListingMediaDeleteInput {
 	result := make([]ListingMediaDeleteInput, len(media))
 	for i, m := range media {
-		result[i] = ToListingMediaDeleteInput(m)
+		result[i] = m.ToListingMediaDeleteInput()
 	}
 	return result
 }
 
 // ToMediaUploadResult converts ListingMediaResult to MediaUploadResult
-func ToMediaUploadResult(r ListingMediaResult) MediaUploadResult {
-	return MediaUploadResult{
-		ID:       r.ID,
-		Filename: r.Filename,
-		URL:      r.URL,
-		Key:      r.Key,
-	}
+func (r ListingMediaResult) ToMediaUploadResult() MediaUploadResult {
+	return MediaUploadResult(r)
 }
 
 // ToMediaUploadResultList converts a list of ListingMediaResult to MediaUploadResult
 func ToMediaUploadResultList(results []ListingMediaResult) []MediaUploadResult {
 	result := make([]MediaUploadResult, len(results))
 	for i, r := range results {
-		result[i] = ToMediaUploadResult(r)
+		result[i] = r.ToMediaUploadResult()
 	}
 	return result
 }

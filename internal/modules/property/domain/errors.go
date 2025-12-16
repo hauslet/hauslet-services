@@ -22,6 +22,12 @@ var (
 	ErrForbidden            = errors.New("forbidden: insufficient permissions")
 	ErrUnauthorized         = errors.New("unauthorized")
 
+	// Business-related errors
+	ErrInvalidBusinessID    = errors.New("invalid business ID")
+	ErrBusinessNotFound     = errors.New("business not found")
+	ErrNotBusinessMember    = errors.New("user is not a member of this business")
+	ErrInsufficientBusinessPermission = errors.New("insufficient business permissions")
+
 	// Media operation errors
 	ErrInvalidMediaInput    = errors.New("invalid media input")
 	ErrMediaUploadFailed    = errors.New("media upload failed")

@@ -58,9 +58,9 @@ type Property struct {
 	SquareMeters float64  `json:"square_meters"`
 	FloorArea    *float64 `json:"floor_area,omitempty"`
 
-	// Features
-	Amenities          []string `json:"amenities"`
-	FeaturesCommercial []string `json:"features_commercial"`
+	// Features (grouped)
+	Amenities          []AmenityGroup `json:"amenities"`
+	FeaturesCommercial []AmenityGroup `json:"features_commercial"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -76,10 +76,11 @@ type Listing struct {
 	OwnerID    uuid.UUID `json:"owner_id"`
 	OwnerType  OwnerType `json:"owner_type"`
 
-	Slug        string       `json:"slug"`
-	Title       string       `json:"title"`
-	Description string       `json:"description"`
-	Currency    CurrencyCode `json:"currency"`
+	Slug             string       `json:"slug"`
+	Title            string       `json:"title"`
+	Description      string       `json:"description"`
+	ExtraDescription string       `json:"extra_description,omitempty"`
+	Currency         CurrencyCode `json:"currency"`
 
 	// Classification
 	ListingType ListingType   `json:"listing_type"`
@@ -128,10 +129,22 @@ type AmenityHighlight struct {
 	Icon    string `json:"icon"`
 }
 
+// AmenityGroup captures grouped amenities with a label and items.
+type AmenityGroup struct {
+	Group string   `json:"group"`
+	Items []string `json:"items"`
+}
+
 // RuleGroup represents a group of rules for a listing
 type RuleGroup struct {
 	Category RuleCategory `json:"category"`
-	Rules    []string     `json:"rules"`
+	Rules    []RuleItem   `json:"rules"`
+}
+
+// RuleItem represents a rule within a group, with a subcategory and details.
+type RuleItem struct {
+	Name        RuleSubCategory  `json:"name"`
+	Description []map[string]any `json:"description"`
 }
 
 // ServiceCharge represents a service charge breakdown

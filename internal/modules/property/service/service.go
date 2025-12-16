@@ -20,7 +20,9 @@ type ServiceImpl struct {
 }
 
 // NewPropertyService creates a new property service.
-func NewPropertyService(repo repository.Repository, storage *storage.R2Storage, queue *platformQueue.Client, thumbnailSubject string) Service {
+func NewPropertyService(repo repository.Repository, storage *storage.R2Storage,
+	queue *platformQueue.Client,
+	thumbnailSubject string) *ServiceImpl {
 	return &ServiceImpl{
 		repo:             repo,
 		storage:          storage,

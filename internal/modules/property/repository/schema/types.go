@@ -3,6 +3,7 @@ package schema
 import (
 	"database/sql/driver"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"strings"
@@ -36,11 +37,29 @@ func (g *GeographyPoint) Scan(value any) error {
 		return nil
 	}
 
-	bytes, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("failed to scan GeographyPoint: expected []byte, got %T", value)
+	// Handle multiple possible return types from drivers:
+	// - []byte (WKB/hex)
+	// - string (WKB hex or WKT like "SRID=4326;POINT(lng lat)")
+	switch v := value.(type) {
+	case []byte:
+		return g.scanFromBytes(v)
+	case string:
+		// Try WKT first
+		if strings.HasPrefix(strings.ToUpper(v), "SRID=") || strings.HasPrefix(strings.ToUpper(v), "POINT") {
+			return g.scanFromWKT(v)
+		}
+		// Fallback: assume hex-encoded WKB
+		if decoded, err := hex.DecodeString(v); err == nil {
+			return g.scanFromBytes(decoded)
+		}
+		return fmt.Errorf("failed to scan GeographyPoint: unsupported string format %q", v)
+	default:
+		return fmt.Errorf("failed to scan GeographyPoint: expected []byte or string, got %T", value)
 	}
+}
 
+// scanFromBytes parses EWKB bytes.
+func (g *GeographyPoint) scanFromBytes(bytes []byte) error {
 	// PostGIS returns WKB (Well-Known Binary) format
 	// Format: SRID (4 bytes) + WKB geometry
 	if len(bytes) < 5 {
@@ -78,6 +97,30 @@ func (g *GeographyPoint) Scan(value any) error {
 		return fmt.Errorf("failed to parse WKB: %w", reader.err)
 	}
 
+	return nil
+}
+
+// scanFromWKT parses a WKT string like "SRID=4326;POINT(lng lat)" or "POINT(lng lat)".
+func (g *GeographyPoint) scanFromWKT(wkt string) error {
+	upper := strings.ToUpper(wkt)
+	if strings.HasPrefix(upper, "SRID=") {
+		parts := strings.SplitN(wkt, ";", 2)
+		if len(parts) == 2 {
+			wkt = parts[1]
+			fmt.Sscanf(parts[0], "SRID=%d", &g.SRID)
+		}
+	}
+	if g.SRID == 0 {
+		g.SRID = 4326
+	}
+
+	// Expected format: POINT(lng lat)
+	var lng, lat float64
+	if _, err := fmt.Sscanf(wkt, "POINT(%f %f)", &lng, &lat); err != nil {
+		return fmt.Errorf("failed to parse WKT %q: %w", wkt, err)
+	}
+	g.Lng = lng
+	g.Lat = lat
 	return nil
 }
 

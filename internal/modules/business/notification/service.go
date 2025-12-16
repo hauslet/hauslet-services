@@ -49,6 +49,28 @@ func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	}()
 }
 
+// publishEmailJob tries to enqueue the email job and returns true on success.
+// It uses a short-lived background context so request cancellation does not
+// prevent publishing. On failure, it logs a warning and callers can fall back
+// to direct send.
+func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
+	if s.queueClient == nil || s.queueSubject == "" {
+		return false
+	}
+
+	pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
+		if s.log != nil {
+			s.log.Logf("[WARN] failed to publish business email job to %s: %v; falling back to direct send", s.queueSubject, err)
+		}
+		return false
+	}
+
+	return true
+}
+
 // SendInvitationEmail sends an invitation email to the invitee
 func (s *NotificationService) SendInvitationEmail(
 	ctx context.Context,
@@ -62,7 +84,7 @@ func (s *NotificationService) SendInvitationEmail(
 	acceptURL := fmt.Sprintf("%s/invitations/accept?token=%s", s.baseURL, invitation.Token)
 	declineURL := fmt.Sprintf("%s/invitations/decline?token=%s", s.baseURL, invitation.Token)
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"BusinessName":    business.Name,
 		"BusinessLogoURL": business.LogoURL,
 		"InviterName":     inviterName,
@@ -87,15 +109,13 @@ func (s *NotificationService) SendInvitationEmail(
 	}
 
 	s.sendEmailAsync("send invitation email", func() error {
-		if s.queueClient != nil && s.queueSubject != "" {
-			job := emailJob.EmailJob{
-				To:      invitation.Email,
-				Subject: subject,
-				HTML:    htmlBody,
-			}
-			if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
-				return nil
-			}
+		job := emailJob.EmailJob{
+			To:      invitation.Email,
+			Subject: subject,
+			HTML:    htmlBody,
+		}
+		if s.publishEmailJob(job) {
+			return nil
 		}
 		return s.mailClient.SendHTML(ctx, invitation.Email, subject, htmlBody)
 	})
@@ -117,7 +137,7 @@ func (s *NotificationService) SendMemberAddedEmail(
 
 	dashboardURL := fmt.Sprintf("%s/businesses/%s", s.baseURL, business.ID)
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"BusinessName":    business.Name,
 		"BusinessLogoURL": business.LogoURL,
 		"MemberName":      memberName,
@@ -141,15 +161,13 @@ func (s *NotificationService) SendMemberAddedEmail(
 	}
 
 	s.sendEmailAsync("send member added email", func() error {
-		if s.queueClient != nil && s.queueSubject != "" {
-			job := emailJob.EmailJob{
-				To:      memberEmail,
-				Subject: subject,
-				HTML:    htmlBody,
-			}
-			if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
-				return nil
-			}
+		job := emailJob.EmailJob{
+			To:      memberEmail,
+			Subject: subject,
+			HTML:    htmlBody,
+		}
+		if s.publishEmailJob(job) {
+			return nil
 		}
 		return s.mailClient.SendHTML(ctx, memberEmail, subject, htmlBody)
 	})
@@ -168,7 +186,7 @@ func (s *NotificationService) SendMemberRemovedEmail(
 	subject := fmt.Sprintf("You've been removed from %s", business.Name)
 	preview := "Your access to the business has been removed"
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"BusinessName":    business.Name,
 		"BusinessLogoURL": business.LogoURL,
 		"MemberName":      memberName,
@@ -190,15 +208,13 @@ func (s *NotificationService) SendMemberRemovedEmail(
 	}
 
 	s.sendEmailAsync("send member removed email", func() error {
-		if s.queueClient != nil && s.queueSubject != "" {
-			job := emailJob.EmailJob{
-				To:      memberEmail,
-				Subject: subject,
-				HTML:    htmlBody,
-			}
-			if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
-				return nil
-			}
+		job := emailJob.EmailJob{
+			To:      memberEmail,
+			Subject: subject,
+			HTML:    htmlBody,
+		}
+		if s.publishEmailJob(job) {
+			return nil
 		}
 		return s.mailClient.SendHTML(ctx, memberEmail, subject, htmlBody)
 	})
@@ -221,7 +237,7 @@ func (s *NotificationService) SendRoleChangedEmail(
 
 	dashboardURL := fmt.Sprintf("%s/businesses/%s", s.baseURL, business.ID)
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"BusinessName":    business.Name,
 		"BusinessLogoURL": business.LogoURL,
 		"MemberName":      memberName,
@@ -246,15 +262,13 @@ func (s *NotificationService) SendRoleChangedEmail(
 	}
 
 	s.sendEmailAsync("send role changed email", func() error {
-		if s.queueClient != nil && s.queueSubject != "" {
-			job := emailJob.EmailJob{
-				To:      memberEmail,
-				Subject: subject,
-				HTML:    htmlBody,
-			}
-			if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
-				return nil
-			}
+		job := emailJob.EmailJob{
+			To:      memberEmail,
+			Subject: subject,
+			HTML:    htmlBody,
+		}
+		if s.publishEmailJob(job) {
+			return nil
 		}
 		return s.mailClient.SendHTML(ctx, memberEmail, subject, htmlBody)
 	})
@@ -276,7 +290,7 @@ func (s *NotificationService) SendInvitationAcceptedEmail(
 
 	membersURL := fmt.Sprintf("%s/businesses/%s/members", s.baseURL, business.ID)
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"BusinessName":    business.Name,
 		"BusinessLogoURL": business.LogoURL,
 		"AcceptedBy":      acceptedByName,
@@ -303,15 +317,13 @@ func (s *NotificationService) SendInvitationAcceptedEmail(
 	for _, ownerEmail := range ownerEmails {
 		email := ownerEmail
 		s.sendEmailAsync("send invitation accepted email", func() error {
-			if s.queueClient != nil && s.queueSubject != "" {
-				job := emailJob.EmailJob{
-					To:      email,
-					Subject: subject,
-					HTML:    htmlBody,
-				}
-				if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
-					return nil
-				}
+			job := emailJob.EmailJob{
+				To:      email,
+				Subject: subject,
+				HTML:    htmlBody,
+			}
+			if s.publishEmailJob(job) {
+				return nil
 			}
 			return s.mailClient.SendHTML(ctx, email, subject, htmlBody)
 		})
@@ -333,7 +345,7 @@ func (s *NotificationService) SendInvitationDeclinedEmail(
 
 	invitationsURL := fmt.Sprintf("%s/businesses/%s/invitations", s.baseURL, business.ID)
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"BusinessName":    business.Name,
 		"BusinessLogoURL": business.LogoURL,
 		"DeclinedBy":      declinedByName,
@@ -359,15 +371,13 @@ func (s *NotificationService) SendInvitationDeclinedEmail(
 	for _, ownerEmail := range ownerEmails {
 		email := ownerEmail
 		s.sendEmailAsync("send invitation declined email", func() error {
-			if s.queueClient != nil && s.queueSubject != "" {
-				job := emailJob.EmailJob{
-					To:      email,
-					Subject: subject,
-					HTML:    htmlBody,
-				}
-				if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
-					return nil
-				}
+			job := emailJob.EmailJob{
+				To:      email,
+				Subject: subject,
+				HTML:    htmlBody,
+			}
+			if s.publishEmailJob(job) {
+				return nil
 			}
 			return s.mailClient.SendHTML(ctx, email, subject, htmlBody)
 		})
@@ -388,7 +398,7 @@ func (s *NotificationService) SendBusinessCreatedEmail(
 
 	dashboardURL := fmt.Sprintf("%s/businesses/%s", s.baseURL, business.ID)
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"BusinessName":    business.Name,
 		"BusinessLogoURL": business.LogoURL,
 		"CreatorName":     creatorName,
@@ -410,15 +420,13 @@ func (s *NotificationService) SendBusinessCreatedEmail(
 	}
 
 	s.sendEmailAsync("send business created email", func() error {
-		if s.queueClient != nil && s.queueSubject != "" {
-			job := emailJob.EmailJob{
-				To:      creatorEmail,
-				Subject: subject,
-				HTML:    htmlBody,
-			}
-			if err := s.queueClient.Publish(ctx, s.queueSubject, job); err == nil {
-				return nil
-			}
+		job := emailJob.EmailJob{
+			To:      creatorEmail,
+			Subject: subject,
+			HTML:    htmlBody,
+		}
+		if s.publishEmailJob(job) {
+			return nil
 		}
 		return s.mailClient.SendHTML(ctx, creatorEmail, subject, htmlBody)
 	})

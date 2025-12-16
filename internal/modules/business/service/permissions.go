@@ -8,18 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// CanUserAccessBusiness checks if a user has access to a business
-func (s *BusinessServiceImpl) CanUserAccessBusiness(ctx context.Context, userID, businessID uuid.UUID) (bool, error) {
-	isMember, err := s.repo.IsMember(ctx, businessID, userID)
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return false, nil
-		}
-		return false, err
-	}
-	return isMember, nil
-}
-
 // GetUserPermissions gets the permissions for a user in a business
 func (s *BusinessServiceImpl) GetUserPermissions(ctx context.Context, userID, businessID uuid.UUID) (*domain.MemberPermissions, error) {
 	member, err := s.repo.GetMember(ctx, businessID, userID)

@@ -94,37 +94,6 @@ type ListingFilter struct {
 	SortOrder       SortOrder
 }
 
-// BoundingBox represents a rectangular geographic area.
-type BoundingBox struct {
-	NorthEastLat float64
-	NorthEastLng float64
-	SouthWestLat float64
-	SouthWestLng float64
-}
-
-// NearPointQuery specifies a point-radius search.
-type NearPointQuery struct {
-	Lat          float64
-	Lng          float64
-	RadiusMeters float64
-	Limit        int
-	Offset       int
-}
-
-// PolygonQuery specifies a polygon search via WKT.
-type PolygonQuery struct {
-	PolygonWKT string
-	Limit      int
-	Offset     int
-}
-
-// SimilarityQuery defines criteria for vector similarity search.
-type SimilarityQuery struct {
-	QueryVector   []float32 // required
-	TopK          int       // defaults applied if <=0
-	MinSimilarity float64   // 0..1; optional threshold
-}
-
 // ScoredResult wraps an item with optional scores/distances.
 type ScoredResult[T any] struct {
 	Item            T

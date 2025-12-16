@@ -22,7 +22,7 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 	}
 
 	if len(media) == 0 {
-		return nil, fmt.Errorf("No media input found")
+		return nil, fmt.Errorf("no media input found")
 	}
 
 	if err := s.ensureListingExists(ctx, listingID); err != nil {

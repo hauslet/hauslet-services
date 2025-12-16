@@ -43,14 +43,6 @@ func (r *BusinessRepositoryImpl) UpdateInvitation(ctx context.Context, invitatio
 	return r.db.WithContext(ctx).Save(invitation).Error
 }
 
-// PatchInvitation updates specific fields of an invitation
-func (r *BusinessRepositoryImpl) PatchInvitation(ctx context.Context, id uuid.UUID, updates map[string]any) error {
-	return r.db.WithContext(ctx).
-		Model(&schema.BusinessInvitation{}).
-		Where("id = ?", id).
-		Updates(updates).Error
-}
-
 // DeleteInvitation deletes an invitation
 func (r *BusinessRepositoryImpl) DeleteInvitation(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).
@@ -74,16 +66,6 @@ func (r *BusinessRepositoryImpl) ListUserInvitations(ctx context.Context, email 
 	err := r.db.WithContext(ctx).
 		Preload("Business").
 		Where("email = ?", email).
-		Order("created_at DESC").
-		Find(&invitations).Error
-	return invitations, err
-}
-
-// ListPendingInvitations lists all pending invitations for a business
-func (r *BusinessRepositoryImpl) ListPendingInvitations(ctx context.Context, businessID uuid.UUID) ([]*schema.BusinessInvitation, error) {
-	var invitations []*schema.BusinessInvitation
-	err := r.db.WithContext(ctx).
-		Where("business_id = ? AND status = ?", businessID, schema.InvitationPending).
 		Order("created_at DESC").
 		Find(&invitations).Error
 	return invitations, err

@@ -37,7 +37,6 @@ type BusinessService interface {
 	GetUserInvitations(ctx context.Context, email string) ([]domain.BusinessInvitation, error)
 
 	// Permissions
-	CanUserAccessBusiness(ctx context.Context, userID, businessID uuid.UUID) (bool, error)
 	GetUserPermissions(ctx context.Context, userID, businessID uuid.UUID) (*domain.MemberPermissions, error)
 	HasPermission(ctx context.Context, userID, businessID uuid.UUID, permission string) (bool, error)
 	IsOwner(ctx context.Context, userID, businessID uuid.UUID) (bool, error)
