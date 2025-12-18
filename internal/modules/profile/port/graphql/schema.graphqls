@@ -48,6 +48,7 @@ type Profile {
   gender: String
   photoUrl: String
   # Contact Info
+  email: String
   phoneNumbers: [String!]!
   address: String
   street: String
@@ -108,6 +109,7 @@ input UpdateProfileInput {
   fullName: String
   birthDate: Time
   gender: String
+  email: String
   phoneNumbers: [String!]
   profilePhotoURL: String
   address: String

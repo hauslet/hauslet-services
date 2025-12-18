@@ -6,6 +6,7 @@ import (
 	"hauslet/config"
 	authSchema "hauslet/internal/modules/auth/repository/schema"
 	businessSchema "hauslet/internal/modules/business/repository/schema"
+	moderationSchema "hauslet/internal/modules/moderation/repository/schema"
 	profileSchema "hauslet/internal/modules/profile/repository/schema"
 	propertySchema "hauslet/internal/modules/property/repository/schema"
 	"hauslet/internal/platform/database"
@@ -63,6 +64,7 @@ func main() {
 		&businessSchema.Business{},
 		&businessSchema.BusinessMember{},
 		&businessSchema.BusinessInvitation{},
+		&moderationSchema.Moderation{},
 	); err != nil {
 		log.Logf("ERROR failed to run migrations: %v", err)
 		return
@@ -130,6 +132,9 @@ func main() {
 	}
 	if cleanupSub := cfg.YAML.Queue.Subjects["media_cleanup"]; cleanupSub != "" {
 		queueSubjects = append(queueSubjects, cleanupSub)
+	}
+	if aiModSub := cfg.YAML.Queue.Subjects["ai_moderation"]; aiModSub != "" {
+		queueSubjects = append(queueSubjects, aiModSub)
 	}
 	if q, err := queue.New(initCtx, cfg.Infra.NATS.URL, cfg.YAML.Queue.StreamName, queueSubjects); err != nil {
 		log.Logf("WARN ⚠️ failed to initialize NATS queue, direct send will be used: %v", err)

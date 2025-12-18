@@ -125,7 +125,7 @@ func handleOAuthFlow(ctx context.Context, deps Dependencies, claims token.Claims
 		}
 
 		if deps.ProfileHook != nil {
-			if err := deps.ProfileHook(ctx, user.ID.String(), user.Name, nil); err != nil {
+			if err := deps.ProfileHook(ctx, user.ID.String(), email, user.Name, nil); err != nil {
 				deps.Log.Logf("WARN OAuth: failed to create default profile for user %s: %v", user.ID, err)
 			}
 		}

@@ -68,11 +68,11 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 			LinkIdentity:         linkIdentity,
 			SendWelcomeEmail:     s.SendWelcomeEmail,
 			SendIdentityLinked:   s.SendIdentityLinkedEmail,
-			ProfileHook: func(ctx context.Context, userID string, name string, birthDate *time.Time) error {
+			ProfileHook: func(ctx context.Context, userID, email, name string, birthDate *time.Time) error {
 				if s.profileHooks == nil {
 					return nil
 				}
-				return s.profileHooks.CreateDefaultProfile(ctx, userID, name, birthDate)
+				return s.profileHooks.CreateDefaultProfile(ctx, userID, email, name, birthDate)
 			},
 			ProfileAvatarFetcher: profileAvatarFetcher,
 		}

@@ -92,6 +92,11 @@ func Load() *GlobalConfig {
 					APIURL:   must("CLAUDE_API_URL"),
 					APIModel: must("CLAUDE_API_MODEL"),
 				},
+				Gemini: GeminiConfig{
+					APIKey:   must("GEMINI_API_KEY"),
+					APIModel: must("GEMINI_API_MODEL"),
+					Project:  def("GEMINI_PROJECT", ""),
+				},
 				// Calendar config moved to YAML (cfg.YAML.Calendar)
 				Payment: PaymentConfig{
 					PaystackSecretKey:    must("PAYSTACK_SECRET_KEY"),

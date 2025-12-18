@@ -81,6 +81,7 @@ type ElasticsearchConfig struct {
 type ServicesConfig struct {
 	Email    EmailConfig
 	Claude   ClaudeConfig
+	Gemini   GeminiConfig
 	Calendar CalendarConfig
 	Payment  PaymentConfig
 	FX       FXConfig
@@ -107,6 +108,12 @@ type ClaudeConfig struct {
 	APIKey   string
 	APIURL   string
 	APIModel string
+}
+
+type GeminiConfig struct {
+	APIKey   string
+	APIModel string
+	Project  string
 }
 
 type CalendarConfig struct {

@@ -115,7 +115,7 @@ func NewAuthService(cfg *config.AuthConfig,
 // ProfileHooks defines hooks related to user profile management
 type ProfileHooks interface {
 	// CreateDefaultProfile initializes a profile for a new user
-	CreateDefaultProfile(ctx context.Context, userID string, name string, birthDate *time.Time) error
+	CreateDefaultProfile(ctx context.Context, userID, email, name string, birthDate *time.Time) error
 	// GetProfileAvatarURL returns the fully-qualified avatar URL for a user, if set
 	GetProfileAvatarURL(ctx context.Context, userID string) (*string, error)
 }

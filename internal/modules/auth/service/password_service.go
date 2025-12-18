@@ -116,7 +116,7 @@ func (s *AuthServiceImpl) CreatePasswordUser(ctx context.Context, email, passwor
 	}
 
 	if s.profileHooks != nil {
-		if err := s.profileHooks.CreateDefaultProfile(ctx, user.ID.String(), name, birthDate); err != nil {
+		if err := s.profileHooks.CreateDefaultProfile(ctx, user.ID.String(), email, name, birthDate); err != nil {
 			s.log.Logf("WARN failed to create default profile for user %s: %v", user.ID, err)
 		}
 	}

@@ -68,7 +68,7 @@ func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 		if err := h.authService.SendWelcomeEmail(r.Context(), user.PrimaryEmail, user.Name, otpCode); err != nil {
 			h.log.Logf("WARN Failed to send welcome email to %s: %v", user.PrimaryEmail, err)
 		} else {
-			h.log.Logf("INFO Welcome email sent to %s", user.PrimaryEmail)
+			h.log.Logf("INFO Welcome otp email queued to be sent to %s", user.PrimaryEmail)
 		}
 	}
 

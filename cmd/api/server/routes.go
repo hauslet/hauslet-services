@@ -11,9 +11,13 @@ import (
 	businessnotification "hauslet/internal/modules/business/notification"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
+	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
+	moderationrepository "hauslet/internal/modules/moderation/repository"
+	moderationservice "hauslet/internal/modules/moderation/service"
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
 	profileservice "hauslet/internal/modules/profile/service"
+	propertynotification "hauslet/internal/modules/property/notification"
 	propertyhttp "hauslet/internal/modules/property/port/http"
 	propertyrepository "hauslet/internal/modules/property/repository"
 	propertyservice "hauslet/internal/modules/property/service"
@@ -59,11 +63,28 @@ func setupRoutes(r chi.Router,
 	)
 	businessMW := businessmiddleware.NewMiddleware(businessService, log)
 
-	// Initialize property service with business adapter
+	// Initialize moderation service (AI client not needed on API path; only enqueue/persist).
+	aiModerationSubject := cfg.YAML.Queue.Subjects["ai_moderation"]
+	moderationRepo := moderationrepository.NewModerationRepository(db)
+	moderationSvc := moderationservice.NewModerationService(moderationRepo, nil, q, aiModerationSubject, nil)
+	propertyModerationAdapter := moderationhooks.NewPropertyModerationAdapter(moderationSvc)
+
+	// Initialize property service with business adapter and moderation hooks
 	propertyRepo := propertyrepository.NewPropertyRepository(db)
 	thumbnailSubject := cfg.YAML.Queue.Subjects["media_thumbnail"]
-	propertyService := propertyservice.NewPropertyService(propertyRepo, r2, q, thumbnailSubject)
+	propertyNotificationService := propertynotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
+	propertyProfileAdapter := profileport.NewPropertyProfileAdapter(profileService)
+	propertyService := propertyservice.NewPropertyService(
+		propertyRepo,
+		propertyNotificationService,
+		propertyProfileAdapter,
+		r2, q,
+		thumbnailSubject,
+		propertyModerationAdapter,
+		log,
+	)
 
+	// Initialize auth service
 	authService := service.NewAuthService(
 		&cfg.Auth,
 		authRepo,

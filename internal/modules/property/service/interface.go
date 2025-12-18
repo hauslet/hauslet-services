@@ -4,7 +4,12 @@ import (
 	"context"
 
 	"hauslet/internal/modules/property/domain"
+	"hauslet/internal/modules/property/notification"
+	"hauslet/internal/modules/property/repository"
+	platformQueue "hauslet/internal/platform/queue"
+	"hauslet/internal/platform/storage"
 
+	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -32,6 +37,7 @@ type Service interface {
 	ListListings(ctx context.Context, filter ListingFilter, page Pagination) ([]domain.Listing, int64, error)
 	DeleteListing(ctx context.Context, id uuid.UUID, hard bool) error
 	GetListingCompleteness(ctx context.Context, listingID uuid.UUID, requesterID uuid.UUID) (*domain.ListingCompleteness, error)
+	PublishListingRequest(ctx context.Context, listingID uuid.UUID) error
 
 	// Listing media
 	UploadListingMedia(ctx context.Context, listingID uuid.UUID, media []domain.ListingMediaInput) ([]domain.ListingMediaResult, error)
@@ -42,4 +48,47 @@ type Service interface {
 
 	// Composite operations
 	CreatePropertyWithListing(ctx context.Context, p domain.Property, l domain.Listing) (*domain.Property, *domain.Listing, error)
+}
+
+type ProfileProvider interface {
+	GetProfileData(ctx context.Context, userID string) (string, string, error)
+}
+
+// ModerationHooks defines callbacks for moderation-related events.
+type ModerationHooks interface {
+	EnqueueAIModeration(ctx context.Context, TargetID uuid.UUID, contentType, Payload string) error
+}
+
+// ServiceImpl implements the Service interface.
+type ServiceImpl struct {
+	repo                repository.Repository
+	storage             *storage.R2Storage
+	queue               *platformQueue.Client
+	thumbnailSubject    string
+	moderationHooks     ModerationHooks
+	notificationService *notification.NotificationService
+	profiles            ProfileProvider
+	log                 *lgr.Logger
+}
+
+// NewPropertyService creates a new property service.
+func NewPropertyService(repo repository.Repository,
+	notificationService *notification.NotificationService,
+	profiles ProfileProvider,
+	storage *storage.R2Storage,
+	queue *platformQueue.Client,
+	thumbnailSubject string,
+	moderationHooks ModerationHooks,
+	log *lgr.Logger,
+) *ServiceImpl {
+	return &ServiceImpl{
+		repo:                repo,
+		storage:             storage,
+		queue:               queue,
+		profiles:            profiles,
+		thumbnailSubject:    thumbnailSubject,
+		moderationHooks:     moderationHooks,
+		notificationService: notificationService,
+		log:                 log,
+	}
 }

@@ -55,6 +55,9 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 	if input.BirthDate != nil {
 		updates["birth_date"] = input.BirthDate
 	}
+	if input.Email != nil {
+		updates["email"] = input.Email
+	}
 	if input.PhoneNumbers != nil {
 		updates["phone_numbers"] = input.PhoneNumbers
 	}
@@ -257,6 +260,7 @@ func sanitizeProfileForViewer(p *domain.Profile, v *viewer.Viewer) *domain.Profi
 
 	clone := *p
 	clone.PhoneNumbers = nil
+	clone.Email = nil
 	clone.Address = nil
 	clone.ZipCode = nil
 	clone.TravelCompanions = nil

@@ -288,6 +288,7 @@ type ComplexityRoot struct {
 		DigitalAddress             func(childComplexity int) int
 		District                   func(childComplexity int) int
 		Education                  func(childComplexity int) int
+		Email                      func(childComplexity int) int
 		EnablePerformanceAnalytics func(childComplexity int) int
 		FullName                   func(childComplexity int) int
 		FunFact                    func(childComplexity int) int
@@ -1815,6 +1816,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Profile.Education(childComplexity), true
+	case "Profile.email":
+		if e.complexity.Profile.Email == nil {
+			break
+		}
+
+		return e.complexity.Profile.Email(childComplexity), true
 	case "Profile.enablePerformanceAnalytics":
 		if e.complexity.Profile.EnablePerformanceAnalytics == nil {
 			break
@@ -3282,6 +3289,7 @@ type Profile {
   gender: String
   photoUrl: String
   # Contact Info
+  email: String
   phoneNumbers: [String!]!
   address: String
   street: String
@@ -3342,6 +3350,7 @@ input UpdateProfileInput {
   fullName: String
   birthDate: Time
   gender: String
+  email: String
   phoneNumbers: [String!]
   profilePhotoURL: String
   address: String
@@ -7156,6 +7165,8 @@ func (ec *executionContext) fieldContext_Listing_ownerProfile(_ context.Context,
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "photoUrl":
 				return ec.fieldContext_Profile_photoUrl(ctx, field)
+			case "email":
+				return ec.fieldContext_Profile_email(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
@@ -9777,6 +9788,8 @@ func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Cont
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "photoUrl":
 				return ec.fieldContext_Profile_photoUrl(ctx, field)
+			case "email":
+				return ec.fieldContext_Profile_email(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
@@ -11470,6 +11483,35 @@ func (ec *executionContext) _Profile_photoUrl(ctx context.Context, field graphql
 }
 
 func (ec *executionContext) fieldContext_Profile_photoUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_email(ctx context.Context, field graphql.CollectedField, obj *domain2.Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_email,
+		func(ctx context.Context) (any, error) {
+			return obj.Email, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_email(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Profile",
 		Field:      field,
@@ -13451,6 +13493,8 @@ func (ec *executionContext) fieldContext_Query_profile(ctx context.Context, fiel
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "photoUrl":
 				return ec.fieldContext_Profile_photoUrl(ctx, field)
+			case "email":
+				return ec.fieldContext_Profile_email(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
@@ -13580,6 +13624,8 @@ func (ec *executionContext) fieldContext_Query_profileByUserId(ctx context.Conte
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "photoUrl":
 				return ec.fieldContext_Profile_photoUrl(ctx, field)
+			case "email":
+				return ec.fieldContext_Profile_email(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
@@ -13709,6 +13755,8 @@ func (ec *executionContext) fieldContext_Query_profiles(ctx context.Context, fie
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "photoUrl":
 				return ec.fieldContext_Profile_photoUrl(ctx, field)
+			case "email":
+				return ec.fieldContext_Profile_email(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
@@ -13838,6 +13886,8 @@ func (ec *executionContext) fieldContext_Query_searchProfiles(ctx context.Contex
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "photoUrl":
 				return ec.fieldContext_Profile_photoUrl(ctx, field)
+			case "email":
+				return ec.fieldContext_Profile_email(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
@@ -13966,6 +14016,8 @@ func (ec *executionContext) fieldContext_Query_myProfile(_ context.Context, fiel
 				return ec.fieldContext_Profile_gender(ctx, field)
 			case "photoUrl":
 				return ec.fieldContext_Profile_photoUrl(ctx, field)
+			case "email":
+				return ec.fieldContext_Profile_email(ctx, field)
 			case "phoneNumbers":
 				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
 			case "address":
@@ -21825,7 +21877,7 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"fullName", "birthDate", "gender", "phoneNumbers", "profilePhotoURL", "address", "street", "houseNumber", "area", "lga", "district", "digitalAddress", "city", "state", "country", "zipCode", "occupation", "education", "bio", "skills", "languages", "interests", "hobbies", "funFact", "obsessedWith", "communityCommitment", "bioVisible", "allowPersonalizedOffers", "enablePerformanceAnalytics"}
+	fieldsInOrder := [...]string{"fullName", "birthDate", "gender", "email", "phoneNumbers", "profilePhotoURL", "address", "street", "houseNumber", "area", "lga", "district", "digitalAddress", "city", "state", "country", "zipCode", "occupation", "education", "bio", "skills", "languages", "interests", "hobbies", "funFact", "obsessedWith", "communityCommitment", "bioVisible", "allowPersonalizedOffers", "enablePerformanceAnalytics"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -21853,6 +21905,13 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 				return it, err
 			}
 			it.Gender = data
+		case "email":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Email = data
 		case "phoneNumbers":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phoneNumbers"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
@@ -23931,6 +23990,8 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "photoUrl":
 			out.Values[i] = ec._Profile_photoUrl(ctx, field, obj)
+		case "email":
+			out.Values[i] = ec._Profile_email(ctx, field, obj)
 		case "phoneNumbers":
 			out.Values[i] = ec._Profile_phoneNumbers(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

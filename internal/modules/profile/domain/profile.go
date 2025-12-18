@@ -61,6 +61,7 @@ type Profile struct {
 	PhotoURL  *string
 
 	// Contact Information
+	Email          *string
 	PhoneNumbers   []string
 	Address        *string
 	City           *string
@@ -126,6 +127,7 @@ const (
 // UpdateProfileInput contains the data that can be updated in a profile
 type UpdateProfileInput struct {
 	PhoneNumbers     []*string
+	Email            *string
 	Address          *string
 	City             *string
 	State            *string

@@ -15,10 +15,13 @@ func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Pr
 	var createdProperty *domain.Property
 	var createdListing *domain.Listing
 
+	s.log.Logf("INFO creating property with listing owner=%s", p.OwnerID)
+
 	err := s.repo.Transaction(ctx, func(tx *gorm.DB) error {
 		// Create property within transaction
 		propertySchema := domain.MapPropertyToSchema(&p)
 		if err := s.repo.CreatePropertyTx(ctx, tx, propertySchema); err != nil {
+			s.log.Logf("ERROR failed to create property in transaction owner=%s: %v", p.OwnerID, err)
 			return fmt.Errorf("failed to create property: %w", err)
 		}
 		createdProperty = domain.MapPropertyFromSchema(propertySchema)
@@ -35,6 +38,7 @@ func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Pr
 			listingSchema.Slug = generateSlug(l.Title) + "_" + shortid()
 		}
 		if err := s.repo.CreateListingTx(ctx, tx, listingSchema); err != nil {
+			s.log.Logf("ERROR failed to create listing in transaction property=%s: %v", createdProperty.ID, err)
 			return fmt.Errorf("failed to create listing: %w", err)
 		}
 		createdListing = domain.MapListingFromSchema(listingSchema)
@@ -43,8 +47,10 @@ func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Pr
 	})
 
 	if err != nil {
+		s.log.Logf("ERROR transaction failed for property with listing owner=%s: %v", p.OwnerID, err)
 		return nil, nil, err
 	}
 
+	s.log.Logf("INFO created property=%s with listing=%s owner=%s", createdProperty.ID, createdListing.ID, p.OwnerID)
 	return createdProperty, createdListing, nil
 }

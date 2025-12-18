@@ -101,6 +101,7 @@ type Profile struct {
 	BirthDate *time.Time `gorm:"check:birth_date <= now() - interval '18 years'"`
 	Gender    Gender     `gorm:"type:text;default:'undisclosed';check:gender IN ('male', 'female', 'other', 'undisclosed')"`
 	PhotoURL  *string    `gorm:"type:text"`
+	Email     *string    `gorm:"type:text;uniqueIndex"`
 
 	// Foreign Key to Auth Module
 	UserID    uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex"`

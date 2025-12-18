@@ -1,6 +1,7 @@
 package domain
 
 import (
+	moderationservice "hauslet/internal/modules/moderation/service"
 	"hauslet/internal/modules/property/repository/schema"
 )
 
@@ -649,4 +650,41 @@ func MapListingMediaToSchema(domainMedia *ListingMedia) *schema.ListingMedia {
 		CreatedAt:    domainMedia.CreatedAt,
 		UpdatedAt:    domainMedia.UpdatedAt,
 	}
+}
+
+func MapModerationAggToDomain(agg moderationservice.AggregatedModeration) *AggregatedModeration {
+	contentTypes := make([]ContentType, len(agg.ContentTypes))
+	for i, ct := range agg.ContentTypes {
+		contentTypes[i] = ContentType(ct)
+	}
+
+	reasons := make([]string, len(agg.Reasons))
+	copy(reasons, agg.Reasons)
+
+	return &AggregatedModeration{
+		TargetID:     agg.TargetID,
+		Pending:      agg.Pending,
+		Accepted:     agg.Accepted,
+		Rejected:     agg.Rejected,
+		Escalated:    agg.Escalated,
+		ContentTypes: contentTypes,
+		Reasons:      reasons,
+	}
+}
+
+// FinalStatus returns the terminal moderation status for the aggregate.
+func (a AggregatedModeration) FinalStatus() ModerationStatus {
+	if a.Pending > 0 {
+		return ModerationStatusPending
+	}
+	if a.Rejected > 0 {
+		return ModerationStatusRejected
+	}
+	if a.Escalated > 0 {
+		return ModerationStatusEscalated
+	}
+	if a.Accepted > 0 {
+		return ModerationStatusAccepted
+	}
+	return ModerationStatusPending
 }

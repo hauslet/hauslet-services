@@ -35,9 +35,11 @@ func (s *ServiceImpl) CreateProperty(ctx context.Context, p domain.Property) (*d
 
 	schemaProperty := domain.MapPropertyToSchema(&p)
 	if err := s.repo.CreateProperty(ctx, schemaProperty); err != nil {
+		s.log.Logf("ERROR failed to create property for owner=%s: %v", p.OwnerID, err)
 		return nil, err
 	}
 
+	s.log.Logf("INFO created property=%s owner=%s type=%s", schemaProperty.ID, p.OwnerID, p.PropertyType)
 	return domain.MapPropertyFromSchema(schemaProperty), nil
 }
 
@@ -57,6 +59,7 @@ func (s *ServiceImpl) UpdateProperty(ctx context.Context, p domain.Property) (*d
 
 	existing, err := s.ensureProperty(ctx, p.ID)
 	if err != nil {
+		s.log.Logf("ERROR property not found for update property=%s: %v", p.ID, err)
 		return nil, err
 	}
 
@@ -73,9 +76,11 @@ func (s *ServiceImpl) UpdateProperty(ctx context.Context, p domain.Property) (*d
 
 	schemaProperty := domain.MapPropertyToSchema(&p)
 	if err := s.repo.UpdateProperty(ctx, schemaProperty); err != nil {
+		s.log.Logf("ERROR failed to update property=%s: %v", p.ID, err)
 		return nil, err
 	}
 
+	s.log.Logf("INFO updated property=%s", p.ID)
 	return domain.MapPropertyFromSchema(schemaProperty), nil
 }
 
@@ -87,6 +92,7 @@ func (s *ServiceImpl) PatchProperty(ctx context.Context, id uuid.UUID, updates m
 
 	// Validate property exists
 	if _, err := s.ensureProperty(ctx, id); err != nil {
+		s.log.Logf("ERROR property not found for patch property=%s: %v", id, err)
 		return nil, err
 	}
 
@@ -100,9 +106,11 @@ func (s *ServiceImpl) PatchProperty(ctx context.Context, id uuid.UUID, updates m
 	}
 
 	if err := s.repo.PatchProperty(ctx, id, updates); err != nil {
+		s.log.Logf("ERROR failed to patch property=%s: %v", id, err)
 		return nil, err
 	}
 
+	s.log.Logf("INFO patched property=%s fields=%d", id, len(updates))
 	return s.ensureProperty(ctx, id)
 }
 
@@ -161,14 +169,26 @@ func (s *ServiceImpl) DeleteProperty(ctx context.Context, id uuid.UUID, hard boo
 
 	// Verify property exists
 	if _, err := s.ensureProperty(ctx, id); err != nil {
+		s.log.Logf("ERROR property not found for delete property=%s: %v", id, err)
 		return err
 	}
 
 	if hard {
-		return s.repo.HardDeleteProperty(ctx, id)
+		s.log.Logf("WARN hard deleting property=%s", id)
+		if err := s.repo.HardDeleteProperty(ctx, id); err != nil {
+			s.log.Logf("ERROR failed to hard delete property=%s: %v", id, err)
+			return err
+		}
+		s.log.Logf("INFO hard deleted property=%s", id)
+		return nil
 	}
 
-	return s.repo.SoftDeleteProperty(ctx, id)
+	if err := s.repo.SoftDeleteProperty(ctx, id); err != nil {
+		s.log.Logf("ERROR failed to soft delete property=%s: %v", id, err)
+		return err
+	}
+	s.log.Logf("INFO soft deleted property=%s", id)
+	return nil
 }
 
 // mapPropertyFilterToRepo converts service filter to repository filter.

@@ -462,8 +462,13 @@ func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Li
 		return nil, fmt.Errorf("forbidden: not the owner")
 	}
 
-	r.log.Logf("WARN PublishListing not supported")
-	return nil, fmt.Errorf("publish listing not supported")
+	if err := r.propertyService.PublishListingRequest(ctx, id); err != nil {
+		r.log.Logf("ERROR Failed to publish listing %s: %v", id, err)
+		return nil, err
+	}
+
+	r.log.Logf("INFO Listing %s published request successful by user %s", id, v.UserID)
+	return sanitizeListingForViewer(existing, v), nil
 }
 
 // UnpublishListing unpublishes a listing.

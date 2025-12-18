@@ -12,6 +12,7 @@ queue:
     moderation: "moderation.check"
     media_thumbnail: "media.thumbnail"
     media_cleanup: "media.cleanup"
+    ai_moderation: "ai.moderation"
 
   # Consumer mappings (worker names for each job type)
   consumers:
@@ -20,4 +21,5 @@ queue:
     moderation: "moderation-worker"
     media_thumbnail: "media-thumbnail-worker"
     media_cleanup: "media-cleanup-worker"
+    ai_moderation: "ai-moderation-worker"
 

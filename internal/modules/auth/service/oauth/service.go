@@ -49,7 +49,7 @@ type SendIdentityLinkedEmailFunc func(ctx context.Context, email, name, provider
 type ProfileAvatarFetcher func(ctx context.Context, userID string) (*string, error)
 
 // ProfileHookFunc creates a default profile for new users.
-type ProfileHookFunc func(ctx context.Context, userID string, name string, birthDate *time.Time) error
+type ProfileHookFunc func(ctx context.Context, userID, email, name string, birthDate *time.Time) error
 
 // Dependencies groups the collaborators required by the OAuth service helpers.
 type Dependencies struct {

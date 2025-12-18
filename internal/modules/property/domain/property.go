@@ -6,6 +6,22 @@ import (
 	"github.com/google/uuid"
 )
 
+type ContentType string
+type ModerationStatus string
+
+const (
+	ContentTypeListingText  ContentType = "listing_text"
+	ContentTypeListingImage ContentType = "listing_image"
+	ContentTypeListingVideo ContentType = "listing_video"
+)
+
+const (
+	ModerationStatusPending   ModerationStatus = "pending"
+	ModerationStatusAccepted  ModerationStatus = "accepted"
+	ModerationStatusEscalated ModerationStatus = "escalated"
+	ModerationStatusRejected  ModerationStatus = "rejected"
+)
+
 // --- 1. PROPERTY (The Physical Asset) ---
 
 // Location represents a geographic coordinate in WGS84 (default SRID 4326).
@@ -342,6 +358,18 @@ type ListingCompleteness struct {
 	MissingFields    []string  `json:"missing_fields"`
 	Recommendations  []string  `json:"recommendations"`
 	LastCalculatedAt time.Time `json:"last_calculated_at"`
+}
+
+type AggregatedModeration struct {
+	TargetID uuid.UUID
+
+	Pending   int64
+	Accepted  int64
+	Rejected  int64
+	Escalated int64
+
+	ContentTypes []ContentType
+	Reasons      []string
 }
 
 // --- DOMAIN METHODS ---

@@ -93,8 +93,36 @@ func (r *GormRepository) PatchListing(ctx context.Context, id uuid.UUID, updates
 	if len(updates) == 0 {
 		return nil
 	}
+
+	// Prepare a model instance so GORM hooks see the updated enum values instead of zero-values.
+	listingModel := schema.Listing{ID: id}
+
+	if status, ok := updates["status"]; ok {
+		typed := schema.ListingStatus(fmt.Sprint(status))
+		updates["status"] = typed
+		listingModel.Status = typed
+	}
+
+	if latestReviewStatus, ok := updates["latest_review_status"]; ok {
+		typed := schema.ReviewStatus(fmt.Sprint(latestReviewStatus))
+		updates["latest_review_status"] = typed
+		listingModel.LatestReviewStatus = typed
+	}
+
+	if currency, ok := updates["currency"]; ok {
+		typed := schema.CurrencyCode(fmt.Sprint(currency))
+		updates["currency"] = typed
+		listingModel.Currency = typed
+	}
+
+	if ownerType, ok := updates["owner_type"]; ok {
+		typed := schema.OwnerType(fmt.Sprint(ownerType))
+		updates["owner_type"] = typed
+		listingModel.OwnerType = typed
+	}
+
 	result := r.db.WithContext(ctx).
-		Model(&schema.Listing{}).
+		Model(&listingModel).
 		Where("id = ?", id).
 		Updates(updates)
 	if result.Error != nil {

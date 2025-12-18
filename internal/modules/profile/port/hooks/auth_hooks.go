@@ -21,13 +21,14 @@ func NewAuthHooksAdapter(svc service.ProfileService, cdnHost string) *AuthHooksA
 }
 
 // CreateDefaultProfile satisfies the Auth module's "ProfileHooks" interface
-func (a *AuthHooksAdapter) CreateDefaultProfile(ctx context.Context, userID string, name string, birthDate *time.Time) error {
+func (a *AuthHooksAdapter) CreateDefaultProfile(ctx context.Context, userID, email, name string, birthDate *time.Time) error {
 	// 1. Translate "scalars" (strings/dates) into "Domain Object"
 	newProfile := domain.Profile{
 		UserID:    userID,
 		UserTypes: []domain.UserType{domain.Guest},
 		FullName:  name,
 		BirthDate: birthDate,
+		Email:     &email,
 	}
 
 	// 2. Call the internal service

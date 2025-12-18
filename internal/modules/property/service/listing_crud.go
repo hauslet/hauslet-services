@@ -1,6 +1,7 @@
 package service
 
 import (
+	"slices"
 	"context"
 	"strings"
 	"time"
@@ -24,9 +25,11 @@ func (s *ServiceImpl) CreateListing(ctx context.Context, l domain.Listing) (*dom
 	// Ensure property exists
 	exists, err := s.repo.PropertyExists(ctx, l.PropertyID)
 	if err != nil {
+		s.log.Logf("ERROR failed to check property existence property=%s: %v", l.PropertyID, err)
 		return nil, err
 	}
 	if !exists {
+		s.log.Logf("ERROR property not found for listing creation property=%s", l.PropertyID)
 		return nil, domain.ErrPropertyNotFound
 	}
 
@@ -45,9 +48,11 @@ func (s *ServiceImpl) CreateListing(ctx context.Context, l domain.Listing) (*dom
 	}
 
 	if err := s.repo.CreateListing(ctx, schemaListing); err != nil {
+		s.log.Logf("ERROR failed to create listing property=%s owner=%s: %v", l.PropertyID, l.OwnerID, err)
 		return nil, err
 	}
 
+	s.log.Logf("INFO created listing=%s property=%s owner=%s type=%s", schemaListing.ID, l.PropertyID, l.OwnerID, l.ListingType)
 	return domain.MapListingFromSchema(schemaListing), nil
 }
 
@@ -65,6 +70,7 @@ func (s *ServiceImpl) UpdateListing(ctx context.Context, l domain.Listing) (*dom
 
 	existing, err := s.ensureListing(ctx, l.ID, false)
 	if err != nil {
+		s.log.Logf("ERROR listing not found for update listing=%s: %v", l.ID, err)
 		return nil, err
 	}
 
@@ -75,9 +81,11 @@ func (s *ServiceImpl) UpdateListing(ctx context.Context, l domain.Listing) (*dom
 
 	schemaListing := domain.MapListingToSchema(&l)
 	if err := s.repo.UpdateListing(ctx, schemaListing); err != nil {
+		s.log.Logf("ERROR failed to update listing=%s: %v", l.ID, err)
 		return nil, err
 	}
 
+	s.log.Logf("INFO updated listing=%s", l.ID)
 	return domain.MapListingFromSchema(schemaListing), nil
 }
 
@@ -88,9 +96,11 @@ func (s *ServiceImpl) PatchListing(ctx context.Context, id uuid.UUID, updates ma
 	}
 
 	if err := s.repo.PatchListing(ctx, id, updates); err != nil {
+		s.log.Logf("ERROR failed to patch listing=%s: %v", id, err)
 		return nil, err
 	}
 
+	s.log.Logf("INFO patched listing=%s fields=%d", id, len(updates))
 	return s.ensureListing(ctx, id, false)
 }
 
@@ -165,11 +175,9 @@ func (s *ServiceImpl) GetListingsByPropertyIDs(ctx context.Context, propertyIDs 
 	}
 
 	// Validate all IDs
-	for _, id := range propertyIDs {
-		if id == uuid.Nil {
+	if slices.Contains(propertyIDs, uuid.Nil) {
 			return nil, domain.ErrInvalidPropertyID
 		}
-	}
 
 	schemaListings, err := s.repo.GetListingsByPropertyIDs(ctx, propertyIDs)
 	if err != nil {
@@ -203,10 +211,21 @@ func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool
 	}
 
 	if hard {
-		return s.repo.HardDeleteListing(ctx, id)
+		s.log.Logf("WARN hard deleting listing=%s", id)
+		if err := s.repo.HardDeleteListing(ctx, id); err != nil {
+			s.log.Logf("ERROR failed to hard delete listing=%s: %v", id, err)
+			return err
+		}
+		s.log.Logf("INFO hard deleted listing=%s", id)
+		return nil
 	}
 
-	return s.repo.SoftDeleteListing(ctx, id)
+	if err := s.repo.SoftDeleteListing(ctx, id); err != nil {
+		s.log.Logf("ERROR failed to soft delete listing=%s: %v", id, err)
+		return err
+	}
+	s.log.Logf("INFO soft deleted listing=%s", id)
+	return nil
 }
 
 // mapListingFilterToRepo converts service filters to repository filters.
@@ -284,14 +303,17 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 
 	listing, err := s.ensureListing(ctx, listingID, true)
 	if err != nil {
+		s.log.Logf("ERROR failed to fetch listing for completeness listing=%s: %v", listingID, err)
 		return nil, err
 	}
 	if listing.OwnerID != requesterID {
+		s.log.Logf("WARN unauthorized completeness check listing=%s requester=%s owner=%s", listingID, requesterID, listing.OwnerID)
 		return nil, domain.ErrForbidden
 	}
 
 	property, err := s.ensureProperty(ctx, listing.PropertyID)
 	if err != nil {
+		s.log.Logf("ERROR failed to fetch property for completeness property=%s listing=%s: %v", listing.PropertyID, listingID, err)
 		return nil, err
 	}
 
@@ -353,6 +375,8 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 
 	readyToPublish := hasBasicInfo && hasPropertyInfo && hasPricingInfo && hasImages && hasDescription
 	completionScore := trueCount * 20
+
+	s.log.Logf("INFO listing completeness listing=%s score=%d%% ready=%v", listingID, completionScore, readyToPublish)
 
 	return &domain.ListingCompleteness{
 		ListingID:        listingID,

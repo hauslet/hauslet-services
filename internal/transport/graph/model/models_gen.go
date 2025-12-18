@@ -316,6 +316,7 @@ type UpdateProfileInput struct {
 	FullName                   *string    `json:"fullName,omitempty"`
 	BirthDate                  *time.Time `json:"birthDate,omitempty"`
 	Gender                     *string    `json:"gender,omitempty"`
+	Email                      *string    `json:"email,omitempty"`
 	PhoneNumbers               []string   `json:"phoneNumbers,omitempty"`
 	ProfilePhotoURL            *string    `json:"profilePhotoURL,omitempty"`
 	Address                    *string    `json:"address,omitempty"`
