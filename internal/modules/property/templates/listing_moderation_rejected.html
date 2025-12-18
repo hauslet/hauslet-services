@@ -12,13 +12,7 @@
     <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; border-radius: 4px; padding: 16px; margin: 30px 0;">
         <p style="font-size: 14px; line-height: 22px; color: #721c24; margin: 0 0 12px 0;">
             <strong>Moderation Status:</strong>
-            {{if eq .FailedComponent "media"}}
-            Media content requires updates
-            {{else if eq .FailedComponent "text"}}
-            Text content requires updates
-            {{else}}
-            Both media and text content require updates
-            {{end}}
+            Your listing is currently hidden and needs the following corrections to be published.
         </p>
     </div>
 
@@ -42,7 +36,7 @@
         <ul style="font-size: 14px; line-height: 24px; color: #0c5460; padding-left: 20px; margin: 0;">
             <li>Review the issues listed above</li>
             <li>Update your listing to address these concerns</li>
-            <li>Resubmit for moderation when ready</li>
+            <li>Republish your listing  for moderation when ready</li>
         </ul>
     </div>
 

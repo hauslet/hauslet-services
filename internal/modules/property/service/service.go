@@ -24,9 +24,21 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 		return err
 	}
 
-	if listing.Status != domain.StatusDraft {
-		s.log.Logf("WARN listing=%s cannot be published, status=%s (expected draft)", listingID, listing.Status)
-		return fmt.Errorf("only draft listings can be published")
+	if listing.Status == domain.StatusActive {
+		return fmt.Errorf("listing is already published and active")
+	}
+	if listing.Status == domain.StatusUnderReview {
+		return fmt.Errorf("listing is currently under review")
+	}
+
+	// Allow submission from Draft, Inactive, or after a Rejection (RequiresUpdates)
+	canPublish := listing.Status == domain.StatusDraft ||
+		listing.Status == domain.StatusRequiresUpdates ||
+		listing.Status == domain.StatusInactive
+
+	if !canPublish {
+		s.log.Logf("WARN listing=%s is in status %s, cannot publish", listingID, listing.Status)
+		return fmt.Errorf("cannot publish listing from current state: %s", listing.Status)
 	}
 
 	// check completeness

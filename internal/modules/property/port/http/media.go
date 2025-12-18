@@ -45,11 +45,12 @@ func (h *HTTPHandler) UploadListingMedia(w http.ResponseWriter, r *http.Request)
 
 	// Verify listing ownership
 	if err := h.verifyListingOwnership(r.Context(), listingID, userID); err != nil {
-		if err == domain.ErrListingNotFound {
+		switch err {
+		case domain.ErrListingNotFound:
 			h.sendError(w, "Listing not found", http.StatusNotFound, "")
-		} else if err == domain.ErrForbidden {
+		case domain.ErrForbidden:
 			h.sendError(w, "You do not have permission to upload media for this listing", http.StatusForbidden, "")
-		} else {
+		default:
 			h.sendError(w, "Failed to verify listing ownership", http.StatusInternalServerError, "")
 		}
 		return
@@ -142,11 +143,12 @@ func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request)
 
 	// Verify listing ownership
 	if err := h.verifyListingOwnership(r.Context(), listingID, userID); err != nil {
-		if err == domain.ErrListingNotFound {
+		switch err {
+		case domain.ErrListingNotFound:
 			h.sendError(w, "Listing not found", http.StatusNotFound, "")
-		} else if err == domain.ErrForbidden {
+		case domain.ErrForbidden:
 			h.sendError(w, "You do not have permission to update media for this listing", http.StatusForbidden, "")
-		} else {
+		default:
 			h.sendError(w, "Failed to verify listing ownership", http.StatusInternalServerError, "")
 		}
 		return
@@ -172,12 +174,7 @@ func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Convert to domain update input
-	updates := domain.ListingMediaUpdateInput{
-		Caption:      req.Caption,
-		IsPrimary:    req.IsPrimary,
-		IsGroupCover: req.IsGroupCover,
-		Order:        req.Order,
-	}
+	updates := domain.ListingMediaUpdateInput(req)
 
 	// Call service to update media
 	if err := h.propertyService.UpdateListingMedia(r.Context(), listingID, mediaID, updates); err != nil {
@@ -237,11 +234,12 @@ func (h *HTTPHandler) DeleteListingMedia(w http.ResponseWriter, r *http.Request)
 
 	// Verify listing ownership
 	if err := h.verifyListingOwnership(r.Context(), listingID, userID); err != nil {
-		if err == domain.ErrListingNotFound {
+		switch err {
+		case domain.ErrListingNotFound:
 			h.sendError(w, "Listing not found", http.StatusNotFound, "")
-		} else if err == domain.ErrForbidden {
+		case domain.ErrForbidden:
 			h.sendError(w, "You do not have permission to delete media for this listing", http.StatusForbidden, "")
-		} else {
+		default:
 			h.sendError(w, "Failed to verify listing ownership", http.StatusInternalServerError, "")
 		}
 		return
@@ -327,11 +325,12 @@ func (h *HTTPHandler) FinalizeListingMedia(w http.ResponseWriter, r *http.Reques
 
 	// Verify listing ownership
 	if err := h.verifyListingOwnership(r.Context(), listingID, userID); err != nil {
-		if err == domain.ErrListingNotFound {
+		switch err {
+		case domain.ErrListingNotFound:
 			h.sendError(w, "Listing not found", http.StatusNotFound, "")
-		} else if err == domain.ErrForbidden {
+		case domain.ErrForbidden:
 			h.sendError(w, "You do not have permission to finalize media for this listing", http.StatusForbidden, "")
-		} else {
+		default:
 			h.sendError(w, "Failed to verify listing ownership", http.StatusInternalServerError, "")
 		}
 		return

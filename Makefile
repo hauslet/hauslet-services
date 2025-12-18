@@ -19,6 +19,10 @@ help:
 	@echo "  make compose-down  # docker-compose down"
 	@echo "  make scaffold MODULE=name # Scaffold internal/MODULE structure"
 	@echo "  make migrate       # Run database migrations (export DATABASE_URL first)"
+	@echo "  make reset-db      # Reset public schema (drops all tables except spatial_ref_sys)"
+	@echo "  make seed          # Seed database with dev data (db/seeds/dev.sql)"
+	@echo "  make fresh         # Reset DB, migrate, and seed"
+
 
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
@@ -72,3 +76,13 @@ migrate :
 	goose -dir db/migrations postgres "$(DATABASE_URL)" up
 
 	
+.PHONY: reset-db
+reset-db:
+	psql -U firstnuel -d hauslet -f db/utils/reset_public_schema.sql
+
+.PHONY: seed
+seed:
+	psql -U firstnuel -d hauslet -f db/seeds/dev.sql
+
+.PHONY: fresh
+fresh: reset-db migrate seed

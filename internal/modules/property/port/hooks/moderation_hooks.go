@@ -33,7 +33,8 @@ type ModerationPropertyAdapter struct {
 }
 
 // NewModerationPropertyAdapter constructs the adapter with its dependencies.
-func NewModerationPropertyAdapter(repo repository.Repository, profiles ProfileProvider, notifier *propertynotification.NotificationService) *ModerationPropertyAdapter {
+func NewModerationPropertyAdapter(repo repository.Repository, profiles ProfileProvider,
+	notifier *propertynotification.NotificationService) *ModerationPropertyAdapter {
 	return &ModerationPropertyAdapter{
 		repo:     repo,
 		profiles: profiles,
@@ -42,8 +43,10 @@ func NewModerationPropertyAdapter(repo repository.Repository, profiles ProfilePr
 	}
 }
 
-// OnModerationCompleted updates listing status/review fields based on the aggregate moderation outcome and notifies the owner.
-func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context, aggregate moderationservice.AggregatedModeration) error {
+// OnModerationCompleted updates listing status/review fields based
+// on the aggregate moderation outcome and notifies the owner.
+func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
+	aggregate moderationservice.AggregatedModeration) error {
 	if aggregate.TargetID == uuid.Nil {
 		return fmt.Errorf("listing ID is required for moderation completion")
 	}
@@ -54,7 +57,16 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context, a
 		return err
 	}
 	if listing == nil {
+		a.log.Logf("[WARN] listing %s not found during moderation completion", aggregate.TargetID.String())
 		return domain.ErrListingNotFound
+	}
+
+	ownerProfileName, ownerProfileEmail, err := a.profiles.GetProfileData(ctx, listing.OwnerID.String())
+	if err != nil {
+		a.log.Logf("[WARN] failed to fetch profile data for owner %s: %v", listing.OwnerID.String(), err)
+	}
+	if ownerProfileName == "" {
+		ownerProfileName = "User"
 	}
 
 	aggDomain := domain.MapModerationAggToDomain(aggregate)
@@ -62,16 +74,29 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context, a
 	moderationStatus := aggDomain.FinalStatus()
 	switch moderationStatus {
 	case domain.ModerationStatusAccepted:
-		// TODO: Handle approval
+		// Notify owner of acceptance.
+		if ownerProfileEmail != "" && a.notifier != nil {
+			err := a.notifier.SendListingAcceptedNotification(ctx, listing.Title, ownerProfileName, ownerProfileEmail)
+			if err != nil {
+				a.log.Logf("[ERROR] failed to send listing accepted notification to %s: %v", ownerProfileEmail, err)
+			}
+		}
 
 	case domain.ModerationStatusRejected:
-		// TODO: Handle rejection
-
+		// Notify owner of rejection with reasons.
+		if ownerProfileEmail != "" && a.notifier != nil {
+			err := a.notifier.SendListingRejectedNotification(ctx,
+				listing.Title, ownerProfileName, ownerProfileEmail, aggDomain.Reasons)
+			if err != nil {
+				a.log.Logf("[ERROR] failed to send listing rejected notification to %s: %v", ownerProfileEmail, err)
+			}
+		}
 	case domain.ModerationStatusEscalated:
-		// TODO: Handle escalation
-
+		// Escalation would be handled in moderation service directly
+		// Silent on the user side, log only.
+		a.log.Logf("[INFO] listing %s escalated for human review", listing.ID)
 	default:
-
+		a.log.Logf("[WARN] listing %s reached unknown moderation status: %s", listing.ID, moderationStatus)
 	}
 
 	updates := a.buildListingUpdates(aggDomain)
@@ -82,13 +107,6 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context, a
 	if err := a.repo.PatchListing(ctx, aggregate.TargetID, updates); err != nil {
 		return err
 	}
-
-	// Notify owner if dependencies are provided.
-	if a.notifier != nil && a.profiles != nil {
-		// profileName, profileEmail, err := a.profiles.GetProfileData(ctx, listing.OwnerID.String())
-		// TODO: Handle notification based on moderation status.
-	}
-
 	return nil
 }
 

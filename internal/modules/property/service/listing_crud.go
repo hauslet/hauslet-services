@@ -1,14 +1,13 @@
 package service
 
 import (
-	"slices"
 	"context"
+	"slices"
 	"strings"
 	"time"
 
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/repository"
-	"hauslet/internal/modules/property/repository/schema"
 
 	"github.com/google/uuid"
 )
@@ -79,6 +78,14 @@ func (s *ServiceImpl) UpdateListing(ctx context.Context, l domain.Listing) (*dom
 		l.Slug = existing.Slug
 	}
 
+	// Auto-unpublish if live and critical changes are detected (excluding minor text tweaks)
+	if shouldUnpublish(existing, &l) {
+		if err := s.unpublishAndEnqueueModeration(ctx, existing); err != nil {
+			s.log.Logf("ERROR failed to unpublish listing=%s for re-moderation: %v", l.ID, err)
+			return nil, err
+		}
+	}
+
 	schemaListing := domain.MapListingToSchema(&l)
 	if err := s.repo.UpdateListing(ctx, schemaListing); err != nil {
 		s.log.Logf("ERROR failed to update listing=%s: %v", l.ID, err)
@@ -93,6 +100,21 @@ func (s *ServiceImpl) UpdateListing(ctx context.Context, l domain.Listing) (*dom
 func (s *ServiceImpl) PatchListing(ctx context.Context, id uuid.UUID, updates map[string]any) (*domain.Listing, error) {
 	if id == uuid.Nil {
 		return nil, domain.ErrInvalidListingID
+	}
+
+	// Load existing listing to compare changes
+	existing, err := s.ensureListing(ctx, id, false)
+	if err != nil {
+		s.log.Logf("ERROR listing not found for patch listing=%s: %v", id, err)
+		return nil, err
+	}
+
+	// Auto-unpublish if live and critical changes are detected (excluding minor text tweaks)
+	if shouldUnpublishPatch(existing, updates) {
+		if err := s.unpublishAndEnqueueModeration(ctx, existing); err != nil {
+			s.log.Logf("ERROR failed to unpublish listing=%s for re-moderation (patch): %v", id, err)
+			return nil, err
+		}
 	}
 
 	if err := s.repo.PatchListing(ctx, id, updates); err != nil {
@@ -176,8 +198,8 @@ func (s *ServiceImpl) GetListingsByPropertyIDs(ctx context.Context, propertyIDs 
 
 	// Validate all IDs
 	if slices.Contains(propertyIDs, uuid.Nil) {
-			return nil, domain.ErrInvalidPropertyID
-		}
+		return nil, domain.ErrInvalidPropertyID
+	}
 
 	schemaListings, err := s.repo.GetListingsByPropertyIDs(ctx, propertyIDs)
 	if err != nil {
@@ -226,70 +248,6 @@ func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool
 	}
 	s.log.Logf("INFO soft deleted listing=%s", id)
 	return nil
-}
-
-// mapListingFilterToRepo converts service filters to repository filters.
-func mapListingFilterToRepo(filter ListingFilter) repository.ListingFilter {
-	repoFilter := repository.ListingFilter{
-		OwnerID:         filter.OwnerID,
-		PropertyID:      filter.PropertyID,
-		Published:       filter.Published,
-		HasCalendar:     filter.HasCalendar,
-		IncludeDeleted:  filter.IncludeDeleted,
-		CreatedAfter:    filter.CreatedAfter,
-		CreatedBefore:   filter.CreatedBefore,
-		PublishedAfter:  filter.PublishedAfter,
-		PublishedBefore: filter.PublishedBefore,
-		MinViewCount:    filter.MinViewCount,
-	}
-
-	if len(filter.OwnerTypes) > 0 {
-		repoFilter.OwnerTypes = make([]schema.OwnerType, len(filter.OwnerTypes))
-		for i, v := range filter.OwnerTypes {
-			repoFilter.OwnerTypes[i] = schema.OwnerType(v)
-		}
-	}
-
-	if len(filter.ListingTypes) > 0 {
-		repoFilter.ListingTypes = make([]schema.ListingType, len(filter.ListingTypes))
-		for i, v := range filter.ListingTypes {
-			repoFilter.ListingTypes[i] = schema.ListingType(v)
-		}
-	}
-
-	if len(filter.Statuses) > 0 {
-		repoFilter.Statuses = make([]schema.ListingStatus, len(filter.Statuses))
-		for i, v := range filter.Statuses {
-			repoFilter.Statuses[i] = schema.ListingStatus(v)
-		}
-	}
-
-	if len(filter.ReviewStatuses) > 0 {
-		repoFilter.ReviewStatuses = make([]schema.ReviewStatus, len(filter.ReviewStatuses))
-		for i, v := range filter.ReviewStatuses {
-			repoFilter.ReviewStatuses[i] = schema.ReviewStatus(v)
-		}
-	}
-
-	repoFilter.SortBy = mapListingSortBy(filter.SortBy)
-	repoFilter.SortOrder = mapSortOrder(filter.SortOrder)
-
-	return repoFilter
-}
-
-func mapListingSortBy(sortBy ListingSortBy) repository.ListingSortBy {
-	switch sortBy {
-	case ListingSortCreatedAt:
-		return repository.ListingSortByCreatedAt
-	case ListingSortUpdatedAt:
-		return repository.ListingSortByUpdatedAt
-	case ListingSortPublishedAt:
-		return repository.ListingSortByPublishedAt
-	case ListingSortViewCount:
-		return repository.ListingSortByViewCount
-	default:
-		return repository.ListingSortByCreatedAt
-	}
 }
 
 // GetListingCompleteness calculates the completeness of a listing.

@@ -239,8 +239,10 @@ func (r *Resolver) MyProfile(ctx context.Context) (*domain.Profile, error) {
 		r.log.Logf("ERROR Failed to get profile for user %s: %v", v.UserID, err)
 		return nil, err
 	}
-	url := r.keyToURL(*profile.PhotoURL)
-	profile.PhotoURL = &url
+	if profile != nil && profile.PhotoURL != nil && *profile.PhotoURL != "" {
+		url := r.keyToURL(*profile.PhotoURL)
+		profile.PhotoURL = &url
+	}
 
 	return sanitizeProfileForViewer(profile, v), nil
 }

@@ -79,12 +79,13 @@ type ElasticsearchConfig struct {
 }
 
 type ServicesConfig struct {
-	Email    EmailConfig
-	Claude   ClaudeConfig
-	Gemini   GeminiConfig
-	Calendar CalendarConfig
-	Payment  PaymentConfig
-	FX       FXConfig
+	Email     EmailConfig
+	Anthropic AnthropicConfig
+	Gemini    GeminiConfig
+	Fallback  FallbackConfig
+	Calendar  CalendarConfig
+	Payment   PaymentConfig
+	FX        FXConfig
 }
 
 type EmailConfig struct {
@@ -104,7 +105,7 @@ type ResendConfig struct {
 	APIKey string
 }
 
-type ClaudeConfig struct {
+type AnthropicConfig struct {
 	APIKey   string
 	APIURL   string
 	APIModel string
@@ -114,6 +115,11 @@ type GeminiConfig struct {
 	APIKey   string
 	APIModel string
 	Project  string
+}
+
+type FallbackConfig struct {
+	Enable           bool
+	AttemptThreshold int
 }
 
 type CalendarConfig struct {

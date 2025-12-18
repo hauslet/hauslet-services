@@ -11,6 +11,7 @@ import (
 	platformQueue "hauslet/internal/platform/queue"
 	moderationjobs "hauslet/internal/queue/jobs/moderation"
 
+	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -24,10 +25,11 @@ type ModerationServiceImpl struct {
 	aiSubject         string
 	maxAIAttemptCount int
 	propertyHooks     PropertyHooks
+	log               *lgr.Logger
 }
 
 // NewModerationService constructs a moderation service.
-func NewModerationService(repo repository.ModerationRepository, aiClient *ai.Client, queue *platformQueue.Client, aiSubject string, propertyHooks PropertyHooks) ModerationService {
+func NewModerationService(repo repository.ModerationRepository, aiClient *ai.Client, queue *platformQueue.Client, aiSubject string, propertyHooks PropertyHooks, log *lgr.Logger) ModerationService {
 	return &ModerationServiceImpl{
 		repo:              repo,
 		aiClient:          aiClient,
@@ -35,6 +37,7 @@ func NewModerationService(repo repository.ModerationRepository, aiClient *ai.Cli
 		aiSubject:         aiSubject,
 		maxAIAttemptCount: defaultMaxAttempts,
 		propertyHooks:     propertyHooks,
+		log:               log,
 	}
 }
 
@@ -73,6 +76,7 @@ func (s *ModerationServiceImpl) EnqueueAIModeration(ctx context.Context, req Cre
 	}
 
 	if err := s.repo.Create(ctx, record); err != nil {
+		s.log.Logf("[ERROR] failed to create moderation record for target %s: %v", req.TargetID, err)
 		return nil, err
 	}
 
@@ -84,11 +88,16 @@ func (s *ModerationServiceImpl) EnqueueAIModeration(ctx context.Context, req Cre
 			Payload:      req.Payload,
 		}
 		if err := job.Validate(); err != nil {
+			s.log.Logf("[ERROR] invalid AI moderation job for target %s: %v", req.TargetID, err)
 			return nil, err
 		}
 		if err := s.queue.Publish(ctx, s.aiSubject, job); err != nil {
+			s.log.Logf("[ERROR] failed to publish AI moderation job for target %s: %v", req.TargetID, err)
 			return nil, err
 		}
+		s.log.Logf("[INFO] enqueued AI moderation job for target %s (type: %s)", req.TargetID, req.ContentType)
+	} else {
+		s.log.Logf("[WARN] queue or AI subject not configured, moderation %s created but not enqueued", record.ID)
 	}
 
 	return mapToDomain(record), nil
@@ -97,17 +106,21 @@ func (s *ModerationServiceImpl) EnqueueAIModeration(ctx context.Context, req Cre
 // HandleAIJob processes an AI moderation job and updates the moderation record.
 func (s *ModerationServiceImpl) HandleAIJob(ctx context.Context, job moderationjobs.AIModerationJob) (*domain.Moderation, error) {
 	if s.aiClient == nil {
+		s.log.Logf("[ERROR] AI client not configured for job %s", job.ModerationID)
 		return nil, fmt.Errorf("ai client is not configured")
 	}
 	if err := job.Validate(); err != nil {
+		s.log.Logf("[ERROR] invalid AI job for moderation %s: %v", job.ModerationID, err)
 		return nil, err
 	}
 
 	record, err := s.repo.GetByID(ctx, job.ModerationID)
 	if err != nil {
+		s.log.Logf("[ERROR] failed to fetch moderation %s: %v", job.ModerationID, err)
 		return nil, err
 	}
 	if record == nil {
+		s.log.Logf("[WARN] moderation %s not found", job.ModerationID)
 		return nil, fmt.Errorf("moderation %s not found", job.ModerationID)
 	}
 
@@ -133,8 +146,14 @@ func (s *ModerationServiceImpl) HandleAIJob(ctx context.Context, job moderationj
 		return nil, err
 	}
 
+	s.log.Logf("[INFO] processing AI moderation for target %s (attempt %d/%d)", job.TargetID, input.AttemptNumber, input.MaxAttempts)
+
 	result, err := s.aiClient.Moderate(ctx, input)
 	if err != nil {
+		s.log.Logf("[ERROR] AI moderation failed for target %s (attempt %d/%d): %v", job.TargetID, input.AttemptNumber, input.MaxAttempts, err)
+		// Persist the attempt count so subsequent retries see the incremented AttemptNumber.
+		record.CurrentAttempt = input.AttemptNumber
+		_ = s.repo.Update(ctx, record) // best-effort; moderation error takes precedence
 		return nil, err
 	}
 
@@ -144,13 +163,17 @@ func (s *ModerationServiceImpl) HandleAIJob(ctx context.Context, job moderationj
 	record.Reason = result.Reason
 	record.CurrentAttempt = input.AttemptNumber
 
+	s.log.Logf("[INFO] AI moderation completed for target %s: status=%s, confidence=%.2f", job.TargetID, result.Status, result.Confidence)
+
 	if err := s.repo.Update(ctx, record); err != nil {
+		s.log.Logf("[ERROR] failed to update moderation record %s: %v", job.ModerationID, err)
 		return nil, err
 	}
 
 	// Aggregate moderation state for the target and, if terminal, notify property hooks.
 	aggregate, err := s.repo.AggregateByTarget(ctx, record.ContentID)
 	if err != nil {
+		s.log.Logf("[ERROR] failed to aggregate moderation for target %s: %v", record.ContentID, err)
 		return nil, err
 	}
 
@@ -159,7 +182,9 @@ func (s *ModerationServiceImpl) HandleAIJob(ctx context.Context, job moderationj
 	if serviceAggregate.FinalStatus() != domain.ModerationStatusPending &&
 		s.propertyHooks != nil &&
 		containsListingContent(serviceAggregate.ContentTypes) {
+		s.log.Logf("[INFO] invoking property hooks for target %s with final status: %s", record.ContentID, serviceAggregate.FinalStatus())
 		if err := s.propertyHooks.OnModerationCompleted(ctx, serviceAggregate); err != nil {
+			s.log.Logf("[ERROR] property hooks failed for target %s: %v", record.ContentID, err)
 			return nil, err
 		}
 	}

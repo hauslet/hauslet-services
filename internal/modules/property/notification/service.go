@@ -102,3 +102,64 @@ func (s *NotificationService) SendPublishListingRequestNotification(ctx context.
 	})
 	return nil
 }
+
+// SendListingAcceptedNotification notifies the listing owner that their listing has been approved.
+func (s *NotificationService) SendListingAcceptedNotification(ctx context.Context, listingTitle, receipientName, recipientEmail string) error {
+	subject := "Your listing has been approved on Hauslet"
+	preview := "Congratulations! Your listing is now live on Hauslet."
+
+	emailData := map[string]any{
+		"OwnerName":    receipientName,
+		"ListingTitle": listingTitle,
+		"ListingURL:":  s.baseURL + "/listings", // Link to listings page
+
+		// Required for the Layout
+		"Subject": subject,
+		"Preview": preview,
+		"Year":    time.Now().Year(),
+	}
+	htmlBody, err := s.mailClient.RenderTemplate(
+		propertytemplates.FS,
+		"listing_moderation_approved.html",
+		emailData,
+	)
+	if err != nil {
+		return err
+	}
+	s.sendEmailAsync("send publish listing approved notification email", func() error {
+		// Send directly no queuing as this will be called by a worker
+		return s.mailClient.SendHTML(ctx, recipientEmail, subject, htmlBody)
+	})
+	return nil
+}
+
+// SendListingRejectedNotification notifies the listing owner that their listing has been rejected.
+func (s *NotificationService) SendListingRejectedNotification(ctx context.Context, listingTitle, receipientName, recipientEmail string, reasons []string) error {
+	subject := "Your listing has been rejected on Hauslet"
+	preview := "We're sorry to inform you that your listing has been rejected."
+
+	emailData := map[string]any{
+		"OwnerName":        receipientName,
+		"ListingTitle":     listingTitle,
+		"RejectionReasons": reasons,
+		"ListingURL:":      s.baseURL + "/listings", // Link to listings page
+
+		// Required for the Layout
+		"Subject": subject,
+		"Preview": preview,
+		"Year":    time.Now().Year(),
+	}
+	htmlBody, err := s.mailClient.RenderTemplate(
+		propertytemplates.FS,
+		"listing_moderation_rejected.html",
+		emailData,
+	)
+	if err != nil {
+		return err
+	}
+	s.sendEmailAsync("send publish listing rejected notification email", func() error {
+		// Send directly no queuing as this will be called by a worker
+		return s.mailClient.SendHTML(ctx, recipientEmail, subject, htmlBody)
+	})
+	return nil
+}

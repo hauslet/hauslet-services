@@ -82,10 +82,10 @@ func (g *GeminiClient) Moderate(ctx context.Context, input AIModerationInput) (*
 
 	// 1. Handle Text
 	if input.Text != nil {
-		parts = append(parts, &genai.Part{Text: fmt.Sprintf("Analyze this text: %s", *input.Text)})
+		parts = append(parts, &genai.Part{Text: fmt.Sprintf("Analyze this content: %s", *input.Text)})
 	}
 
-	// 2. Handle Image (Small file -> GetObject -> Memory is fine)
+	// 2. Handle Image
 	if input.Image != nil && input.Image.Key != "" {
 		data, mimeType, err := g.storage.GetObject(ctx, input.Image.Key)
 		if err != nil {
@@ -99,7 +99,7 @@ func (g *GeminiClient) Moderate(ctx context.Context, input AIModerationInput) (*
 		})
 	}
 
-	// 3. Handle Video (Large file -> Signed URL -> Stream to Temp File)
+	// 3. Handle Video
 	if input.Video != nil && input.Video.Key != "" {
 		fileURI, err := g.handleVideoUpload(ctx, input.Video.Key, input.Video.MimeType)
 		if err != nil {
@@ -123,11 +123,18 @@ func (g *GeminiClient) Moderate(ctx context.Context, input AIModerationInput) (*
 		return nil, fmt.Errorf("no content provided")
 	}
 
-	// 4. Configure Request
+	// 4. Configure Request with Refined Logic
 	sysPrompt := `You are a content safety engine. Analyze the input against these rules:
-    1. Reject: Hate speech, explicit nudity, gore, harassment, spam, or intent to mask contact details.
-    2. Escalate: Ambiguous content requiring human judgment.
-    3. Accept: Safe content.`
+1. Reject: Hate speech, explicit nudity, gore, logo or branding on media, harassment, spam, or intent to mask contact details.
+2. Escalate: Ambiguous content requiring human judgment.
+3. Accept: Safe content.
+
+OUTPUT LOGIC:
+- Treat the input as a single entity. If a violation (like a phone number) appears multiple times or across different fields, summarize it as ONE single finding in the reason field.
+- Do not repeat related findings. Be concise and professional.
+- For "intent to mask contact details", specify the value found and the field(s) where it occurred.
+
+Respond ONLY with valid JSON.`
 
 	config := &genai.GenerateContentConfig{
 		SystemInstruction: &genai.Content{
@@ -189,15 +196,15 @@ func (g *GeminiClient) buildSchema() *genai.Schema {
 			"status": {
 				Type:        genai.TypeString,
 				Enum:        []string{"accepted", "rejected", "escalated"},
-				Description: "The moderation decision.",
+				Description: "The decision: accepted, rejected, or escalated.",
 			},
 			"confidence": {
 				Type:        genai.TypeNumber,
-				Description: "Certainty score (0.0-1.0).",
+				Description: "A score between 0.0 and 1.0 indicating certainty.",
 			},
 			"reason": {
 				Type:        genai.TypeString,
-				Description: "Explanation for the decision.",
+				Description: "A concise, non-repetitive explanation for the decision.",
 			},
 		},
 		Required: []string{"status", "confidence", "reason"},
@@ -208,24 +215,18 @@ func (g *GeminiClient) buildSchema() *genai.Schema {
 // MEDIA HANDLING
 // ---------------------------------------------------------
 
-// handleVideoUpload streams the video from R2 (via SignedURL) to a local temp file, then uploads to Gemini.
 func (g *GeminiClient) handleVideoUpload(ctx context.Context, key, mimeType string) (string, error) {
-	// 1. Generate Signed URL
-	// We use a signed URL so we can stream the download.
-	// Using GetObject() for videos is dangerous (loads entire file into RAM).
 	downloadURL, err := g.storage.GenerateSignedDownloadURL(ctx, key, 1*time.Hour)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate signed url: %w", err)
 	}
 
-	// 2. Create Temp File
 	tmpFile, err := os.CreateTemp("", "mod-vid-*.mp4")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %w", err)
 	}
-	defer os.Remove(tmpFile.Name()) // Clean up local file when done
+	defer os.Remove(tmpFile.Name())
 
-	// 3. Download via HTTP (Stream)
 	req, err := http.NewRequestWithContext(ctx, "GET", downloadURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create download req: %w", err)
@@ -241,26 +242,22 @@ func (g *GeminiClient) handleVideoUpload(ctx context.Context, key, mimeType stri
 		return "", fmt.Errorf("video download failed status: %d", resp.StatusCode)
 	}
 
-	// Stream to disk (Low Memory Usage)
 	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
 		return "", fmt.Errorf("failed to write video to temp file: %w", err)
 	}
 
-	// Reset file pointer to beginning so Upload can read it
 	if _, err := tmpFile.Seek(0, 0); err != nil {
 		return "", fmt.Errorf("failed to seek temp file: %w", err)
 	}
 
-	// 4. Upload to Gemini
 	uploadRes, err := g.client.Files.Upload(ctx, tmpFile, &genai.UploadFileConfig{
-		DisplayName: key, // Use the storage key as the display name
+		DisplayName: key,
 		MIMEType:    mimeType,
 	})
 	if err != nil {
 		return "", fmt.Errorf("upload to gemini failed: %w", err)
 	}
 
-	// 5. Poll for State == ACTIVE
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 

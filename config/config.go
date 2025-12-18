@@ -87,15 +87,19 @@ func Load() *GlobalConfig {
 						APIKey: def("RESEND_API_KEY", ""),
 					},
 				},
-				Claude: ClaudeConfig{
-					APIKey:   must("CLAUDE_API_KEY"),
-					APIURL:   must("CLAUDE_API_URL"),
-					APIModel: must("CLAUDE_API_MODEL"),
+				Anthropic: AnthropicConfig{
+					APIKey:   must("ANTHROPIC_API_KEY"),
+					APIURL:   must("ANTHROPIC_API_URL"),
+					APIModel: must("ANTHROPIC_API_MODEL"),
 				},
 				Gemini: GeminiConfig{
 					APIKey:   must("GEMINI_API_KEY"),
 					APIModel: must("GEMINI_API_MODEL"),
 					Project:  def("GEMINI_PROJECT", ""),
+				},
+				Fallback: FallbackConfig{
+					Enable:           getBool("AI_FALLBACK_ENABLE", true),
+					AttemptThreshold: getInt("AI_FALLBACK_ATTEMPT_THRESHOLD", 3),
 				},
 				// Calendar config moved to YAML (cfg.YAML.Calendar)
 				Payment: PaymentConfig{
