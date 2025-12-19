@@ -81,6 +81,7 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *lgr.
 	if err := fallbackProvider.HealthCheck(ctx); err != nil {
 		return nil, err
 	}
+
 	aiClient := ai.New(fallbackProvider)
 
 	// Email

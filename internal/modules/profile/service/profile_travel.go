@@ -19,7 +19,12 @@ func (s *ProfileServiceImpl) UpdateTravelCompanion(ctx context.Context, userID s
 	}
 
 	schemaCompanion := domain.MapTravelCompanionToSchema(companion)
-	return s.repo.UpdateTravelCompanion(ctx, profile.UserID, schemaCompanion)
+	if err := s.repo.UpdateTravelCompanion(ctx, profile.UserID, schemaCompanion); err != nil {
+		s.log.Logf("[ERROR] failed to update travel companion %s for user %s: %v", companion.ID, userID, err)
+		return err
+	}
+	s.log.Logf("[INFO] updated travel companion %s for user %s", companion.ID, userID)
+	return nil
 }
 
 // AddTravelCompanion creates a new travel companion for a user.
@@ -34,7 +39,12 @@ func (s *ProfileServiceImpl) AddTravelCompanion(ctx context.Context, userID stri
 	}
 
 	schemaCompanion := domain.MapTravelCompanionToSchema(companion)
-	return s.repo.AddTravelCompanion(ctx, profile.UserID, schemaCompanion)
+	if err := s.repo.AddTravelCompanion(ctx, profile.UserID, schemaCompanion); err != nil {
+		s.log.Logf("[ERROR] failed to add travel companion for user %s: %v", userID, err)
+		return err
+	}
+	s.log.Logf("[INFO] added travel companion %s for user %s", companion.ID, userID)
+	return nil
 }
 
 // DeleteTravelCompanion removes a travel companion belonging to a user.
@@ -47,5 +57,10 @@ func (s *ProfileServiceImpl) DeleteTravelCompanion(ctx context.Context, userID s
 		return err
 	}
 
-	return s.repo.DeleteTravelCompanion(ctx, userID, companionID)
+	if err := s.repo.DeleteTravelCompanion(ctx, userID, companionID); err != nil {
+		s.log.Logf("[ERROR] failed to delete travel companion %s for user %s: %v", companionID, userID, err)
+		return err
+	}
+	s.log.Logf("[INFO] deleted travel companion %s for user %s", companionID, userID)
+	return nil
 }

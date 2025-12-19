@@ -25,7 +25,8 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 		return nil, fmt.Errorf("no media input found")
 	}
 
-	if err := s.ensureListingExists(ctx, listingID); err != nil {
+	listing, err := s.ensureListing(ctx, listingID, true)
+	if err != nil {
 		s.log.Logf("ERROR listing not found for media upload listing=%s: %v", listingID, err)
 		return nil, err
 	}
@@ -75,6 +76,13 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 		return nil, err
 	}
 
+	// Auto-unpublish if listing is live (media addition is material).
+	if listing.Published && listing.Status == domain.StatusActive {
+		if err := s.unpublishAndEnqueueModeration(ctx, listing); err != nil {
+			return nil, err
+		}
+	}
+
 	s.log.Logf("INFO successfully prepared %d media uploads for listing=%s", len(result), listingID)
 	return result, nil
 }
@@ -91,6 +99,11 @@ func (s *ServiceImpl) UpdateListingMedia(ctx context.Context,
 		return domain.ErrMediaNotFound
 	}
 	// Ensure listing exists
+	listing, err := s.ensureListing(ctx, listingID, true)
+	if err != nil {
+		s.log.Logf("ERROR listing not found for media update listing=%s: %v", listingID, err)
+		return err
+	}
 	updateMap := make(map[string]any)
 
 	if updates.Caption != nil {
@@ -106,14 +119,16 @@ func (s *ServiceImpl) UpdateListingMedia(ctx context.Context,
 		updateMap["order"] = *updates.Order
 	}
 
-	if err := s.ensureListingExists(ctx, listingID); err != nil {
-		s.log.Logf("ERROR listing not found for media update listing=%s: %v", listingID, err)
-		return err
-	}
-
 	if err := s.repo.UpdateListingMedia(ctx, listingID, mediaID, updateMap); err != nil {
 		s.log.Logf("ERROR failed to update media listing=%s media=%s: %v", listingID, mediaID, err)
 		return err
+	}
+
+	// Auto-unpublish if listing is live (media change is material).
+	if listing.Published && listing.Status == domain.StatusActive {
+		if err := s.unpublishAndEnqueueModeration(ctx, listing); err != nil {
+			return err
+		}
 	}
 
 	s.log.Logf("INFO updated media listing=%s media=%s", listingID, mediaID)
@@ -132,7 +147,8 @@ func (s *ServiceImpl) DeleteListingMedia(ctx context.Context,
 		return domain.ErrMediaNotFound
 	}
 
-	if err := s.ensureListingExists(ctx, listingID); err != nil {
+	listing, err := s.ensureListing(ctx, listingID, true)
+	if err != nil {
 		s.log.Logf("ERROR listing not found for media deletion listing=%s: %v", listingID, err)
 		return err
 	}
@@ -157,6 +173,13 @@ func (s *ServiceImpl) DeleteListingMedia(ctx context.Context,
 	if err := s.repo.DeleteListingMedia(ctx, listingID, mediaIDs); err != nil {
 		s.log.Logf("ERROR failed to delete media from listing=%s: %v", listingID, err)
 		return err
+	}
+
+	// Auto-unpublish if listing is live (media removal is material).
+	if listing.Published && listing.Status == domain.StatusActive {
+		if err := s.unpublishAndEnqueueModeration(ctx, listing); err != nil {
+			return err
+		}
 	}
 
 	s.log.Logf("INFO deleted %d media items from listing=%s", len(mediaIDs), listingID)
@@ -213,7 +236,8 @@ func (s *ServiceImpl) FinalizeListingMedia(ctx context.Context, data domain.Fina
 
 	s.log.Logf("INFO finalizing %d media items for listing=%s", len(data.MediaKeys), data.ListingID)
 
-	if err := s.ensureListingExists(ctx, data.ListingID); err != nil {
+	listing, err := s.ensureListing(ctx, data.ListingID, true)
+	if err != nil {
 		s.log.Logf("ERROR listing not found for media finalization listing=%s: %v", data.ListingID, err)
 		return err
 	}
@@ -312,5 +336,13 @@ func (s *ServiceImpl) FinalizeListingMedia(ctx context.Context, data domain.Fina
 	}
 
 	s.log.Logf("INFO finalized %d media items for listing=%s", len(data.MediaKeys), data.ListingID)
+
+	// Auto-unpublish if listing is live (finalizing media is material).
+	if listing.Published && listing.Status == domain.StatusActive {
+		if err := s.unpublishAndEnqueueModeration(ctx, listing); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

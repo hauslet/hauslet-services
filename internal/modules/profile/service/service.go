@@ -4,20 +4,7 @@ import (
 	"context"
 
 	"hauslet/internal/modules/profile/domain"
-	"hauslet/internal/modules/profile/repository"
-	"hauslet/internal/platform/storage"
 )
-
-// ProfileServiceImpl provides business-level operations for profiles.
-type ProfileServiceImpl struct {
-	repo    repository.ProfileRepository
-	storage *storage.R2Storage
-}
-
-// NewProfileService creates a new profile service.
-func NewProfileService(repo repository.ProfileRepository, storage *storage.R2Storage) ProfileService {
-	return &ProfileServiceImpl{repo: repo, storage: storage}
-}
 
 // ensureProfile fetches a profile by user ID, returning an error if not found.
 func (s *ProfileServiceImpl) ensureProfile(ctx context.Context, userID string) (*domain.Profile, error) {
@@ -27,9 +14,11 @@ func (s *ProfileServiceImpl) ensureProfile(ctx context.Context, userID string) (
 
 	p, err := s.repo.GetProfileByUserID(ctx, userID)
 	if err != nil {
+		s.log.Logf("[ERROR] failed to fetch profile for user %s: %v", userID, err)
 		return nil, err
 	}
 	if p == nil {
+		s.log.Logf("[WARN] profile not found for user %s", userID)
 		return nil, domain.ErrProfileNotFound
 	}
 

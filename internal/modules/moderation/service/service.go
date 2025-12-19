@@ -260,8 +260,8 @@ func (s *ModerationServiceImpl) BatchUpdateStatus(ctx context.Context, ids []uui
 	return s.repo.BatchUpdateStatus(ctx, ids, schema.ModerationStatus(status), reviewerID)
 }
 
-// RegisterPropertyHooks allows wiring a property callback after construction.
-func (s *ModerationServiceImpl) RegisterPropertyHooks(hooks PropertyHooks) {
+// RegisterEnqueueHooks allows wiring a property callback after construction.
+func (s *ModerationServiceImpl) RegisterEnqueueHooks(hooks PropertyHooks) {
 	s.propertyHooks = hooks
 }
 

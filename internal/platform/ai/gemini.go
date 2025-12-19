@@ -132,7 +132,13 @@ func (g *GeminiClient) Moderate(ctx context.Context, input AIModerationInput) (*
 OUTPUT LOGIC:
 - Treat the input as a single entity. If a violation (like a phone number) appears multiple times or across different fields, summarize it as ONE single finding in the reason field.
 - Do not repeat related findings. Be concise and professional.
-- For "intent to mask contact details", specify the value found and the field(s) where it occurred.
+- Write your reasoning in natural, human-readable language. Refer to content fields using plain English descriptions (e.g., "in the property description" instead of field names).
+- For "intent to mask contact details", describe what was found and where it appeared using natural language.
+
+Example reasoning style:
+✅ "Phone number found in the property description"
+✅ "Explicit language detected in the title and additional details"
+❌ "Violation found in extra_description field"
 
 Respond ONLY with valid JSON.`
 
@@ -178,11 +184,12 @@ func (g *GeminiClient) parseResponse(resp *genai.GenerateContentResponse) (*AIMo
 	default:
 		status = schema.ModerationStatusEscalated
 	}
+	cleanReason := sanitizeReason(parsed.Reason)
 
 	return &AIModerationResult{
 		Status:     status,
 		Confidence: parsed.Confidence,
-		Reason:     parsed.Reason,
+		Reason:     cleanReason,
 		RawResponse: map[string]any{
 			"raw": rawJSON,
 		},

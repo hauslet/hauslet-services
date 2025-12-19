@@ -11,20 +11,20 @@ import (
 )
 
 // Ensure compile-time conformance with the property module hooks.
-var _ propertyservice.ModerationHooks = (*PropertyModerationAdapter)(nil)
+var _ propertyservice.ModerationHooks = (*ModerationAdapter)(nil)
 
-// PropertyModerationAdapter bridges the property module's moderation hooks to the moderation service.
-type PropertyModerationAdapter struct {
+// ModerationAdapter bridges the property module's moderation hooks to the moderation service.
+type ModerationAdapter struct {
 	svc moderationservice.ModerationService
 }
 
-// NewPropertyModerationAdapter constructs the adapter.
-func NewPropertyModerationAdapter(svc moderationservice.ModerationService) *PropertyModerationAdapter {
-	return &PropertyModerationAdapter{svc: svc}
+// NewModerationAdapter constructs the adapter.
+func NewModerationAdapter(svc moderationservice.ModerationService) *ModerationAdapter {
+	return &ModerationAdapter{svc: svc}
 }
 
 // EnqueueAIModeration triggers AI moderation for a listing payload.
-func (a *PropertyModerationAdapter) EnqueueAIModeration(ctx context.Context, targetID uuid.UUID, contentType, payload string) error {
+func (a *ModerationAdapter) EnqueueAIModeration(ctx context.Context, targetID uuid.UUID, contentType, payload string) error {
 	_, err := a.svc.EnqueueAIModeration(ctx, moderationservice.CreateModerationRequest{
 		ContentType: domain.ContentType(contentType),
 		TargetID:    targetID,
@@ -32,4 +32,3 @@ func (a *PropertyModerationAdapter) EnqueueAIModeration(ctx context.Context, tar
 	})
 	return err
 }
-

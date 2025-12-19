@@ -17,9 +17,11 @@ func (s *ProfileServiceImpl) CreateProfile(ctx context.Context, profile domain.P
 
 	exists, err := s.repo.ProfileExists(ctx, profile.UserID)
 	if err != nil {
+		s.log.Logf("[ERROR] failed to check profile existence for user %s: %v", profile.UserID, err)
 		return nil, err
 	}
 	if exists {
+		s.log.Logf("[WARN] profile already exists for user %s", profile.UserID)
 		return nil, domain.ErrProfileAlreadyExists
 	}
 
@@ -59,9 +61,11 @@ func (s *ProfileServiceImpl) CreateProfile(ctx context.Context, profile domain.P
 	}
 
 	if err := s.repo.CreateProfile(ctx, schemaProfile); err != nil {
+		s.log.Logf("[ERROR] failed to create profile for user %s: %v", profile.UserID, err)
 		return nil, err
 	}
 
+	s.log.Logf("[INFO] created profile for user %s (trust score: %.2f)", profile.UserID, profile.TrustScore)
 	return domain.MapProfileFromSchema(schemaProfile), nil
 }
 
@@ -102,9 +106,11 @@ func (s *ProfileServiceImpl) UpdateProfile(ctx context.Context, profile domain.P
 	}
 
 	if err := s.repo.UpdateProfile(ctx, schemaProfile); err != nil {
+		s.log.Logf("[ERROR] failed to update profile for user %s: %v", profile.UserID, err)
 		return nil, err
 	}
 
+	s.log.Logf("[INFO] updated profile for user %s (new trust score: %.2f)", profile.UserID, profile.TrustScore)
 	return domain.MapProfileFromSchema(schemaProfile), nil
 }
 
@@ -133,7 +139,12 @@ func (s *ProfileServiceImpl) DeleteProfile(ctx context.Context, userID string) e
 	if userID == "" {
 		return domain.ErrInvalidUserID
 	}
-	return s.repo.DeleteProfile(ctx, userID)
+	if err := s.repo.DeleteProfile(ctx, userID); err != nil {
+		s.log.Logf("[ERROR] failed to delete profile for user %s: %v", userID, err)
+		return err
+	}
+	s.log.Logf("[INFO] soft deleted profile for user %s", userID)
+	return nil
 }
 
 // RestoreProfile restores a soft-deleted profile.
@@ -141,7 +152,12 @@ func (s *ProfileServiceImpl) RestoreProfile(ctx context.Context, userID string) 
 	if userID == "" {
 		return domain.ErrInvalidUserID
 	}
-	return s.repo.RestoreProfile(ctx, userID)
+	if err := s.repo.RestoreProfile(ctx, userID); err != nil {
+		s.log.Logf("[ERROR] failed to restore profile for user %s: %v", userID, err)
+		return err
+	}
+	s.log.Logf("[INFO] restored profile for user %s", userID)
+	return nil
 }
 
 // HardDeleteProfile permanently deletes a profile.
@@ -149,7 +165,12 @@ func (s *ProfileServiceImpl) HardDeleteProfile(ctx context.Context, userID strin
 	if userID == "" {
 		return domain.ErrInvalidUserID
 	}
-	return s.repo.HardDeleteProfile(ctx, userID)
+	if err := s.repo.HardDeleteProfile(ctx, userID); err != nil {
+		s.log.Logf("[ERROR] failed to hard delete profile for user %s: %v", userID, err)
+		return err
+	}
+	s.log.Logf("[WARN] permanently deleted profile for user %s", userID)
+	return nil
 }
 
 // GetDeletedProfiles returns soft-deleted profiles.

@@ -8,7 +8,7 @@ import (
 
 	moderationservice "hauslet/internal/modules/moderation/service"
 	"hauslet/internal/modules/property/domain"
-	propertynotification "hauslet/internal/modules/property/notification"
+	"hauslet/internal/modules/property/notification"
 	"hauslet/internal/modules/property/repository"
 
 	"github.com/go-pkgz/lgr"
@@ -27,14 +27,14 @@ type ProfileProvider interface {
 type ModerationPropertyAdapter struct {
 	repo     repository.Repository
 	profiles ProfileProvider
-	notifier *propertynotification.NotificationService
+	notifier *notification.NotificationService
 	nowFunc  func() time.Time
 	log      *lgr.Logger
 }
 
 // NewModerationPropertyAdapter constructs the adapter with its dependencies.
 func NewModerationPropertyAdapter(repo repository.Repository, profiles ProfileProvider,
-	notifier *propertynotification.NotificationService) *ModerationPropertyAdapter {
+	notifier *notification.NotificationService) *ModerationPropertyAdapter {
 	return &ModerationPropertyAdapter{
 		repo:     repo,
 		profiles: profiles,

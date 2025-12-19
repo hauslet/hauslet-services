@@ -29,7 +29,7 @@ type ModerationService interface {
 	BatchUpdateStatus(ctx context.Context, ids []uuid.UUID, status domain.ModerationStatus, reviewerID *uuid.UUID) error
 
 	// Integration
-	RegisterPropertyHooks(hooks PropertyHooks)
+	RegisterEnqueueHooks(hooks PropertyHooks)
 }
 
 type PropertyHooks interface {

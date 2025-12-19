@@ -49,7 +49,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 	if hasThumbnail || hasCleanup || hasModeration {
 		propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
 		profileRepo := profilerepository.NewProfileRepository(infra.DB)
-		profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage)
+		profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
 		propertyProfileAdapter = profileport.NewPropertyProfileAdapter(profileSvc)
 	}
 

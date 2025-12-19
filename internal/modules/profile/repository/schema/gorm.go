@@ -104,8 +104,9 @@ type Profile struct {
 	Email     *string    `gorm:"type:text;uniqueIndex"`
 
 	// Foreign Key to Auth Module
-	UserID    uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex"`
-	UserTypes pq.StringArray `gorm:"type:text[];not null;default:'{guest}'"`
+	UserID      uuid.UUID      `gorm:"type:uuid;not null;uniqueIndex"`
+	UserTypes   pq.StringArray `gorm:"type:text[];not null;default:'{guest}'"`
+	IsModerated bool           `gorm:"not null;default:false"`
 
 	// Contact Information
 	PhoneNumbers pq.StringArray `gorm:"type:text[];size:2"`

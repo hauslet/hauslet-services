@@ -48,7 +48,14 @@ func (s *ProfileServiceImpl) IncrementReviewStats(ctx context.Context, userID st
 		return err
 	}
 
-	return s.repo.UpdateProfile(ctx, schemaProfile)
+	if err := s.repo.UpdateProfile(ctx, schemaProfile); err != nil {
+		s.log.Logf("[ERROR] failed to update review stats for user %s: %v", userID, err)
+		return err
+	}
+
+	s.log.Logf("[INFO] updated review stats for user %s (rating: %.2f, reviews: %d, trust score: %.2f)",
+		userID, profile.Rating, profile.ReviewsCount, profile.TrustScore)
+	return nil
 }
 
 // SetVerificationStatus updates verification fields and trust score.
@@ -96,5 +103,12 @@ func (s *ProfileServiceImpl) SetVerificationStatus(ctx context.Context, userID s
 		return err
 	}
 
-	return s.repo.UpdateProfile(ctx, schemaProfile)
+	if err := s.repo.UpdateProfile(ctx, schemaProfile); err != nil {
+		s.log.Logf("[ERROR] failed to set verification status for user %s: %v", userID, err)
+		return err
+	}
+
+	s.log.Logf("[INFO] updated verification for user %s (level: %s, verified: %v, trust score: %.2f)",
+		userID, profile.VerificationLevel, verified, profile.TrustScore)
+	return nil
 }

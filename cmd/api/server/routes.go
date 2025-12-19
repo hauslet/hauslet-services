@@ -14,6 +14,7 @@ import (
 	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
+	profilenotification "hauslet/internal/modules/profile/notification"
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
 	profileservice "hauslet/internal/modules/profile/service"
@@ -46,9 +47,16 @@ func setupRoutes(r chi.Router,
 	authRepo := authrepository.NewAuthRepository(db, sessionStore)
 	emailSubject := cfg.YAML.Queue.Subjects["email"]
 
+	// Initialize moderation service (AI client not needed on API path; only enqueue/persist).
+	aiModerationSubject := cfg.YAML.Queue.Subjects["ai_moderation"]
+	moderationRepo := moderationrepository.NewModerationRepository(db)
+	moderationSvc := moderationservice.NewModerationService(moderationRepo, nil, q, aiModerationSubject, nil, log)
+	moderationAdapter := moderationhooks.NewModerationAdapter(moderationSvc)
+
 	// Initialize profile service
 	profileRepo := profilerepository.NewProfileRepository(db)
-	profileService := profileservice.NewProfileService(profileRepo, r2)
+	profileNotificationService := profilenotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
+	profileService := profileservice.NewProfileService(profileRepo, r2, moderationAdapter, profileNotificationService, log)
 	authProfileAdapter := profileport.NewAuthHooksAdapter(profileService, cfg.Storage.R2.CDNHost)
 	businessProfileAdapter := profileport.NewBusinessProfileAdapter(profileService)
 
@@ -63,12 +71,6 @@ func setupRoutes(r chi.Router,
 	)
 	businessMW := businessmiddleware.NewMiddleware(businessService, log)
 
-	// Initialize moderation service (AI client not needed on API path; only enqueue/persist).
-	aiModerationSubject := cfg.YAML.Queue.Subjects["ai_moderation"]
-	moderationRepo := moderationrepository.NewModerationRepository(db)
-	moderationSvc := moderationservice.NewModerationService(moderationRepo, nil, q, aiModerationSubject, nil, log)
-	propertyModerationAdapter := moderationhooks.NewPropertyModerationAdapter(moderationSvc)
-
 	// Initialize property service with business adapter and moderation hooks
 	propertyRepo := propertyrepository.NewPropertyRepository(db)
 	thumbnailSubject := cfg.YAML.Queue.Subjects["media_thumbnail"]
@@ -80,7 +82,7 @@ func setupRoutes(r chi.Router,
 		propertyProfileAdapter,
 		r2, q,
 		thumbnailSubject,
-		propertyModerationAdapter,
+		moderationAdapter,
 		log,
 	)
 

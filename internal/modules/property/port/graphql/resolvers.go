@@ -466,9 +466,14 @@ func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Li
 		r.log.Logf("ERROR Failed to publish listing %s: %v", id, err)
 		return nil, err
 	}
+	updatedListing, err := r.propertyService.GetListingByID(ctx, id, false)
+	if err != nil {
+		r.log.Logf("ERROR Failed to get listing %s for publishing: %v", id, err)
+		return nil, err
+	}
 
 	r.log.Logf("INFO Listing %s published request successful by user %s", id, v.UserID)
-	return sanitizeListingForViewer(existing, v), nil
+	return sanitizeListingForViewer(updatedListing, v), nil
 }
 
 // UnpublishListing unpublishes a listing.

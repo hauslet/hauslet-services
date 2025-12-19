@@ -116,12 +116,24 @@ func (a *AnthropicClient) Moderate(ctx context.Context, input AIModerationInput)
 2. Escalate: Ambiguous content requiring human judgment.
 3. Accept: Safe content.
 
+REASONING GUIDELINES:
+- Write in natural, human-readable language without technical field names
+- If the same violation appears multiple times, mention it once (e.g., "Phone number found in description and contact section")
+- Be concise and professional
+- Use plain English to describe locations (e.g., "in the property description" not "in extra_description field")
+
+Examples of good reasoning:
+✅ "Phone number detected in the property description"
+✅ "Explicit content found in the title and additional details"
+✅ "Contact information appears to be intentionally obfuscated in the description"
+❌ "Violation in extra_description field"
+❌ "Phone number in property_name and extra_description"
 
 Respond ONLY with valid JSON in this exact format:
 {
   "status": "accepted|rejected|escalated",
   "confidence": 0.95,
-  "reason": "Brief explanation, Do not repeat or rephrase the same issue."
+  "reason": "Brief explanation following the guidelines above"
 }`
 
 	// 5. Build Request
@@ -184,10 +196,11 @@ func (a *AnthropicClient) parseResponse(resp *anthropicResponse) (*AIModerationR
 		status = schema.ModerationStatusEscalated
 	}
 
+	cleanReason := sanitizeReason(parsed.Reason)
 	return &AIModerationResult{
 		Status:     status,
 		Confidence: parsed.Confidence,
-		Reason:     parsed.Reason,
+		Reason:     cleanReason,
 		RawResponse: map[string]any{
 			"raw":   rawText,
 			"model": resp.Model,
@@ -228,74 +241,6 @@ func (a *AnthropicClient) handleImage(ctx context.Context, key, mimeType string)
 			Data:      base64Data,
 		},
 	}, nil
-}
-
-func isValidImageMimeType(mimeType string) bool {
-	validTypes := []string{
-		"image/jpeg",
-		"image/png",
-		"image/gif",
-		"image/webp",
-	}
-	for _, valid := range validTypes {
-		if mimeType == valid {
-			return true
-		}
-	}
-	return false
-}
-
-// ---------------------------------------------------------
-// API REQUEST/RESPONSE STRUCTURES
-// ---------------------------------------------------------
-
-type anthropicRequest struct {
-	Model     string             `json:"model"`
-	MaxTokens int                `json:"max_tokens"`
-	System    string             `json:"system,omitempty"`
-	Messages  []anthropicMessage `json:"messages"`
-}
-
-type anthropicMessage struct {
-	Role    string             `json:"role"`
-	Content []anthropicContent `json:"content"`
-}
-
-type anthropicContent struct {
-	Type   string                `json:"type"` // "text" or "image"
-	Text   string                `json:"text,omitempty"`
-	Source *anthropicImageSource `json:"source,omitempty"`
-}
-
-type anthropicImageSource struct {
-	Type      string `json:"type"`       // "base64"
-	MediaType string `json:"media_type"` // "image/jpeg", etc.
-	Data      string `json:"data"`       // base64 encoded
-}
-
-type anthropicResponse struct {
-	ID      string `json:"id"`
-	Type    string `json:"type"`
-	Role    string `json:"role"`
-	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
-	} `json:"content"`
-	Model        string `json:"model"`
-	StopReason   string `json:"stop_reason"`
-	StopSequence string `json:"stop_sequence,omitempty"`
-	Usage        struct {
-		InputTokens  int `json:"input_tokens"`
-		OutputTokens int `json:"output_tokens"`
-	} `json:"usage"`
-}
-
-type anthropicError struct {
-	Type  string `json:"type"`
-	Error struct {
-		Type    string `json:"type"`
-		Message string `json:"message"`
-	} `json:"error"`
 }
 
 // ---------------------------------------------------------

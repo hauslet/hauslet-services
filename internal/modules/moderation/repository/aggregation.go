@@ -30,58 +30,44 @@ func (r *ModerationRepositoryImpl) AggregateByTarget(ctx context.Context, target
 
 	result := &AggregatedCounts{TargetID: targetID}
 
-	// 1) Status counts
-	type statusRow struct {
-		Status schema.ModerationStatus
-		Count  int64
-	}
-	var rows []statusRow
+	// Fetch all moderation records for the target ordered by latest update.
+	var moderations []schema.Moderation
 	if err := r.db.WithContext(ctx).
 		Model(&schema.Moderation{}).
-		Select("status, COUNT(*) as count").
 		Where("content_id = ?", targetID).
-		Group("status").
-		Scan(&rows).Error; err != nil {
+		Order("updated_at DESC").
+		Find(&moderations).Error; err != nil {
 		return nil, fmt.Errorf("failed to aggregate moderation statuses: %w", err)
 	}
 
-	for _, row := range rows {
-		switch row.Status {
+	// Pick the latest record per content type to avoid counting stale runs.
+	latestByType := make(map[schema.ContentType]schema.Moderation)
+	for _, m := range moderations {
+		if _, exists := latestByType[m.ContentType]; exists {
+			continue
+		}
+		latestByType[m.ContentType] = m
+	}
+
+	// Aggregate counts from the latest records only.
+	for _, m := range latestByType {
+		switch m.Status {
 		case schema.ModerationStatusPending:
-			result.Pending = row.Count
+			result.Pending++
 		case schema.ModerationStatusAccepted:
-			result.Accepted = row.Count
+			result.Accepted++
 		case schema.ModerationStatusRejected:
-			result.Rejected = row.Count
+			result.Rejected++
 		case schema.ModerationStatusEscalated:
-			result.Escalated = row.Count
+			result.Escalated++
+		}
+		result.ContentTypes = append(result.ContentTypes, m.ContentType)
+		if m.Status == schema.ModerationStatusRejected || m.Status == schema.ModerationStatusEscalated {
+			if m.Reason != "" {
+				result.Reasons = append(result.Reasons, m.Reason)
+			}
 		}
 	}
-
-	// 2) Distinct content types for this target
-	var contentTypes []string
-	if err := r.db.WithContext(ctx).
-		Model(&schema.Moderation{}).
-		Distinct().
-		Where("content_id = ?", targetID).
-		Pluck("content_type", &contentTypes).Error; err != nil {
-		return nil, fmt.Errorf("failed to aggregate moderation content types: %w", err)
-	}
-	result.ContentTypes = make([]schema.ContentType, 0, len(contentTypes))
-	for _, ct := range contentTypes {
-		result.ContentTypes = append(result.ContentTypes, schema.ContentType(ct))
-	}
-
-	// 3) Collect reasons for rejected/escalated entries (for notifications/labels)
-	var reasons []string
-	if err := r.db.WithContext(ctx).
-		Model(&schema.Moderation{}).
-		Where("content_id = ? AND status IN ?", targetID,
-			[]schema.ModerationStatus{schema.ModerationStatusRejected, schema.ModerationStatusEscalated}).
-		Pluck("reason", &reasons).Error; err != nil {
-		return nil, fmt.Errorf("failed to aggregate moderation reasons: %w", err)
-	}
-	result.Reasons = reasons
 
 	return result, nil
 }

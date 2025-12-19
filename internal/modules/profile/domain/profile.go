@@ -52,13 +52,14 @@ type UploadResult struct {
 
 // Profile represents the core domain model for user profiles
 type Profile struct {
-	ID        uuid.UUID
-	UserID    string // Stored as string for compatibility with upstream auth identifiers
-	UserTypes []UserType
-	FullName  string
-	BirthDate *time.Time
-	Gender    Gender
-	PhotoURL  *string
+	ID          uuid.UUID
+	UserID      string // Stored as string for compatibility with upstream auth identifiers
+	UserTypes   []UserType
+	FullName    string
+	BirthDate   *time.Time
+	Gender      Gender
+	PhotoURL    *string
+	IsModerated bool
 
 	// Contact Information
 	Email          *string

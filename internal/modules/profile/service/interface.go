@@ -5,7 +5,11 @@ import (
 	"time"
 
 	"hauslet/internal/modules/profile/domain"
+	"hauslet/internal/modules/profile/notification"
+	"hauslet/internal/modules/profile/repository"
+	"hauslet/internal/platform/storage"
 
+	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -48,4 +52,34 @@ type ProfileService interface {
 
 	// Hooks
 	CreateDefaultProfile(ctx context.Context, userID string, name string, birthDate *time.Time) error
+}
+
+// ModerationHooks defines callbacks for moderation-related events.
+type ModerationHooks interface {
+	EnqueueAIModeration(ctx context.Context, TargetID uuid.UUID, contentType, Payload string) error
+}
+
+// ProfileServiceImpl provides business-level operations for profiles.
+type ProfileServiceImpl struct {
+	repo                repository.ProfileRepository
+	storage             *storage.R2Storage
+	moderationHooks     ModerationHooks
+	notificationService *notification.NotificationService
+	log                 *lgr.Logger
+}
+
+// NewProfileService creates a new profile service.
+func NewProfileService(repo repository.ProfileRepository,
+	storage *storage.R2Storage,
+	moderationHooks ModerationHooks,
+	notificationService *notification.NotificationService,
+	log *lgr.Logger,
+) ProfileService {
+	return &ProfileServiceImpl{
+		repo:                repo,
+		storage:             storage,
+		moderationHooks:     moderationHooks,
+		notificationService: notificationService,
+		log:                 log,
+	}
 }
