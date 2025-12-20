@@ -23,6 +23,7 @@ import (
 	propertyrepository "hauslet/internal/modules/property/repository"
 	propertyservice "hauslet/internal/modules/property/service"
 
+	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
@@ -76,6 +77,14 @@ func setupRoutes(r chi.Router,
 	thumbnailSubject := cfg.YAML.Queue.Subjects["media_thumbnail"]
 	propertyNotificationService := propertynotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
 	propertyProfileAdapter := profileport.NewPropertyProfileAdapter(profileService)
+
+	var embeddingClient *aiembeddings.Client
+	if provider, err := aiembeddings.NewGeminiProvider(ctx, cfg.Services.Gemini); err != nil {
+		log.Logf("WARN failed to initialize embedding client: %v", err)
+	} else {
+		embeddingClient = aiembeddings.New(provider)
+	}
+
 	propertyService := propertyservice.NewPropertyService(
 		propertyRepo,
 		propertyNotificationService,
@@ -84,6 +93,7 @@ func setupRoutes(r chi.Router,
 		thumbnailSubject,
 		moderationAdapter,
 		*rds,
+		embeddingClient,
 		log,
 	)
 

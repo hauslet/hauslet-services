@@ -283,9 +283,42 @@ func (r *Resolver) ListingsNearPoint(ctx context.Context, lat float64, lng float
 }
 
 // SearchListings performs full-text search on listings.
-func (r *Resolver) SearchListings(ctx context.Context, query string, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error) {
-	// TODO: Implement full-text search using service.SearchListings
-	return nil, fmt.Errorf("not implemented")
+// SECURITY NOTE: This endpoint ONLY returns published listings. The published filter
+// has been removed from the GraphQL API and is enforced at the service layer to prevent
+// exposure of unpublished listings. Draft listings are additionally filtered by sanitizeListingForViewer.
+func (r *Resolver) SearchListings(ctx context.Context, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error) {
+	searchLimit := 20
+	if limit != nil && *limit > 0 {
+		searchLimit = min(*limit, 50)
+	}
+
+	serviceFilter := mapListingFilterToService(filter)
+
+	results, err := r.propertyService.SearchListings(ctx, serviceFilter, searchLimit)
+	if err != nil {
+		r.log.Logf("ERROR failed to search listings: %v", err)
+		return nil, err
+	}
+
+	v := viewer.FromContext(ctx)
+	scored := make([]*model.ScoredListing, 0, len(results))
+	for _, res := range results {
+		l := res.Listing
+		if len(l.Media) > 0 {
+			l.Media = helpers.BuildListingMediaURLs(l.Media, r.cdnHost)
+		}
+		sanitized := sanitizeListingForViewer(&l, v)
+		if sanitized == nil {
+			continue
+		}
+		scored = append(scored, &model.ScoredListing{
+			Listing: sanitized,
+			Score:   res.Score,
+			Ranking: res.Ranking,
+		})
+	}
+
+	return scored, nil
 }
 
 // SimilarListings finds similar listings using vector similarity.

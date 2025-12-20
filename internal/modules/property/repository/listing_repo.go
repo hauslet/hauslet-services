@@ -297,6 +297,103 @@ func (r *GormRepository) GetListingsByPropertyIDs(ctx context.Context, propertyI
 	return listings, nil
 }
 
+// SearchListings performs a vector similarity search with optional filters.
+func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.VectorEmbedding, filter ListingFilter, limit int) ([]ScoredListing, error) {
+	if embedding == nil {
+		return nil, fmt.Errorf("embedding is required")
+	}
+
+	if limit <= 0 {
+		limit = DefaultPaginationLimit
+	}
+	if limit > MaxPaginationLimit {
+		limit = MaxPaginationLimit
+	}
+
+	var results []ScoredListing
+
+	query := r.db.WithContext(ctx).
+		Model(&schema.Listing{}).
+		Select("listings.*, (text_embedding <=> ?) AS score", embedding)
+
+	if !filter.IncludeDeleted {
+		query = query.Where("deleted_at IS NULL")
+	}
+
+	query = applyListingFilter(query, filter)
+
+	// Apply type-specific JSONB filters
+	query = applyShortletFilter(query, filter.ShortletFilter)
+	query = applyRentalFilter(query, filter.RentalFilter)
+	query = applySaleFilter(query, filter.SaleFilter)
+
+	// Join properties for location/attribute filters.
+	query = query.Joins("JOIN properties ON properties.id = listings.property_id")
+
+	// Apply property extension filters (requires properties table to be joined)
+	query = applyPropertyExtensionFilter(query, filter.PropertyExtension)
+
+	if filter.City != nil && *filter.City != "" {
+		query = query.Where("LOWER(properties.city) = LOWER(?)", *filter.City)
+	}
+	if filter.State != nil && *filter.State != "" {
+		query = query.Where("LOWER(properties.state) = LOWER(?)", *filter.State)
+	}
+	if filter.Country != nil && *filter.Country != "" {
+		query = query.Where("properties.country = ?", *filter.Country)
+	}
+	if len(filter.PropertyTypes) > 0 {
+		query = query.Where("properties.property_type IN ?", filter.PropertyTypes)
+	}
+	if len(filter.Furnishings) > 0 {
+		query = query.Where("properties.furnishing_type IN ?", filter.Furnishings)
+	}
+	if filter.MinBedrooms != nil {
+		query = query.Where("properties.bedrooms >= ?", *filter.MinBedrooms)
+	}
+	if filter.MaxBedrooms != nil {
+		query = query.Where("properties.bedrooms <= ?", *filter.MaxBedrooms)
+	}
+	if filter.MinBathrooms != nil {
+		query = query.Where("properties.bathrooms >= ?", *filter.MinBathrooms)
+	}
+	if filter.MaxBathrooms != nil {
+		query = query.Where("properties.bathrooms <= ?", *filter.MaxBathrooms)
+	}
+	if filter.Latitude != nil && filter.Longitude != nil && filter.RadiusMeters != nil && *filter.RadiusMeters > 0 {
+		query = query.Where("properties.location IS NOT NULL").
+			Where("ST_DWithin(properties.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)", *filter.Longitude, *filter.Latitude, *filter.RadiusMeters)
+	}
+	// Price filters (type-specific)
+	if filter.MinPrice != nil {
+		query = query.Where(
+			r.db.Where("listing_type = ? AND (rental_details->>'rental_price')::numeric >= ?", schema.ListingRent, *filter.MinPrice).
+				Or("listing_type = ? AND (shortlet_details->>'nightly_rate')::numeric >= ?", schema.ListingShortLet, *filter.MinPrice).
+				Or("listing_type = ? AND (sale_details->>'sale_price')::numeric >= ?", schema.ListingSale, *filter.MinPrice),
+		)
+	}
+	if filter.MaxPrice != nil {
+		query = query.Where(
+			r.db.Where("listing_type = ? AND (rental_details->>'rental_price')::numeric <= ?", schema.ListingRent, *filter.MaxPrice).
+				Or("listing_type = ? AND (shortlet_details->>'nightly_rate')::numeric <= ?", schema.ListingShortLet, *filter.MaxPrice).
+				Or("listing_type = ? AND (sale_details->>'sale_price')::numeric <= ?", schema.ListingSale, *filter.MaxPrice),
+		)
+	}
+	if filter.Currency != nil {
+		query = query.Where("currency = ?", *filter.Currency)
+	}
+
+	if err := query.
+		Preload("Media").
+		Order("score ASC").
+		Limit(limit).
+		Find(&results).Error; err != nil {
+		return nil, fmt.Errorf("failed to search listings: %w", err)
+	}
+
+	return results, nil
+}
+
 // SoftDeleteListing marks a listing as deleted.
 func (r *GormRepository) SoftDeleteListing(ctx context.Context, id uuid.UUID) error {
 	result := r.db.WithContext(ctx).Delete(&schema.Listing{}, "id = ?", id)
@@ -319,4 +416,156 @@ func (r *GormRepository) HardDeleteListing(ctx context.Context, id uuid.UUID) er
 		return fmt.Errorf("listing not found: %w", gorm.ErrRecordNotFound)
 	}
 	return nil
+}
+
+// applyShortletFilter applies shortlet-specific JSONB filters
+func applyShortletFilter(db *gorm.DB, filter *ShortletFilter) *gorm.DB {
+	if filter == nil {
+		return db
+	}
+
+	// Extra guest fee range
+	if filter.MinExtraGuestFee != nil {
+		db = db.Where("(shortlet_details->>'extra_guest_fee')::float >= ?", *filter.MinExtraGuestFee)
+	}
+	if filter.MaxExtraGuestFee != nil {
+		db = db.Where("(shortlet_details->>'extra_guest_fee')::float <= ?", *filter.MaxExtraGuestFee)
+	}
+
+	// Min nights range (filter listings based on their min_nights property)
+	if filter.MinNightsMin != nil {
+		db = db.Where("(shortlet_details->>'min_nights')::int >= ?", *filter.MinNightsMin)
+	}
+	if filter.MinNightsMax != nil {
+		db = db.Where("(shortlet_details->>'min_nights')::int <= ?", *filter.MinNightsMax)
+	}
+
+	// Max nights range (filter listings based on their max_nights property)
+	if filter.MaxNightsMin != nil {
+		db = db.Where("(shortlet_details->>'max_nights')::int >= ?", *filter.MaxNightsMin)
+	}
+	if filter.MaxNightsMax != nil {
+		db = db.Where("(shortlet_details->>'max_nights')::int <= ?", *filter.MaxNightsMax)
+	}
+
+	// Max guests capacity
+	if filter.MinMaxGuests != nil {
+		db = db.Where("(shortlet_details->>'max_guests')::int >= ?", *filter.MinMaxGuests)
+	}
+	if filter.BaseGuestCount != nil {
+		db = db.Where("(shortlet_details->>'base_guest_count')::int = ?", *filter.BaseGuestCount)
+	}
+
+	// Check-in time range
+	if filter.CheckInTimeAfter != nil {
+		db = db.Where("shortlet_details->>'check_in_time' >= ?", *filter.CheckInTimeAfter)
+	}
+	if filter.CheckInTimeBefore != nil {
+		db = db.Where("shortlet_details->>'check_in_time' <= ?", *filter.CheckInTimeBefore)
+	}
+
+	// Check-out time range
+	if filter.CheckOutTimeAfter != nil {
+		db = db.Where("shortlet_details->>'check_out_time' >= ?", *filter.CheckOutTimeAfter)
+	}
+	if filter.CheckOutTimeBefore != nil {
+		db = db.Where("shortlet_details->>'check_out_time' <= ?", *filter.CheckOutTimeBefore)
+	}
+
+	// Accommodation types (IN clause)
+	if len(filter.AccommodationTypes) > 0 {
+		db = db.Where("shortlet_details->>'accommodation_type' IN ?", filter.AccommodationTypes)
+	}
+
+	return db
+}
+
+// applyRentalFilter applies rental-specific JSONB filters
+func applyRentalFilter(db *gorm.DB, filter *RentalFilter) *gorm.DB {
+	if filter == nil {
+		return db
+	}
+
+	// Rental price periods
+	if len(filter.RentalPricePeriods) > 0 {
+		db = db.Where("rental_details->>'rental_price_period' IN ?", filter.RentalPricePeriods)
+	}
+
+	// Min rental period range
+	if filter.MinRentalPeriodMin != nil {
+		db = db.Where("(rental_details->>'min_rental_period')::int >= ?", *filter.MinRentalPeriodMin)
+	}
+	if filter.MinRentalPeriodMax != nil {
+		db = db.Where("(rental_details->>'min_rental_period')::int <= ?", *filter.MinRentalPeriodMax)
+	}
+
+	// Max rental period range
+	if filter.MaxRentalPeriodMin != nil {
+		db = db.Where("(rental_details->>'max_rental_period')::int >= ?", *filter.MaxRentalPeriodMin)
+	}
+	if filter.MaxRentalPeriodMax != nil {
+		db = db.Where("(rental_details->>'max_rental_period')::int <= ?", *filter.MaxRentalPeriodMax)
+	}
+
+	// Availability date range
+	if filter.AvailableFrom != nil {
+		db = db.Where("(rental_details->>'rental_availability_from')::timestamp >= ?", *filter.AvailableFrom)
+	}
+	if filter.AvailableTo != nil {
+		db = db.Where("(rental_details->>'rental_availability_from')::timestamp <= ?", *filter.AvailableTo)
+	}
+
+	return db
+}
+
+// applySaleFilter applies sale-specific JSONB filters
+func applySaleFilter(db *gorm.DB, filter *SaleFilter) *gorm.DB {
+	if filter == nil {
+		return db
+	}
+
+	// Ownership titles
+	if len(filter.OwnershipTitles) > 0 {
+		db = db.Where("sale_details->>'ownership_title' IN ?", filter.OwnershipTitles)
+	}
+
+	// Payment plan
+	if filter.PaymentPlan != nil {
+		db = db.Where("(sale_details->>'payment_plan')::boolean = ?", *filter.PaymentPlan)
+	}
+
+	return db
+}
+
+// applyPropertyExtensionFilter applies additional property filters
+// Note: This should be called after the properties table is joined
+func applyPropertyExtensionFilter(db *gorm.DB, filter *PropertyFilterExtension) *gorm.DB {
+	if filter == nil {
+		return db
+	}
+
+	// Property classes
+	if len(filter.PropertyClasses) > 0 {
+		db = db.Where("properties.property_class IN ?", filter.PropertyClasses)
+	}
+
+	// Property conditions
+	if len(filter.PropertyConditions) > 0 {
+		db = db.Where("properties.property_condition IN ?", filter.PropertyConditions)
+	}
+
+	// Amenities - ALL must be present (AND logic)
+	// The amenities are stored as JSONB array of AmenityGroup objects
+	// We need to check if all requested amenities exist in the flattened amenities
+	for _, amenity := range filter.Amenities {
+		// Check if the amenity exists anywhere in the amenities JSONB array
+		db = db.Where(
+			"EXISTS (SELECT 1 FROM jsonb_array_elements(properties.amenities) AS ag "+
+				"WHERE EXISTS (SELECT 1 FROM jsonb_array_elements(ag->'amenities') AS a "+
+				"WHERE a->>'name' = ?))",
+			amenity,
+		)
+	}
+
+	return db
 }

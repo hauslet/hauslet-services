@@ -45,6 +45,7 @@ type ListingRepository interface {
 	UpdateListingMedia(ctx context.Context, listingID uuid.UUID, mediaID uuid.UUID, updates map[string]any) error
 	ListListingMedia(ctx context.Context, listingID uuid.UUID) ([]schema.ListingMedia, error)
 	FindStaleListingMedia(ctx context.Context, olderThan time.Time, limit int) ([]schema.ListingMedia, error)
+	SearchListings(ctx context.Context, embedding *schema.VectorEmbedding, filter ListingFilter, limit int) ([]ScoredListing, error)
 	SoftDeleteListing(ctx context.Context, id uuid.UUID) error
 	HardDeleteListing(ctx context.Context, id uuid.UUID) error
 }

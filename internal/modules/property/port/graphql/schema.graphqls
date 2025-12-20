@@ -674,15 +674,99 @@ input UpdateListingPropertyInput {
   featuresCommercial: [AmenityGroupInput!]
 }
 
+# Shortlet-specific filters
+input ShortletFilterInput {
+  # Pricing - Extra Guest Fee
+  minExtraGuestFee: Float
+  maxExtraGuestFee: Float
+
+  # Stay Duration - Range filtering for min_nights property
+  minNightsMin: Int # Find listings where min_nights >= this value
+  minNightsMax: Int # Find listings where min_nights <= this value
+
+  # Stay Duration - Range filtering for max_nights property
+  maxNightsMin: Int # Find listings where max_nights >= this value
+  maxNightsMax: Int # Find listings where max_nights <= this value
+
+  # Capacity
+  minMaxGuests: Int # Find listings where max_guests >= this value (can accommodate at least X guests)
+  baseGuestCount: Int # Find listings with exact base guest count
+
+  # Timing - Range matching for check-in time
+  checkInTimeAfter: String # HH:MM format - check-in time must be >= this (e.g., "14:00")
+  checkInTimeBefore: String # HH:MM format - check-in time must be <= this (e.g., "18:00")
+
+  # Timing - Range matching for check-out time
+  checkOutTimeAfter: String # HH:MM format - check-out time must be >= this
+  checkOutTimeBefore: String # HH:MM format - check-out time must be <= this
+
+  # Type
+  accommodationTypes: [AccommodationType!] # entire_place, private_room, shared_room, single_room, double_room
+}
+
+# Rental-specific filters
+input RentalFilterInput {
+  # Rental Terms
+  rentalPricePeriods: [PaymentPeriod!] # monthly, yearly, etc. (must match one of these)
+
+  # Rental Period - Range filtering for min_rental_period property
+  minRentalPeriodMin: Int # Find listings where min_rental_period >= this
+  minRentalPeriodMax: Int # Find listings where min_rental_period <= this
+
+  # Rental Period - Range filtering for max_rental_period property
+  maxRentalPeriodMin: Int # Find listings where max_rental_period >= this
+  maxRentalPeriodMax: Int # Find listings where max_rental_period <= this
+
+  # Availability Date Range
+  availableFrom: Time # Property available from this date onwards
+  availableTo: Time # Property available before this date
+}
+
+# Sale-specific filters
+input SaleFilterInput {
+  ownershipTitles: [String!] # List of acceptable title types (e.g., ["Freehold", "C of O"])
+  paymentPlan: Boolean # true = must have payment plan, false = no payment plan, null = either
+}
+
+# Property filter extensions
+input PropertyFilterExtension {
+  propertyClasses: [PropertyClass!] # residential, commercial (must match one of these)
+  propertyConditions: [PropertyCondition!] # new, used, renovated, etc. (must match one of these)
+  amenities: [String!] # Must have ALL these amenities (AND logic)
+}
+
 input ListingFilterInput {
+  query: String
   ownerId: UUID
   propertyId: UUID
   ownerTypes: [OwnerType!]
   listingTypes: [ListingType!]
   statuses: [ListingStatus!]
   reviewStatuses: [ReviewStatus!]
-  published: Boolean
+  # NOTE: published filter has been removed for security. Search always returns published listings only.
   hasCalendar: Boolean
+  city: String
+  state: String
+  country: CountryCode
+  latitude: Float
+  longitude: Float
+  radiusMeters: Float
+  propertyTypes: [PropertyType!]
+  furnishingTypes: [FurnishingType!]
+  minPrice: Float
+  maxPrice: Float
+  currency: CurrencyCode
+  minBedrooms: Int
+  maxBedrooms: Int
+  minBathrooms: Int
+  maxBathrooms: Int
+  minViewCount: Int
+
+  # Type-specific filters
+  shortletFilter: ShortletFilterInput
+  rentalFilter: RentalFilterInput
+  saleFilter: SaleFilterInput
+  propertyExtension: PropertyFilterExtension
 }
 
 # ===========================
@@ -707,7 +791,7 @@ extend type Query {
   listingsNearPoint(lat: Float!, lng: Float!, radiusMeters: Float!, filter: ListingFilterInput, limit: Int): [ListingWithDistance!]!
 
   # Search
-  searchListings(query: String!, filter: ListingFilterInput, limit: Int): [ScoredListing!]!
+  searchListings(filter: ListingFilterInput, limit: Int): [ScoredListing!]!
   similarListings(listingId: UUID!, limit: Int, minSimilarity: Float): [ScoredListing!]!
 }
 

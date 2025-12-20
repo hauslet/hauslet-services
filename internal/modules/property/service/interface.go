@@ -6,6 +6,7 @@ import (
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/notification"
 	"hauslet/internal/modules/property/repository"
+	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	platformQueue "hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
@@ -46,6 +47,7 @@ type Service interface {
 	DeleteListingMedia(ctx context.Context, listingID uuid.UUID, media []domain.ListingMediaDeleteInput) error
 	ListListingMedia(ctx context.Context, listingID uuid.UUID) ([]domain.ListingMedia, error)
 	FinalizeListingMedia(ctx context.Context, data domain.FinalizedListingMedia) error
+	SearchListings(ctx context.Context, filter ListingFilter, limit int) ([]domain.ScoredListing, error)
 
 	// Composite operations
 	CreatePropertyWithListing(ctx context.Context, p domain.Property, l domain.Listing) (*domain.Property, *domain.Listing, error)
@@ -70,6 +72,7 @@ type ServiceImpl struct {
 	notificationService *notification.NotificationService
 	profiles            ProfileProvider
 	cache               redis.RedisClient
+	embedding           *aiembeddings.Client
 	log                 *lgr.Logger
 }
 
@@ -82,6 +85,7 @@ func NewPropertyService(repo repository.Repository,
 	thumbnailSubject string,
 	moderationHooks ModerationHooks,
 	cache redis.RedisClient,
+	embedding *aiembeddings.Client,
 	log *lgr.Logger,
 ) *ServiceImpl {
 	return &ServiceImpl{
@@ -93,6 +97,7 @@ func NewPropertyService(repo repository.Repository,
 		moderationHooks:     moderationHooks,
 		notificationService: notificationService,
 		cache:               cache,
+		embedding:           embedding,
 		log:                 log,
 	}
 }

@@ -136,6 +136,13 @@ type Listing struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 }
 
+// ScoredListing pairs a listing with a similarity/relevance score.
+type ScoredListing struct {
+	Listing Listing
+	Score   float64
+	Ranking int
+}
+
 // --- 3. HELPER STRUCTS ---
 
 // AmenityHighlight represents a highlighted amenity with description

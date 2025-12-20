@@ -376,7 +376,7 @@ type ComplexityRoot struct {
 		ProfileByUserID            func(childComplexity int, userID string) int
 		Profiles                   func(childComplexity int, limit *int, offset *int) int
 		SearchBusinesses           func(childComplexity int, query string, limit *int, offset *int) int
-		SearchListings             func(childComplexity int, query string, filter *model.ListingFilterInput, limit *int) int
+		SearchListings             func(childComplexity int, filter *model.ListingFilterInput, limit *int) int
 		SearchProfiles             func(childComplexity int, query string, limit *int, offset *int) int
 		SimilarListings            func(childComplexity int, listingID uuid.UUID, limit *int, minSimilarity *float64) int
 		UploadProfilePhoto         func(childComplexity int, userID string, fileName string) int
@@ -581,7 +581,7 @@ type QueryResolver interface {
 	BusinessListings(ctx context.Context, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
 	MyIndividualListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
 	ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error)
-	SearchListings(ctx context.Context, query string, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error)
+	SearchListings(ctx context.Context, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error)
 	SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error)
 	Business(ctx context.Context, id uuid.UUID) (*domain.Business, error)
 	BusinessBySlug(ctx context.Context, slug string) (*domain.Business, error)
@@ -2435,7 +2435,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.SearchListings(childComplexity, args["query"].(string), args["filter"].(*model.ListingFilterInput), args["limit"].(*int)), true
+		return e.complexity.Query.SearchListings(childComplexity, args["filter"].(*model.ListingFilterInput), args["limit"].(*int)), true
 	case "Query.searchProfiles":
 		if e.complexity.Query.SearchProfiles == nil {
 			break
@@ -3077,12 +3077,16 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputLocationInput,
 		ec.unmarshalInputMediaInput,
 		ec.unmarshalInputMemberPermissionsInput,
+		ec.unmarshalInputPropertyFilterExtension,
 		ec.unmarshalInputRentalDetailInput,
+		ec.unmarshalInputRentalFilterInput,
 		ec.unmarshalInputRuleGroupInput,
 		ec.unmarshalInputRuleItemInput,
 		ec.unmarshalInputSaleDetailInput,
+		ec.unmarshalInputSaleFilterInput,
 		ec.unmarshalInputServiceChargeInput,
 		ec.unmarshalInputShortletDetailInput,
+		ec.unmarshalInputShortletFilterInput,
 		ec.unmarshalInputTravelCompanionInput,
 		ec.unmarshalInputUpdateBusinessInput,
 		ec.unmarshalInputUpdateListingInput,
@@ -4074,15 +4078,99 @@ input UpdateListingPropertyInput {
   featuresCommercial: [AmenityGroupInput!]
 }
 
+# Shortlet-specific filters
+input ShortletFilterInput {
+  # Pricing - Extra Guest Fee
+  minExtraGuestFee: Float
+  maxExtraGuestFee: Float
+
+  # Stay Duration - Range filtering for min_nights property
+  minNightsMin: Int # Find listings where min_nights >= this value
+  minNightsMax: Int # Find listings where min_nights <= this value
+
+  # Stay Duration - Range filtering for max_nights property
+  maxNightsMin: Int # Find listings where max_nights >= this value
+  maxNightsMax: Int # Find listings where max_nights <= this value
+
+  # Capacity
+  minMaxGuests: Int # Find listings where max_guests >= this value (can accommodate at least X guests)
+  baseGuestCount: Int # Find listings with exact base guest count
+
+  # Timing - Range matching for check-in time
+  checkInTimeAfter: String # HH:MM format - check-in time must be >= this (e.g., "14:00")
+  checkInTimeBefore: String # HH:MM format - check-in time must be <= this (e.g., "18:00")
+
+  # Timing - Range matching for check-out time
+  checkOutTimeAfter: String # HH:MM format - check-out time must be >= this
+  checkOutTimeBefore: String # HH:MM format - check-out time must be <= this
+
+  # Type
+  accommodationTypes: [AccommodationType!] # entire_place, private_room, shared_room, single_room, double_room
+}
+
+# Rental-specific filters
+input RentalFilterInput {
+  # Rental Terms
+  rentalPricePeriods: [PaymentPeriod!] # monthly, yearly, etc. (must match one of these)
+
+  # Rental Period - Range filtering for min_rental_period property
+  minRentalPeriodMin: Int # Find listings where min_rental_period >= this
+  minRentalPeriodMax: Int # Find listings where min_rental_period <= this
+
+  # Rental Period - Range filtering for max_rental_period property
+  maxRentalPeriodMin: Int # Find listings where max_rental_period >= this
+  maxRentalPeriodMax: Int # Find listings where max_rental_period <= this
+
+  # Availability Date Range
+  availableFrom: Time # Property available from this date onwards
+  availableTo: Time # Property available before this date
+}
+
+# Sale-specific filters
+input SaleFilterInput {
+  ownershipTitles: [String!] # List of acceptable title types (e.g., ["Freehold", "C of O"])
+  paymentPlan: Boolean # true = must have payment plan, false = no payment plan, null = either
+}
+
+# Property filter extensions
+input PropertyFilterExtension {
+  propertyClasses: [PropertyClass!] # residential, commercial (must match one of these)
+  propertyConditions: [PropertyCondition!] # new, used, renovated, etc. (must match one of these)
+  amenities: [String!] # Must have ALL these amenities (AND logic)
+}
+
 input ListingFilterInput {
+  query: String
   ownerId: UUID
   propertyId: UUID
   ownerTypes: [OwnerType!]
   listingTypes: [ListingType!]
   statuses: [ListingStatus!]
   reviewStatuses: [ReviewStatus!]
-  published: Boolean
+  # NOTE: published filter has been removed for security. Search always returns published listings only.
   hasCalendar: Boolean
+  city: String
+  state: String
+  country: CountryCode
+  latitude: Float
+  longitude: Float
+  radiusMeters: Float
+  propertyTypes: [PropertyType!]
+  furnishingTypes: [FurnishingType!]
+  minPrice: Float
+  maxPrice: Float
+  currency: CurrencyCode
+  minBedrooms: Int
+  maxBedrooms: Int
+  minBathrooms: Int
+  maxBathrooms: Int
+  minViewCount: Int
+
+  # Type-specific filters
+  shortletFilter: ShortletFilterInput
+  rentalFilter: RentalFilterInput
+  saleFilter: SaleFilterInput
+  propertyExtension: PropertyFilterExtension
 }
 
 # ===========================
@@ -4107,7 +4195,7 @@ extend type Query {
   listingsNearPoint(lat: Float!, lng: Float!, radiusMeters: Float!, filter: ListingFilterInput, limit: Int): [ListingWithDistance!]!
 
   # Search
-  searchListings(query: String!, filter: ListingFilterInput, limit: Int): [ScoredListing!]!
+  searchListings(filter: ListingFilterInput, limit: Int): [ScoredListing!]!
   similarListings(listingId: UUID!, limit: Int, minSimilarity: Float): [ScoredListing!]!
 }
 
@@ -5081,21 +5169,16 @@ func (ec *executionContext) field_Query_searchBusinesses_args(ctx context.Contex
 func (ec *executionContext) field_Query_searchListings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "query", ec.unmarshalNString2string)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOListingFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingFilterInput)
 	if err != nil {
 		return nil, err
 	}
-	args["query"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOListingFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingFilterInput)
+	args["filter"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
 	if err != nil {
 		return nil, err
 	}
-	args["filter"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
-	if err != nil {
-		return nil, err
-	}
-	args["limit"] = arg2
+	args["limit"] = arg1
 	return args, nil
 }
 
@@ -14891,7 +14974,7 @@ func (ec *executionContext) _Query_searchListings(ctx context.Context, field gra
 		ec.fieldContext_Query_searchListings,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().SearchListings(ctx, fc.Args["query"].(string), fc.Args["filter"].(*model.ListingFilterInput), fc.Args["limit"].(*int))
+			return ec.resolvers.Query().SearchListings(ctx, fc.Args["filter"].(*model.ListingFilterInput), fc.Args["limit"].(*int))
 		},
 		nil,
 		ec.marshalNScoredListing2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐScoredListingᚄ,
@@ -20743,13 +20826,20 @@ func (ec *executionContext) unmarshalInputListingFilterInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"ownerId", "propertyId", "ownerTypes", "listingTypes", "statuses", "reviewStatuses", "published", "hasCalendar"}
+	fieldsInOrder := [...]string{"query", "ownerId", "propertyId", "ownerTypes", "listingTypes", "statuses", "reviewStatuses", "hasCalendar", "city", "state", "country", "latitude", "longitude", "radiusMeters", "propertyTypes", "furnishingTypes", "minPrice", "maxPrice", "currency", "minBedrooms", "maxBedrooms", "minBathrooms", "maxBathrooms", "minViewCount", "shortletFilter", "rentalFilter", "saleFilter", "propertyExtension"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
+		case "query":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Query = data
 		case "ownerId":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ownerId"))
 			data, err := ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
@@ -20792,13 +20882,6 @@ func (ec *executionContext) unmarshalInputListingFilterInput(ctx context.Context
 				return it, err
 			}
 			it.ReviewStatuses = data
-		case "published":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("published"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Published = data
 		case "hasCalendar":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hasCalendar"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -20806,6 +20889,146 @@ func (ec *executionContext) unmarshalInputListingFilterInput(ctx context.Context
 				return it, err
 			}
 			it.HasCalendar = data
+		case "city":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("city"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.City = data
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
+		case "country":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("country"))
+			data, err := ec.unmarshalOCountryCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCountryCode(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Country = data
+		case "latitude":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("latitude"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Latitude = data
+		case "longitude":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("longitude"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Longitude = data
+		case "radiusMeters":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("radiusMeters"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RadiusMeters = data
+		case "propertyTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("propertyTypes"))
+			data, err := ec.unmarshalOPropertyType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PropertyTypes = data
+		case "furnishingTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("furnishingTypes"))
+			data, err := ec.unmarshalOFurnishingType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.FurnishingTypes = data
+		case "minPrice":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minPrice"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinPrice = data
+		case "maxPrice":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxPrice"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxPrice = data
+		case "currency":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currency"))
+			data, err := ec.unmarshalOCurrencyCode2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCurrencyCode(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Currency = data
+		case "minBedrooms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minBedrooms"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinBedrooms = data
+		case "maxBedrooms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxBedrooms"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxBedrooms = data
+		case "minBathrooms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minBathrooms"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinBathrooms = data
+		case "maxBathrooms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxBathrooms"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxBathrooms = data
+		case "minViewCount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minViewCount"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinViewCount = data
+		case "shortletFilter":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shortletFilter"))
+			data, err := ec.unmarshalOShortletFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShortletFilterInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShortletFilter = data
+		case "rentalFilter":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalFilter"))
+			data, err := ec.unmarshalORentalFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRentalFilterInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RentalFilter = data
+		case "saleFilter":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("saleFilter"))
+			data, err := ec.unmarshalOSaleFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐSaleFilterInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SaleFilter = data
+		case "propertyExtension":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("propertyExtension"))
+			data, err := ec.unmarshalOPropertyFilterExtension2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPropertyFilterExtension(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PropertyExtension = data
 		}
 	}
 
@@ -20984,6 +21207,47 @@ func (ec *executionContext) unmarshalInputMemberPermissionsInput(ctx context.Con
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputPropertyFilterExtension(ctx context.Context, obj any) (model.PropertyFilterExtension, error) {
+	var it model.PropertyFilterExtension
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"propertyClasses", "propertyConditions", "amenities"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "propertyClasses":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("propertyClasses"))
+			data, err := ec.unmarshalOPropertyClass2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClassᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PropertyClasses = data
+		case "propertyConditions":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("propertyConditions"))
+			data, err := ec.unmarshalOPropertyCondition2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyConditionᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PropertyConditions = data
+		case "amenities":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amenities"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Amenities = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputRentalDetailInput(ctx context.Context, obj any) (model.RentalDetailInput, error) {
 	var it model.RentalDetailInput
 	asMap := map[string]any{}
@@ -21089,6 +21353,75 @@ func (ec *executionContext) unmarshalInputRentalDetailInput(ctx context.Context,
 				return it, err
 			}
 			it.RentalRules = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRentalFilterInput(ctx context.Context, obj any) (model.RentalFilterInput, error) {
+	var it model.RentalFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"rentalPricePeriods", "minRentalPeriodMin", "minRentalPeriodMax", "maxRentalPeriodMin", "maxRentalPeriodMax", "availableFrom", "availableTo"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "rentalPricePeriods":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalPricePeriods"))
+			data, err := ec.unmarshalOPaymentPeriod2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriodᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RentalPricePeriods = data
+		case "minRentalPeriodMin":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minRentalPeriodMin"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinRentalPeriodMin = data
+		case "minRentalPeriodMax":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minRentalPeriodMax"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinRentalPeriodMax = data
+		case "maxRentalPeriodMin":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxRentalPeriodMin"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxRentalPeriodMin = data
+		case "maxRentalPeriodMax":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxRentalPeriodMax"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxRentalPeriodMax = data
+		case "availableFrom":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("availableFrom"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AvailableFrom = data
+		case "availableTo":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("availableTo"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AvailableTo = data
 		}
 	}
 
@@ -21288,6 +21621,40 @@ func (ec *executionContext) unmarshalInputSaleDetailInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSaleFilterInput(ctx context.Context, obj any) (model.SaleFilterInput, error) {
+	var it model.SaleFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"ownershipTitles", "paymentPlan"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "ownershipTitles":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ownershipTitles"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OwnershipTitles = data
+		case "paymentPlan":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("paymentPlan"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PaymentPlan = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputServiceChargeInput(ctx context.Context, obj any) (model.ServiceChargeInput, error) {
 	var it model.ServiceChargeInput
 	asMap := map[string]any{}
@@ -21455,6 +21822,117 @@ func (ec *executionContext) unmarshalInputShortletDetailInput(ctx context.Contex
 				return it, err
 			}
 			it.AmenitiesHighlights = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputShortletFilterInput(ctx context.Context, obj any) (model.ShortletFilterInput, error) {
+	var it model.ShortletFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"minExtraGuestFee", "maxExtraGuestFee", "minNightsMin", "minNightsMax", "maxNightsMin", "maxNightsMax", "minMaxGuests", "baseGuestCount", "checkInTimeAfter", "checkInTimeBefore", "checkOutTimeAfter", "checkOutTimeBefore", "accommodationTypes"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "minExtraGuestFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minExtraGuestFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinExtraGuestFee = data
+		case "maxExtraGuestFee":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxExtraGuestFee"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxExtraGuestFee = data
+		case "minNightsMin":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNightsMin"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinNightsMin = data
+		case "minNightsMax":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNightsMax"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinNightsMax = data
+		case "maxNightsMin":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxNightsMin"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxNightsMin = data
+		case "maxNightsMax":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxNightsMax"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxNightsMax = data
+		case "minMaxGuests":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minMaxGuests"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinMaxGuests = data
+		case "baseGuestCount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("baseGuestCount"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BaseGuestCount = data
+		case "checkInTimeAfter":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkInTimeAfter"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckInTimeAfter = data
+		case "checkInTimeBefore":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkInTimeBefore"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckInTimeBefore = data
+		case "checkOutTimeAfter":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkOutTimeAfter"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckOutTimeAfter = data
+		case "checkOutTimeBefore":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkOutTimeBefore"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckOutTimeBefore = data
+		case "accommodationTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accommodationTypes"))
+			data, err := ec.unmarshalOAccommodationType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AccommodationTypes = data
 		}
 	}
 
@@ -28187,6 +28665,71 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) unmarshalOAccommodationType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationTypeᚄ(ctx context.Context, v any) ([]domain1.AccommodationType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]domain1.AccommodationType, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNAccommodationType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOAccommodationType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.AccommodationType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAccommodationType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOAccommodationType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationType(ctx context.Context, v any) (*domain1.AccommodationType, error) {
 	if v == nil {
 		return nil, nil
@@ -28347,6 +28890,71 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 	_ = sel
 	res := graphql.MarshalFloatContext(*v)
 	return graphql.WrapContextMarshaler(ctx, res)
+}
+
+func (ec *executionContext) unmarshalOFurnishingType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingTypeᚄ(ctx context.Context, v any) ([]domain1.FurnishingType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]domain1.FurnishingType, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNFurnishingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOFurnishingType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.FurnishingType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFurnishingType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOFurnishingType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingType(ctx context.Context, v any) (*domain1.FurnishingType, error) {
@@ -28700,6 +29308,71 @@ func (ec *executionContext) marshalOOwnerType2ᚖhausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
+func (ec *executionContext) unmarshalOPaymentPeriod2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriodᚄ(ctx context.Context, v any) ([]domain1.PaymentPeriod, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]domain1.PaymentPeriod, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNPaymentPeriod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOPaymentPeriod2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriodᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.PaymentPeriod) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPaymentPeriod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOPaymentPeriod2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPaymentPeriod(ctx context.Context, v any) (*domain1.PaymentPeriod, error) {
 	if v == nil {
 		return nil, nil
@@ -28726,6 +29399,71 @@ func (ec *executionContext) marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋpr
 	return ec._Profile(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOPropertyClass2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClassᚄ(ctx context.Context, v any) ([]domain1.PropertyClass, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]domain1.PropertyClass, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNPropertyClass2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOPropertyClass2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClassᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.PropertyClass) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPropertyClass2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOPropertyClass2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClass(ctx context.Context, v any) (*domain1.PropertyClass, error) {
 	if v == nil {
 		return nil, nil
@@ -28745,6 +29483,71 @@ func (ec *executionContext) marshalOPropertyClass2ᚖhausletᚋinternalᚋmodule
 	return res
 }
 
+func (ec *executionContext) unmarshalOPropertyCondition2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyConditionᚄ(ctx context.Context, v any) ([]domain1.PropertyCondition, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]domain1.PropertyCondition, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNPropertyCondition2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOPropertyCondition2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyConditionᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.PropertyCondition) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPropertyCondition2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOPropertyCondition2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyCondition(ctx context.Context, v any) (*domain1.PropertyCondition, error) {
 	if v == nil {
 		return nil, nil
@@ -28762,6 +29565,79 @@ func (ec *executionContext) marshalOPropertyCondition2ᚖhausletᚋinternalᚋmo
 	_ = ctx
 	res := graphql.MarshalString(string(*v))
 	return res
+}
+
+func (ec *executionContext) unmarshalOPropertyFilterExtension2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPropertyFilterExtension(ctx context.Context, v any) (*model.PropertyFilterExtension, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPropertyFilterExtension(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOPropertyType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyTypeᚄ(ctx context.Context, v any) ([]domain1.PropertyType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]domain1.PropertyType, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNPropertyType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOPropertyType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain1.PropertyType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPropertyType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOPropertyType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyType(ctx context.Context, v any) (*domain1.PropertyType, error) {
@@ -28795,6 +29671,14 @@ func (ec *executionContext) unmarshalORentalDetailInput2ᚖhausletᚋinternalᚋ
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputRentalDetailInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalORentalFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRentalFilterInput(ctx context.Context, v any) (*model.RentalFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputRentalFilterInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -28896,6 +29780,14 @@ func (ec *executionContext) unmarshalOSaleDetailInput2ᚖhausletᚋinternalᚋtr
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalOSaleFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐSaleFilterInput(ctx context.Context, v any) (*model.SaleFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputSaleFilterInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOServiceCharge2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain1.ServiceCharge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -28973,6 +29865,14 @@ func (ec *executionContext) unmarshalOShortletDetailInput2ᚖhausletᚋinternal�
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputShortletDetailInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOShortletFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShortletFilterInput(ctx context.Context, v any) (*model.ShortletFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputShortletFilterInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

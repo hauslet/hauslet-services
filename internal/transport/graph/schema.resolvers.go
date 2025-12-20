@@ -344,8 +344,8 @@ func (r *queryResolver) ListingsNearPoint(ctx context.Context, lat float64, lng 
 }
 
 // SearchListings is the resolver for the searchListings field.
-func (r *queryResolver) SearchListings(ctx context.Context, query string, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error) {
-	return r.PropertyResolver.SearchListings(ctx, query, filter, limit)
+func (r *queryResolver) SearchListings(ctx context.Context, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error) {
+	return r.PropertyResolver.SearchListings(ctx, filter, limit)
 }
 
 // SimilarListings is the resolver for the similarListings field.

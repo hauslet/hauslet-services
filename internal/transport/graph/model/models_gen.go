@@ -119,14 +119,34 @@ type ListingEdge struct {
 }
 
 type ListingFilterInput struct {
-	OwnerID        *uuid.UUID              `json:"ownerId,omitempty"`
-	PropertyID     *uuid.UUID              `json:"propertyId,omitempty"`
-	OwnerTypes     []domain1.OwnerType     `json:"ownerTypes,omitempty"`
-	ListingTypes   []domain1.ListingType   `json:"listingTypes,omitempty"`
-	Statuses       []domain1.ListingStatus `json:"statuses,omitempty"`
-	ReviewStatuses []domain1.ReviewStatus  `json:"reviewStatuses,omitempty"`
-	Published      *bool                   `json:"published,omitempty"`
-	HasCalendar    *bool                   `json:"hasCalendar,omitempty"`
+	Query             *string                  `json:"query,omitempty"`
+	OwnerID           *uuid.UUID               `json:"ownerId,omitempty"`
+	PropertyID        *uuid.UUID               `json:"propertyId,omitempty"`
+	OwnerTypes        []domain1.OwnerType      `json:"ownerTypes,omitempty"`
+	ListingTypes      []domain1.ListingType    `json:"listingTypes,omitempty"`
+	Statuses          []domain1.ListingStatus  `json:"statuses,omitempty"`
+	ReviewStatuses    []domain1.ReviewStatus   `json:"reviewStatuses,omitempty"`
+	HasCalendar       *bool                    `json:"hasCalendar,omitempty"`
+	City              *string                  `json:"city,omitempty"`
+	State             *string                  `json:"state,omitempty"`
+	Country           *domain1.CountryCode     `json:"country,omitempty"`
+	Latitude          *float64                 `json:"latitude,omitempty"`
+	Longitude         *float64                 `json:"longitude,omitempty"`
+	RadiusMeters      *float64                 `json:"radiusMeters,omitempty"`
+	PropertyTypes     []domain1.PropertyType   `json:"propertyTypes,omitempty"`
+	FurnishingTypes   []domain1.FurnishingType `json:"furnishingTypes,omitempty"`
+	MinPrice          *float64                 `json:"minPrice,omitempty"`
+	MaxPrice          *float64                 `json:"maxPrice,omitempty"`
+	Currency          *domain1.CurrencyCode    `json:"currency,omitempty"`
+	MinBedrooms       *int                     `json:"minBedrooms,omitempty"`
+	MaxBedrooms       *int                     `json:"maxBedrooms,omitempty"`
+	MinBathrooms      *int                     `json:"minBathrooms,omitempty"`
+	MaxBathrooms      *int                     `json:"maxBathrooms,omitempty"`
+	MinViewCount      *int                     `json:"minViewCount,omitempty"`
+	ShortletFilter    *ShortletFilterInput     `json:"shortletFilter,omitempty"`
+	RentalFilter      *RentalFilterInput       `json:"rentalFilter,omitempty"`
+	SaleFilter        *SaleFilterInput         `json:"saleFilter,omitempty"`
+	PropertyExtension *PropertyFilterExtension `json:"propertyExtension,omitempty"`
 }
 
 type ListingWithDistance struct {
@@ -170,6 +190,12 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor,omitempty"`
 }
 
+type PropertyFilterExtension struct {
+	PropertyClasses    []domain1.PropertyClass     `json:"propertyClasses,omitempty"`
+	PropertyConditions []domain1.PropertyCondition `json:"propertyConditions,omitempty"`
+	Amenities          []string                    `json:"amenities,omitempty"`
+}
+
 type Query struct {
 }
 
@@ -187,6 +213,16 @@ type RentalDetailInput struct {
 	RentalAvailabilityFrom *time.Time            `json:"rentalAvailabilityFrom,omitempty"`
 	RentalTerms            *string               `json:"rentalTerms,omitempty"`
 	RentalRules            []*RuleGroupInput     `json:"rentalRules,omitempty"`
+}
+
+type RentalFilterInput struct {
+	RentalPricePeriods []domain1.PaymentPeriod `json:"rentalPricePeriods,omitempty"`
+	MinRentalPeriodMin *int                    `json:"minRentalPeriodMin,omitempty"`
+	MinRentalPeriodMax *int                    `json:"minRentalPeriodMax,omitempty"`
+	MaxRentalPeriodMin *int                    `json:"maxRentalPeriodMin,omitempty"`
+	MaxRentalPeriodMax *int                    `json:"maxRentalPeriodMax,omitempty"`
+	AvailableFrom      *time.Time              `json:"availableFrom,omitempty"`
+	AvailableTo        *time.Time              `json:"availableTo,omitempty"`
 }
 
 type RuleGroupInput struct {
@@ -222,6 +258,11 @@ type SaleDetailInput struct {
 	SaleAvailabilityFrom *time.Time            `json:"saleAvailabilityFrom,omitempty"`
 }
 
+type SaleFilterInput struct {
+	OwnershipTitles []string `json:"ownershipTitles,omitempty"`
+	PaymentPlan     *bool    `json:"paymentPlan,omitempty"`
+}
+
 type ScoredListing struct {
 	Listing *domain1.Listing `json:"listing"`
 	Score   float64          `json:"score"`
@@ -251,6 +292,22 @@ type ShortletDetailInput struct {
 	AutoGenerateCalendar *bool                     `json:"autoGenerateCalendar,omitempty"`
 	Rules                []*RuleGroupInput         `json:"rules,omitempty"`
 	AmenitiesHighlights  []*AmenityHighlightInput  `json:"amenitiesHighlights,omitempty"`
+}
+
+type ShortletFilterInput struct {
+	MinExtraGuestFee   *float64                    `json:"minExtraGuestFee,omitempty"`
+	MaxExtraGuestFee   *float64                    `json:"maxExtraGuestFee,omitempty"`
+	MinNightsMin       *int                        `json:"minNightsMin,omitempty"`
+	MinNightsMax       *int                        `json:"minNightsMax,omitempty"`
+	MaxNightsMin       *int                        `json:"maxNightsMin,omitempty"`
+	MaxNightsMax       *int                        `json:"maxNightsMax,omitempty"`
+	MinMaxGuests       *int                        `json:"minMaxGuests,omitempty"`
+	BaseGuestCount     *int                        `json:"baseGuestCount,omitempty"`
+	CheckInTimeAfter   *string                     `json:"checkInTimeAfter,omitempty"`
+	CheckInTimeBefore  *string                     `json:"checkInTimeBefore,omitempty"`
+	CheckOutTimeAfter  *string                     `json:"checkOutTimeAfter,omitempty"`
+	CheckOutTimeBefore *string                     `json:"checkOutTimeBefore,omitempty"`
+	AccommodationTypes []domain1.AccommodationType `json:"accommodationTypes,omitempty"`
 }
 
 type TravelCompanionInput struct {

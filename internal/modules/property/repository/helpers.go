@@ -51,6 +51,12 @@ type PaginatedResult[T any] struct {
 	Offset     int
 }
 
+// ScoredListing carries a listing with a vector similarity score.
+type ScoredListing struct {
+	Listing schema.Listing `gorm:"embedded"`
+	Score   float64        `gorm:"column:score"`
+}
+
 // PropertyFilter defines optional criteria for querying properties.
 type PropertyFilter struct {
 	OwnerID        *uuid.UUID
@@ -74,6 +80,7 @@ type PropertyFilter struct {
 
 // ListingFilter defines optional criteria for querying listings.
 type ListingFilter struct {
+	Query           *string
 	OwnerID         *uuid.UUID
 	PropertyID      *uuid.UUID
 	OwnerTypes      []schema.OwnerType
@@ -82,6 +89,21 @@ type ListingFilter struct {
 	ReviewStatuses  []schema.ReviewStatus
 	Published       *bool
 	HasCalendar     *bool
+	MinPrice        *float64
+	MaxPrice        *float64
+	Currency        *schema.CurrencyCode
+	City            *string
+	State           *string
+	Country         *schema.CountryCode
+	PropertyTypes   []schema.PropertyType
+	Furnishings     []schema.FurnishingType
+	MinBedrooms     *int
+	MaxBedrooms     *int
+	MinBathrooms    *int
+	MaxBathrooms    *int
+	Latitude        *float64
+	Longitude       *float64
+	RadiusMeters    *float64
 	PublishedAfter  *time.Time
 	PublishedBefore *time.Time
 	CreatedAfter    *time.Time
@@ -90,6 +112,71 @@ type ListingFilter struct {
 	IncludeDeleted  bool
 	SortBy          ListingSortBy
 	SortOrder       SortOrder
+
+	// Type-specific filters
+	ShortletFilter    *ShortletFilter
+	RentalFilter      *RentalFilter
+	SaleFilter        *SaleFilter
+	PropertyExtension *PropertyFilterExtension
+}
+
+// ShortletFilter defines filters specific to shortlet listings
+type ShortletFilter struct {
+	// Pricing
+	MinExtraGuestFee *float64
+	MaxExtraGuestFee *float64
+
+	// Stay Duration - Range filtering for min_nights
+	MinNightsMin *int // Listings where min_nights >= this
+	MinNightsMax *int // Listings where min_nights <= this
+
+	// Stay Duration - Range filtering for max_nights
+	MaxNightsMin *int // Listings where max_nights >= this
+	MaxNightsMax *int // Listings where max_nights <= this
+
+	// Capacity
+	MinMaxGuests   *int // Listings where max_guests >= this
+	BaseGuestCount *int // Exact match for base_guest_count
+
+	// Timing - Range matching
+	CheckInTimeAfter  *string // HH:MM format
+	CheckInTimeBefore *string // HH:MM format
+	CheckOutTimeAfter *string // HH:MM format
+	CheckOutTimeBefore *string // HH:MM format
+
+	// Type
+	AccommodationTypes []schema.AccommodationType
+}
+
+// RentalFilter defines filters specific to rental listings
+type RentalFilter struct {
+	// Rental Terms
+	RentalPricePeriods []schema.PaymentPeriod
+
+	// Rental Period - Range filtering for min_rental_period
+	MinRentalPeriodMin *int // Listings where min_rental_period >= this
+	MinRentalPeriodMax *int // Listings where min_rental_period <= this
+
+	// Rental Period - Range filtering for max_rental_period
+	MaxRentalPeriodMin *int // Listings where max_rental_period >= this
+	MaxRentalPeriodMax *int // Listings where max_rental_period <= this
+
+	// Availability Date Range
+	AvailableFrom *time.Time
+	AvailableTo   *time.Time
+}
+
+// SaleFilter defines filters specific to sale listings
+type SaleFilter struct {
+	OwnershipTitles []string // Must match one of these
+	PaymentPlan     *bool    // true = must have, false = must not have, nil = either
+}
+
+// PropertyFilterExtension defines additional property filters
+type PropertyFilterExtension struct {
+	PropertyClasses    []schema.PropertyClass
+	PropertyConditions []schema.PropertyCondition
+	Amenities          []string // Must have ALL (AND logic)
 }
 
 const (

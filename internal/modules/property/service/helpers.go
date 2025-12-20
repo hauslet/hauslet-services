@@ -80,6 +80,7 @@ type PropertyFilter struct {
 
 // ListingFilter defines optional criteria for querying listings.
 type ListingFilter struct {
+	Query           *string
 	OwnerID         *uuid.UUID
 	PropertyID      *uuid.UUID
 	OwnerTypes      []domain.OwnerType
@@ -88,6 +89,9 @@ type ListingFilter struct {
 	ReviewStatuses  []domain.ReviewStatus
 	Published       *bool
 	HasCalendar     *bool
+	MinPrice        *float64
+	MaxPrice        *float64
+	Currency        *domain.CurrencyCode
 	PublishedAfter  *time.Time
 	PublishedBefore *time.Time
 	CreatedAfter    *time.Time
@@ -96,21 +100,106 @@ type ListingFilter struct {
 	IncludeDeleted  bool
 	SortBy          ListingSortBy
 	SortOrder       SortOrder
+	City            *string
+	State           *string
+	Country         *domain.CountryCode
+	PropertyTypes   []domain.PropertyType
+	Furnishings     []domain.FurnishingType
+	MinBedrooms     *int
+	MaxBedrooms     *int
+	MinBathrooms    *int
+	MaxBathrooms    *int
+	Latitude        *float64
+	Longitude       *float64
+	RadiusMeters    *float64
+
+	// Type-specific filters
+	ShortletFilter    *ShortletFilter
+	RentalFilter      *RentalFilter
+	SaleFilter        *SaleFilter
+	PropertyExtension *PropertyFilterExtension
+}
+
+// ShortletFilter defines filters specific to shortlet listings
+type ShortletFilter struct {
+	// Pricing
+	MinExtraGuestFee *float64
+	MaxExtraGuestFee *float64
+
+	// Stay Duration - Range filtering for min_nights
+	MinNightsMin *int // Listings where min_nights >= this
+	MinNightsMax *int // Listings where min_nights <= this
+
+	// Stay Duration - Range filtering for max_nights
+	MaxNightsMin *int // Listings where max_nights >= this
+	MaxNightsMax *int // Listings where max_nights <= this
+
+	// Capacity
+	MinMaxGuests   *int // Listings where max_guests >= this
+	BaseGuestCount *int // Exact match for base_guest_count
+
+	// Timing - Range matching
+	CheckInTimeAfter  *string // HH:MM format
+	CheckInTimeBefore *string // HH:MM format
+	CheckOutTimeAfter *string // HH:MM format
+	CheckOutTimeBefore *string // HH:MM format
+
+	// Type
+	AccommodationTypes []domain.AccommodationType
+}
+
+// RentalFilter defines filters specific to rental listings
+type RentalFilter struct {
+	// Rental Terms
+	RentalPricePeriods []domain.PaymentPeriod
+
+	// Rental Period - Range filtering for min_rental_period
+	MinRentalPeriodMin *int // Listings where min_rental_period >= this
+	MinRentalPeriodMax *int // Listings where min_rental_period <= this
+
+	// Rental Period - Range filtering for max_rental_period
+	MaxRentalPeriodMin *int // Listings where max_rental_period >= this
+	MaxRentalPeriodMax *int // Listings where max_rental_period <= this
+
+	// Availability Date Range
+	AvailableFrom *time.Time
+	AvailableTo   *time.Time
+}
+
+// SaleFilter defines filters specific to sale listings
+type SaleFilter struct {
+	OwnershipTitles []string // Must match one of these
+	PaymentPlan     *bool    // true = must have, false = must not have, nil = either
+}
+
+// PropertyFilterExtension defines additional property filters
+type PropertyFilterExtension struct {
+	PropertyClasses    []domain.PropertyClass
+	PropertyConditions []domain.PropertyCondition
+	Amenities          []string // Must have ALL (AND logic)
 }
 
 // mapListingFilterToRepo converts service filters to repository filters.
 func mapListingFilterToRepo(filter ListingFilter) repository.ListingFilter {
 	repoFilter := repository.ListingFilter{
+		Query:           filter.Query,
 		OwnerID:         filter.OwnerID,
 		PropertyID:      filter.PropertyID,
 		Published:       filter.Published,
 		HasCalendar:     filter.HasCalendar,
+		MinPrice:        filter.MinPrice,
+		MaxPrice:        filter.MaxPrice,
 		IncludeDeleted:  filter.IncludeDeleted,
 		CreatedAfter:    filter.CreatedAfter,
 		CreatedBefore:   filter.CreatedBefore,
 		PublishedAfter:  filter.PublishedAfter,
 		PublishedBefore: filter.PublishedBefore,
 		MinViewCount:    filter.MinViewCount,
+		City:            filter.City,
+		State:           filter.State,
+		Latitude:        filter.Latitude,
+		Longitude:       filter.Longitude,
+		RadiusMeters:    filter.RadiusMeters,
 	}
 
 	if len(filter.OwnerTypes) > 0 {
@@ -141,8 +230,141 @@ func mapListingFilterToRepo(filter ListingFilter) repository.ListingFilter {
 		}
 	}
 
+	if filter.Country != nil {
+		c := schema.CountryCode(*filter.Country)
+		repoFilter.Country = &c
+	}
+	if filter.Currency != nil {
+		c := schema.CurrencyCode(*filter.Currency)
+		repoFilter.Currency = &c
+	}
+	if filter.Currency != nil {
+		c := schema.CurrencyCode(*filter.Currency)
+		repoFilter.Currency = &c
+	}
+	if len(filter.PropertyTypes) > 0 {
+		repoFilter.PropertyTypes = make([]schema.PropertyType, len(filter.PropertyTypes))
+		for i, v := range filter.PropertyTypes {
+			repoFilter.PropertyTypes[i] = schema.PropertyType(v)
+		}
+	}
+	if len(filter.Furnishings) > 0 {
+		repoFilter.Furnishings = make([]schema.FurnishingType, len(filter.Furnishings))
+		for i, v := range filter.Furnishings {
+			repoFilter.Furnishings[i] = schema.FurnishingType(v)
+		}
+	}
+	repoFilter.MinBedrooms = filter.MinBedrooms
+	repoFilter.MaxBedrooms = filter.MaxBedrooms
+	repoFilter.MinBathrooms = filter.MinBathrooms
+	repoFilter.MaxBathrooms = filter.MaxBathrooms
+
+	// Map type-specific filters
+	if filter.ShortletFilter != nil {
+		repoFilter.ShortletFilter = mapShortletFilter(filter.ShortletFilter)
+	}
+	if filter.RentalFilter != nil {
+		repoFilter.RentalFilter = mapRentalFilter(filter.RentalFilter)
+	}
+	if filter.SaleFilter != nil {
+		repoFilter.SaleFilter = &repository.SaleFilter{
+			OwnershipTitles: filter.SaleFilter.OwnershipTitles,
+			PaymentPlan:     filter.SaleFilter.PaymentPlan,
+		}
+	}
+	if filter.PropertyExtension != nil {
+		repoFilter.PropertyExtension = mapPropertyExtension(filter.PropertyExtension)
+	}
+
 	repoFilter.SortBy = mapListingSortBy(filter.SortBy)
 	repoFilter.SortOrder = mapSortOrder(filter.SortOrder)
+
+	return repoFilter
+}
+
+// mapShortletFilter converts service shortlet filter to repository shortlet filter
+func mapShortletFilter(filter *ShortletFilter) *repository.ShortletFilter {
+	if filter == nil {
+		return nil
+	}
+
+	repoFilter := &repository.ShortletFilter{
+		MinExtraGuestFee:   filter.MinExtraGuestFee,
+		MaxExtraGuestFee:   filter.MaxExtraGuestFee,
+		MinNightsMin:       filter.MinNightsMin,
+		MinNightsMax:       filter.MinNightsMax,
+		MaxNightsMin:       filter.MaxNightsMin,
+		MaxNightsMax:       filter.MaxNightsMax,
+		MinMaxGuests:       filter.MinMaxGuests,
+		BaseGuestCount:     filter.BaseGuestCount,
+		CheckInTimeAfter:   filter.CheckInTimeAfter,
+		CheckInTimeBefore:  filter.CheckInTimeBefore,
+		CheckOutTimeAfter:  filter.CheckOutTimeAfter,
+		CheckOutTimeBefore: filter.CheckOutTimeBefore,
+	}
+
+	// Map accommodation types
+	if len(filter.AccommodationTypes) > 0 {
+		repoFilter.AccommodationTypes = make([]schema.AccommodationType, len(filter.AccommodationTypes))
+		for i, v := range filter.AccommodationTypes {
+			repoFilter.AccommodationTypes[i] = schema.AccommodationType(v)
+		}
+	}
+
+	return repoFilter
+}
+
+// mapRentalFilter converts service rental filter to repository rental filter
+func mapRentalFilter(filter *RentalFilter) *repository.RentalFilter {
+	if filter == nil {
+		return nil
+	}
+
+	repoFilter := &repository.RentalFilter{
+		MinRentalPeriodMin: filter.MinRentalPeriodMin,
+		MinRentalPeriodMax: filter.MinRentalPeriodMax,
+		MaxRentalPeriodMin: filter.MaxRentalPeriodMin,
+		MaxRentalPeriodMax: filter.MaxRentalPeriodMax,
+		AvailableFrom:      filter.AvailableFrom,
+		AvailableTo:        filter.AvailableTo,
+	}
+
+	// Map rental price periods
+	if len(filter.RentalPricePeriods) > 0 {
+		repoFilter.RentalPricePeriods = make([]schema.PaymentPeriod, len(filter.RentalPricePeriods))
+		for i, v := range filter.RentalPricePeriods {
+			repoFilter.RentalPricePeriods[i] = schema.PaymentPeriod(v)
+		}
+	}
+
+	return repoFilter
+}
+
+// mapPropertyExtension converts service property extension to repository property extension
+func mapPropertyExtension(filter *PropertyFilterExtension) *repository.PropertyFilterExtension {
+	if filter == nil {
+		return nil
+	}
+
+	repoFilter := &repository.PropertyFilterExtension{
+		Amenities: filter.Amenities,
+	}
+
+	// Map property classes
+	if len(filter.PropertyClasses) > 0 {
+		repoFilter.PropertyClasses = make([]schema.PropertyClass, len(filter.PropertyClasses))
+		for i, v := range filter.PropertyClasses {
+			repoFilter.PropertyClasses[i] = schema.PropertyClass(v)
+		}
+	}
+
+	// Map property conditions
+	if len(filter.PropertyConditions) > 0 {
+		repoFilter.PropertyConditions = make([]schema.PropertyCondition, len(filter.PropertyConditions))
+		for i, v := range filter.PropertyConditions {
+			repoFilter.PropertyConditions[i] = schema.PropertyCondition(v)
+		}
+	}
 
 	return repoFilter
 }

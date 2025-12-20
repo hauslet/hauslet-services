@@ -109,10 +109,21 @@ func mapListingFilterToService(filter *model.ListingFilterInput) service.Listing
 	}
 
 	serviceFilter := service.ListingFilter{
-		OwnerID:     filter.OwnerID,
-		PropertyID:  filter.PropertyID,
-		Published:   filter.Published,
-		HasCalendar: filter.HasCalendar,
+		Query:        filter.Query,
+		OwnerID:      filter.OwnerID,
+		PropertyID:   filter.PropertyID,
+		// NOTE: Published field removed from GraphQL for security - service layer will enforce published=true
+		HasCalendar:  filter.HasCalendar,
+		City:         filter.City,
+		State:        filter.State,
+		Country:      filter.Country,
+		Latitude:     filter.Latitude,
+		Longitude:    filter.Longitude,
+		RadiusMeters: filter.RadiusMeters,
+		MinPrice:     filter.MinPrice,
+		MaxPrice:     filter.MaxPrice,
+		Currency:     filter.Currency,
+		MinViewCount: filter.MinViewCount,
 	}
 
 	if len(filter.OwnerTypes) > 0 {
@@ -129,6 +140,114 @@ func mapListingFilterToService(filter *model.ListingFilterInput) service.Listing
 
 	if len(filter.ReviewStatuses) > 0 {
 		serviceFilter.ReviewStatuses = filter.ReviewStatuses
+	}
+
+	if len(filter.PropertyTypes) > 0 {
+		serviceFilter.PropertyTypes = filter.PropertyTypes
+	}
+	if len(filter.FurnishingTypes) > 0 {
+		serviceFilter.Furnishings = filter.FurnishingTypes
+	}
+	serviceFilter.MinBedrooms = filter.MinBedrooms
+	serviceFilter.MaxBedrooms = filter.MaxBedrooms
+	serviceFilter.MinBathrooms = filter.MinBathrooms
+	serviceFilter.MaxBathrooms = filter.MaxBathrooms
+
+	// Map type-specific filters
+	if filter.ShortletFilter != nil {
+		serviceFilter.ShortletFilter = mapGraphQLShortletFilter(filter.ShortletFilter)
+	}
+	if filter.RentalFilter != nil {
+		serviceFilter.RentalFilter = mapGraphQLRentalFilter(filter.RentalFilter)
+	}
+	if filter.SaleFilter != nil {
+		serviceFilter.SaleFilter = mapGraphQLSaleFilter(filter.SaleFilter)
+	}
+	if filter.PropertyExtension != nil {
+		serviceFilter.PropertyExtension = mapGraphQLPropertyExtension(filter.PropertyExtension)
+	}
+
+	return serviceFilter
+}
+
+// mapGraphQLShortletFilter maps GraphQL shortlet filter to service shortlet filter
+func mapGraphQLShortletFilter(filter *model.ShortletFilterInput) *service.ShortletFilter {
+	if filter == nil {
+		return nil
+	}
+
+	serviceFilter := &service.ShortletFilter{
+		MinExtraGuestFee:   filter.MinExtraGuestFee,
+		MaxExtraGuestFee:   filter.MaxExtraGuestFee,
+		MinNightsMin:       filter.MinNightsMin,
+		MinNightsMax:       filter.MinNightsMax,
+		MaxNightsMin:       filter.MaxNightsMin,
+		MaxNightsMax:       filter.MaxNightsMax,
+		MinMaxGuests:       filter.MinMaxGuests,
+		BaseGuestCount:     filter.BaseGuestCount,
+		CheckInTimeAfter:   filter.CheckInTimeAfter,
+		CheckInTimeBefore:  filter.CheckInTimeBefore,
+		CheckOutTimeAfter:  filter.CheckOutTimeAfter,
+		CheckOutTimeBefore: filter.CheckOutTimeBefore,
+	}
+
+	if len(filter.AccommodationTypes) > 0 {
+		serviceFilter.AccommodationTypes = filter.AccommodationTypes
+	}
+
+	return serviceFilter
+}
+
+// mapGraphQLRentalFilter maps GraphQL rental filter to service rental filter
+func mapGraphQLRentalFilter(filter *model.RentalFilterInput) *service.RentalFilter {
+	if filter == nil {
+		return nil
+	}
+
+	serviceFilter := &service.RentalFilter{
+		MinRentalPeriodMin: filter.MinRentalPeriodMin,
+		MinRentalPeriodMax: filter.MinRentalPeriodMax,
+		MaxRentalPeriodMin: filter.MaxRentalPeriodMin,
+		MaxRentalPeriodMax: filter.MaxRentalPeriodMax,
+		AvailableFrom:      filter.AvailableFrom,
+		AvailableTo:        filter.AvailableTo,
+	}
+
+	if len(filter.RentalPricePeriods) > 0 {
+		serviceFilter.RentalPricePeriods = filter.RentalPricePeriods
+	}
+
+	return serviceFilter
+}
+
+// mapGraphQLSaleFilter maps GraphQL sale filter to service sale filter
+func mapGraphQLSaleFilter(filter *model.SaleFilterInput) *service.SaleFilter {
+	if filter == nil {
+		return nil
+	}
+
+	return &service.SaleFilter{
+		OwnershipTitles: filter.OwnershipTitles,
+		PaymentPlan:     filter.PaymentPlan,
+	}
+}
+
+// mapGraphQLPropertyExtension maps GraphQL property extension to service property extension
+func mapGraphQLPropertyExtension(filter *model.PropertyFilterExtension) *service.PropertyFilterExtension {
+	if filter == nil {
+		return nil
+	}
+
+	serviceFilter := &service.PropertyFilterExtension{
+		Amenities: filter.Amenities,
+	}
+
+	if len(filter.PropertyClasses) > 0 {
+		serviceFilter.PropertyClasses = filter.PropertyClasses
+	}
+
+	if len(filter.PropertyConditions) > 0 {
+		serviceFilter.PropertyConditions = filter.PropertyConditions
 	}
 
 	return serviceFilter
