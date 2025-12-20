@@ -49,9 +49,11 @@ type Service interface {
 	ListListingMedia(ctx context.Context, listingID uuid.UUID) ([]domain.ListingMedia, error)
 	FinalizeListingMedia(ctx context.Context, data domain.FinalizedListingMedia) error
 	SearchListings(ctx context.Context, filter ListingFilter, limit int) ([]domain.ScoredListing, error)
+	FindSimilarListings(ctx context.Context, listingID uuid.UUID, limit int, minSimilarity float64) ([]domain.ScoredListing, error)
 
 	// Composite operations
 	CreatePropertyWithListing(ctx context.Context, p domain.Property, l domain.Listing) (*domain.Property, *domain.Listing, error)
+	UpdateListingWithProperty(ctx context.Context, id uuid.UUID, listingUpdates map[string]any, propertyUpdates map[string]any, requesterID uuid.UUID, requesterRole string) (*domain.Listing, error)
 }
 
 type ProfileProvider interface {

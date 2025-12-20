@@ -3813,7 +3813,7 @@ type ListingWithDistance {
 
 type ScoredListing {
   listing: Listing!
-  score: Float!
+  score: Float
   ranking: Int!
 }
 
@@ -16975,9 +16975,9 @@ func (ec *executionContext) _ScoredListing_score(ctx context.Context, field grap
 			return obj.Score, nil
 		},
 		nil,
-		ec.marshalNFloat2float64,
+		ec.marshalOFloat2ᚖfloat64,
 		true,
-		true,
+		false,
 	)
 }
 
@@ -25881,9 +25881,6 @@ func (ec *executionContext) _ScoredListing(ctx context.Context, sel ast.Selectio
 			}
 		case "score":
 			out.Values[i] = ec._ScoredListing_score(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "ranking":
 			out.Values[i] = ec._ScoredListing_ranking(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

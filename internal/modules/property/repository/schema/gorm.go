@@ -140,10 +140,11 @@ type Listing struct {
 	SaleDetails     *SaleDetail     `gorm:"type:jsonb;serializer:json"`
 
 	// Vector embeddings
-	TextEmbedding        *VectorEmbedding `gorm:"type:vector(768)" json:"text_embedding,omitempty"`
-	EmbeddingModel       *string          `gorm:"type:varchar(100)" json:"embedding_model,omitempty"`
-	EmbeddingVersion     *string          `gorm:"type:varchar(50)" json:"embedding_version,omitempty"`
-	EmbeddingGeneratedAt *time.Time       `json:"embedding_generated_at,omitempty"`
+	TextEmbedding         *VectorEmbedding `gorm:"type:vector(768)" json:"text_embedding,omitempty"`
+	EmbeddingModel        *string          `gorm:"type:varchar(100)" json:"embedding_model,omitempty"`
+	EmbeddingVersion      *string          `gorm:"type:varchar(50)" json:"embedding_version,omitempty"`
+	EmbeddingGeneratedAt  *time.Time       `json:"embedding_generated_at,omitempty"`
+	EmbeddingDocumentHash *string          `gorm:"type:char(64)" json:"embedding_document_hash,omitempty"`
 
 	// Media
 	Media []ListingMedia `gorm:"foreignKey:ListingID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`

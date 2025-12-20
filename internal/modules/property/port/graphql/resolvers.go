@@ -175,7 +175,8 @@ func (r *Resolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID)
 }
 
 // BusinessListings retrieves all listings owned by a specific business.
-func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
+func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID,
+	filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
 	if businessID == uuid.Nil {
 		r.log.Logf("WARN BusinessListings called with nil businessID")
 		return nil, fmt.Errorf("businessID is required")
@@ -333,8 +334,33 @@ func (r *Resolver) SimilarListings(ctx context.Context, listingID uuid.UUID, lim
 		minSim = *minSimilarity
 	}
 
-	r.log.Logf("WARN similarListings not supported")
-	return nil, fmt.Errorf("similarListings not supported, %f, %d", minSim, searchLimit)
+	// Call service method
+	results, err := r.propertyService.FindSimilarListings(ctx, listingID, searchLimit, minSim)
+	if err != nil {
+		r.log.Logf("ERROR failed to find similar listings for %s: %v", listingID, err)
+		return nil, err
+	}
+
+	// Build media URLs and sanitize for viewer
+	v := viewer.FromContext(ctx)
+	scored := make([]*model.ScoredListing, 0, len(results))
+	for _, res := range results {
+		l := res.Listing
+		if len(l.Media) > 0 {
+			l.Media = helpers.BuildListingMediaURLs(l.Media, r.cdnHost)
+		}
+		sanitized := sanitizeListingForViewer(&l, v)
+		if sanitized == nil {
+			continue
+		}
+		scored = append(scored, &model.ScoredListing{
+			Listing: sanitized,
+			Score:   res.Score,
+			Ranking: res.Ranking,
+		})
+	}
+
+	return scored, nil
 }
 
 // ===========================
@@ -404,36 +430,9 @@ func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.
 		return nil, fmt.Errorf("invalid user ID")
 	}
 
-	existing, err := r.propertyService.GetListingByID(ctx, id, false)
-	if err != nil {
-		r.log.Logf("ERROR Failed to get listing %s for update: %v", id, err)
-		return nil, err
-	}
-
-	if existing == nil {
-		r.log.Logf("WARN Listing %s not found for update", id)
-		return nil, domain.ErrListingNotFound
-	}
-
-	// Ownership check
-	if !isAdminRole(v.Role) && existing.OwnerID != requesterID {
-		r.log.Logf("WARN User %s attempted to update listing %s owned by %s", v.UserID, id, existing.OwnerID)
-		return nil, fmt.Errorf("forbidden: not the owner")
-	}
-
-	// Optionally update property
-	if input.Property != nil {
-		propUpdates := mapUpdateListingPropertyInput(input.Property)
-		if len(propUpdates) > 0 {
-			if _, err := r.propertyService.PatchProperty(ctx, existing.PropertyID, propUpdates); err != nil {
-				r.log.Logf("ERROR Failed to update property %s: %v", existing.PropertyID, err)
-				return nil, err
-			}
-		}
-	}
-
-	updates := mapListingUpdateInput(&input)
-	updated, err := r.propertyService.PatchListing(ctx, id, updates)
+	propUpdates := mapUpdateListingPropertyInput(input.Property)
+	listingUpdates := mapListingUpdateInput(&input)
+	updated, err := r.propertyService.UpdateListingWithProperty(ctx, id, listingUpdates, propUpdates, requesterID, v.Role)
 	if err != nil {
 		r.log.Logf("ERROR Failed to update listing %s: %v", id, err)
 		return nil, err

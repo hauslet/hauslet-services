@@ -10,6 +10,8 @@ import (
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/repository"
 	"hauslet/internal/modules/property/repository/schema"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -168,4 +170,110 @@ func (s *ServiceImpl) searchEmbeddingCacheKey(normalizedQuery string) string {
 		model = s.embedding.GetModelName()
 	}
 	return fmt.Sprintf("search:v=%s:model=%s:q=%x", searchCacheVersion, model, sha1.Sum([]byte(normalizedQuery)))
+}
+
+// FindSimilarListings finds listings similar to the given listing using vector similarity.
+func (s *ServiceImpl) FindSimilarListings(ctx context.Context, listingID uuid.UUID, limit int, minSimilarity float64) ([]domain.ScoredListing, error) {
+	// Validate and set defaults
+	if limit <= 0 {
+		limit = defaultSearchLimit
+	}
+	if limit > maxSearchLimit {
+		limit = maxSearchLimit
+	}
+
+	// Get the source listing with its embedding
+	sourceListing, err := s.GetListingByID(ctx, listingID, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get source listing: %w", err)
+	}
+
+	// Get or generate the embedding for the source listing
+	var embedding []float32
+	listingSchema := domain.MapListingToSchema(sourceListing)
+
+	if listingSchema.TextEmbedding != nil && len(listingSchema.TextEmbedding.Vector) > 0 {
+		// Use existing embedding
+		embedding = listingSchema.TextEmbedding.Vector
+	} else {
+		// Generate embedding on-the-fly
+		if s.embedding == nil {
+			return nil, fmt.Errorf("embedding client not configured")
+		}
+
+		// Get property for building complete embedding document
+		property, err := s.GetPropertyByID(ctx, sourceListing.PropertyID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get property for embedding generation: %w", err)
+		}
+
+		// Build embedding document
+		doc := domain.NewEmbeddingDocumentBuilder().
+			WithListing(sourceListing).
+			WithProperty(property).
+			Build()
+
+		// Generate embedding
+		embedCtx, cancel := context.WithTimeout(ctx, embeddingRequestTimeout)
+		defer cancel()
+
+		vec, err := s.embedding.Embed(embedCtx, doc.Text)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate embedding for source listing: %w", err)
+		}
+		if len(vec) == 0 {
+			return nil, fmt.Errorf("empty embedding generated for source listing")
+		}
+		embedding = vec
+	}
+
+	// Create filter for published, active listings only (SECURITY)
+	pub := true
+	serviceFilter := ListingFilter{
+		Published:      &pub,
+		Statuses:       []domain.ListingStatus{domain.StatusActive},
+		IncludeDeleted: false,
+	}
+	repoFilter := mapListingFilterToRepo(serviceFilter)
+
+	// Search for similar listings
+	results, err := s.repo.SearchListings(ctx, schema.NewVectorEmbedding(embedding), repoFilter, limit+1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search similar listings: %w", err)
+	}
+
+	// Filter results
+	scored := make([]domain.ScoredListing, 0, len(results))
+	rank := 1
+	for _, item := range results {
+		// Exclude the original listing
+		if item.Listing.ID == listingID {
+			continue
+		}
+
+		// Apply minSimilarity threshold
+		// pgvector returns cosine distance (0-2 range, lower is better)
+		// Convert to similarity: similarity = 1 - (distance / 2)
+		if item.Score > 0 {
+			similarity := 1.0 - (item.Score / 2.0)
+			if similarity < minSimilarity {
+				continue
+			}
+		}
+
+		l := domain.MapListingFromSchema(&item.Listing)
+		if l == nil {
+			continue
+		}
+
+		score := item.Score
+		scored = append(scored, domain.ScoredListing{
+			Listing: *l,
+			Score:   &score,
+			Ranking: rank,
+		})
+		rank++
+	}
+
+	return scored, nil
 }

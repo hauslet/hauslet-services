@@ -351,10 +351,39 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 		return nil, err
 	}
 
+	// Basic listing information
 	hasBasicInfo := listing.Title != "" && listing.Slug != "" && listing.ListingType != ""
+
+	// Property location and type information
 	hasPropertyInfo := property.Address != "" && property.City != "" &&
 		property.State != "" && property.Country != "" && property.PropertyType != ""
 
+	// Room details (bedrooms and bathrooms)
+	hasRoomDetails := false
+	if property.Bedrooms != nil && *property.Bedrooms > 0 &&
+		property.Bathrooms != nil && *property.Bathrooms > 0 {
+		hasRoomDetails = true
+	}
+
+	// Property size information
+	hasPropertySize := property.SquareMeters > 0 || (property.FloorArea != nil && *property.FloorArea > 0)
+
+	// Amenities check
+	hasAmenities := false
+	for _, amenityGroup := range property.Amenities {
+		if len(amenityGroup.Items) > 0 {
+			hasAmenities = true
+			break
+		}
+	}
+
+	// Owner type validation
+	hasOwnerType := listing.OwnerType != ""
+
+	// Furnishing type (important for rent/shortlet)
+	hasFurnishingType := property.FurnishingType != ""
+
+	// Pricing information based on listing type
 	hasPricingInfo := false
 	switch listing.ListingType {
 	case domain.ListingShortLet:
@@ -365,50 +394,132 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 		hasPricingInfo = listing.SaleDetails != nil && listing.SaleDetails.SalePrice > 0
 	}
 
+	// Media validation
 	hasImages := len(listing.Media) > 0
-	hasDescription := strings.TrimSpace(listing.Description) != ""
 
-	trueCount := 0
-	missingFields := make([]string, 0, 5)
-	recommendations := make([]string, 0, 5)
+	// Description quality check (minimum 100 characters)
+	const minDescriptionLength = 100
+	hasQualityDescription := strings.TrimSpace(listing.Description) != "" &&
+		len(strings.TrimSpace(listing.Description)) >= minDescriptionLength
+
+	// Listing-type specific details validation
+	hasListingSpecificDetails := false
+	switch listing.ListingType {
+	case domain.ListingShortLet:
+		if listing.ShortletDetails != nil {
+			hasListingSpecificDetails = listing.ShortletDetails.MaxGuests > 0 &&
+				listing.ShortletDetails.MinNights > 0 &&
+				listing.ShortletDetails.AccommodationType != ""
+		}
+	case domain.ListingRent:
+		if listing.RentalDetails != nil {
+			hasListingSpecificDetails = listing.RentalDetails.MinRentalPeriod > 0 &&
+				listing.RentalDetails.RentalPricePeriod != ""
+		}
+	case domain.ListingSale:
+		if listing.SaleDetails != nil {
+			hasListingSpecificDetails = listing.SaleDetails.OwnershipTitle != ""
+		}
+	}
+
+	missingFields := make([]string, 0, 11)
+	recommendations := make([]string, 0, 11)
+
+	// Calculate weighted score and build recommendations
+	completionScore := 0
 
 	if hasBasicInfo {
-		trueCount++
+		completionScore += 10
 	} else {
 		missingFields = append(missingFields, "basic_info")
 		recommendations = append(recommendations, "Add a title and listing type.")
 	}
 
 	if hasPropertyInfo {
-		trueCount++
+		completionScore += 10
 	} else {
 		missingFields = append(missingFields, "property_info")
 		recommendations = append(recommendations, "Provide address, city, state, country, and property type.")
 	}
 
+	if hasRoomDetails {
+		completionScore += 10
+	} else {
+		missingFields = append(missingFields, "room_details")
+		recommendations = append(recommendations, "Specify the number of bedrooms and bathrooms.")
+	}
+
+	if hasPropertySize {
+		completionScore += 10
+	} else {
+		missingFields = append(missingFields, "property_size")
+		recommendations = append(recommendations, "Add property size (square meters or floor area).")
+	}
+
+	if hasAmenities {
+		completionScore += 10
+	} else {
+		missingFields = append(missingFields, "amenities")
+		recommendations = append(recommendations, "Add property amenities (e.g., parking, gym, pool, etc.).")
+	}
+
+	if hasOwnerType {
+		completionScore += 5
+	} else {
+		missingFields = append(missingFields, "owner_type")
+		recommendations = append(recommendations, "Specify the owner type (landlord, agent, business, or individual).")
+	}
+
+	if hasFurnishingType {
+		completionScore += 5
+	} else {
+		missingFields = append(missingFields, "furnishing_type")
+		recommendations = append(recommendations, "Specify the furnishing type (furnished, semi-furnished, or unfurnished).")
+	}
+
 	if hasPricingInfo {
-		trueCount++
+		completionScore += 10
 	} else {
 		missingFields = append(missingFields, "pricing")
 		recommendations = append(recommendations, "Set pricing details based on the listing type.")
 	}
 
 	if hasImages {
-		trueCount++
+		completionScore += 10
 	} else {
 		missingFields = append(missingFields, "images")
 		recommendations = append(recommendations, "Upload at least one image.")
 	}
 
-	if hasDescription {
-		trueCount++
+	if hasQualityDescription {
+		completionScore += 10
 	} else {
 		missingFields = append(missingFields, "description")
-		recommendations = append(recommendations, "Add a description to highlight the property.")
+		if strings.TrimSpace(listing.Description) == "" {
+			recommendations = append(recommendations, "Add a detailed description to highlight the property (minimum 100 characters).")
+		} else {
+			recommendations = append(recommendations, "Expand the description to at least 100 characters for better visibility.")
+		}
 	}
 
-	readyToPublish := hasBasicInfo && hasPropertyInfo && hasPricingInfo && hasImages && hasDescription
-	completionScore := trueCount * 20
+	if hasListingSpecificDetails {
+		completionScore += 10
+	} else {
+		missingFields = append(missingFields, "listing_specific_details")
+		switch listing.ListingType {
+		case domain.ListingShortLet:
+			recommendations = append(recommendations, "Add shortlet-specific details: max guests, minimum nights, and accommodation type.")
+		case domain.ListingRent:
+			recommendations = append(recommendations, "Add rental-specific details: minimum rental period and rental price period.")
+		case domain.ListingSale:
+			recommendations = append(recommendations, "Add sale-specific details: ownership title information.")
+		}
+	}
+
+	// Ready to publish requires all critical fields
+	readyToPublish := hasBasicInfo && hasPropertyInfo && hasRoomDetails && hasPropertySize &&
+		hasAmenities && hasOwnerType && hasFurnishingType && hasPricingInfo && hasImages &&
+		hasQualityDescription && hasListingSpecificDetails
 
 	s.log.Logf("INFO listing completeness listing=%s score=%d%% ready=%v", listingID, completionScore, readyToPublish)
 
@@ -418,7 +529,7 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 		HasPropertyInfo:  hasPropertyInfo,
 		HasPricingInfo:   hasPricingInfo,
 		HasImages:        hasImages,
-		HasDescription:   hasDescription,
+		HasDescription:   hasQualityDescription,
 		CompletionScore:  completionScore,
 		ReadyToPublish:   readyToPublish,
 		MissingFields:    missingFields,

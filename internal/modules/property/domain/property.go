@@ -115,6 +115,12 @@ type Listing struct {
 	FeaturedUntil *time.Time `json:"featured_until,omitempty"`
 	BoostLevel    int        `json:"boost_level"`
 
+	// Embedding metadata
+	EmbeddingModel        *string    `json:"embedding_model,omitempty"`
+	EmbeddingVersion      *string    `json:"embedding_version,omitempty"`
+	EmbeddingGeneratedAt  *time.Time `json:"embedding_generated_at,omitempty"`
+	EmbeddingDocumentHash *string    `json:"embedding_document_hash,omitempty"`
+
 	// Audit
 	CreatedBy       *uuid.UUID `json:"created_by,omitempty"`
 	UpdatedBy       *uuid.UUID `json:"updated_by,omitempty"`
