@@ -93,9 +93,10 @@ func Load() *GlobalConfig {
 					APIModel: must("ANTHROPIC_API_MODEL"),
 				},
 				Gemini: GeminiConfig{
-					APIKey:   must("GEMINI_API_KEY"),
-					APIModel: must("GEMINI_API_MODEL"),
-					Project:  def("GEMINI_PROJECT", ""),
+					APIKey:     must("GEMINI_API_KEY"),
+					APIModel:   def("GEMINI_API_MODEL", "gemini-2.5-flash"),
+					Project:    def("GEMINI_PROJECT", ""),
+					EmbedModel: def("GEMINI_EMBED_MODEL", "gemini-embedding-001"),
 				},
 				Fallback: FallbackConfig{
 					Enable:           getBool("AI_FALLBACK_ENABLE", true),

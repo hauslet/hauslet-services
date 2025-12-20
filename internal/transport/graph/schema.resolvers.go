@@ -170,7 +170,14 @@ func (r *mutationResolver) RevokeInvitation(ctx context.Context, invitationID uu
 
 // Gender is the resolver for the gender field.
 func (r *profileResolver) Gender(ctx context.Context, obj *domain1.Profile) (*string, error) {
-	panic(fmt.Errorf("not implemented: Gender - gender"))
+	if obj == nil {
+		return nil, nil
+	}
+	if obj.Gender == "" {
+		return nil, nil
+	}
+	g := string(obj.Gender)
+	return &g, nil
 }
 
 // Amenities is the resolver for the amenities field.
@@ -446,7 +453,16 @@ func (r *queryResolver) MyBusinessPermissions(ctx context.Context, businessID uu
 
 // ServiceCharges is the resolver for the serviceCharges field.
 func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain.RentalDetail) ([]*domain.ServiceCharge, error) {
-	panic(fmt.Errorf("not implemented: ServiceCharges - serviceCharges"))
+	if obj == nil || obj.ServiceChargeBreakdown == nil {
+		return []*domain.ServiceCharge{}, nil
+	}
+
+	charges := make([]*domain.ServiceCharge, len(*obj.ServiceChargeBreakdown))
+	for i, charge := range *obj.ServiceChargeBreakdown {
+		c := charge
+		charges[i] = &c
+	}
+	return charges, nil
 }
 
 // Rules is the resolver for the rules field.
@@ -468,17 +484,32 @@ func (r *ruleGroupResolver) Rules(ctx context.Context, obj *domain.RuleGroup) ([
 
 // ServiceCharges is the resolver for the serviceCharges field.
 func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain.SaleDetail) ([]*domain.ServiceCharge, error) {
-	panic(fmt.Errorf("not implemented: ServiceCharges - serviceCharges"))
+	if obj == nil || obj.ServiceChargeBreakdown == nil {
+		return []*domain.ServiceCharge{}, nil
+	}
+
+	charges := make([]*domain.ServiceCharge, len(*obj.ServiceChargeBreakdown))
+	for i, charge := range *obj.ServiceChargeBreakdown {
+		c := charge
+		charges[i] = &c
+	}
+	return charges, nil
 }
 
 // AgeGroup is the resolver for the ageGroup field.
 func (r *travelCompanionResolver) AgeGroup(ctx context.Context, obj *domain1.TravelCompanion) (string, error) {
-	panic(fmt.Errorf("not implemented: AgeGroup - ageGroup"))
+	if obj == nil {
+		return "", nil
+	}
+	return string(obj.AgeGroup), nil
 }
 
 // Relationship is the resolver for the relationship field.
 func (r *travelCompanionResolver) Relationship(ctx context.Context, obj *domain1.TravelCompanion) (string, error) {
-	panic(fmt.Errorf("not implemented: Relationship - relationship"))
+	if obj == nil {
+		return "", nil
+	}
+	return string(obj.Relationship), nil
 }
 
 // Business returns BusinessResolver implementation.

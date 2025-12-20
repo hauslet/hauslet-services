@@ -7,7 +7,7 @@ import (
 	"hauslet/internal/modules/moderation/domain"
 	"hauslet/internal/modules/moderation/repository"
 	"hauslet/internal/modules/moderation/repository/schema"
-	"hauslet/internal/platform/ai"
+	aimoderation "hauslet/internal/platform/ai/moderation"
 	platformQueue "hauslet/internal/platform/queue"
 	moderationjobs "hauslet/internal/queue/jobs/moderation"
 
@@ -20,16 +20,23 @@ const defaultMaxAttempts = 3
 // ModerationServiceImpl implements ModerationService.
 type ModerationServiceImpl struct {
 	repo              repository.ModerationRepository
-	aiClient          *ai.Client
+	aiClient          *aimoderation.Client
 	queue             *platformQueue.Client
 	aiSubject         string
 	maxAIAttemptCount int
 	propertyHooks     PropertyHooks
+	profileHooks      ProfileHooks
 	log               *lgr.Logger
 }
 
 // NewModerationService constructs a moderation service.
-func NewModerationService(repo repository.ModerationRepository, aiClient *ai.Client, queue *platformQueue.Client, aiSubject string, propertyHooks PropertyHooks, log *lgr.Logger) ModerationService {
+func NewModerationService(repo repository.ModerationRepository,
+	aiClient *aimoderation.Client,
+	queue *platformQueue.Client,
+	aiSubject string,
+	propertyHooks PropertyHooks,
+	profileHooks ProfileHooks,
+	log *lgr.Logger) ModerationService {
 	return &ModerationServiceImpl{
 		repo:              repo,
 		aiClient:          aiClient,
@@ -37,6 +44,7 @@ func NewModerationService(repo repository.ModerationRepository, aiClient *ai.Cli
 		aiSubject:         aiSubject,
 		maxAIAttemptCount: defaultMaxAttempts,
 		propertyHooks:     propertyHooks,
+		profileHooks:      profileHooks,
 		log:               log,
 	}
 }
@@ -124,7 +132,7 @@ func (s *ModerationServiceImpl) HandleAIJob(ctx context.Context, job moderationj
 		return nil, fmt.Errorf("moderation %s not found", job.ModerationID)
 	}
 
-	input := ai.AIModerationInput{
+	input := aimoderation.AIModerationInput{
 		ModerationID:  job.ModerationID,
 		ContentType:   schema.ContentType(job.ContentType),
 		ContentID:     job.TargetID,
@@ -134,9 +142,9 @@ func (s *ModerationServiceImpl) HandleAIJob(ctx context.Context, job moderationj
 
 	switch job.ContentType {
 	case moderationjobs.ContentTypeListingImage, moderationjobs.ContentTypeProfileImage, moderationjobs.ContentTypeTravelCompImage, moderationjobs.ContentTypeReviewImage:
-		input.Image = &ai.ImagePayload{Key: job.Payload}
+		input.Image = &aimoderation.ImagePayload{Key: job.Payload}
 	case moderationjobs.ContentTypeListingVideo:
-		input.Video = &ai.VideoPayload{Key: job.Payload}
+		input.Video = &aimoderation.VideoPayload{Key: job.Payload}
 	default:
 		text := job.Payload
 		input.Text = &text
@@ -185,6 +193,16 @@ func (s *ModerationServiceImpl) HandleAIJob(ctx context.Context, job moderationj
 		s.log.Logf("[INFO] invoking property hooks for target %s with final status: %s", record.ContentID, serviceAggregate.FinalStatus())
 		if err := s.propertyHooks.OnModerationCompleted(ctx, serviceAggregate); err != nil {
 			s.log.Logf("[ERROR] property hooks failed for target %s: %v", record.ContentID, err)
+			return nil, err
+		}
+	}
+
+	if serviceAggregate.FinalStatus() != domain.ModerationStatusPending &&
+		s.profileHooks != nil &&
+		containsProfileContent(serviceAggregate.ContentTypes) {
+		s.log.Logf("[INFO] invoking profile hooks for target %s with final status: %s", record.ContentID, serviceAggregate.FinalStatus())
+		if err := s.profileHooks.OnModerationCompleted(ctx, serviceAggregate); err != nil {
+			s.log.Logf("[ERROR] profile hooks failed for target %s: %v", record.ContentID, err)
 			return nil, err
 		}
 	}
@@ -310,6 +328,16 @@ func mapAggregateToService(agg *repository.AggregatedCounts) AggregatedModeratio
 func containsListingContent(contentTypes []domain.ContentType) bool {
 	for _, ct := range contentTypes {
 		if ct.IsListingContent() {
+			return true
+		}
+	}
+	return false
+}
+
+// containsProfileContent checks if any content type relates to profiles.
+func containsProfileContent(contentTypes []domain.ContentType) bool {
+	for _, ct := range contentTypes {
+		if ct.IsProfileContent() {
 			return true
 		}
 	}

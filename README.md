@@ -2,83 +2,59 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8.svg)](https://golang.org/)
 
-This repository contains the backend services for **Hauslet**, a hybrid real estate platform tailored for the Nigerian market, combining long-term property acquisition (Zillow model) and short-term rentals (Airbnb model).
+Backend for **Hauslet**, a hybrid real estate platform (Zillow + Airbnb) for the Nigerian market. Modular monolith in Go with an async worker for heavy/background tasks.
 
 ## Architecture
+- **Modular Monolith + Worker:** HTTP/GraphQL API (`cmd/api`) and a background worker (`cmd/worker`) sharing the same codebase and database. Async tasks go through NATS JetStream.
+- **Hexagonal (Ports & Adapters):** Domain modules live in `internal/modules/*` with adapters for HTTP/GraphQL, queue handlers, and external services.
+- **Domain Modules:** `auth`, `profile`, `property`, `business`, `moderation`.
+- **Platform Abstractions:** `internal/platform` for DB, queue, storage (R2), AI providers, email, Redis.
+- **Async Jobs:** Email sending, media thumbnail/cleanup, AI moderation (Gemini primary, Anthropic fallback) handled by the worker.
 
-The system is architected as a **Modular Monolith** using **Go**, following a **Hexagonal Architecture (Ports and Adapters)** pattern. This approach ensures high performance and type safety while allowing for future scalability into microservices.
+## Tech Stack
+- Go 1.24+
+- API: chi (REST) + gqlgen (GraphQL)
+- DB: PostgreSQL via GORM
+- Queue: NATS JetStream
+- Cache/Sessions: Redis
+- Auth: go-pkgz/auth (OAuth2/JWT) with password login and refresh
+- AI Moderation: Gemini primary with Anthropic fallback
+- Storage: Cloudflare R2 (S3-compatible)
+- Email: SMTP or Resend
 
-- **Core Business Logic**: `internal/`
-- **Entrypoints**: `cmd/` (HTTP API & Background Worker)
-- **Platform Abstractions**: `internal/platform/` (Database, Queue, etc.)
-
-For a detailed architecture overview, see the original [Technical Design Document](./AGENTS.md).
-
-## Technology Stack
-
-- **Language**: Go (1.22+)
-- **API**: REST (`go-chi/chi`) & GraphQL (`99designs/gqlgen`)
-- **Database**: PostgreSQL with `GORM`
-- **Message Broker**: NATS JetStream
-- **Cache & Sessions**: Redis
-- **Authentication**: `go-pkgz/auth` (OAuth2 & JWT)
+## Process Overview
+- **API Server (`cmd/api`):** Serves REST/GraphQL, enqueues moderation, and orchestrates domain services.
+- **Worker (`cmd/worker`):** Subscribes to NATS subjects for AI moderation, media processing, email jobs, and cleanup.
 
 ## Getting Started
+1) **Prerequisites:** Go 1.24+, Docker, docker-compose, Postgres, Redis, NATS, R2 credentials, AI keys.
+2) **Config:** Copy `.env.example` to `.env` and fill required envs. YAML queue subjects are under `config`/`YAML`.
+3) **Infrastructure:** `docker-compose up -d` (for Postgres/Redis/NATS).
+4) **Run API:** `go run ./cmd/api`
+5) **Run Worker:** `go run ./cmd/worker`
 
-### Prerequisites
-
-- Go 1.22+
-- Docker & Docker Compose
-- A running PostgreSQL, Redis, and NATS instance.
-
-### 1. Configuration
-
-All configuration is managed via environment variables and YAML files. Start by setting up your local environment:
-
-```bash
-# Copy the example environment file
-cp .env.example .env
+## Key Paths
+```
+cmd/api            # API entrypoint and route wiring
+cmd/worker         # Worker entrypoint and setup
+internal/modules
+  auth             # Identity/auth flows, sessions
+  profile          # User profiles, notifications
+  property         # Listings, media, publish flow, moderation hook handling
+  business         # Business entities, invitations, notifications
+  moderation       # Moderation records, aggregation, AI enqueue/process
+internal/platform  # ai (Gemini/Anthropic + fallback), queue, storage (R2), email, database, redis
+config             # Config structs and YAML loader
 ```
 
-Now, fill in the required secrets and configuration values in the `.env` file (e.g., database credentials, API keys). For more details on service-level configuration, see the [Configuration README](./config/README.md).
+## Moderation Flow
+- Publish request enqueues text and per-media moderation jobs.
+- Worker pulls jobs, calls AI (Gemini → Anthropic fallback after threshold; no fallback for video), updates moderation records, aggregates latest per content type, and triggers property hooks to update listing status and notify owners.
 
-### 2. Run Infrastructure
+## Notes for Developers
+- Modular boundaries are respected via ports/adapters; keep domain logic in `internal/modules/*`.
+- Worker wiring is in `cmd/worker/setup/*`; API wiring in `cmd/api/server/routes.go`.
+- Tests: standard Go tooling; run `go test ./...`.
 
-The easiest way to run the required infrastructure (PostgreSQL, Redis, NATS) is with Docker Compose:
-
-```bash
-docker-compose up -d
-```
-
-### 3. Run the Application
-
-You can run the API server and the background worker in separate terminals:
-
-**Run the API Server:**
-```bash
-go run ./cmd/api/main.go
-```
-
-**Run the Background Worker:**
-```bash
-go run ./cmd/worker/main.go
-```
-
-## Project Structure
-
-```text
-/hauslet-services
-├── /cmd                # Application entry points
-│   ├── /api            # HTTP/GraphQL API Server
-│   └── /worker         # NATS Background Worker
-│
-├── /internal           # Core business logic (private)
-│   ├── /auth           # User identity & access management
-│   ├── /queue          # Generic job queue system
-│   ├── /workers        # Job handlers for the worker
-│   └── /platform       # Technical abstractions (DB, cache, etc.)
-│
-├── /config             # Service configuration (YAML)
-├── go.mod
-└── README.md
-```
+## License
+Proprietary – internal use for Hauslet.

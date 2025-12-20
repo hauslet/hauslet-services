@@ -676,3 +676,20 @@ func (r *ProfileRerpositoryImpl) RestoreProfile(ctx context.Context, userID stri
 		Where("user_id = ?", parsedUserID).
 		Update("deleted_at", nil).Error
 }
+
+// UpdateModerationStatus updates the moderation status for a profile.
+func (r *ProfileRerpositoryImpl) UpdateModerationStatus(ctx context.Context, profileID uuid.UUID, status bool) error {
+	if profileID == uuid.Nil {
+		return errors.New("profileID cannot be empty")
+	}
+
+	parsedProfileID, err := uuid.Parse(profileID.String())
+	if err != nil {
+		return errors.New("invalid userID format")
+	}
+
+	return r.db.WithContext(ctx).
+		Model(&schema.Profile{}).
+		Where("id = ?", parsedProfileID).
+		Update("is_moderated", status).Error
+}

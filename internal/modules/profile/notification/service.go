@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	profiletemplates "hauslet/internal/modules/profile/templates"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
@@ -62,4 +63,36 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
 	}
 
 	return true
+}
+
+// SendProfileModerationRejectedEmail sends an email to the profile owner notifying them
+func (s *NotificationService) SendProfileModerationRejectedEmail(ctx context.Context, toEmail, toName, profileID string, rejectionReasons []string) error {
+	subject := "Your profile has been rejected on Hauslet"
+	preview := "We're sorry to inform you that your profile has been rejected."
+
+	emailData := map[string]any{
+		"UserName":         toName,
+		"RejectionReasons": rejectionReasons,
+		"ProfileURL":       s.baseURL + "/profiles/" + profileID,
+
+		// Required for the Layout
+		"Subject": subject,
+		"Preview": preview,
+		"Year":    time.Now().Year(),
+	}
+
+	htmlBody, err := s.mailClient.RenderTemplate(
+		profiletemplates.FS,
+		"profile_moderation_rejected.html",
+		emailData,
+	)
+	if err != nil {
+		return err
+	}
+
+	s.sendEmailAsync("send profile moderation rejection email", func() error {
+		// Send directly no queuing as this will be called by a worker
+		return s.mailClient.SendHTML(ctx, toEmail, subject, htmlBody)
+	})
+	return nil
 }

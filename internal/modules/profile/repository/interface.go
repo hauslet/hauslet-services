@@ -25,6 +25,7 @@ type ProfileRepository interface {
 	GetVerifiedProfiles(ctx context.Context, level string, limit, offset int) ([]*schema.Profile, error)
 	UpdateTrustScore(ctx context.Context, userID string, score float64) error
 	IncrementReviewStats(ctx context.Context, userID string, ratingDelta float64, reviewsDelta int) error
+	UpdateModerationStatus(ctx context.Context, profileID uuid.UUID, status bool) error
 
 	// Handling Verification
 	SetVerificationStatus(ctx context.Context, userID string, level string, verified bool, verificationDate *time.Time) error

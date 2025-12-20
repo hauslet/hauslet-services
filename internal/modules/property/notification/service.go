@@ -134,12 +134,12 @@ func (s *NotificationService) SendListingAcceptedNotification(ctx context.Contex
 }
 
 // SendListingRejectedNotification notifies the listing owner that their listing has been rejected.
-func (s *NotificationService) SendListingRejectedNotification(ctx context.Context, listingTitle, receipientName, recipientEmail string, reasons []string) error {
+func (s *NotificationService) SendListingRejectedNotification(ctx context.Context, listingTitle, toName, toEmail string, reasons []string) error {
 	subject := "Your listing has been rejected on Hauslet"
 	preview := "We're sorry to inform you that your listing has been rejected."
 
 	emailData := map[string]any{
-		"OwnerName":        receipientName,
+		"OwnerName":        toName,
 		"ListingTitle":     listingTitle,
 		"RejectionReasons": reasons,
 		"ListingURL:":      s.baseURL + "/listings", // Link to listings page
@@ -159,7 +159,7 @@ func (s *NotificationService) SendListingRejectedNotification(ctx context.Contex
 	}
 	s.sendEmailAsync("send publish listing rejected notification email", func() error {
 		// Send directly no queuing as this will be called by a worker
-		return s.mailClient.SendHTML(ctx, recipientEmail, subject, htmlBody)
+		return s.mailClient.SendHTML(ctx, toEmail, subject, htmlBody)
 	})
 	return nil
 }

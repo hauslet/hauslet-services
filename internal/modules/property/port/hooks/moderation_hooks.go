@@ -3,13 +3,15 @@ package hooks
 import (
 	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	moderationservice "hauslet/internal/modules/moderation/service"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/notification"
 	"hauslet/internal/modules/property/repository"
+	"hauslet/internal/modules/property/repository/schema"
+	aiembeddings "hauslet/internal/platform/ai/embeddings"
+	"maps"
+	"strings"
+	"time"
 
 	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
@@ -25,21 +27,24 @@ type ProfileProvider interface {
 
 // ModerationPropertyAdapter applies moderation outcomes back to listings and notifies owners.
 type ModerationPropertyAdapter struct {
-	repo     repository.Repository
-	profiles ProfileProvider
-	notifier *notification.NotificationService
-	nowFunc  func() time.Time
-	log      *lgr.Logger
+	repo      repository.Repository
+	profiles  ProfileProvider
+	notifier  *notification.NotificationService
+	nowFunc   func() time.Time
+	log       *lgr.Logger
+	embedding *aiembeddings.Client
 }
 
 // NewModerationPropertyAdapter constructs the adapter with its dependencies.
 func NewModerationPropertyAdapter(repo repository.Repository, profiles ProfileProvider,
-	notifier *notification.NotificationService) *ModerationPropertyAdapter {
+	notifier *notification.NotificationService, embedding *aiembeddings.Client, log *lgr.Logger) *ModerationPropertyAdapter {
 	return &ModerationPropertyAdapter{
-		repo:     repo,
-		profiles: profiles,
-		notifier: notifier,
-		nowFunc:  time.Now,
+		repo:      repo,
+		profiles:  profiles,
+		notifier:  notifier,
+		nowFunc:   time.Now,
+		embedding: embedding,
+		log:       log,
 	}
 }
 
@@ -100,6 +105,15 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 	}
 
 	updates := a.buildListingUpdates(aggDomain)
+	if aggDomain.FinalStatus() == domain.ModerationStatusAccepted && a.embedding != nil {
+		if embUpdates := a.generateEmbeddingUpdates(ctx, listing); len(embUpdates) > 0 {
+			if updates == nil {
+				updates = make(map[string]any, len(embUpdates))
+			}
+			maps.Copy(updates, embUpdates)
+		}
+		a.log.Logf("[INFO] updated listing %s with new embedding after acceptance", listing.ID)
+	}
 	if updates == nil {
 		return nil
 	}
@@ -108,6 +122,39 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 		return err
 	}
 	return nil
+}
+
+func (a *ModerationPropertyAdapter) generateEmbeddingUpdates(ctx context.Context, listing *schema.Listing) map[string]any {
+	if listing == nil || a.embedding == nil {
+		return nil
+	}
+
+	parts := []string{listing.Title, listing.Description}
+	if strings.TrimSpace(listing.ExtraDescription) != "" {
+		parts = append(parts, listing.ExtraDescription)
+	}
+	text := strings.TrimSpace(strings.Join(parts, "\n"))
+	if text == "" {
+		return nil
+	}
+
+	vec, err := a.embedding.Embed(ctx, text)
+	if err != nil {
+		a.log.Logf("[ERROR] failed to generate embedding for listing %s: %v", listing.ID, err)
+		return nil
+	}
+	if len(vec) == 0 {
+		return nil
+	}
+
+	model := a.embedding.GetModelName()
+	now := a.nowFunc()
+
+	return map[string]any{
+		"text_embedding":         schema.NewVectorEmbedding(vec),
+		"embedding_model":        model,
+		"embedding_generated_at": now,
+	}
 }
 
 // buildListingUpdates maps moderation status to listing field updates.
@@ -126,6 +173,7 @@ func (a *ModerationPropertyAdapter) buildListingUpdates(aggregate *domain.Aggreg
 			"published":            true,
 			"published_at":         now,
 			"status_changed_at":    now,
+			"change_reason":        nil,
 		}
 
 	case domain.ModerationStatusRejected:

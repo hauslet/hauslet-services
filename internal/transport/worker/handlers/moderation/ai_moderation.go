@@ -50,8 +50,8 @@ func (h *AIModerationHandler) Handle(ctx context.Context, data []byte) error {
 	}
 
 	if result != nil {
-		h.log.Logf("INFO moderation %s updated: status=%s reviewer=%s attempt=%d/%d",
-			result.ID, result.Status, result.ReviewerType, result.CurrentAttempt, result.AttemptCount)
+		h.log.Logf("INFO moderation %s updated: status=%s content_type=%s reviewer=%s attempt=%d/%d",
+			result.ID, result.Status, result.ContentType, result.ReviewerType, result.CurrentAttempt, result.AttemptCount)
 	}
 	return nil
 }

@@ -53,16 +53,16 @@ func (ct ContentType) IsListingContent() bool {
 }
 
 func (ct ContentType) IsProfileContent() bool {
-	return ct == ContentTypeProfileBio || ct == ContentTypeProfileImage
+	return ct == ContentTypeProfileBio || ct == ContentTypeProfileImage || ct == ContentTypeTravelCompImage
 }
 
 func (ct ContentType) IsReviewContent() bool {
 	return ct == ContentTypeReviewText || ct == ContentTypeReviewImage
 }
 
-func (ct ContentType) IsTravelCompContent() bool {
-	return ct == ContentTypeTravelCompImage
-}
+// func (ct ContentType) IsTravelCompContent() bool {
+// 	return ct == ContentTypeTravelCompImage
+// }
 
 type TargetUserDetails struct {
 	Email              string

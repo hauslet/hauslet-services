@@ -3,10 +3,27 @@ package domain
 import (
 	"errors"
 
+	moderationservice "hauslet/internal/modules/moderation/service"
 	"hauslet/internal/modules/profile/repository/schema"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+)
+
+type ContentType string
+type ModerationStatus string
+
+const (
+	ContentTypeProfileBio      ContentType = "profile_bio"
+	ContentTypeProfileImage    ContentType = "profile_image"
+	ContentTypeTravelCompImage ContentType = "tc_image"
+)
+
+const (
+	ModerationStatusPending   ModerationStatus = "pending"
+	ModerationStatusAccepted  ModerationStatus = "accepted"
+	ModerationStatusEscalated ModerationStatus = "escalated"
+	ModerationStatusRejected  ModerationStatus = "rejected"
 )
 
 // MapProfileFromSchema converts a repository profile to a domain profile.
@@ -231,4 +248,53 @@ func MapTravelCompanionToSchema(domainCompanion TravelCompanion) schema.TravelCo
 		Relationship: schema.Relationship(domainCompanion.Relationship),
 		PhotoURL:     domainCompanion.PhotoURL,
 	}
+}
+
+type AggregatedModeration struct {
+	TargetID uuid.UUID
+
+	Pending   int64
+	Accepted  int64
+	Rejected  int64
+	Escalated int64
+
+	ContentTypes []ContentType
+	Reasons      []string
+}
+
+func MapModerationAggToDomain(agg moderationservice.AggregatedModeration) *AggregatedModeration {
+	contentTypes := make([]ContentType, len(agg.ContentTypes))
+	for i, ct := range agg.ContentTypes {
+		contentTypes[i] = ContentType(ct)
+	}
+
+	reasons := make([]string, len(agg.Reasons))
+	copy(reasons, agg.Reasons)
+
+	return &AggregatedModeration{
+		TargetID:     agg.TargetID,
+		Pending:      agg.Pending,
+		Accepted:     agg.Accepted,
+		Rejected:     agg.Rejected,
+		Escalated:    agg.Escalated,
+		ContentTypes: contentTypes,
+		Reasons:      reasons,
+	}
+}
+
+// FinalStatus returns the terminal moderation status for the aggregate.
+func (a AggregatedModeration) FinalStatus() ModerationStatus {
+	if a.Pending > 0 {
+		return ModerationStatusPending
+	}
+	if a.Rejected > 0 {
+		return ModerationStatusRejected
+	}
+	if a.Escalated > 0 {
+		return ModerationStatusEscalated
+	}
+	if a.Accepted > 0 {
+		return ModerationStatusAccepted
+	}
+	return ModerationStatusPending
 }

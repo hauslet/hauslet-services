@@ -2,6 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
 
 	"hauslet/internal/modules/profile/domain"
 )
@@ -65,7 +68,7 @@ func (s *ProfileServiceImpl) CreateProfile(ctx context.Context, profile domain.P
 		return nil, err
 	}
 
-	s.log.Logf("[INFO] created profile for user %s (trust score: %.2f)", profile.UserID, profile.TrustScore)
+	s.log.Logf("[INFO] created profile for user %s  profileID=%s (trust score: %.2f)", profile.UserID, profile.ID, profile.TrustScore)
 	return domain.MapProfileFromSchema(schemaProfile), nil
 }
 
@@ -110,6 +113,46 @@ func (s *ProfileServiceImpl) UpdateProfile(ctx context.Context, profile domain.P
 		return nil, err
 	}
 
+	payload := domain.ProfileModerationPayload{
+		FullName:       profile.FullName,
+		Occupation:     derefString(profile.Occupation),
+		Education:      derefString(profile.Education),
+		Bio:            derefString(profile.Bio),
+		Skills:         profile.Skills,
+		Languages:      profile.Languages,
+		Interests:      profile.Interests,
+		Hobbies:        profile.Hobbies,
+		FunFact:        derefString(profile.FunFact),
+		ObsessedWith:   derefString(profile.ObsessedWith),
+		City:           derefString(profile.City),
+		State:          derefString(profile.State),
+		Country:        derefString(profile.Country),
+		HouseNumber:    derefString(profile.HouseNumber),
+		Street:         derefString(profile.Street),
+		Area:           derefString(profile.Area),
+		LGA:            derefString(profile.LGA),
+		District:       derefString(profile.District),
+		DigitalAddress: derefString(profile.DigitalAddress),
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize profile payload for moderation: %w", err)
+	}
+	// Enqueue profile text data moderation
+	if err := s.moderationHooks.EnqueueAIModeration(ctx, profile.ID, "profile_bio", string(payloadJSON)); err != nil {
+		s.log.Logf("[ERROR] failed to enqueue profile moderation for user %s: %v", profile.UserID, err)
+		return nil, err
+	}
+
+	if profile.PhotoURL != nil && *profile.PhotoURL != "" {
+		// Enqueue profile photo moderation
+		if err := s.moderationHooks.EnqueueAIModeration(ctx, profile.ID, "profile_image", *profile.PhotoURL); err != nil {
+			s.log.Logf("[ERROR] failed to enqueue profile photo moderation for user %s: %v", profile.UserID, err)
+			return nil, err
+		}
+	}
+
 	s.log.Logf("[INFO] updated profile for user %s (new trust score: %.2f)", profile.UserID, profile.TrustScore)
 	return domain.MapProfileFromSchema(schemaProfile), nil
 }
@@ -130,6 +173,46 @@ func (s *ProfileServiceImpl) PatchProfile(ctx context.Context, id string, update
 		return nil, err
 	}
 	updated.TrustScore = newScore
+
+	payload := domain.ProfileModerationPayload{
+		FullName:       updated.FullName,
+		Occupation:     derefString(updated.Occupation),
+		Education:      derefString(updated.Education),
+		Bio:            derefString(updated.Bio),
+		Skills:         updated.Skills,
+		Languages:      updated.Languages,
+		Interests:      updated.Interests,
+		Hobbies:        updated.Hobbies,
+		FunFact:        derefString(updated.FunFact),
+		ObsessedWith:   derefString(updated.ObsessedWith),
+		City:           derefString(updated.City),
+		State:          derefString(updated.State),
+		Country:        derefString(updated.Country),
+		HouseNumber:    derefString(updated.HouseNumber),
+		Street:         derefString(updated.Street),
+		Area:           derefString(updated.Area),
+		LGA:            derefString(updated.LGA),
+		District:       derefString(updated.District),
+		DigitalAddress: derefString(updated.DigitalAddress),
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize profile payload for moderation: %w", err)
+	}
+	// Enqueue profile text data moderation
+	if err := s.moderationHooks.EnqueueAIModeration(ctx, updated.ID, "profile_bio", string(payloadJSON)); err != nil {
+		s.log.Logf("[ERROR] failed to enqueue profile moderation for user %s: %v", updated.UserID, err)
+		return nil, err
+	}
+
+	if updated.PhotoURL != nil && *updated.PhotoURL != "" {
+		// Enqueue profile photo moderation
+		if err := s.moderationHooks.EnqueueAIModeration(ctx, updated.ID, "profile_image", *updated.PhotoURL); err != nil {
+			s.log.Logf("[ERROR] failed to enqueue profile photo moderation for user %s: %v", updated.UserID, err)
+			return nil, err
+		}
+	}
 
 	return updated, nil
 }
@@ -180,4 +263,18 @@ func (s *ProfileServiceImpl) GetDeletedProfiles(ctx context.Context) ([]domain.P
 		return nil, err
 	}
 	return domain.MapProfilesFromSchema(p), nil
+}
+
+func derefString(str *string) string {
+	if str == nil {
+		return ""
+	}
+	return *str
+}
+
+func sliceToString(slice []string) string {
+	if len(slice) == 0 {
+		return ""
+	}
+	return strings.Join(slice, ", ")
 }

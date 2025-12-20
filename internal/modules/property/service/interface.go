@@ -7,6 +7,7 @@ import (
 	"hauslet/internal/modules/property/notification"
 	"hauslet/internal/modules/property/repository"
 	platformQueue "hauslet/internal/platform/queue"
+	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
 
 	"github.com/go-pkgz/lgr"
@@ -68,6 +69,7 @@ type ServiceImpl struct {
 	moderationHooks     ModerationHooks
 	notificationService *notification.NotificationService
 	profiles            ProfileProvider
+	cache               redis.RedisClient
 	log                 *lgr.Logger
 }
 
@@ -79,6 +81,7 @@ func NewPropertyService(repo repository.Repository,
 	queue *platformQueue.Client,
 	thumbnailSubject string,
 	moderationHooks ModerationHooks,
+	cache redis.RedisClient,
 	log *lgr.Logger,
 ) *ServiceImpl {
 	return &ServiceImpl{
@@ -89,6 +92,7 @@ func NewPropertyService(repo repository.Repository,
 		thumbnailSubject:    thumbnailSubject,
 		moderationHooks:     moderationHooks,
 		notificationService: notificationService,
+		cache:               cache,
 		log:                 log,
 	}
 }

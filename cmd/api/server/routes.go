@@ -50,7 +50,7 @@ func setupRoutes(r chi.Router,
 	// Initialize moderation service (AI client not needed on API path; only enqueue/persist).
 	aiModerationSubject := cfg.YAML.Queue.Subjects["ai_moderation"]
 	moderationRepo := moderationrepository.NewModerationRepository(db)
-	moderationSvc := moderationservice.NewModerationService(moderationRepo, nil, q, aiModerationSubject, nil, log)
+	moderationSvc := moderationservice.NewModerationService(moderationRepo, nil, q, aiModerationSubject, nil, nil, log)
 	moderationAdapter := moderationhooks.NewModerationAdapter(moderationSvc)
 
 	// Initialize profile service
@@ -83,6 +83,7 @@ func setupRoutes(r chi.Router,
 		r2, q,
 		thumbnailSubject,
 		moderationAdapter,
+		*rds,
 		log,
 	)
 

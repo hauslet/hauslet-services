@@ -84,6 +84,7 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 	}
 
 	s.log.Logf("INFO successfully prepared %d media uploads for listing=%s", len(result), listingID)
+	s.invalidateListingCache(ctx, listingID, listing.Slug, s.getPropertyPublicID(ctx, listing.PropertyID))
 	return result, nil
 }
 
@@ -132,6 +133,7 @@ func (s *ServiceImpl) UpdateListingMedia(ctx context.Context,
 	}
 
 	s.log.Logf("INFO updated media listing=%s media=%s", listingID, mediaID)
+	s.invalidateListingCache(ctx, listingID, listing.Slug, s.getPropertyPublicID(ctx, listing.PropertyID))
 	return nil
 }
 
@@ -183,6 +185,7 @@ func (s *ServiceImpl) DeleteListingMedia(ctx context.Context,
 	}
 
 	s.log.Logf("INFO deleted %d media items from listing=%s", len(mediaIDs), listingID)
+	s.invalidateListingCache(ctx, listingID, listing.Slug, s.getPropertyPublicID(ctx, listing.PropertyID))
 	return nil
 }
 
@@ -344,5 +347,6 @@ func (s *ServiceImpl) FinalizeListingMedia(ctx context.Context, data domain.Fina
 		}
 	}
 
+	s.invalidateListingCache(ctx, data.ListingID, listing.Slug, s.getPropertyPublicID(ctx, listing.PropertyID))
 	return nil
 }

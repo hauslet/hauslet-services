@@ -112,9 +112,10 @@ type AnthropicConfig struct {
 }
 
 type GeminiConfig struct {
-	APIKey   string
-	APIModel string
-	Project  string
+	APIKey     string
+	APIModel   string
+	Project    string
+	EmbedModel string
 }
 
 type FallbackConfig struct {

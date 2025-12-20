@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"hauslet/config"
-	"hauslet/internal/platform/ai"
+	aiembeddings "hauslet/internal/platform/ai/embeddings"
+	aimoderation "hauslet/internal/platform/ai/moderation"
 	"hauslet/internal/platform/database"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/logger"
@@ -17,11 +18,12 @@ import (
 
 // Infrastructure holds shared platform dependencies for the worker.
 type Infrastructure struct {
-	DB      *gorm.DB
-	Storage *storage.R2Storage
-	AI      *ai.Client
-	Email   *email.Client
-	Queue   *queue.Client
+	DB        *gorm.DB
+	Storage   *storage.R2Storage
+	AI        *aimoderation.Client
+	Email     *email.Client
+	Queue     *queue.Client
+	embedding *aiembeddings.Client
 }
 
 // CloseDB closes the DB connection.
@@ -62,35 +64,43 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *lgr.
 	r2Storage := storage.NewR2Storage(storageClient, &cfg.Storage.R2)
 
 	// AI providers
-	geminiClient, err := ai.NewGeminiClient(ctx, cfg.Services.Gemini, r2Storage)
+	geminiClient, err := aimoderation.NewGeminiClient(ctx, cfg.Services.Gemini, r2Storage)
 	if err != nil {
 		return nil, err
 	}
-	anthropicClient, err := ai.NewAnthropicClient(ctx, cfg.Services.Anthropic, r2Storage)
+	anthropicClient, err := aimoderation.NewAnthropicClient(ctx, cfg.Services.Anthropic, r2Storage)
 	if err != nil {
 		return nil, err
 	}
 
-	fallbackOpts := ai.FallbackOptions{
+	fallbackOpts := aimoderation.FallbackOptions{
 		Enabled:          cfg.Services.Fallback.Enable,
 		AttemptThreshold: cfg.Services.Fallback.AttemptThreshold,
 	}
 
-	fallbackProvider := ai.NewFallbackClient(geminiClient, anthropicClient, fallbackOpts, log)
+	fallbackProvider := aimoderation.NewFallbackClient(geminiClient, anthropicClient, fallbackOpts, log)
 
 	if err := fallbackProvider.HealthCheck(ctx); err != nil {
 		return nil, err
 	}
 
-	aiClient := ai.New(fallbackProvider)
+	aiClient := aimoderation.New(fallbackProvider)
+
+	// AI Embeddings
+	geminiEmbeddingProvider, err := aiembeddings.NewGeminiProvider(ctx, cfg.Services.Gemini)
+	if err != nil {
+		return nil, err
+	}
+	embeddingClient := aiembeddings.New(geminiEmbeddingProvider)
 
 	// Email
 	emailClient := InitializeEmailClient(cfg, log)
 
 	return &Infrastructure{
-		DB:      db,
-		Storage: r2Storage,
-		AI:      aiClient,
-		Email:   emailClient,
+		DB:        db,
+		Storage:   r2Storage,
+		AI:        aiClient,
+		Email:     emailClient,
+		embedding: embeddingClient,
 	}, nil
 }

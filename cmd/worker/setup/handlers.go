@@ -10,6 +10,7 @@ import (
 	"hauslet/config"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
+	profilenotification "hauslet/internal/modules/profile/notification"
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
 	profileservice "hauslet/internal/modules/profile/service"
@@ -45,10 +46,11 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 	var propertyRepo propertyrepository.Repository
 	var profileSvc profileservice.ProfileService
 	var propertyProfileAdapter *profileport.PropertyProfileAdapter
+	var profileRepo profilerepository.ProfileRepository
 
 	if hasThumbnail || hasCleanup || hasModeration {
 		propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
-		profileRepo := profilerepository.NewProfileRepository(infra.DB)
+		profileRepo = profilerepository.NewProfileRepository(infra.DB)
 		profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
 		propertyProfileAdapter = profileport.NewPropertyProfileAdapter(profileSvc)
 	}
@@ -68,12 +70,32 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 	// AI moderation handler
 	if hasModeration {
 		moderationRepo := moderationrepository.NewModerationRepository(infra.DB)
+
+		// Setup property moderation callback
 		propertyNotificationService := propertynotification.NewNotificationService(infra.Email, nil, "", cfg.App.Client, log)
-		propertyModerationCallback := propertyhooks.NewModerationPropertyAdapter(propertyRepo, propertyProfileAdapter, propertyNotificationService)
+		propertyModerationCallback := propertyhooks.NewModerationPropertyAdapter(propertyRepo,
+			propertyProfileAdapter,
+			propertyNotificationService,
+			infra.embedding,
+			log,
+		)
+
+		// Setup profile moderation callback
+		profileNotificationService := profilenotification.NewNotificationService(infra.Email, nil, "", cfg.App.Client, log)
+		profileModerationCallback := profileport.NewModerationProfileAdapter(
+			profileRepo,
+			profileNotificationService,
+			log,
+		)
+
+		// Create moderation service
 		modService := moderationservice.NewModerationService(moderationRepo,
 			infra.AI, infra.Queue,
 			qCfg["ai_moderation"],
-			propertyModerationCallback, log)
+			propertyModerationCallback,
+			profileModerationCallback,
+			log,
+		)
 		h := moderationHandler.NewAIModerationHandler(modService, log, qCfg["ai_moderation"])
 		registry.Register(h)
 	}

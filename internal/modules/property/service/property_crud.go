@@ -39,8 +39,11 @@ func (s *ServiceImpl) CreateProperty(ctx context.Context, p domain.Property) (*d
 		return nil, err
 	}
 
+	created := domain.MapPropertyFromSchema(schemaProperty)
+	s.cacheProperty(ctx, created)
+
 	s.log.Logf("INFO created property=%s owner=%s type=%s", schemaProperty.ID, p.OwnerID, p.PropertyType)
-	return domain.MapPropertyFromSchema(schemaProperty), nil
+	return created, nil
 }
 
 // UpdateProperty updates an existing property with validation.
@@ -80,8 +83,12 @@ func (s *ServiceImpl) UpdateProperty(ctx context.Context, p domain.Property) (*d
 		return nil, err
 	}
 
+	s.invalidatePropertyCache(ctx, p.ID)
+	updated := domain.MapPropertyFromSchema(schemaProperty)
+	s.cacheProperty(ctx, updated)
+
 	s.log.Logf("INFO updated property=%s", p.ID)
-	return domain.MapPropertyFromSchema(schemaProperty), nil
+	return updated, nil
 }
 
 // PatchProperty applies partial updates to a property.
@@ -110,8 +117,15 @@ func (s *ServiceImpl) PatchProperty(ctx context.Context, id uuid.UUID, updates m
 		return nil, err
 	}
 
+	s.invalidatePropertyCache(ctx, id)
+
 	s.log.Logf("INFO patched property=%s fields=%d", id, len(updates))
-	return s.ensureProperty(ctx, id)
+	updated, err := s.ensureProperty(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	s.cacheProperty(ctx, updated)
+	return updated, nil
 }
 
 // GetPropertyByID retrieves a property by its ID.
@@ -120,7 +134,19 @@ func (s *ServiceImpl) GetPropertyByID(ctx context.Context, id uuid.UUID) (*domai
 		return nil, domain.ErrInvalidPropertyID
 	}
 
-	return s.ensureProperty(ctx, id)
+	var cached domain.Property
+	if ok, err := s.getCachedValue(ctx, propertyCacheKey(id), &cached); err == nil && ok {
+		return &cached, nil
+	} else if err != nil {
+		s.log.Logf("WARN property cache read failed id=%s: %v", id, err)
+	}
+
+	p, err := s.ensureProperty(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	s.cacheProperty(ctx, p)
+	return p, nil
 }
 
 // GetPropertiesByIDs retrieves multiple properties by their IDs.
@@ -180,6 +206,7 @@ func (s *ServiceImpl) DeleteProperty(ctx context.Context, id uuid.UUID, hard boo
 			return err
 		}
 		s.log.Logf("INFO hard deleted property=%s", id)
+		s.invalidatePropertyCache(ctx, id)
 		return nil
 	}
 
@@ -188,6 +215,7 @@ func (s *ServiceImpl) DeleteProperty(ctx context.Context, id uuid.UUID, hard boo
 		return err
 	}
 	s.log.Logf("INFO soft deleted property=%s", id)
+	s.invalidatePropertyCache(ctx, id)
 	return nil
 }
 

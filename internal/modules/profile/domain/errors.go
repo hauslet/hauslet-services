@@ -10,4 +10,5 @@ var (
 	ErrInvalidBadge            = errors.New("invalid badge")
 	ErrInvalidRating           = errors.New("invalid rating value")
 	ErrTravelCompanionNotFound = errors.New("travel companion not found")
+	ErrInvalidProfileID        = errors.New("invalid profile ID")
 )

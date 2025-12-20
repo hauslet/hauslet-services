@@ -51,8 +51,11 @@ func (s *ServiceImpl) CreateListing(ctx context.Context, l domain.Listing) (*dom
 		return nil, err
 	}
 
+	created := domain.MapListingFromSchema(schemaListing)
+	s.cacheListing(ctx, created, false, created.Slug, s.getPropertyPublicID(ctx, created.PropertyID))
+
 	s.log.Logf("INFO created listing=%s property=%s owner=%s type=%s", schemaListing.ID, l.PropertyID, l.OwnerID, l.ListingType)
-	return domain.MapListingFromSchema(schemaListing), nil
+	return created, nil
 }
 
 // UpdateListing updates an existing listing with validation.
@@ -92,8 +95,14 @@ func (s *ServiceImpl) UpdateListing(ctx context.Context, l domain.Listing) (*dom
 		return nil, err
 	}
 
+	publicID := s.getPropertyPublicID(ctx, l.PropertyID)
+	s.invalidateListingCache(ctx, l.ID, existing.Slug, publicID)
+
+	updated := domain.MapListingFromSchema(schemaListing)
+	s.cacheListing(ctx, updated, false, updated.Slug, publicID)
+
 	s.log.Logf("INFO updated listing=%s", l.ID)
-	return domain.MapListingFromSchema(schemaListing), nil
+	return updated, nil
 }
 
 // PatchListing applies partial updates to a listing.
@@ -117,13 +126,31 @@ func (s *ServiceImpl) PatchListing(ctx context.Context, id uuid.UUID, updates ma
 		}
 	}
 
+	newSlug := existing.Slug
+	if v, ok := updates["slug"]; ok {
+		if slugStr, ok := v.(string); ok && slugStr != "" {
+			newSlug = slugStr
+		}
+	}
+	publicID := s.getPropertyPublicID(ctx, existing.PropertyID)
+
 	if err := s.repo.PatchListing(ctx, id, updates); err != nil {
 		s.log.Logf("ERROR failed to patch listing=%s: %v", id, err)
 		return nil, err
 	}
 
+	s.invalidateListingCache(ctx, id, existing.Slug, publicID)
+	if newSlug != "" && newSlug != existing.Slug {
+		s.invalidateListingCache(ctx, id, newSlug, publicID)
+	}
+
 	s.log.Logf("INFO patched listing=%s fields=%d", id, len(updates))
-	return s.ensureListing(ctx, id, false)
+	updated, err := s.ensureListing(ctx, id, false)
+	if err != nil {
+		return nil, err
+	}
+	s.cacheListing(ctx, updated, false, updated.Slug, publicID)
+	return updated, nil
 }
 
 // GetListingByID retrieves a listing by its ID.
@@ -132,13 +159,38 @@ func (s *ServiceImpl) GetListingByID(ctx context.Context, id uuid.UUID, preloadM
 		return nil, domain.ErrInvalidListingID
 	}
 
-	return s.ensureListing(ctx, id, preloadMedia)
+	var cached domain.Listing
+	if ok, err := s.getCachedValue(ctx, listingIDCacheKey(id, preloadMedia), &cached); err == nil && ok {
+		s.log.Logf("INFO listing cache hit id=%s", id)
+		return &cached, nil
+	} else if err != nil {
+		s.log.Logf("WARN listing cache read failed id=%s: %v", id, err)
+	}
+
+	l, err := s.repo.GetListingByID(ctx, id, preloadMedia)
+	if err != nil {
+		return nil, err
+	}
+	if l == nil {
+		return nil, domain.ErrListingNotFound
+	}
+
+	domainListing := domain.MapListingFromSchema(l)
+	s.cacheListing(ctx, domainListing, preloadMedia, domainListing.Slug, s.getPropertyPublicID(ctx, domainListing.PropertyID))
+	return domainListing, nil
 }
 
 // GetListingByPublicID retrieves a listing by its public identifier (alias of slug).
 func (s *ServiceImpl) GetListingByPublicID(ctx context.Context, publicID string, preloadMedia bool) (*domain.Listing, error) {
 	if publicID == "" {
 		return nil, domain.ErrInvalidSlug
+	}
+
+	var cached domain.Listing
+	if ok, err := s.getCachedValue(ctx, listingPublicIDCacheKey(publicID, preloadMedia), &cached); err == nil && ok {
+		return &cached, nil
+	} else if err != nil {
+		s.log.Logf("WARN listing cache read failed public_id=%s: %v", publicID, err)
 	}
 
 	l, err := s.repo.GetListingByPublicID(ctx, publicID, preloadMedia)
@@ -149,13 +201,22 @@ func (s *ServiceImpl) GetListingByPublicID(ctx context.Context, publicID string,
 		return nil, domain.ErrListingNotFound
 	}
 
-	return domain.MapListingFromSchema(l), nil
+	domainListing := domain.MapListingFromSchema(l)
+	s.cacheListing(ctx, domainListing, preloadMedia, domainListing.Slug, publicID)
+	return domainListing, nil
 }
 
 // GetListingBySlug retrieves a listing by its slug.
 func (s *ServiceImpl) GetListingBySlug(ctx context.Context, slug string, preloadMedia bool) (*domain.Listing, error) {
 	if slug == "" {
 		return nil, domain.ErrInvalidSlug
+	}
+
+	var cached domain.Listing
+	if ok, err := s.getCachedValue(ctx, listingSlugCacheKey(slug, preloadMedia), &cached); err == nil && ok {
+		return &cached, nil
+	} else if err != nil {
+		s.log.Logf("WARN listing cache read failed slug=%s: %v", slug, err)
 	}
 
 	l, err := s.repo.GetListingBySlug(ctx, slug, preloadMedia)
@@ -166,7 +227,9 @@ func (s *ServiceImpl) GetListingBySlug(ctx context.Context, slug string, preload
 		return nil, domain.ErrListingNotFound
 	}
 
-	return domain.MapListingFromSchema(l), nil
+	domainListing := domain.MapListingFromSchema(l)
+	s.cacheListing(ctx, domainListing, preloadMedia, slug, s.getPropertyPublicID(ctx, domainListing.PropertyID))
+	return domainListing, nil
 }
 
 // GetListingsByIDs retrieves multiple listings by their IDs.
@@ -176,10 +239,8 @@ func (s *ServiceImpl) GetListingsByIDs(ctx context.Context, ids []uuid.UUID, pre
 	}
 
 	// Validate all IDs
-	for _, id := range ids {
-		if id == uuid.Nil {
-			return nil, domain.ErrInvalidListingID
-		}
+	if slices.Contains(ids, uuid.Nil) {
+		return nil, domain.ErrInvalidListingID
 	}
 
 	schemaListings, err := s.repo.GetListingsByIDs(ctx, ids, preloadMedia)
@@ -232,6 +293,11 @@ func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool
 		return domain.ErrInvalidListingID
 	}
 
+	var existing *domain.Listing
+	if l, err := s.repo.GetListingByID(ctx, id, false); err == nil && l != nil {
+		existing = domain.MapListingFromSchema(l)
+	}
+
 	if hard {
 		s.log.Logf("WARN hard deleting listing=%s", id)
 		if err := s.repo.HardDeleteListing(ctx, id); err != nil {
@@ -239,6 +305,11 @@ func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool
 			return err
 		}
 		s.log.Logf("INFO hard deleted listing=%s", id)
+		if existing != nil {
+			s.invalidateListingCache(ctx, id, existing.Slug, s.getPropertyPublicID(ctx, existing.PropertyID))
+		} else {
+			s.invalidateListingCache(ctx, id, "", "")
+		}
 		return nil
 	}
 
@@ -247,6 +318,11 @@ func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool
 		return err
 	}
 	s.log.Logf("INFO soft deleted listing=%s", id)
+	if existing != nil {
+		s.invalidateListingCache(ctx, id, existing.Slug, s.getPropertyPublicID(ctx, existing.PropertyID))
+	} else {
+		s.invalidateListingCache(ctx, id, "", "")
+	}
 	return nil
 }
 

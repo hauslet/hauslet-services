@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -147,6 +148,29 @@ type UpdateProfileInput struct {
 	TravelCompanions []TravelCompanion
 }
 
+type ProfileModerationPayload struct {
+	FullName         string   `json:"full_name,omitempty"`
+	Occupation       string   `json:"occupation,omitempty"`
+	Education        string   `json:"education,omitempty"`
+	Bio              string   `json:"bio,omitempty"`
+	Skills           []string `json:"skills,omitempty"`
+	Languages        []string `json:"languages,omitempty"`
+	Interests        []string `json:"interests,omitempty"`
+	Hobbies          []string `json:"hobbies,omitempty"`
+	FunFact          string   `json:"fun_fact,omitempty"`
+	ObsessedWith     string   `json:"obsessed_with,omitempty"`
+	City             string   `json:"city,omitempty"`
+	State            string   `json:"state,omitempty"`
+	Country          string   `json:"country,omitempty"`
+	HouseNumber      string   `json:"house_number,omitempty"`
+	Street           string   `json:"street,omitempty"`
+	Area             string   `json:"area,omitempty"`
+	LGA              string   `json:"lga,omitempty"`
+	District         string   `json:"district,omitempty"`
+	DigitalAddress   string   `json:"digital_address,omitempty"`
+	TravelCompanions []string `json:"travel_companions,omitempty"`
+}
+
 // IsFullyVerified checks if the profile has all verification types completed
 func (p *Profile) IsFullyVerified() bool {
 	return p.PhoneVerified && p.IDVerified
@@ -169,12 +193,7 @@ func (p *Profile) HasUserType(userType UserType) bool {
 
 // HasBadge checks if the profile already has the provided badge.
 func (p *Profile) HasBadge(badge Badge) bool {
-	for _, b := range p.Badges {
-		if b == badge {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(p.Badges, badge)
 }
 
 // CalculateTrustScore calculates the trust score based on verification and activity
