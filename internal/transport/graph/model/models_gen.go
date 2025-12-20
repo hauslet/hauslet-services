@@ -265,7 +265,7 @@ type SaleFilterInput struct {
 
 type ScoredListing struct {
 	Listing *domain1.Listing `json:"listing"`
-	Score   float64          `json:"score"`
+	Score   *float64         `json:"score,omitempty"`
 	Ranking int              `json:"ranking"`
 }
 

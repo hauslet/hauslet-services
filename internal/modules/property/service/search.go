@@ -16,13 +16,18 @@ const (
 	defaultSearchLimit = 20
 	maxSearchLimit     = 50
 	searchCacheTTL     = 24 * time.Hour
+
+	searchCacheVersion     = "v1"
+	embeddingRequestTimeout = 1500 * time.Millisecond
+	// semanticScoreCutoff drops low-quality matches when >0; distance scores above this value are ignored.
+	semanticScoreCutoff = 0.0
 )
 
 // SearchListings performs semantic search if Query is provided; otherwise applies filters only.
 func (s *ServiceImpl) SearchListings(ctx context.Context, filter ListingFilter, limit int) ([]domain.ScoredListing, error) {
 	normalized := ""
 	if filter.Query != nil {
-		normalized = strings.TrimSpace(*filter.Query)
+		normalized = strings.TrimSpace(strings.ToLower(*filter.Query))
 	}
 
 	if limit <= 0 {
@@ -49,30 +54,22 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter ListingFilter, 
 
 	// If no free-text query, fall back to filtered listings (no vector sort).
 	if normalized == "" {
-		page := repository.Pagination{Limit: limit, Offset: 0}
-		result, err := s.repo.ListListings(ctx, repoFilter, page)
-		if err != nil {
-			return nil, err
-		}
-		domainListings := domain.MapListingsFromSchema(result.Items)
-		scored := make([]domain.ScoredListing, 0, len(domainListings))
-		for i := range domainListings {
-			scored = append(scored, domain.ScoredListing{
-				Listing: domainListings[i],
-				Score:   0,
-				Ranking: i + 1,
-			})
-		}
-		return scored, nil
+		return s.searchWithFiltersOnly(ctx, repoFilter, limit)
 	}
 
 	if s.embedding == nil {
-		return nil, fmt.Errorf("embedding client not configured")
+		if s.log != nil {
+			s.log.Logf("WARN embedding client not configured, falling back to filtered search")
+		}
+		return s.searchWithFiltersOnly(ctx, repoFilter, limit)
 	}
 
 	embedding, err := s.getOrCreateQueryEmbedding(ctx, normalized)
 	if err != nil {
-		return nil, err
+		if s.log != nil {
+			s.log.Logf("WARN semantic embedding unavailable, falling back to filtered search: %v", err)
+		}
+		return s.searchWithFiltersOnly(ctx, repoFilter, limit)
 	}
 
 	results, err := s.repo.SearchListings(ctx, schema.NewVectorEmbedding(embedding), repoFilter, limit)
@@ -81,23 +78,49 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter ListingFilter, 
 	}
 
 	scored := make([]domain.ScoredListing, 0, len(results))
-	for i, item := range results {
+	rank := 1
+	for _, item := range results {
+		if semanticScoreCutoff > 0 && item.Score > semanticScoreCutoff {
+			continue
+		}
 		l := domain.MapListingFromSchema(&item.Listing)
 		if l == nil {
 			continue
 		}
+		score := item.Score
 		scored = append(scored, domain.ScoredListing{
 			Listing: *l,
-			Score:   item.Score,
-			Ranking: i + 1,
+			Score:   &score,
+			Ranking: rank,
 		})
+		rank++
 	}
 
 	return scored, nil
 }
 
-func (s *ServiceImpl) getOrCreateQueryEmbedding(ctx context.Context, query string) ([]float32, error) {
-	cacheKey := fmt.Sprintf("search:q:%x", sha1.Sum([]byte(strings.ToLower(query))))
+func (s *ServiceImpl) searchWithFiltersOnly(ctx context.Context, repoFilter repository.ListingFilter, limit int) ([]domain.ScoredListing, error) {
+	page := repository.Pagination{Limit: limit, Offset: 0}
+	result, err := s.repo.ListListings(ctx, repoFilter, page)
+	if err != nil {
+		return nil, err
+	}
+	domainListings := domain.MapListingsFromSchema(result.Items)
+	scored := make([]domain.ScoredListing, 0, len(domainListings))
+	rank := 1
+	for i := range domainListings {
+		scored = append(scored, domain.ScoredListing{
+			Listing: domainListings[i],
+			Score:   nil,
+			Ranking: rank,
+		})
+		rank++
+	}
+	return scored, nil
+}
+
+func (s *ServiceImpl) getOrCreateQueryEmbedding(ctx context.Context, normalizedQuery string) ([]float32, error) {
+	cacheKey := s.searchEmbeddingCacheKey(normalizedQuery)
 
 	var cached []float32
 	if ok, err := s.getCachedValue(ctx, cacheKey, &cached); err == nil && ok {
@@ -106,14 +129,43 @@ func (s *ServiceImpl) getOrCreateQueryEmbedding(ctx context.Context, query strin
 		s.log.Logf("WARN search embedding cache read failed: %v", err)
 	}
 
-	vec, err := s.embedding.Embed(ctx, query)
+	value, err, _ := s.embeddingGroup.Do(cacheKey, func() (any, error) {
+		var innerCached []float32
+		if ok, err := s.getCachedValue(ctx, cacheKey, &innerCached); err == nil && ok {
+			return innerCached, nil
+		} else if err != nil && s.log != nil {
+			s.log.Logf("WARN search embedding cache read failed: %v", err)
+		}
+
+		embedCtx, cancel := context.WithTimeout(ctx, embeddingRequestTimeout)
+		defer cancel()
+
+		vec, err := s.embedding.Embed(embedCtx, normalizedQuery)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate embedding: %w", err)
+		}
+		if len(vec) == 0 {
+			return nil, fmt.Errorf("empty embedding generated")
+		}
+
+		s.setCachedValue(ctx, cacheKey, searchCacheTTL, vec)
+		return vec, nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate embedding: %w", err)
-	}
-	if len(vec) == 0 {
-		return nil, fmt.Errorf("empty embedding generated")
+		return nil, err
 	}
 
-	s.setCachedValue(ctx, cacheKey, searchCacheTTL, vec)
-	return vec, nil
+	embedding, ok := value.([]float32)
+	if !ok {
+		return nil, fmt.Errorf("unexpected embedding type %T", value)
+	}
+	return embedding, nil
+}
+
+func (s *ServiceImpl) searchEmbeddingCacheKey(normalizedQuery string) string {
+	model := "unknown"
+	if s.embedding != nil && s.embedding.GetModelName() != "" {
+		model = s.embedding.GetModelName()
+	}
+	return fmt.Sprintf("search:v=%s:model=%s:q=%x", searchCacheVersion, model, sha1.Sum([]byte(normalizedQuery)))
 }

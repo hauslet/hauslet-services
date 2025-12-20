@@ -46,9 +46,14 @@ func (s *ServiceImpl) setCachedValue(ctx context.Context, key string, ttl time.D
 	}
 	bytes, err := json.Marshal(value)
 	if err != nil {
+		if s.log != nil {
+			s.log.Logf("WARN cache marshal failed for key=%s: %v", key, err)
+		}
 		return
 	}
-	_ = s.cache.Set(ctx, key, bytes, ttl).Err()
+	if err := s.cache.Set(ctx, key, bytes, ttl).Err(); err != nil && s.log != nil {
+		s.log.Logf("WARN cache set failed for key=%s: %v", key, err)
+	}
 }
 
 func (s *ServiceImpl) invalidateCache(ctx context.Context, keys ...string) {

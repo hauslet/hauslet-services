@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
+	"golang.org/x/sync/singleflight"
 )
 
 // Service aggregates property and listing operations.
@@ -74,6 +75,7 @@ type ServiceImpl struct {
 	cache               redis.RedisClient
 	embedding           *aiembeddings.Client
 	log                 *lgr.Logger
+	embeddingGroup      singleflight.Group
 }
 
 // NewPropertyService creates a new property service.

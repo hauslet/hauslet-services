@@ -66,6 +66,16 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 		return domain.ErrListingNotFound
 	}
 
+	property, err := a.repo.GetPropertyByID(ctx, listing.PropertyID)
+	if err != nil {
+		a.log.Logf("[WARN] failed to fetch property %s for listing %s: %v", listing.PropertyID.String(), listing.ID.String(), err)
+		return domain.ErrPropertyNotFound
+	}
+	if property == nil {
+		a.log.Logf("[WARN] property %s not found for listing %s during moderation completion", listing.PropertyID.String(), listing.ID.String())
+		return domain.ErrPropertyNotFound
+	}
+
 	ownerProfileName, ownerProfileEmail, err := a.profiles.GetProfileData(ctx, listing.OwnerID.String())
 	if err != nil {
 		a.log.Logf("[WARN] failed to fetch profile data for owner %s: %v", listing.OwnerID.String(), err)
@@ -106,7 +116,7 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 
 	updates := a.buildListingUpdates(aggDomain)
 	if aggDomain.FinalStatus() == domain.ModerationStatusAccepted && a.embedding != nil {
-		if embUpdates := a.generateEmbeddingUpdates(ctx, listing); len(embUpdates) > 0 {
+		if embUpdates := a.generateEmbeddingUpdates(ctx, listing, property); len(embUpdates) > 0 {
 			if updates == nil {
 				updates = make(map[string]any, len(embUpdates))
 			}
@@ -124,35 +134,44 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 	return nil
 }
 
-func (a *ModerationPropertyAdapter) generateEmbeddingUpdates(ctx context.Context, listing *schema.Listing) map[string]any {
+func (a *ModerationPropertyAdapter) generateEmbeddingUpdates(
+	ctx context.Context,
+	listing *schema.Listing,
+	property *schema.Property,
+) map[string]any {
+
 	if listing == nil || a.embedding == nil {
 		return nil
 	}
 
-	parts := []string{listing.Title, listing.Description}
-	if strings.TrimSpace(listing.ExtraDescription) != "" {
-		parts = append(parts, listing.ExtraDescription)
-	}
-	text := strings.TrimSpace(strings.Join(parts, "\n"))
-	if text == "" {
+	doc := domain.NewEmbeddingDocumentBuilder().
+		WithListing(domain.MapListingFromSchema(listing)).
+		WithProperty(domain.MapPropertyFromSchema(property)).
+		Build()
+
+	if doc.Text == "" {
 		return nil
 	}
 
-	vec, err := a.embedding.Embed(ctx, text)
+	vec, err := a.embedding.Embed(ctx, doc.Text)
 	if err != nil {
-		a.log.Logf("[ERROR] failed to generate embedding for listing %s: %v", listing.ID, err)
+		a.log.Logf(
+			"[ERROR] failed to generate embedding for listing %s: %v",
+			listing.ID,
+			err,
+		)
 		return nil
 	}
 	if len(vec) == 0 {
 		return nil
 	}
 
-	model := a.embedding.GetModelName()
 	now := a.nowFunc()
 
 	return map[string]any{
 		"text_embedding":         schema.NewVectorEmbedding(vec),
-		"embedding_model":        model,
+		"embedding_model":        a.embedding.GetModelName(),
+		"embedding_version":      doc.Version,
 		"embedding_generated_at": now,
 	}
 }

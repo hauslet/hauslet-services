@@ -139,7 +139,7 @@ type Listing struct {
 // ScoredListing pairs a listing with a similarity/relevance score.
 type ScoredListing struct {
 	Listing Listing
-	Score   float64
+	Score   *float64
 	Ranking int
 }
 

@@ -409,7 +409,7 @@ type ListingWithDistance {
 
 type ScoredListing {
   listing: Listing!
-  score: Float!
+  score: Float
   ranking: Int!
 }
 
