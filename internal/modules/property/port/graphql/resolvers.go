@@ -45,7 +45,7 @@ func (r *Resolver) ListingByPublicId(ctx context.Context, publicId string) (*dom
 		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
 
-	return sanitizeListingForViewer(listing, viewer.FromContext(ctx)), nil
+	return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
 }
 
 // Listing retrieves a listing by ID.
@@ -55,7 +55,7 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 			if listing != nil && len(listing.Media) > 0 {
 				listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 			}
-			return sanitizeListingForViewer(listing, viewer.FromContext(ctx)), nil
+			return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
 		}
 	}
 
@@ -67,7 +67,7 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 	if listing != nil && len(listing.Media) > 0 {
 		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
-	return sanitizeListingForViewer(listing, viewer.FromContext(ctx)), nil
+	return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
 }
 
 // ListingBySlug retrieves a listing by its slug.
@@ -80,7 +80,7 @@ func (r *Resolver) ListingBySlug(ctx context.Context, slug string) (*domain.List
 	if listing != nil && len(listing.Media) > 0 {
 		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
-	return sanitizeListingForViewer(listing, viewer.FromContext(ctx)), nil
+	return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
 }
 
 // Listings retrieves listings with cursor-based pagination.
@@ -118,7 +118,7 @@ func (r *Resolver) Listings(ctx context.Context, filter *model.ListingFilterInpu
 		}
 	}
 
-	return buildListingConnection(listings, total, offset, limit, viewer.FromContext(ctx)), nil
+	return buildListingConnection(listings, total, offset, limit, ctx, viewer.FromContext(ctx)), nil
 }
 
 // ListingsByProperty retrieves listings for a specific property.
@@ -220,7 +220,7 @@ func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID,
 		}
 	}
 
-	return buildListingConnection(listings, total, offset, limit, viewer.FromContext(ctx)), nil
+	return buildListingConnection(listings, total, offset, limit, ctx, viewer.FromContext(ctx)), nil
 }
 
 // MyIndividualListings retrieves individual listings owned by the authenticated user.
@@ -274,7 +274,7 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 		}
 	}
 
-	return buildListingConnection(listings, total, offset, limit, v), nil
+	return buildListingConnection(listings, total, offset, limit, ctx, v), nil
 }
 
 // ListingsNearPoint finds listings near a geographic point.
@@ -308,7 +308,7 @@ func (r *Resolver) SearchListings(ctx context.Context, filter *model.ListingFilt
 		if len(l.Media) > 0 {
 			l.Media = helpers.BuildListingMediaURLs(l.Media, r.cdnHost)
 		}
-		sanitized := sanitizeListingForViewer(&l, v)
+		sanitized := sanitizeListingForViewer(ctx, &l, v)
 		if sanitized == nil {
 			continue
 		}
@@ -349,7 +349,7 @@ func (r *Resolver) SimilarListings(ctx context.Context, listingID uuid.UUID, lim
 		if len(l.Media) > 0 {
 			l.Media = helpers.BuildListingMediaURLs(l.Media, r.cdnHost)
 		}
-		sanitized := sanitizeListingForViewer(&l, v)
+		sanitized := sanitizeListingForViewer(ctx, &l, v)
 		if sanitized == nil {
 			continue
 		}
@@ -413,7 +413,7 @@ func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingI
 	}
 
 	r.log.Logf("INFO Property %s and listing %s created successfully by user %s", createdProperty.ID, createdListing.ID, v.UserID)
-	return sanitizeListingForViewer(createdListing, v), nil
+	return sanitizeListingForViewer(ctx, createdListing, v), nil
 }
 
 // UpdateListing updates an existing listing.
@@ -439,7 +439,7 @@ func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.
 	}
 
 	r.log.Logf("INFO Listing %s updated successfully by user %s", id, v.UserID)
-	return sanitizeListingForViewer(updated, v), nil
+	return sanitizeListingForViewer(ctx, updated, v), nil
 }
 
 // DeleteListing deletes a listing.
@@ -505,7 +505,7 @@ func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Li
 	}
 
 	r.log.Logf("INFO Listing %s published request successful by user %s", id, v.UserID)
-	return sanitizeListingForViewer(updatedListing, v), nil
+	return sanitizeListingForViewer(ctx, updatedListing, v), nil
 }
 
 // UnpublishListing unpublishes a listing.

@@ -1,9 +1,11 @@
 package graphql
 
 import (
+	"context"
 	"encoding/base64"
 	"strconv"
 
+	businessmiddleware "hauslet/internal/modules/business/middleware"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/service"
 	"hauslet/internal/transport/graph/model"
@@ -32,16 +34,26 @@ func sanitizePropertyForViewer(p *domain.Property, v *viewer.Viewer) *domain.Pro
 	return p
 }
 
-func sanitizeListingForViewer(l *domain.Listing, v *viewer.Viewer) *domain.Listing {
+func sanitizeListingForViewer(ctx context.Context, l *domain.Listing, v *viewer.Viewer) *domain.Listing {
 	if l == nil {
 		return nil
 	}
 
-	// Draft listings only visible to owner/admin
+	// Draft listings only visible to owner/admin/business members
 	if l.Status == domain.StatusDraft {
-		if v == nil || (v.UserID != l.OwnerID.String() && !isAdminRole(v.Role)) {
-			return nil
+		if v != nil && (v.UserID == l.OwnerID.String() || isAdminRole(v.Role)) {
+			return l
 		}
+
+		// If listing is owned by a business, allow members/owners from the business context (set via X-Tenant-Slug).
+		if l.OwnerType == domain.OwnerBusiness {
+			if bc, ok := businessmiddleware.GetBusinessContext(ctx); ok && bc.BusinessID == l.OwnerID && bc.Membership != nil {
+				return l
+			}
+		}
+
+		// Otherwise drafts stay hidden
+		return nil
 	}
 
 	// Admins and owners see everything
@@ -57,11 +69,11 @@ func sanitizeListingForViewer(l *domain.Listing, v *viewer.Viewer) *domain.Listi
 	return &clone
 }
 
-func buildListingConnection(listings []domain.Listing, total int64, offset int, limit int, v *viewer.Viewer) *model.ListingConnection {
+func buildListingConnection(listings []domain.Listing, total int64, offset int, limit int, ctx context.Context, v *viewer.Viewer) *model.ListingConnection {
 	edges := make([]*model.ListingEdge, 0, len(listings))
 	for i, listing := range listings {
 		l := listing
-		sanitized := sanitizeListingForViewer(&l, v)
+		sanitized := sanitizeListingForViewer(ctx, &l, v)
 		if sanitized != nil {
 			edges = append(edges, &model.ListingEdge{
 				Node:   sanitized,
@@ -109,9 +121,9 @@ func mapListingFilterToService(filter *model.ListingFilterInput) service.Listing
 	}
 
 	serviceFilter := service.ListingFilter{
-		Query:        filter.Query,
-		OwnerID:      filter.OwnerID,
-		PropertyID:   filter.PropertyID,
+		Query:      filter.Query,
+		OwnerID:    filter.OwnerID,
+		PropertyID: filter.PropertyID,
 		// NOTE: Published field removed from GraphQL for security - service layer will enforce published=true
 		HasCalendar:  filter.HasCalendar,
 		City:         filter.City,

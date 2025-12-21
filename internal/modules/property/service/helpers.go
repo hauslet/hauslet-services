@@ -589,7 +589,15 @@ func (s *ServiceImpl) unpublishAndEnqueueModeration(ctx context.Context, existin
 		"status_changed_at":    now,
 	}
 
-	return s.repo.PatchListing(ctx, listing.ID, updates)
+	if err := s.repo.PatchListing(ctx, listing.ID, updates); err != nil {
+		return err
+	}
+
+	// Invalidate cache to ensure subsequent reads get the updated status
+	publicID := s.getPropertyPublicID(ctx, listing.PropertyID)
+	s.invalidateListingCache(ctx, listing.ID, listing.Slug, publicID)
+
+	return nil
 }
 
 // shouldUnpublish decides if changes warrant unpublishing for re-moderation.

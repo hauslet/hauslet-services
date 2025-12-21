@@ -77,6 +77,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			propertyProfileAdapter,
 			propertyNotificationService,
 			infra.embedding,
+			infra.Cache,
 			log,
 		)
 

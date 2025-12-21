@@ -10,6 +10,7 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/logger"
 	"hauslet/internal/platform/queue"
+	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
 
 	"github.com/go-pkgz/lgr"
@@ -23,6 +24,7 @@ type Infrastructure struct {
 	AI        *aimoderation.Client
 	Email     *email.Client
 	Queue     *queue.Client
+	Cache     redis.RedisClient
 	embedding *aiembeddings.Client
 }
 
@@ -37,6 +39,13 @@ func (i *Infrastructure) CloseDB() {
 func (i *Infrastructure) CloseQueue() {
 	if i != nil && i.Queue != nil {
 		i.Queue.Close()
+	}
+}
+
+// CloseCache closes the Redis cache connection.
+func (i *Infrastructure) CloseCache() {
+	if i != nil && i.Cache != nil {
+		redis.CloseRedis()
 	}
 }
 
@@ -96,11 +105,21 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *lgr.
 	// Email
 	emailClient := InitializeEmailClient(cfg, log)
 
+	// Redis Cache
+	if err := redis.InitRedis(&cfg.Storage.Redis, ctx); err != nil {
+		log.Logf("WARN failed to initialize Redis: %v", err)
+	}
+	redisClient, err := redis.GetRedis()
+	if err != nil {
+		log.Logf("WARN failed to get Redis client: %v (cache will be disabled)", err)
+	}
+
 	return &Infrastructure{
 		DB:        db,
 		Storage:   r2Storage,
 		AI:        aiClient,
 		Email:     emailClient,
+		Cache:     redisClient,
 		embedding: embeddingClient,
 	}, nil
 }

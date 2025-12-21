@@ -52,7 +52,7 @@ type Property struct {
 
 	// JSON fields
 	Amenities          []AmenitiesType `gorm:"type:jsonb;serializer:json"`
-	FeaturesCommercial []AmenitiesType `gorm:"type:jsonb;erializer:json"`
+	FeaturesCommercial []AmenitiesType `gorm:"type:jsonb;serializer:json"`
 
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`

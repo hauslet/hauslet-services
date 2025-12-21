@@ -169,6 +169,10 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 		return fmt.Errorf("failed to update listing status: %w", err)
 	}
 
+	// Invalidate cache to ensure subsequent reads get the updated status
+	publicID := s.getPropertyPublicID(ctx, listing.PropertyID)
+	s.invalidateListingCache(ctx, listing.ID, listing.Slug, publicID)
+
 	//  Fetch owner data for notification
 	profileName, profileEmail, err := s.profiles.GetProfileData(ctx, listing.OwnerID.String())
 	if err != nil || profileEmail == "" {

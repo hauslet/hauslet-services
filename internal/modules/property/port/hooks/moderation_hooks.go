@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"hauslet/internal/platform/redis"
+
 	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
@@ -31,19 +33,21 @@ type ModerationPropertyAdapter struct {
 	profiles  ProfileProvider
 	notifier  *notification.NotificationService
 	nowFunc   func() time.Time
+	cache     redis.RedisClient
 	log       *lgr.Logger
 	embedding *aiembeddings.Client
 }
 
 // NewModerationPropertyAdapter constructs the adapter with its dependencies.
 func NewModerationPropertyAdapter(repo repository.Repository, profiles ProfileProvider,
-	notifier *notification.NotificationService, embedding *aiembeddings.Client, log *lgr.Logger) *ModerationPropertyAdapter {
+	notifier *notification.NotificationService, embedding *aiembeddings.Client, cache redis.RedisClient, log *lgr.Logger) *ModerationPropertyAdapter {
 	return &ModerationPropertyAdapter{
 		repo:      repo,
 		profiles:  profiles,
 		notifier:  notifier,
 		nowFunc:   time.Now,
 		embedding: embedding,
+		cache:     cache,
 		log:       log,
 	}
 }
@@ -131,6 +135,10 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 	if err := a.repo.PatchListing(ctx, aggregate.TargetID, updates); err != nil {
 		return err
 	}
+
+	// Invalidate cache to ensure subsequent reads get the updated status
+	a.invalidateListingCache(ctx, listing.ID, listing.Slug, property.PublicID)
+
 	return nil
 }
 
@@ -215,4 +223,43 @@ func (a *ModerationPropertyAdapter) buildListingUpdates(aggregate *domain.Aggreg
 	default:
 		return nil
 	}
+}
+
+// Cache invalidation helpers
+func (a *ModerationPropertyAdapter) invalidateListingCache(ctx context.Context, id uuid.UUID, slug string, publicID string) {
+	if a.cache == nil {
+		return
+	}
+	if id == uuid.Nil && slug == "" && publicID == "" {
+		return
+	}
+
+	keys := make([]string, 0, 6)
+	if id != uuid.Nil {
+		keys = append(keys, listingIDCacheKey(id, true), listingIDCacheKey(id, false))
+	}
+	if slug != "" {
+		keys = append(keys, listingSlugCacheKey(slug, true), listingSlugCacheKey(slug, false))
+	}
+	if publicID != "" {
+		keys = append(keys, listingPublicIDCacheKey(publicID, true), listingPublicIDCacheKey(publicID, false))
+	}
+
+	if len(keys) > 0 {
+		if err := a.cache.Del(ctx, keys...).Err(); err != nil {
+			a.log.Logf("[WARN] cache invalidation failed for listing %s: %v", id, err)
+		}
+	}
+}
+
+func listingIDCacheKey(id uuid.UUID, preloadMedia bool) string {
+	return fmt.Sprintf("listing:%s:media:%t", id.String(), preloadMedia)
+}
+
+func listingSlugCacheKey(slug string, preloadMedia bool) string {
+	return fmt.Sprintf("listing:slug:%s:media:%t", slug, preloadMedia)
+}
+
+func listingPublicIDCacheKey(publicID string, preloadMedia bool) string {
+	return fmt.Sprintf("listing:public:%s:media:%t", publicID, preloadMedia)
 }

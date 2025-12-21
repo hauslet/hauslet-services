@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	businessmiddleware "hauslet/internal/modules/business/middleware"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/repository"
 
@@ -341,8 +342,18 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 		return nil, err
 	}
 	if listing.OwnerID != requesterID {
-		s.log.Logf("WARN unauthorized completeness check listing=%s requester=%s owner=%s", listingID, requesterID, listing.OwnerID)
-		return nil, domain.ErrForbidden
+		// For business-owned listings, allow authorized business members (via context) to view completeness.
+		if listing.OwnerType == domain.OwnerBusiness {
+			if bc, ok := businessmiddleware.GetBusinessContext(ctx); ok && bc.BusinessID == listing.OwnerID && bc.Membership != nil {
+				// authorized via business membership
+			} else {
+				s.log.Logf("WARN unauthorized completeness check listing=%s requester=%s owner=%s", listingID, requesterID, listing.OwnerID)
+				return nil, domain.ErrForbidden
+			}
+		} else {
+			s.log.Logf("WARN unauthorized completeness check listing=%s requester=%s owner=%s", listingID, requesterID, listing.OwnerID)
+			return nil, domain.ErrForbidden
+		}
 	}
 
 	property, err := s.ensureProperty(ctx, listing.PropertyID)
