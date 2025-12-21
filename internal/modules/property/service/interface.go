@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 
+	businessservice "hauslet/internal/modules/business/service"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/notification"
 	"hauslet/internal/modules/property/repository"
@@ -56,6 +57,14 @@ type Service interface {
 	UpdateListingWithProperty(ctx context.Context, id uuid.UUID, listingUpdates map[string]any, propertyUpdates map[string]any, requesterID uuid.UUID, requesterRole string) (*domain.Listing, error)
 }
 
+// BusinessAuthorizer defines permission checks for business-owned listings.
+type BusinessAuthorizer interface {
+	CanCreateListing(ctx context.Context, businessID uuid.UUID) error
+	CanEditListing(ctx context.Context, businessID uuid.UUID) error
+	CanDeleteListing(ctx context.Context, businessID uuid.UUID) error
+	CanPublishListing(ctx context.Context, businessID uuid.UUID) error
+}
+
 type ProfileProvider interface {
 	GetProfileData(ctx context.Context, userID string) (string, string, error)
 }
@@ -78,6 +87,8 @@ type ServiceImpl struct {
 	embedding           *aiembeddings.Client
 	log                 *lgr.Logger
 	embeddingGroup      singleflight.Group
+	businessAuthorizer  BusinessAuthorizer
+	businessService     businessservice.BusinessService
 }
 
 // NewPropertyService creates a new property service.
@@ -91,6 +102,8 @@ func NewPropertyService(repo repository.Repository,
 	cache redis.RedisClient,
 	embedding *aiembeddings.Client,
 	log *lgr.Logger,
+	businessAuthorizer BusinessAuthorizer,
+	businessService businessservice.BusinessService,
 ) *ServiceImpl {
 	return &ServiceImpl{
 		repo:                repo,
@@ -103,5 +116,7 @@ func NewPropertyService(repo repository.Repository,
 		cache:               cache,
 		embedding:           embedding,
 		log:                 log,
+		businessAuthorizer:  businessAuthorizer,
+		businessService:     businessService,
 	}
 }

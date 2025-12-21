@@ -3,6 +3,7 @@ package hooks
 import (
 	"context"
 	"fmt"
+	businessservice "hauslet/internal/modules/business/service"
 	moderationservice "hauslet/internal/modules/moderation/service"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/notification"
@@ -29,26 +30,29 @@ type ProfileProvider interface {
 
 // ModerationPropertyAdapter applies moderation outcomes back to listings and notifies owners.
 type ModerationPropertyAdapter struct {
-	repo      repository.Repository
-	profiles  ProfileProvider
-	notifier  *notification.NotificationService
-	nowFunc   func() time.Time
-	cache     redis.RedisClient
-	log       *lgr.Logger
-	embedding *aiembeddings.Client
+	repo        repository.Repository
+	profiles    ProfileProvider
+	notifier    *notification.NotificationService
+	nowFunc     func() time.Time
+	cache       redis.RedisClient
+	log         *lgr.Logger
+	embedding   *aiembeddings.Client
+	businessSvc businessservice.BusinessService
 }
 
 // NewModerationPropertyAdapter constructs the adapter with its dependencies.
 func NewModerationPropertyAdapter(repo repository.Repository, profiles ProfileProvider,
-	notifier *notification.NotificationService, embedding *aiembeddings.Client, cache redis.RedisClient, log *lgr.Logger) *ModerationPropertyAdapter {
+	notifier *notification.NotificationService, embedding *aiembeddings.Client, cache redis.RedisClient, log *lgr.Logger,
+	businessSvc businessservice.BusinessService) *ModerationPropertyAdapter {
 	return &ModerationPropertyAdapter{
-		repo:      repo,
-		profiles:  profiles,
-		notifier:  notifier,
-		nowFunc:   time.Now,
-		embedding: embedding,
-		cache:     cache,
-		log:       log,
+		repo:        repo,
+		profiles:    profiles,
+		notifier:    notifier,
+		nowFunc:     time.Now,
+		embedding:   embedding,
+		cache:       cache,
+		log:         log,
+		businessSvc: businessSvc,
 	}
 }
 
@@ -80,13 +84,7 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 		return domain.ErrPropertyNotFound
 	}
 
-	ownerProfileName, ownerProfileEmail, err := a.profiles.GetProfileData(ctx, listing.OwnerID.String())
-	if err != nil {
-		a.log.Logf("[WARN] failed to fetch profile data for owner %s: %v", listing.OwnerID.String(), err)
-	}
-	if ownerProfileName == "" {
-		ownerProfileName = "User"
-	}
+	ownerProfileName, ownerProfileEmail := a.resolveOwnerContact(ctx, listing)
 
 	aggDomain := domain.MapModerationAggToDomain(aggregate)
 
@@ -223,6 +221,57 @@ func (a *ModerationPropertyAdapter) buildListingUpdates(aggregate *domain.Aggreg
 	default:
 		return nil
 	}
+}
+
+// resolveOwnerContact determines the display name and email for the listing owner, handling business owners.
+func (a *ModerationPropertyAdapter) resolveOwnerContact(ctx context.Context, listing *schema.Listing) (string, string) {
+	if listing == nil {
+		return "User", ""
+	}
+
+	// Individual owner path
+	if listing.OwnerType != schema.OwnerBusiness {
+		name, email, err := a.profiles.GetProfileData(ctx, listing.OwnerID.String())
+		if err != nil {
+			a.log.Logf("[WARN] failed to fetch profile data for owner %s: %v", listing.OwnerID, err)
+		}
+		if name == "" {
+			name = "User"
+		}
+		return name, email
+	}
+
+	// Business owner path: notify an owner/admin with publish permission.
+	if a.businessSvc == nil {
+		a.log.Logf("[WARN] business service not configured; cannot resolve contact for business %s", listing.OwnerID)
+		return "User", ""
+	}
+
+	members, err := a.businessSvc.GetBusinessMembers(ctx, listing.OwnerID)
+	if err != nil {
+		a.log.Logf("[WARN] failed to fetch business members for %s: %v", listing.OwnerID, err)
+		return "User", ""
+	}
+
+	for _, m := range members {
+		if !m.IsActive {
+			continue
+		}
+		if !(m.IsOwner() || m.IsAdmin() || m.Permissions.CanPublishListings) {
+			continue
+		}
+		name, email, err := a.profiles.GetProfileData(ctx, m.UserID.String())
+		if err != nil || email == "" {
+			continue
+		}
+		if name == "" {
+			name = "User"
+		}
+		return name, email
+	}
+
+	a.log.Logf("[WARN] no eligible business contact found for business %s", listing.OwnerID)
+	return "User", ""
 }
 
 // Cache invalidation helpers

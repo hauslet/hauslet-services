@@ -95,6 +95,8 @@ func setupRoutes(r chi.Router,
 		*rds,
 		embeddingClient,
 		log,
+		businessmiddleware.NewPropertyAuthHelper(businessService),
+		businessService,
 	)
 
 	// Initialize auth service
@@ -122,16 +124,14 @@ func setupRoutes(r chi.Router,
 	// Setup property routes with optional rate limiting in production
 	if cfg.App.Env == "production" {
 		r.Group(func(r chi.Router) {
-			r.Use(businessMW.Auth.WithTenantSlug)
-			propertyHTTP.SetupRoutesWithRateLimiting(r, authService, *rds)
+			propertyHTTP.SetupRoutesWithRateLimiting(r, authService, *rds, businessMW)
 		})
 	} else {
 		r.Group(func(r chi.Router) {
-			r.Use(businessMW.Auth.WithTenantSlug)
-			propertyHTTP.SetupRoutes(r, authService)
+			propertyHTTP.SetupRoutes(r, authService, businessMW)
 		})
 	}
 
 	// Setup GraphQL routes
-	graph.SetupGraphQL(r, authService, profileService, propertyService, businessService, cfg, log)
+	graph.SetupGraphQL(r, authService, profileService, propertyService, businessService, businessMW.Auth.WithTenantSlug, cfg, log)
 }

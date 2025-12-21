@@ -139,9 +139,9 @@ type ShortletFilter struct {
 	BaseGuestCount *int // Exact match for base_guest_count
 
 	// Timing - Range matching
-	CheckInTimeAfter  *string // HH:MM format
-	CheckInTimeBefore *string // HH:MM format
-	CheckOutTimeAfter *string // HH:MM format
+	CheckInTimeAfter   *string // HH:MM format
+	CheckInTimeBefore  *string // HH:MM format
+	CheckOutTimeAfter  *string // HH:MM format
 	CheckOutTimeBefore *string // HH:MM format
 
 	// Type
@@ -555,6 +555,42 @@ func (s *ServiceImpl) unpublishAndEnqueueModeration(ctx context.Context, existin
 		return fmt.Errorf("failed to serialize listing payload: %w", err)
 	}
 
+	lc, err := s.GetListingCompleteness(ctx, listing.ID, listing.OwnerID)
+	if err != nil {
+		return fmt.Errorf("failed to get listing completeness: %w", err)
+	}
+	s.log.Logf("INFO listing=%s completeness before unpublish: %f%%", listing.ID, float64(lc.CompletionScore))
+
+	// Decide next status based on completeness.
+	nextStatus := domain.StatusUnderReview
+	if !lc.ReadyToPublish {
+		nextStatus = domain.StatusRequiresUpdates
+	}
+
+	// Mark as unpublished with the chosen status.
+	now := time.Now()
+	updates := map[string]any{
+		"status":               nextStatus,
+		"latest_review_status": domain.ReviewPending,
+		"published":            false,
+		"published_at":         nil,
+		"status_changed_at":    now,
+	}
+
+	if err := s.repo.PatchListing(ctx, listing.ID, updates); err != nil {
+		return err
+	}
+
+	// Invalidate cache to ensure subsequent reads get the updated status
+	publicID := s.getPropertyPublicID(ctx, listing.PropertyID)
+	s.invalidateListingCache(ctx, listing.ID, listing.Slug, publicID)
+
+	// If not ready, stop after unpublishing.
+	if !lc.ReadyToPublish {
+		s.log.Logf("INFO listing=%s not ready to publish; set status=%s and skipped moderation", listing.ID, nextStatus)
+		return nil
+	}
+
 	// Enqueue text moderation
 	if err := s.moderationHooks.EnqueueAIModeration(ctx, listing.ID, "listing_text", listingPayloadStr); err != nil {
 		return fmt.Errorf("failed to enqueue text moderation: %w", err)
@@ -578,24 +614,6 @@ func (s *ServiceImpl) unpublishAndEnqueueModeration(ctx context.Context, existin
 			return fmt.Errorf("failed to enqueue moderation for media %s: %w", media.ID, err)
 		}
 	}
-
-	// Mark as under review/unpublished
-	now := time.Now()
-	updates := map[string]any{
-		"status":               domain.StatusUnderReview,
-		"latest_review_status": domain.ReviewPending,
-		"published":            false,
-		"published_at":         nil,
-		"status_changed_at":    now,
-	}
-
-	if err := s.repo.PatchListing(ctx, listing.ID, updates); err != nil {
-		return err
-	}
-
-	// Invalidate cache to ensure subsequent reads get the updated status
-	publicID := s.getPropertyPublicID(ctx, listing.PropertyID)
-	s.invalidateListingCache(ctx, listing.ID, listing.Slug, publicID)
 
 	return nil
 }

@@ -2,6 +2,8 @@ package http
 
 import (
 	"context"
+
+	businessmiddleware "hauslet/internal/modules/business/middleware"
 	"hauslet/internal/modules/property/domain"
 
 	"github.com/google/uuid"
@@ -18,6 +20,13 @@ func (h *HTTPHandler) verifyListingOwnership(ctx context.Context, listingID uuid
 
 	if listing == nil {
 		return domain.ErrListingNotFound
+	}
+
+	// Business-owned listing: allow members from business context (set by tenant slug middleware).
+	if listing.OwnerType == domain.OwnerBusiness {
+		if bc, ok := businessmiddleware.GetBusinessContext(ctx); ok && bc.BusinessID == listing.OwnerID && bc.Membership != nil {
+			return nil
+		}
 	}
 
 	// Check if the user owns the listing

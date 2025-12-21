@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"hauslet/config"
+	businessrepository "hauslet/internal/modules/business/repository"
+	businessservice "hauslet/internal/modules/business/service"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
 	profilenotification "hauslet/internal/modules/profile/notification"
@@ -70,6 +72,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 	// AI moderation handler
 	if hasModeration {
 		moderationRepo := moderationrepository.NewModerationRepository(infra.DB)
+		businessRepo := businessrepository.NewBusinessRepository(infra.DB)
+		businessSvc := businessservice.NewBusinessService(businessRepo, nil, nil, log)
 
 		// Setup property moderation callback
 		propertyNotificationService := propertynotification.NewNotificationService(infra.Email, nil, "", cfg.App.Client, log)
@@ -79,6 +83,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			infra.embedding,
 			infra.Cache,
 			log,
+			businessSvc,
 		)
 
 		// Setup profile moderation callback

@@ -166,7 +166,6 @@ const (
 )
 
 // --- 5. VALIDATION MAPS (Lookup Tables) ---
-
 var validAmenities = map[string]bool{
 	"borehole": true, "fenced": true, "gated_estate": true, "security": true,
 	"cctv": true, "interlocked_floor": true, "balcony": true, "air_conditioning": true,

@@ -32,6 +32,17 @@ func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Pr
 			l.OwnerID = createdProperty.OwnerID
 		}
 
+		// If business-owned, enforce permission
+		if l.OwnerType == domain.OwnerBusiness {
+			if s.businessAuthorizer == nil {
+				return fmt.Errorf("business authorizer not configured")
+			}
+			if err := s.businessAuthorizer.CanCreateListing(ctx, l.OwnerID); err != nil {
+				s.log.Logf("WARN requester lacks create permission for business=%s listing", l.OwnerID)
+				return err
+			}
+		}
+
 		// Create listing within transaction
 		listingSchema := domain.MapListingToSchema(&l)
 		if listingSchema.Slug == "" {
@@ -71,8 +82,20 @@ func (s *ServiceImpl) UpdateListingWithProperty(ctx context.Context, id uuid.UUI
 	}
 
 	if !isAdminRole(requesterRole) && existing.OwnerID != requesterID {
-		s.log.Logf("WARN requester=%s forbidden to update listing=%s owner=%s", requesterID, id, existing.OwnerID)
-		return nil, domain.ErrForbidden
+		// Allow business members (via authorizer) to update business-owned listings when they have edit permission.
+		if existing.OwnerType == domain.OwnerBusiness {
+			if s.businessAuthorizer == nil {
+				s.log.Logf("WARN business authorizer not configured for update listing=%s", id)
+				return nil, domain.ErrForbidden
+			}
+			if err := s.businessAuthorizer.CanEditListing(ctx, existing.OwnerID); err != nil {
+				s.log.Logf("WARN requester=%s lacks edit permission for business listing=%s owner=%s", requesterID, id, existing.OwnerID)
+				return nil, domain.ErrForbidden
+			}
+		} else {
+			s.log.Logf("WARN requester=%s forbidden to update listing=%s owner=%s", requesterID, id, existing.OwnerID)
+			return nil, domain.ErrForbidden
+		}
 	}
 
 	if len(propertyUpdates) > 0 {

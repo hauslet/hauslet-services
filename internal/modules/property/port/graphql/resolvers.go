@@ -456,7 +456,7 @@ func (r *Resolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) 
 		return false, err
 	}
 
-	if existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
+	if existing.OwnerType != domain.OwnerBusiness && existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
 		r.log.Logf("WARN User %s attempted to delete listing %s owned by %s", v.UserID, id, existing.OwnerID)
 		return false, fmt.Errorf("forbidden: not the owner")
 	}
@@ -489,7 +489,7 @@ func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Li
 		return nil, err
 	}
 
-	if existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
+	if existing.OwnerType != domain.OwnerBusiness && existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
 		r.log.Logf("WARN User %s attempted to publish listing %s owned by %s", v.UserID, id, existing.OwnerID)
 		return nil, fmt.Errorf("forbidden: not the owner")
 	}
@@ -522,7 +522,7 @@ func (r *Resolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.
 		return nil, err
 	}
 
-	if existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
+	if existing.OwnerType != domain.OwnerBusiness && existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
 		r.log.Logf("WARN User %s attempted to unpublish listing %s owned by %s", v.UserID, id, existing.OwnerID)
 		return nil, fmt.Errorf("forbidden: not the owner")
 	}

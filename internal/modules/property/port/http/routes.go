@@ -1,22 +1,27 @@
 package http
 
 import (
-	"hauslet/cmd/api/server/middleware"
-	authservice "hauslet/internal/modules/auth/service"
-	"hauslet/internal/platform/redis"
 	"net/http"
 	"time"
+
+	"hauslet/cmd/api/server/middleware"
+	authservice "hauslet/internal/modules/auth/service"
+	businessmiddleware "hauslet/internal/modules/business/middleware"
+	"hauslet/internal/platform/redis"
 
 	"github.com/go-chi/chi/v5"
 )
 
 // SetupRoutes configures all property-related routes
-func (h *HTTPHandler) SetupRoutes(r chi.Router, authService authservice.AuthService) {
+func (h *HTTPHandler) SetupRoutes(r chi.Router, authService authservice.AuthService, businessMW *businessmiddleware.Middleware) {
 	authMiddleware := authService.OAuthService().Middleware()
 
 	// Protected routes (require authentication)
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware.Auth)
+		if businessMW != nil && businessMW.Auth != nil {
+			r.Use(businessMW.Auth.WithTenantSlug)
+		}
 
 		// Listing media routes
 		r.Route("/api/listings/{id}/media", func(r chi.Router) {
@@ -32,7 +37,7 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router, authService authservice.AuthServ
 }
 
 // SetupRoutesWithRateLimiting configures property routes with rate limiting (for production)
-func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService authservice.AuthService, redisClient redis.RedisClient) {
+func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService authservice.AuthService, redisClient redis.RedisClient, businessMW *businessmiddleware.Middleware) {
 	authMiddleware := authService.OAuthService().Middleware()
 
 	// Helper to apply rate limiting
@@ -43,7 +48,9 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService auth
 	// Protected routes (require authentication)
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware.Auth)
-
+		if businessMW != nil && businessMW.Auth != nil {
+			r.Use(businessMW.Auth.WithTenantSlug)
+		}
 		// Listing media routes
 		r.Route("/api/listings/{id}/media", func(r chi.Router) {
 			// Upload media: 20 requests/minute

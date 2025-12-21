@@ -7,9 +7,9 @@ import (
 
 	"hauslet/internal/modules/business/domain"
 	"hauslet/internal/modules/business/service"
-	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-pkgz/auth/token"
 	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
@@ -36,12 +36,15 @@ func (m *BusinessAuthMiddleware) RequireBusinessMember(next http.Handler) http.H
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		// Get viewer from context
-		v := viewer.FromContext(ctx)
-		if v == nil || v.UserID == "" {
+		userInfo, err := token.GetUserInfo(r)
+		if err != nil {
 			m.log.Logf("WARN Unauthenticated request to business resource")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
+		}
+		userIDStr := userInfo.StrAttr("uid")
+		if userIDStr == "" {
+			userIDStr = userInfo.ID
 		}
 
 		// Get business ID from URL
@@ -59,7 +62,7 @@ func (m *BusinessAuthMiddleware) RequireBusinessMember(next http.Handler) http.H
 			return
 		}
 
-		userID, err := uuid.Parse(v.UserID)
+		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
 			m.log.Logf("ERROR Invalid user ID: %v", err)
 			http.Error(w, "Invalid user ID", http.StatusBadRequest)
@@ -236,14 +239,18 @@ func (m *BusinessAuthMiddleware) WithTenantSlug(next http.Handler) http.Handler 
 		}
 
 		// Must be authenticated to use business context
-		v := viewer.FromContext(ctx)
-		if v == nil || v.UserID == "" {
+		user, err := token.GetUserInfo(r)
+		if err != nil {
 			m.log.Logf("WARN Unauthenticated request with tenant slug %s", slug)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
+		userIDStr := user.StrAttr("uid")
+		if userIDStr == "" {
+			userIDStr = user.ID
+		}
 
-		userID, err := uuid.Parse(v.UserID)
+		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
 			m.log.Logf("ERROR Invalid user ID: %v", err)
 			http.Error(w, "Invalid user ID", http.StatusBadRequest)
@@ -310,12 +317,13 @@ func (m *BusinessAuthMiddleware) LoadBusinessContext(next http.Handler) http.Han
 		ctx = WithBusiness(ctx, business)
 
 		// Try to load membership if user is authenticated
-		v := viewer.FromContext(ctx)
-		if v != nil && v.UserID != "" {
-			userID, err := uuid.Parse(v.UserID)
-			if err == nil {
-				membership, err := m.businessService.GetMember(ctx, businessID, userID)
-				if err == nil {
+		if user, err := token.GetUserInfo(r); err == nil {
+			userID := user.StrAttr("uid")
+			if userID == "" {
+				userID = user.ID
+			}
+			if parsed, err := uuid.Parse(userID); err == nil {
+				if membership, err := m.businessService.GetMember(ctx, businessID, parsed); err == nil {
 					ctx = WithMembership(ctx, membership)
 					ctx = WithPermissions(ctx, &membership.Permissions)
 				}

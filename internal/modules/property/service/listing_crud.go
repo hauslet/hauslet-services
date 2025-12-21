@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	businessmiddleware "hauslet/internal/modules/business/middleware"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/repository"
 
@@ -297,6 +296,15 @@ func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool
 	var existing *domain.Listing
 	if l, err := s.repo.GetListingByID(ctx, id, false); err == nil && l != nil {
 		existing = domain.MapListingFromSchema(l)
+		// Enforce business delete permission when applicable
+		if existing.OwnerType == domain.OwnerBusiness {
+			if s.businessAuthorizer == nil {
+				return domain.ErrForbidden
+			}
+			if err := s.businessAuthorizer.CanDeleteListing(ctx, existing.OwnerID); err != nil {
+				return domain.ErrForbidden
+			}
+		}
 	}
 
 	if hard {
@@ -342,11 +350,13 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 		return nil, err
 	}
 	if listing.OwnerID != requesterID {
-		// For business-owned listings, allow authorized business members (via context) to view completeness.
+		// For business-owned listings, allow authorized business members (via authorizer) to view completeness.
 		if listing.OwnerType == domain.OwnerBusiness {
-			if bc, ok := businessmiddleware.GetBusinessContext(ctx); ok && bc.BusinessID == listing.OwnerID && bc.Membership != nil {
-				// authorized via business membership
-			} else {
+			if s.businessAuthorizer == nil {
+				s.log.Logf("WARN business authorizer not configured for completeness listing=%s", listingID)
+				return nil, domain.ErrForbidden
+			}
+			if err := s.businessAuthorizer.CanEditListing(ctx, listing.OwnerID); err != nil {
 				s.log.Logf("WARN unauthorized completeness check listing=%s requester=%s owner=%s", listingID, requesterID, listing.OwnerID)
 				return nil, domain.ErrForbidden
 			}
@@ -369,11 +379,17 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 	hasPropertyInfo := property.Address != "" && property.City != "" &&
 		property.State != "" && property.Country != "" && property.PropertyType != ""
 
-	// Room details (bedrooms and bathrooms)
+	// Room details (bedrooms and bathrooms) - only required for residential properties
 	hasRoomDetails := false
-	if property.Bedrooms != nil && *property.Bedrooms > 0 &&
-		property.Bathrooms != nil && *property.Bathrooms > 0 {
+	if property.PropertyClass == domain.ClassCommercial {
+		// Commercial properties don't need bedrooms/bathrooms
 		hasRoomDetails = true
+	} else {
+		// Residential properties require bedrooms and bathrooms
+		if property.Bedrooms != nil && *property.Bedrooms > 0 &&
+			property.Bathrooms != nil && *property.Bathrooms > 0 {
+			hasRoomDetails = true
+		}
 	}
 
 	// Property size information
@@ -457,7 +473,9 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 		completionScore += 10
 	} else {
 		missingFields = append(missingFields, "room_details")
-		recommendations = append(recommendations, "Specify the number of bedrooms and bathrooms.")
+		if property.PropertyClass == domain.ClassResidential {
+			recommendations = append(recommendations, "Specify the number of bedrooms and bathrooms for this residential property.")
+		}
 	}
 
 	if hasPropertySize {

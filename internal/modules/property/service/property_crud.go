@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/repository"
 	"hauslet/internal/modules/property/repository/schema"
 
 	"github.com/google/uuid"
+	"gorm.io/datatypes"
 )
 
 // CreateProperty creates a new property with validation.
@@ -109,6 +111,26 @@ func (s *ServiceImpl) PatchProperty(ctx context.Context, id uuid.UUID, updates m
 			if !location.Valid() {
 				return nil, domain.ErrInvalidLocation
 			}
+		}
+	}
+
+	// Normalize JSONB fields to proper JSON to avoid GORM passing record literals.
+	if amenities, ok := updates["amenities"]; ok {
+		if groups, ok := amenities.([]domain.AmenityGroup); ok {
+			b, err := json.Marshal(domain.MapAmenityGroupsToSchema(groups))
+			if err != nil {
+				return nil, err
+			}
+			updates["amenities"] = datatypes.JSON(b)
+		}
+	}
+	if feats, ok := updates["features_commercial"]; ok {
+		if groups, ok := feats.([]domain.AmenityGroup); ok {
+			b, err := json.Marshal(domain.MapAmenityGroupsToSchema(groups))
+			if err != nil {
+				return nil, err
+			}
+			updates["features_commercial"] = datatypes.JSON(b)
 		}
 	}
 

@@ -47,3 +47,8 @@ func FromContext(ctx context.Context) *Viewer {
 	viewer, _ := ctx.Value(contextKey{}).(*Viewer)
 	return viewer
 }
+
+// ContextWith sets a viewer on a context (useful outside graph adapter).
+func ContextWith(ctx context.Context, v *Viewer) context.Context {
+	return context.WithValue(ctx, contextKey{}, v)
+}

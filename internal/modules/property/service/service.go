@@ -41,6 +41,16 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 		return fmt.Errorf("cannot publish listing from current state: %s", listing.Status)
 	}
 
+	// Enforce business publish permissions
+	if listing.OwnerType == domain.OwnerBusiness {
+		if s.businessAuthorizer == nil {
+			return domain.ErrForbidden
+		}
+		if err := s.businessAuthorizer.CanPublishListing(ctx, listing.OwnerID); err != nil {
+			return domain.ErrForbidden
+		}
+	}
+
 	// check completeness
 	completeness, err := s.GetListingCompleteness(ctx, listingID, listing.OwnerID)
 	if err != nil {
@@ -56,6 +66,15 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 	if err != nil {
 		s.log.Logf("ERROR failed to fetch property=%s for listing=%s: %v", listing.PropertyID, listingID, err)
 		return err
+	}
+
+	contactName, contactEmail := s.resolveOwnerContact(ctx, listing.OwnerType, listing.OwnerID)
+
+	// Best-effort notify immediately that moderation has been requested.
+	if s.notificationService != nil && contactEmail != "" {
+		if err := s.notificationService.SendPublishListingRequestNotification(ctx, listing.Title, contactName, contactEmail); err != nil {
+			s.log.Logf("ERROR failed to send publish listing request notification for listing=%s: %v", listingID, err)
+		}
 	}
 
 	listingPayload := map[string]any{
@@ -173,20 +192,7 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 	publicID := s.getPropertyPublicID(ctx, listing.PropertyID)
 	s.invalidateListingCache(ctx, listing.ID, listing.Slug, publicID)
 
-	//  Fetch owner data for notification
-	profileName, profileEmail, err := s.profiles.GetProfileData(ctx, listing.OwnerID.String())
-	if err != nil || profileEmail == "" {
-		s.log.Logf("WARN failed to fetch profile data for user=%s: %v", listing.OwnerID, err)
-		return fmt.Errorf("failed to fetch listing owner profile data")
-	}
-	// Notify listing owner
-	if s.notificationService != nil {
-		s.log.Logf("INFO sending publish listing request notification for listing=%s", listingID)
-		if err := s.notificationService.SendPublishListingRequestNotification(ctx, listing.Title, profileName, profileEmail); err != nil {
-			s.log.Logf("ERROR failed to send publish listing request notification for listing=%s: %v", listingID, err)
-			// Non-fatal
-		}
-	}
+	// No additional notification here; it was sent best-effort before enqueue.
 
 	s.log.Logf("INFO successfully submitted listing=%s for moderation, status=%s", listingID, domain.StatusUnderReview)
 	return nil
@@ -224,4 +230,60 @@ func serializeToJSON(data any) (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+// resolveOwnerContact determines the contact name/email for a listing owner, handling business owners.
+func (s *ServiceImpl) resolveOwnerContact(ctx context.Context, ownerType domain.OwnerType, ownerID uuid.UUID) (string, string) {
+	name := "User"
+	email := ""
+
+	if ownerType != domain.OwnerBusiness {
+		if s.profiles != nil {
+			if n, e, err := s.profiles.GetProfileData(ctx, ownerID.String()); err == nil {
+				if n != "" {
+					name = n
+				}
+				email = e
+			} else {
+				s.log.Logf("WARN failed to fetch profile data for owner %s: %v", ownerID, err)
+			}
+		}
+		return name, email
+	}
+
+	// Business owner path: find a member to notify.
+	if s.businessService == nil {
+		s.log.Logf("WARN business service not configured; cannot resolve contact for business %s", ownerID)
+		return name, email
+	}
+
+	members, err := s.businessService.GetBusinessMembers(ctx, ownerID)
+	if err != nil {
+		s.log.Logf("WARN failed to fetch business members for %s: %v", ownerID, err)
+		return name, email
+	}
+
+	for _, m := range members {
+		if !m.IsActive {
+			continue
+		}
+		if !(m.IsOwner() || m.IsAdmin() || m.Permissions.CanPublishListings) {
+			continue
+		}
+		if s.profiles == nil {
+			continue
+		}
+		n, e, err := s.profiles.GetProfileData(ctx, m.UserID.String())
+		if err != nil || e == "" {
+			continue
+		}
+		if n != "" {
+			name = n
+		}
+		email = e
+		return name, email
+	}
+
+	s.log.Logf("WARN no eligible business contact found for business %s", ownerID)
+	return name, email
 }
