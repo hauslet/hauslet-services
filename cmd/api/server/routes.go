@@ -22,6 +22,8 @@ import (
 	propertyhttp "hauslet/internal/modules/property/port/http"
 	propertyrepository "hauslet/internal/modules/property/repository"
 	propertyservice "hauslet/internal/modules/property/service"
+	wishlistrepository "hauslet/internal/modules/wishlist/repository"
+	wishlistservice "hauslet/internal/modules/wishlist/service"
 
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	"hauslet/internal/platform/email"
@@ -99,6 +101,10 @@ func setupRoutes(r chi.Router,
 		businessService,
 	)
 
+	// Initialize wishlist service
+	wishlistRepo := wishlistrepository.NewWishlistRepository(db)
+	wishlistService := wishlistservice.NewWishlistService(wishlistRepo, *rds, log)
+
 	// Initialize auth service
 	authService := service.NewAuthService(
 		&cfg.Auth,
@@ -133,5 +139,5 @@ func setupRoutes(r chi.Router,
 	}
 
 	// Setup GraphQL routes
-	graph.SetupGraphQL(r, authService, profileService, propertyService, businessService, businessMW.Auth.WithTenantSlug, cfg, log)
+	graph.SetupGraphQL(r, authService, profileService, propertyService, businessService, wishlistService, businessMW.Auth.WithTenantSlug, cfg, log)
 }

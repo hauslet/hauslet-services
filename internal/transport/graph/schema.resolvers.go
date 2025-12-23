@@ -12,6 +12,7 @@ import (
 	domain3 "hauslet/internal/modules/business/domain"
 	domain1 "hauslet/internal/modules/profile/domain"
 	"hauslet/internal/modules/property/domain"
+	domain4 "hauslet/internal/modules/wishlist/domain"
 	"hauslet/internal/transport/graph/model"
 
 	"github.com/google/uuid"
@@ -166,6 +167,36 @@ func (r *mutationResolver) DeclineInvitation(ctx context.Context, token string) 
 // RevokeInvitation is the resolver for the revokeInvitation field.
 func (r *mutationResolver) RevokeInvitation(ctx context.Context, invitationID uuid.UUID) (bool, error) {
 	return r.BusinessResolver.RevokeInvitation(ctx, invitationID.String())
+}
+
+// CreateWishlist is the resolver for the createWishlist field.
+func (r *mutationResolver) CreateWishlist(ctx context.Context, input model.CreateWishlistInput) (*domain4.Wishlist, error) {
+	return r.WishlistResolver.CreateWishlist(ctx, input)
+}
+
+// UpdateWishlist is the resolver for the updateWishlist field.
+func (r *mutationResolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input model.UpdateWishlistInput) (*domain4.Wishlist, error) {
+	return r.WishlistResolver.UpdateWishlist(ctx, id, input)
+}
+
+// DeleteWishlist is the resolver for the deleteWishlist field.
+func (r *mutationResolver) DeleteWishlist(ctx context.Context, id uuid.UUID) (bool, error) {
+	return r.WishlistResolver.DeleteWishlist(ctx, id)
+}
+
+// AddWishlistItem is the resolver for the addWishlistItem field.
+func (r *mutationResolver) AddWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID, source *domain4.WishlistItemSource) (*domain4.WishlistItem, error) {
+	return r.WishlistResolver.AddWishlistItem(ctx, wishlistID, listingID, source)
+}
+
+// RemoveWishlistItem is the resolver for the removeWishlistItem field.
+func (r *mutationResolver) RemoveWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID) (bool, error) {
+	return r.WishlistResolver.RemoveWishlistItem(ctx, wishlistID, listingID)
+}
+
+// ImportWishlist is the resolver for the importWishlist field.
+func (r *mutationResolver) ImportWishlist(ctx context.Context, sourceWishlistID uuid.UUID, newName *string) (*domain4.Wishlist, error) {
+	return r.WishlistResolver.ImportWishlist(ctx, sourceWishlistID, newName)
 }
 
 // Gender is the resolver for the gender field.
@@ -451,6 +482,26 @@ func (r *queryResolver) MyBusinessPermissions(ctx context.Context, businessID uu
 	return r.BusinessResolver.MyBusinessPermissions(ctx, businessID.String())
 }
 
+// Wishlist is the resolver for the wishlist field.
+func (r *queryResolver) Wishlist(ctx context.Context, id uuid.UUID) (*domain4.Wishlist, error) {
+	return r.WishlistResolver.Wishlist(ctx, id)
+}
+
+// MyWishlists is the resolver for the myWishlists field.
+func (r *queryResolver) MyWishlists(ctx context.Context, limit *int, offset *int) ([]*domain4.Wishlist, error) {
+	return r.WishlistResolver.MyWishlists(ctx, limit, offset)
+}
+
+// WishlistItems is the resolver for the wishlistItems field.
+func (r *queryResolver) WishlistItems(ctx context.Context, wishlistID uuid.UUID, limit *int, offset *int) ([]*domain4.WishlistItem, error) {
+	return r.WishlistResolver.WishlistItems(ctx, wishlistID, limit, offset)
+}
+
+// IsListingInWishlist is the resolver for the isListingInWishlist field.
+func (r *queryResolver) IsListingInWishlist(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID) (bool, error) {
+	return r.WishlistResolver.IsListingInWishlist(ctx, wishlistID, listingID)
+}
+
 // ServiceCharges is the resolver for the serviceCharges field.
 func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain.RentalDetail) ([]*domain.ServiceCharge, error) {
 	if obj == nil || obj.ServiceChargeBreakdown == nil {
@@ -512,6 +563,21 @@ func (r *travelCompanionResolver) Relationship(ctx context.Context, obj *domain1
 	return string(obj.Relationship), nil
 }
 
+// ItemCount is the resolver for the itemCount field.
+func (r *wishlistResolver) ItemCount(ctx context.Context, obj *domain4.Wishlist) (int, error) {
+	return r.WishlistResolver.WishlistItemCount(ctx, obj)
+}
+
+// Items is the resolver for the items field.
+func (r *wishlistResolver) Items(ctx context.Context, obj *domain4.Wishlist, limit *int, offset *int) ([]*domain4.WishlistItem, error) {
+	return r.WishlistResolver.WishlistItems(ctx, obj.ID, limit, offset)
+}
+
+// Listing is the resolver for the listing field.
+func (r *wishlistItemResolver) Listing(ctx context.Context, obj *domain4.WishlistItem) (*domain.Listing, error) {
+	return r.WishlistResolver.WishlistItemListing(ctx, obj)
+}
+
 // Business returns BusinessResolver implementation.
 func (r *Resolver) Business() BusinessResolver { return &businessResolver{r} }
 
@@ -545,6 +611,12 @@ func (r *Resolver) SaleDetail() SaleDetailResolver { return &saleDetailResolver{
 // TravelCompanion returns TravelCompanionResolver implementation.
 func (r *Resolver) TravelCompanion() TravelCompanionResolver { return &travelCompanionResolver{r} }
 
+// Wishlist returns WishlistResolver implementation.
+func (r *Resolver) Wishlist() WishlistResolver { return &wishlistResolver{r} }
+
+// WishlistItem returns WishlistItemResolver implementation.
+func (r *Resolver) WishlistItem() WishlistItemResolver { return &wishlistItemResolver{r} }
+
 type businessResolver struct{ *Resolver }
 type listingResolver struct{ *Resolver }
 type listingMediaResolver struct{ *Resolver }
@@ -556,3 +628,5 @@ type rentalDetailResolver struct{ *Resolver }
 type ruleGroupResolver struct{ *Resolver }
 type saleDetailResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }
+type wishlistResolver struct{ *Resolver }
+type wishlistItemResolver struct{ *Resolver }

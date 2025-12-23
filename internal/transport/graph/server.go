@@ -8,6 +8,7 @@ import (
 	businessservice "hauslet/internal/modules/business/service"
 	profileservice "hauslet/internal/modules/profile/service"
 	propertyservice "hauslet/internal/modules/property/service"
+	wishlistservice "hauslet/internal/modules/wishlist/service"
 	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/viewer"
 
@@ -26,13 +27,14 @@ func SetupGraphQL(r chi.Router,
 	profileService profileservice.ProfileService,
 	propertyService propertyservice.Service,
 	businessService businessservice.BusinessService,
+	wishlistService wishlistservice.WishlistService,
 	tenantSlugMiddleware func(http.Handler) http.Handler,
 	cfg *config.GlobalConfig,
 	log *lgr.Logger) {
 
 	srv := handler.New(
 		NewExecutableSchema(Config{
-			Resolvers:  NewResolver(authService, profileService, propertyService, businessService, cfg, log),
+			Resolvers:  NewResolver(authService, profileService, propertyService, businessService, wishlistService, cfg, log),
 			Complexity: NewComplexityRoot(defaultMaxListLimit),
 		}),
 	)

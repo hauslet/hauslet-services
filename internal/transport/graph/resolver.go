@@ -10,6 +10,8 @@ import (
 	profileservice "hauslet/internal/modules/profile/service"
 	propertygraphql "hauslet/internal/modules/property/port/graphql"
 	propertyservice "hauslet/internal/modules/property/service"
+	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
+	wishlistservice "hauslet/internal/modules/wishlist/service"
 
 	"github.com/go-pkgz/lgr"
 )
@@ -21,6 +23,7 @@ type Resolver struct {
 	ProfileResolver  *profilegraphql.Resolver
 	PropertyResolver *propertygraphql.Resolver
 	BusinessResolver *businessgraphql.Resolver
+	WishlistResolver *wishlistgraphql.Resolver
 }
 
 func NewResolver(
@@ -28,6 +31,7 @@ func NewResolver(
 	profileSvc profileservice.ProfileService,
 	propertySvc propertyservice.Service,
 	businessSvc businessservice.BusinessService,
+	wishlistSvc wishlistservice.WishlistService,
 	appCfg *cfg.GlobalConfig,
 	log *lgr.Logger,
 ) *Resolver {
@@ -37,5 +41,6 @@ func NewResolver(
 		ProfileResolver:  profilegraphql.NewResolver(profileSvc, &appCfg.Storage, log),
 		PropertyResolver: propertygraphql.NewResolver(propertySvc, &appCfg.Storage, log),
 		BusinessResolver: businessgraphql.NewResolver(businessSvc, log),
+		WishlistResolver: wishlistgraphql.NewResolver(wishlistSvc, log),
 	}
 }

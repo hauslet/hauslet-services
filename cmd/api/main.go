@@ -9,6 +9,7 @@ import (
 	moderationSchema "hauslet/internal/modules/moderation/repository/schema"
 	profileSchema "hauslet/internal/modules/profile/repository/schema"
 	propertySchema "hauslet/internal/modules/property/repository/schema"
+	wishlistSchema "hauslet/internal/modules/wishlist/repository/schema"
 	"hauslet/internal/platform/database"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/logger"
@@ -65,6 +66,8 @@ func main() {
 		&businessSchema.BusinessMember{},
 		&businessSchema.BusinessInvitation{},
 		&moderationSchema.Moderation{},
+		&wishlistSchema.Wishlist{},
+		&wishlistSchema.WishlistItem{},
 	); err != nil {
 		log.Logf("ERROR failed to run migrations: %v", err)
 		return

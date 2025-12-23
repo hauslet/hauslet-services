@@ -59,12 +59,12 @@ compose-down:
 clean:
 	rm -rf $(BIN_DIR)
 
-# Scaffold a new module under internal/
+# Scaffold a new module under internal/modules/<MODULE>
 .PHONY: scaffold
 scaffold:
 	@if [ -z "$(MODULE)" ]; then echo "MODULE is required, e.g. make scaffold MODULE=booking"; exit 1; fi
-	@mkdir -p internal/$(MODULE)/service internal/$(MODULE)/repository/schema internal/$(MODULE)/domain internal/$(MODULE)/docs internal/$(MODULE)/templates
-	@echo "Scaffolded internal/$(MODULE) with service, repository/schema, domain, docs, templates"
+	@mkdir -p internal/modules/$(MODULE)/service internal/modules/$(MODULE)/repository/schema internal/modules/$(MODULE)/domain internal/modules/$(MODULE)/docs internal/modules/$(MODULE)/templates
+	@echo "Scaffolded internal/modules/$(MODULE) with service, repository/schema, domain, docs, templates"
 
 .PHONY: gql-gen
 gql-gen:

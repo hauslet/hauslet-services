@@ -101,6 +101,12 @@ type CreateListingPropertyInput struct {
 	FeaturesCommercial []*AmenityGroupInput       `json:"featuresCommercial,omitempty"`
 }
 
+type CreateWishlistInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	IsPrivate   *bool   `json:"isPrivate,omitempty"`
+}
+
 type InviteMemberInput struct {
 	Email             string                  `json:"email"`
 	Role              domain.MemberRole       `json:"role"`
@@ -453,6 +459,12 @@ type UpdateShortletDetailInput struct {
 	AutoGenerateCalendar *bool                      `json:"autoGenerateCalendar,omitempty"`
 	Rules                []*RuleGroupInput          `json:"rules,omitempty"`
 	AmenitiesHighlights  []*AmenityHighlightInput   `json:"amenitiesHighlights,omitempty"`
+}
+
+type UpdateWishlistInput struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	IsPrivate   *bool   `json:"isPrivate,omitempty"`
 }
 
 type UploadResult struct {

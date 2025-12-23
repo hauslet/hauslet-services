@@ -1,0 +1,56 @@
+# internal/modules/wishlist/port/graphql/schema.graphqls
+
+enum WishlistItemSource {
+  user_added
+  imported
+  recents
+}
+
+type Wishlist {
+  id: UUID!
+  userId: UUID!
+  name: String!
+  description: String
+  isPrivate: Boolean!
+  itemCount: Int!
+  items(limit: Int, offset: Int): [WishlistItem!]!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type WishlistItem {
+  id: UUID!
+  wishlistId: UUID!
+  listingId: UUID!
+  listing: Listing
+  addedAt: Time!
+  source: WishlistItemSource!
+}
+
+input CreateWishlistInput {
+  name: String!
+  description: String
+  isPrivate: Boolean
+}
+
+input UpdateWishlistInput {
+  name: String
+  description: String
+  isPrivate: Boolean
+}
+
+extend type Query {
+  wishlist(id: UUID!): Wishlist
+  myWishlists(limit: Int, offset: Int): [Wishlist!]!
+  wishlistItems(wishlistId: UUID!, limit: Int, offset: Int): [WishlistItem!]!
+  isListingInWishlist(wishlistId: UUID!, listingId: UUID!): Boolean!
+}
+
+extend type Mutation {
+  createWishlist(input: CreateWishlistInput!): Wishlist!
+  updateWishlist(id: UUID!, input: UpdateWishlistInput!): Wishlist!
+  deleteWishlist(id: UUID!): Boolean!
+  addWishlistItem(wishlistId: UUID!, listingId: UUID!, source: WishlistItemSource): WishlistItem!
+  removeWishlistItem(wishlistId: UUID!, listingId: UUID!): Boolean!
+  importWishlist(sourceWishlistId: UUID!, newName: String): Wishlist!
+}
