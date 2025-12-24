@@ -5,26 +5,9 @@ import (
 	"fmt"
 
 	"hauslet/internal/modules/wishlist/domain"
-	"hauslet/internal/modules/wishlist/repository"
-	"hauslet/internal/platform/redis"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
-
-type WishlistServiceImpl struct {
-	repo  repository.WishlistRepository
-	cache redis.RedisClient
-	log   *lgr.Logger
-}
-
-func NewWishlistService(repo repository.WishlistRepository, cache redis.RedisClient, log *lgr.Logger) WishlistService {
-	return &WishlistServiceImpl{
-		repo:  repo,
-		cache: cache,
-		log:   log,
-	}
-}
 
 // CreateWishlist initializes a new list for a user.
 func (s *WishlistServiceImpl) CreateWishlist(ctx context.Context, userID uuid.UUID, name string, description *string, isPrivate bool) (*domain.Wishlist, error) {
@@ -262,6 +245,21 @@ func (s *WishlistServiceImpl) DeleteWishlist(ctx context.Context, wishlistID uui
 func (s *WishlistServiceImpl) AddItem(ctx context.Context, wishlistID uuid.UUID, userID uuid.UUID, listingID uuid.UUID, source domain.WishlistItemSource) (*domain.WishlistItem, error) {
 	if s.log != nil {
 		s.log.Logf("INFO adding item listing=%s to wishlist=%s by user=%s source=%s", listingID, wishlistID, userID, source)
+	}
+
+	// Check if listing can be added via hooks
+	canAdd, err := s.listingHooks.CanAddListingToWishlist(ctx, listingID)
+	if err != nil {
+		if s.log != nil {
+			s.log.Logf("ERROR listing hook check failed for listing=%s: %v", listingID, err)
+		}
+		return nil, err
+	}
+	if !canAdd {
+		if s.log != nil {
+			s.log.Logf("WARN listing=%s cannot be added to wishlists per hooks", listingID)
+		}
+		return nil, fmt.Errorf("listing cannot be added to wishlist")
 	}
 
 	// Fetch wishlist to check ownership

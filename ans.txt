@@ -1,0 +1,17 @@
+Open Questions to Resolve
+1. Currency Conversion: PRD mentions multiple West African currencies (NGN, GHS, XOF). Will pricing module handle conversions, or is each listing priced in one currency?
+- It would handle conversion, i will implement a platform service that does that. But if you do not agree discuss recommendations
+2. Timezone Strategy: How to handle bookings across timezones? Store all times in UTC and convert for display, or store timezone per listing?
+- Store all times in UTC and convert for display.
+3. Payment Integration: PRD assumes payment processing is separate (section 6.3 Dependencies). How tightly should calendar module integrate with booking payments? Should calendar block dates on payment confirmation or booking request?
+- There would be a booking and transcation (payments would in here) module to be implemented later. Bookings would use adapters from calendar to block, release and generally interact with calendar module where necessary
+4. Cancellation Policy: PRD mentions cancellation windows (Rule CAL-BR-004). Where should cancellation policies be stored - property module or calendar module?
+- Use your recommendation
+5. Notification Triggers: Calendar events should trigger notifications (booking confirmations, showing reminders). Should calendar module directly call notification service, or emit events to queue?
+- It would have its own notification service like business/property module for example and it wil add to queue wha available and directly as fallback.
+6. Maintenance Scheduling: Should maintenance events actually block booking availability, or just warn property owners? PRD says "Maintenance events can overlap with availability (for vacant properties)" - needs clarification.
+- Use your recommendation
+7. Multi-Property Discounts: If an owner has multiple properties, should pricing module support cross-property discount rules? (Not in PRD but common in property management)
+- Use your recommendation
+8. Historical Data: Should completed/cancelled events be soft-deleted or archived to separate table for analytics? Impacts query performance over time.
+- Use your recommendation

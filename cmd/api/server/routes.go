@@ -19,12 +19,12 @@ import (
 	profilerepository "hauslet/internal/modules/profile/repository"
 	profileservice "hauslet/internal/modules/profile/service"
 	propertynotification "hauslet/internal/modules/property/notification"
+	propertyhooks "hauslet/internal/modules/property/port/hooks"
 	propertyhttp "hauslet/internal/modules/property/port/http"
 	propertyrepository "hauslet/internal/modules/property/repository"
 	propertyservice "hauslet/internal/modules/property/service"
 	wishlistrepository "hauslet/internal/modules/wishlist/repository"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
-
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
@@ -103,7 +103,8 @@ func setupRoutes(r chi.Router,
 
 	// Initialize wishlist service
 	wishlistRepo := wishlistrepository.NewWishlistRepository(db)
-	wishlistService := wishlistservice.NewWishlistService(wishlistRepo, *rds, log)
+	wishListListAdapter := propertyhooks.NewWishlistHooksAdapter(propertyService)
+	wishlistService := wishlistservice.NewWishlistService(wishlistRepo, *rds, wishListListAdapter, log)
 
 	// Initialize auth service
 	authService := service.NewAuthService(
