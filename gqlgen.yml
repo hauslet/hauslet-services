@@ -7,6 +7,8 @@ schema:
   - internal/modules/profile/port/graphql/*.graphqls
   - internal/modules/property/port/graphql/*.graphqls
   - internal/modules/business/port/graphql/*.graphqls
+  - internal/modules/booking/port/graphql/*.graphqls
+  - internal/modules/payments/port/graphql/*.graphqls
   - internal/modules/wishlist/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
@@ -157,3 +159,85 @@ models:
     model: hauslet/internal/modules/wishlist/domain.WishlistItem
   WishlistItemSource:
     model: hauslet/internal/modules/wishlist/domain.WishlistItemSource
+
+  # --- Booking Module Bindings ---
+  Booking:
+    model: hauslet/internal/modules/booking/domain.Booking
+  BookingQuote:
+    model: hauslet/internal/modules/booking/domain.BookingQuote
+  PriceBreakdownSnapshot:
+    model: hauslet/internal/modules/booking/domain.PriceBreakdownSnapshot
+  DiscountSnapshot:
+    model: hauslet/internal/modules/booking/domain.DiscountSnapshot
+  DailyRate:
+    model: hauslet/internal/modules/booking/domain.DailyRate
+
+  # Booking Input/Output Types - Let gqlgen generate input types
+  # Output types that contain domain data are bound
+  CompleteBookingPayload:
+    model: hauslet/internal/modules/booking/port/graphql.CompleteBookingPayload
+
+  # Booking Enums
+  BookingStatus:
+    model: hauslet/internal/modules/booking/domain.BookingStatus
+  BookingType:
+    model: hauslet/internal/modules/booking/domain.BookingType
+
+  # --- Payments Module Bindings ---
+  Payment:
+    model: hauslet/internal/modules/payments/domain.Payment
+    fields:
+      currency:
+        resolver: true
+      metadata:
+        resolver: true
+  PaymentMethod:
+    model: hauslet/internal/modules/payments/domain.PaymentMethod
+    fields:
+      cardLast4:
+        resolver: true
+      cardExpMonth:
+        resolver: true
+      cardExpYear:
+        resolver: true
+      cardBrand:
+        resolver: true
+      accountName:
+        resolver: true
+      accountNumberLast4:
+        resolver: true
+  Transaction:
+    model: hauslet/internal/modules/payments/domain.Transaction
+    fields:
+      currency:
+        resolver: true
+      providerRef:
+        resolver: true
+      providerResponse:
+        resolver: true
+      failureReason:
+        resolver: true
+  PayoutDetail:
+    model: hauslet/internal/modules/payments/domain.PayoutDetail
+
+  # Payment Input/Output Types
+  CreatePaymentInput:
+    model: hauslet/internal/modules/payments/port/graphql.CreatePaymentInput
+  RefundPaymentInput:
+    model: hauslet/internal/modules/payments/port/graphql.RefundPaymentInput
+  CreatePaymentMethodInput:
+    model: hauslet/internal/modules/payments/port/graphql.SavePaymentMethodInput
+  CreatePayoutDetailInput:
+    model: hauslet/internal/modules/payments/port/graphql.AddPayoutDetailInput
+
+  # Payment Enums
+  PaymentStatus:
+    model: hauslet/internal/modules/payments/domain.PaymentStatus
+  PaymentMethodType:
+    model: hauslet/internal/modules/payments/domain.PaymentMethodType
+  Market:
+    model: hauslet/internal/modules/payments/domain.Market
+  TransactionType:
+    model: hauslet/internal/modules/payments/domain.TransactionType
+  TransactionStatus:
+    model: hauslet/internal/modules/payments/domain.TransactionStatus

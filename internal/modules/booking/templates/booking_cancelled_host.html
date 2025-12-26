@@ -1,0 +1,45 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        Booking cancelled
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.HostName}}, the booking from <strong>{{.GuestName}}</strong> for <strong>{{.CheckIn}}</strong> to <strong>{{.CheckOut}}</strong> has been cancelled.
+    </p>
+
+    <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
+            <strong>Booking ID:</strong> {{.BookingID}}<br/>
+            <strong>Guest:</strong> {{.GuestName}}<br/>
+            <strong>Check-in:</strong> {{.CheckIn}}<br/>
+            <strong>Check-out:</strong> {{.CheckOut}}<br/>
+            <strong>Nights:</strong> {{.Nights}}<br/>
+            <strong>Cancelled by:</strong> {{.CancelledBy}}
+        </p>
+        {{if .Reason}}
+        <hr style="border: none; border-top: 1px solid #E5D7F0; margin: 16px 0;"/>
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
+            <strong>Reason:</strong><br/>
+            <span style="font-style: italic;">{{.Reason}}</span>
+        </p>
+        {{end}}
+    </div>
+
+    <p style="font-size: 15px; line-height: 24px; color: #000000; margin: 24px 0;">
+        These dates are now available again and can be booked by other guests. Any payouts scheduled for this booking have been cancelled.
+    </p>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.ManageURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            View Your Calendar
+        </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        You can update your availability and pricing from your hosting dashboard.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

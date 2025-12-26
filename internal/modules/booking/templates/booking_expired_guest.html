@@ -1,0 +1,25 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        Booking hold expired
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.GuestName}}, the hold on your dates has expired.
+    </p>
+
+    {{if .Reason}}
+    <div style="background-color: #FFF3CD; border-left: 4px solid #FFC107; border-radius: 4px; padding: 16px; margin: 24px 0;">
+        <p style="font-size: 14px; line-height: 22px; color: #856404; margin: 0;">
+            {{.Reason}}
+        </p>
+    </div>
+    {{end}}
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        You can try booking the listing again from your dashboard.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

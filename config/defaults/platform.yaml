@@ -1,0 +1,65 @@
+# Global platform configuration values.
+platform:
+  currency:
+    code: NGN
+    minor_unit: 100                # Kobo per Naira
+
+  fees:
+    host_commission_percent: 12.5  # % of booking total retained by Hauslet from host payout
+    guest_service_percent: 8.0     # % service fee added to guest checkout
+
+    payout_processing_percent: 2.0 # % retained to cover payout / FX / bank processing
+
+    minimum_service_fee_minor: 1000    # Minimum guest service fee in minor units (₦10.00)
+    maximum_service_fee_percent: 12.0  # Cap to prevent excessive effective fees on edge cases
+
+  payouts:
+    escrow_release_hours: 24        # Hours after checkin before funds leave escrow
+    batch_interval_minutes: 60      # How often the payout worker runs
+    max_retry_attempts: 5           # Retries for failed disbursements
+    retry_backoff_minutes: 15       # Interval between payout retries
+
+  refunds:
+    grace_period_hours: 24          # Global cooling-off period (full refund within 24h of booking)
+    processing_fee_percent: 2.0     # % retained to cover non-refundable payment processor fees
+    processing_fee_payer: guest     # guest | host | shared
+    dispute_freeze_hours: 48        # Freeze window while disputes are reviewed
+
+    # Cancellation Policy Tiers (Hosts select one of these for their listing)
+    policy_tiers:
+      flexible:
+        name: "flexible"
+        description: "Full refund up to 1 day prior to arrival"
+        cutoff_hours_before_checkin: 24
+        refund_percent_before_cutoff: 100.0  # minus processing_fee_percent
+        refund_percent_after_cutoff: 0.0     # Non-refundable if cancelled < 24h before
+
+      moderate:
+        name: "moderate"
+        description: "Full refund up to 5 days prior to arrival"
+        cutoff_hours_before_checkin: 120     # 5 days
+        refund_percent_before_cutoff: 100.0  # minus processing_fee_percent
+        refund_percent_after_cutoff: 50.0    # 50% refund if cancelled within 5 days minus processing_fee_percent
+
+      strict:
+        name: "strict"
+        description: "Full refund up to 14 days prior to arrival"
+        cutoff_hours_before_checkin: 336     # 14 days
+        refund_percent_before_cutoff: 100.0  # minus processing_fee_percent
+        refund_percent_after_cutoff: 0.0     # No refund if cancelled within 14 days minus processing_fee_percent
+
+      long_term:
+        name: "long_term"
+        description: "Strict policy for stays of 28 days or more"
+        min_stay_days: 28
+        notice_period_days: 30               # Guest must give 30 days notice to terminate lease
+        cancellation_charge_days: 30         # Host is paid for the next 30 days upon cancellation
+
+  auto_accept:
+    default_enabled: true           # Default auto-accept setting for new shortlet listings
+    min_notice_hours: 6             # Minimum hours before check-in required for auto-accept
+
+  notifications:
+    send_payment_receipts: true
+    send_payout_updates: true
+    send_dispute_alerts: true

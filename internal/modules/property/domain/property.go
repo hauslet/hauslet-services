@@ -172,8 +172,8 @@ type RuleGroup struct {
 
 // RuleItem represents a rule within a group, with a subcategory and details.
 type RuleItem struct {
-	Name        RuleSubCategory  `json:"name"`
-	Description []map[string]any `json:"description"`
+	Name        RuleSubCategory `json:"name"`
+	Description map[string]any  `json:"description"`
 }
 
 // ServiceCharge represents a service charge breakdown
@@ -202,7 +202,8 @@ type ShortletDetail struct {
 	CheckInTime  *string `json:"check_in_time,omitempty"`
 	CheckOutTime *string `json:"check_out_time,omitempty"`
 
-	AccommodationType AccommodationType `json:"accommodation_type"`
+	AccommodationType  AccommodationType `json:"accommodation_type"`
+	AutoAcceptBookings bool              `json:"auto_accept_bookings"`
 
 	// Automation
 	CalendarMonthsAhead  int  `json:"calendar_months_ahead"`

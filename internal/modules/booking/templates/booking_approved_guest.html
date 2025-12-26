@@ -1,0 +1,32 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        Your booking was approved
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.GuestName}}, the host approved your request. Complete payment {{.HoldWindow}} to confirm.
+    </p>
+
+    <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
+            <strong>Check-in:</strong> {{.CheckIn}}<br/>
+            <strong>Check-out:</strong> {{.CheckOut}}<br/>
+            <strong>Guests:</strong> {{.GuestCount}}<br/>
+            <strong>Total:</strong> {{.TotalPrice}}
+        </p>
+    </div>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{if .PaymentURL}}{{.PaymentURL}}{{else}}{{.BookingURL}}{{end}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            Complete Payment
+        </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        If payment isn't completed in time, the booking will not proceed.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

@@ -322,9 +322,23 @@ func TestMapListingFromSchema(t *testing.T) {
 			MinNights:            2,
 			MaxGuests:            4,
 			AccommodationType:    schema.AccEntirePlace,
+			AutoAcceptBookings:   true,
 			CalendarMonthsAhead:  6,
 			AutoGenerateCalendar: true,
 			AmenitiesHighlights:  amenitiesHighlights,
+			Rules: []schema.RuleGroup{
+				{
+					Category: schema.RuleHouseRules,
+					Rules: []schema.RuleItem{
+						{
+							Name: schema.RuleSmoking,
+							Description: map[string]any{
+								"text": "No smoking indoors",
+							},
+						},
+					},
+				},
+			},
 		},
 		RentalDetails: &schema.RentalDetail{
 			RentalPrice:            200000,
@@ -433,10 +447,24 @@ func TestMapListingToSchema(t *testing.T) {
 			MinNights:            1,
 			MaxGuests:            3,
 			AccommodationType:    AccEntirePlace,
+			AutoAcceptBookings:   true,
 			CalendarMonthsAhead:  3,
 			AutoGenerateCalendar: true,
 			AmenitiesHighlights: []AmenityHighlight{
 				{Title: "Wifi", Summary: "Fast fibre", Icon: "wifi"},
+			},
+			Rules: []RuleGroup{
+				{
+					Category: RuleHouseRules,
+					Rules: []RuleItem{
+						{
+							Name: RuleSmoking,
+							Description: map[string]any{
+								"text": "No smoking indoors",
+							},
+						},
+					},
+				},
 			},
 		},
 		SaleDetails: &SaleDetail{

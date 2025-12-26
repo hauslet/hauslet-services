@@ -13,6 +13,7 @@ queue:
     media_thumbnail: "media.thumbnail"
     media_cleanup: "media.cleanup"
     ai_moderation: "ai.moderation"
+    booking_expiry: "booking.expiry.check"
 
   # Consumer mappings (worker names for each job type)
   consumers:
@@ -22,4 +23,5 @@ queue:
     media_thumbnail: "media-thumbnail-worker"
     media_cleanup: "media-cleanup-worker"
     ai_moderation: "ai-moderation-worker"
+    booking_expiry: "booking-expiry-worker"
 

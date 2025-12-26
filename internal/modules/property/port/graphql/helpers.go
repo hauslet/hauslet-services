@@ -331,6 +331,7 @@ func mapShortletInputToDomain(input *model.ShortletDetailInput) *domain.Shortlet
 		CheckInTime:          input.CheckInTime,
 		CheckOutTime:         input.CheckOutTime,
 		AccommodationType:    domain.AccommodationType(input.AccommodationType),
+		AutoAcceptBookings:   boolOrDefault(input.AutoAcceptBookings, true),
 		CalendarMonthsAhead:  intOrDefault(input.CalendarMonthsAhead, 0),
 		AutoGenerateCalendar: boolOrDefault(input.AutoGenerateCalendar, false),
 		Rules:                mapRuleGroupInputs(input.Rules),
@@ -423,6 +424,9 @@ func mapUpdateShortletInputToDomain(input *model.UpdateShortletDetailInput) map[
 	}
 	if input.AccommodationType != nil {
 		updates["accommodation_type"] = *input.AccommodationType
+	}
+	if input.AutoAcceptBookings != nil {
+		updates["auto_accept_bookings"] = *input.AutoAcceptBookings
 	}
 	if input.CalendarMonthsAhead != nil {
 		updates["calendar_months_ahead"] = *input.CalendarMonthsAhead
@@ -566,7 +570,7 @@ func mapRuleItems(inputs []*model.RuleItemInput) []domain.RuleItem {
 			continue
 		}
 		// Default to empty description if not provided
-		description := []map[string]any{}
+		description := map[string]any{}
 		if input.Description != nil {
 			description = input.Description
 		}

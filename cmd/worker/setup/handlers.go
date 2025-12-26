@@ -8,10 +8,17 @@ import (
 	"time"
 
 	"hauslet/config"
+	bookinghooks "hauslet/internal/modules/booking/port/hooks"
+	bookingrepository "hauslet/internal/modules/booking/repository"
+	bookingservice "hauslet/internal/modules/booking/service"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
+	calendarrepository "hauslet/internal/modules/calendar/repository"
+	calendarservice "hauslet/internal/modules/calendar/service"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
+	pricingrepository "hauslet/internal/modules/pricing/repository"
+	pricingservice "hauslet/internal/modules/pricing/service"
 	profilenotification "hauslet/internal/modules/profile/notification"
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
@@ -21,8 +28,10 @@ import (
 	propertyrepository "hauslet/internal/modules/property/repository"
 	platformQueue "hauslet/internal/platform/queue"
 	"hauslet/internal/queue"
+	bookingJobs "hauslet/internal/queue/jobs/booking"
 	jobs "hauslet/internal/queue/jobs/listing"
 	"hauslet/internal/transport/worker"
+	bookingHandler "hauslet/internal/transport/worker/handlers/booking"
 	emailHandler "hauslet/internal/transport/worker/handlers/emails"
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
@@ -106,6 +115,41 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 		registry.Register(h)
 	}
 
+	// Booking expiry handler
+	hasBookingExpiry := qCfg["booking_expiry"] != ""
+	if hasBookingExpiry {
+		// Initialize booking dependencies
+		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
+
+		// Property/listing hooks (needed to get listing owner for calendar operations)
+		if propertyRepo == nil {
+			propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
+		}
+		listingHooks := bookinghooks.NewPropertyHooksAdapter(propertyRepo)
+
+		// Calendar gateway (needed to cancel expired booking events)
+		calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
+		calendarHooksAdapter := propertyhooks.NewCalendarHooksAdapter(nil) // nil property service for worker
+		calendarSvc := calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, log)
+
+		// Pricing service with minimal dependencies
+		pricingRepo := pricingrepository.NewPricingRepository(infra.DB)
+		pricingSvc := pricingservice.NewPricingService(pricingRepo, nil, nil, log, cfg.YAML.Platform)
+
+		bookingSvc := bookingservice.NewBookingService(
+			bookingRepo,
+			calendarSvc,
+			pricingSvc,
+			nil, // payment gateway not needed for expiry checks
+			listingHooks,
+			nil, // profile provider not required for expiry checks
+			nil, // notification service not required for expiry checks
+			log,
+		)
+		h := bookingHandler.NewBookingExpiryCheckHandler(bookingSvc, log, qCfg["booking_expiry"])
+		registry.Register(h)
+	}
+
 	return registry
 }
 
@@ -130,6 +174,33 @@ func StartPeriodicCleanup(ctx context.Context, queueClient *platformQueue.Client
 				}
 				if err := queueClient.Publish(ctx, cleanupSubject, job); err != nil {
 					log.Logf("ERROR failed to publish cleanup job: %v", err)
+				}
+			}
+		}
+	}()
+}
+
+// StartBookingExpiryCheck initializes periodic booking expiry checks.
+func StartBookingExpiryCheck(ctx context.Context, queueClient *platformQueue.Client, cfg *config.GlobalConfig, log *lgr.Logger) {
+	expirySubject := cfg.YAML.Queue.Subjects["booking_expiry"]
+	if expirySubject == "" {
+		return
+	}
+
+	go func() {
+		// Check every 2 minutes (PRD specifies 5 minutes, but 2 minutes provides faster response)
+		ticker := time.NewTicker(2 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				job := bookingJobs.BookingExpiryCheckJob{
+					CheckTime: time.Now(),
+				}
+				if err := queueClient.Publish(ctx, expirySubject, job); err != nil {
+					log.Logf("ERROR failed to publish booking expiry check job: %v", err)
 				}
 			}
 		}

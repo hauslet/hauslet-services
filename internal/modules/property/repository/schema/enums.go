@@ -16,6 +16,9 @@ const (
 	CurrencyGHS CurrencyCode = "GHS"
 	CurrencyUSD CurrencyCode = "USD"
 	CurrencyEUR CurrencyCode = "EUR"
+	CurrencyGBP CurrencyCode = "GBP"
+	CurrencyCAD CurrencyCode = "CAD"
+	CurrencyAUD CurrencyCode = "AUD"
 )
 
 type OwnerType string
@@ -151,18 +154,18 @@ const (
 type RuleSubCategory string
 
 const (
-	RuleSecurity                 RuleSubCategory = "security"
-	RuleProhibited               RuleSubCategory = "prohibited_activities"
-	RuleCheckInWindow            RuleSubCategory = "check_in_window"
-	RuleCheckOutTime             RuleSubCategory = "check_out_time"
-	RuleCheckinMethod            RuleSubCategory = "check_in_method"
-	RuleSmoking                  RuleSubCategory = "smoking"
-	RulePets                     RuleSubCategory = "pets"
-	RuleEvents                   RuleSubCategory = "events"
-	RuleGuests                   RuleSubCategory = "guests"
-	RuleSelectCancellationPolicy RuleSubCategory = "cancellation_policy"
-	RuleMustKnow                 RuleSubCategory = "must_know"
-	RuleUserCustom               RuleSubCategory = "custom"
+	RuleSecurity      RuleSubCategory = "security"
+	RuleProhibited    RuleSubCategory = "prohibited_activities"
+	RuleCheckInWindow RuleSubCategory = "check_in_window"
+	RuleCheckOutTime  RuleSubCategory = "check_out_time"
+	RuleCheckinMethod RuleSubCategory = "check_in_method"
+	RuleSmoking       RuleSubCategory = "smoking"
+	RulePets          RuleSubCategory = "pets"
+	RuleEvents        RuleSubCategory = "events"
+	RuleGuests        RuleSubCategory = "guests"
+	RuleRefundPolicy  RuleSubCategory = "refund_policy"
+	RuleMustKnow      RuleSubCategory = "must_know"
+	RuleUserCustom    RuleSubCategory = "custom"
 )
 
 // --- 5. VALIDATION MAPS (Lookup Tables) ---
@@ -202,7 +205,7 @@ func (r RuleCategory) IsValid() bool {
 // IsValidRuleSubCategory checks if a RuleSubCategory is valid
 func (r RuleSubCategory) IsValid() bool {
 	switch r {
-	case RuleSecurity, RuleProhibited, RuleCheckInWindow, RuleCheckOutTime, RuleCheckinMethod, RuleSmoking, RulePets, RuleEvents, RuleGuests, RuleSelectCancellationPolicy, RuleMustKnow, RuleUserCustom:
+	case RuleSecurity, RuleProhibited, RuleCheckInWindow, RuleCheckOutTime, RuleCheckinMethod, RuleSmoking, RulePets, RuleEvents, RuleGuests, RuleRefundPolicy, RuleMustKnow, RuleUserCustom:
 		return true
 	}
 	return false

@@ -128,7 +128,7 @@ enum RuleSubCategory {
   pets
   events
   guests
-  cancellation_policy
+  refund_policy
   must_know
   custom
 }
@@ -291,6 +291,7 @@ type ShortletDetail {
   checkOutTime: String
 
   accommodationType: AccommodationType!
+  autoAcceptBookings: Boolean!
 
   calendarMonthsAhead: Int!
   autoGenerateCalendar: Boolean!
@@ -347,7 +348,7 @@ type AmenityHighlight {
 
 type RuleItem {
   name: RuleSubCategory!
-  description: [Map!]!
+  description: Map!
 }
 
 type RuleGroup {
@@ -475,6 +476,7 @@ input ShortletDetailInput {
   checkOutTime: String
 
   accommodationType: AccommodationType!
+  autoAcceptBookings: Boolean
 
   calendarMonthsAhead: Int
   autoGenerateCalendar: Boolean
@@ -540,6 +542,7 @@ input UpdateShortletDetailInput {
   checkOutTime: String
 
   accommodationType: AccommodationType
+  autoAcceptBookings: Boolean
 
   calendarMonthsAhead: Int
   autoGenerateCalendar: Boolean
@@ -596,7 +599,7 @@ input AmenityHighlightInput {
 
 input RuleItemInput {
   name: RuleSubCategory!
-  description: [Map!]
+  description: Map
 }
 
 input RuleGroupInput {

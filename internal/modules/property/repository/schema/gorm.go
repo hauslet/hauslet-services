@@ -250,7 +250,7 @@ type AmenityHighlight struct {
 
 type RuleItem struct {
 	Name        RuleSubCategory  `json:"name" validate:"required"`
-	Description []map[string]any `json:"description" validate:"required,min=1"`
+	Description map[string]any `json:"description" validate:"required,min=1"`
 }
 
 type RuleGroup struct {
@@ -284,7 +284,8 @@ type ShortletDetail struct {
 	CheckInTime  *string `json:"check_in_time,omitempty"`
 	CheckOutTime *string `json:"check_out_time,omitempty"`
 
-	AccommodationType AccommodationType `json:"accommodation_type"`
+	AccommodationType  AccommodationType `json:"accommodation_type"`
+	AutoAcceptBookings bool              `json:"auto_accept_bookings" gorm:"default:true"`
 
 	CalendarMonthsAhead  int  `json:"calendar_months_ahead"`
 	AutoGenerateCalendar bool `json:"auto_generate_calendar"`

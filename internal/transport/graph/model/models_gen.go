@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"hauslet/internal/modules/business/domain"
+	domain2 "hauslet/internal/modules/payments/domain"
 	domain1 "hauslet/internal/modules/property/domain"
 	"io"
 	"strconv"
@@ -41,6 +42,11 @@ type BusinessAddressInput struct {
 	PostalCode     *string `json:"postalCode,omitempty"`
 	District       *string `json:"district,omitempty"`
 	DigitalAddress *string `json:"digitalAddress,omitempty"`
+}
+
+type CancelBookingInput struct {
+	BookingID uuid.UUID `json:"bookingId"`
+	Reason    *string   `json:"reason,omitempty"`
 }
 
 type CreateBusinessInput struct {
@@ -99,6 +105,14 @@ type CreateListingPropertyInput struct {
 	FloorArea          *float64                   `json:"floorArea,omitempty"`
 	Amenities          []*AmenityGroupInput       `json:"amenities,omitempty"`
 	FeaturesCommercial []*AmenityGroupInput       `json:"featuresCommercial,omitempty"`
+}
+
+type CreatePayoutInput struct {
+	BusinessID    uuid.UUID `json:"businessId"`
+	Amount        int       `json:"amount"`
+	Currency      string    `json:"currency"`
+	Description   *string   `json:"description,omitempty"`
+	RecipientCode string    `json:"recipientCode"`
 }
 
 type CreateWishlistInput struct {
@@ -196,6 +210,17 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor,omitempty"`
 }
 
+type PayForBookingInput struct {
+	BookingID       uuid.UUID  `json:"bookingId"`
+	PaymentMethodID *uuid.UUID `json:"paymentMethodId,omitempty"`
+}
+
+type PaymentInitResponse struct {
+	Payment          *domain2.Payment `json:"payment"`
+	AuthorizationURL *string          `json:"authorizationUrl,omitempty"`
+	AccessCode       *string          `json:"accessCode,omitempty"`
+}
+
 type PropertyFilterExtension struct {
 	PropertyClasses    []domain1.PropertyClass     `json:"propertyClasses,omitempty"`
 	PropertyConditions []domain1.PropertyCondition `json:"propertyConditions,omitempty"`
@@ -231,19 +256,36 @@ type RentalFilterInput struct {
 	AvailableTo        *time.Time              `json:"availableTo,omitempty"`
 }
 
+type RequestBookingInput struct {
+	ListingID       uuid.UUID `json:"listingId"`
+	CheckIn         time.Time `json:"checkIn"`
+	CheckOut        time.Time `json:"checkOut"`
+	GuestCount      int       `json:"guestCount"`
+	SpecialRequests *string   `json:"specialRequests,omitempty"`
+}
+
+type ReserveBookingInput struct {
+	ListingID       uuid.UUID  `json:"listingId"`
+	CheckIn         time.Time  `json:"checkIn"`
+	CheckOut        time.Time  `json:"checkOut"`
+	GuestCount      int        `json:"guestCount"`
+	PaymentMethodID *uuid.UUID `json:"paymentMethodId,omitempty"`
+	SpecialRequests *string    `json:"specialRequests,omitempty"`
+}
+
 type RuleGroupInput struct {
 	Category domain1.RuleCategory `json:"category"`
 	Rules    []*RuleItemInput     `json:"rules"`
 }
 
 type RuleItem struct {
-	Name        RuleSubCategory  `json:"name"`
-	Description []map[string]any `json:"description"`
+	Name        RuleSubCategory `json:"name"`
+	Description map[string]any  `json:"description"`
 }
 
 type RuleItemInput struct {
-	Name        RuleSubCategory  `json:"name"`
-	Description []map[string]any `json:"description,omitempty"`
+	Name        RuleSubCategory `json:"name"`
+	Description map[string]any  `json:"description,omitempty"`
 }
 
 type SaleDetailInput struct {
@@ -294,6 +336,7 @@ type ShortletDetailInput struct {
 	CheckInTime          *string                   `json:"checkInTime,omitempty"`
 	CheckOutTime         *string                   `json:"checkOutTime,omitempty"`
 	AccommodationType    domain1.AccommodationType `json:"accommodationType"`
+	AutoAcceptBookings   *bool                     `json:"autoAcceptBookings,omitempty"`
 	CalendarMonthsAhead  *int                      `json:"calendarMonthsAhead,omitempty"`
 	AutoGenerateCalendar *bool                     `json:"autoGenerateCalendar,omitempty"`
 	Rules                []*RuleGroupInput         `json:"rules,omitempty"`
@@ -455,6 +498,7 @@ type UpdateShortletDetailInput struct {
 	CheckInTime          *string                    `json:"checkInTime,omitempty"`
 	CheckOutTime         *string                    `json:"checkOutTime,omitempty"`
 	AccommodationType    *domain1.AccommodationType `json:"accommodationType,omitempty"`
+	AutoAcceptBookings   *bool                      `json:"autoAcceptBookings,omitempty"`
 	CalendarMonthsAhead  *int                       `json:"calendarMonthsAhead,omitempty"`
 	AutoGenerateCalendar *bool                      `json:"autoGenerateCalendar,omitempty"`
 	Rules                []*RuleGroupInput          `json:"rules,omitempty"`
@@ -487,7 +531,7 @@ const (
 	RuleSubCategoryPets                 RuleSubCategory = "pets"
 	RuleSubCategoryEvents               RuleSubCategory = "events"
 	RuleSubCategoryGuests               RuleSubCategory = "guests"
-	RuleSubCategoryCancellationPolicy   RuleSubCategory = "cancellation_policy"
+	RuleSubCategoryRefundPolicy         RuleSubCategory = "refund_policy"
 	RuleSubCategoryMustKnow             RuleSubCategory = "must_know"
 	RuleSubCategoryCustom               RuleSubCategory = "custom"
 )
@@ -502,14 +546,14 @@ var AllRuleSubCategory = []RuleSubCategory{
 	RuleSubCategoryPets,
 	RuleSubCategoryEvents,
 	RuleSubCategoryGuests,
-	RuleSubCategoryCancellationPolicy,
+	RuleSubCategoryRefundPolicy,
 	RuleSubCategoryMustKnow,
 	RuleSubCategoryCustom,
 }
 
 func (e RuleSubCategory) IsValid() bool {
 	switch e {
-	case RuleSubCategorySecurity, RuleSubCategoryProhibitedActivities, RuleSubCategoryCheckInWindow, RuleSubCategoryCheckOutTime, RuleSubCategoryCheckInMethod, RuleSubCategorySmoking, RuleSubCategoryPets, RuleSubCategoryEvents, RuleSubCategoryGuests, RuleSubCategoryCancellationPolicy, RuleSubCategoryMustKnow, RuleSubCategoryCustom:
+	case RuleSubCategorySecurity, RuleSubCategoryProhibitedActivities, RuleSubCategoryCheckInWindow, RuleSubCategoryCheckOutTime, RuleSubCategoryCheckInMethod, RuleSubCategorySmoking, RuleSubCategoryPets, RuleSubCategoryEvents, RuleSubCategoryGuests, RuleSubCategoryRefundPolicy, RuleSubCategoryMustKnow, RuleSubCategoryCustom:
 		return true
 	}
 	return false

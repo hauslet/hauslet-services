@@ -112,7 +112,7 @@ func Load() *GlobalConfig {
 				},
 				FX: FXConfig{
 					APIKey:  must("FX_API_KEY"),
-					BaseURL: def("FX_URL", "https://api.currencyapi.com/"),
+					BaseURL: def("FX_URL", "https://v6.exchangerate-api.com/v6"),
 				},
 			},
 			Infra: InfraConfig{

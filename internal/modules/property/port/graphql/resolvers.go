@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"math"
 	"path/filepath"
 	"strings"
 
@@ -10,10 +11,12 @@ import (
 	profiledomain "hauslet/internal/modules/profile/domain"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/service"
+	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph/helpers"
 	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/model"
 	"hauslet/internal/transport/graph/viewer"
+	localization "hauslet/internal/transport/middleware/localization"
 
 	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
@@ -24,10 +27,16 @@ type Resolver struct {
 	propertyService service.Service
 	log             *lgr.Logger
 	cdnHost         string
+	fx              xchange.XChange
 }
 
-func NewResolver(propertyService service.Service, cfg *config.StorageConfig, log *lgr.Logger) *Resolver {
-	return &Resolver{propertyService: propertyService, cdnHost: cfg.R2.CDNHost, log: log}
+func NewResolver(propertyService service.Service, cfg *config.StorageConfig, fx xchange.XChange, log *lgr.Logger) *Resolver {
+	return &Resolver{
+		propertyService: propertyService,
+		cdnHost:         cfg.R2.CDNHost,
+		fx:              fx,
+		log:             log,
+	}
 }
 
 // ===========================
@@ -45,6 +54,7 @@ func (r *Resolver) ListingByPublicId(ctx context.Context, publicId string) (*dom
 		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
 
+	r.localizeListing(ctx, listing)
 	return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
 }
 
@@ -55,6 +65,7 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 			if listing != nil && len(listing.Media) > 0 {
 				listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 			}
+			r.localizeListing(ctx, listing)
 			return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
 		}
 	}
@@ -67,6 +78,7 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 	if listing != nil && len(listing.Media) > 0 {
 		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
+	r.localizeListing(ctx, listing)
 	return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
 }
 
@@ -80,6 +92,7 @@ func (r *Resolver) ListingBySlug(ctx context.Context, slug string) (*domain.List
 	if listing != nil && len(listing.Media) > 0 {
 		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
+	r.localizeListing(ctx, listing)
 	return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
 }
 
@@ -116,6 +129,7 @@ func (r *Resolver) Listings(ctx context.Context, filter *model.ListingFilterInpu
 		if len(listings[i].Media) > 0 {
 			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
 		}
+		r.localizeListing(ctx, &listings[i])
 	}
 
 	return buildListingConnection(listings, total, offset, limit, ctx, viewer.FromContext(ctx)), nil
@@ -218,9 +232,87 @@ func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID,
 		if len(listings[i].Media) > 0 {
 			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
 		}
+		r.localizeListing(ctx, &listings[i])
 	}
 
 	return buildListingConnection(listings, total, offset, limit, ctx, viewer.FromContext(ctx)), nil
+}
+
+func (r *Resolver) localizeListing(ctx context.Context, listing *domain.Listing) {
+	if listing == nil || r.fx == nil {
+		return
+	}
+
+	target, ok := localization.PreferredCurrency(ctx)
+	if !ok {
+		return
+	}
+	target = xchange.NormalizeCurrency(target)
+
+	source := string(listing.Currency)
+	if source == "" {
+		source = xchange.NormalizeCurrency("")
+	}
+	if strings.EqualFold(source, target) {
+		return
+	}
+
+	rate, err := r.fx.GetExchangeRate(source, target)
+	if err != nil {
+		r.log.Logf("WARN failed to convert listing=%s from=%s to=%s: %v", listing.ID, source, target, err)
+		return
+	}
+
+	convert := func(value float64) float64 {
+		return math.Round(value*rate*100) / 100
+	}
+
+	convertPtr := func(ptr *float64) {
+		if ptr != nil {
+			*ptr = convert(*ptr)
+		}
+	}
+
+	convertCharges := func(charges *[]domain.ServiceCharge) {
+		if charges == nil {
+			return
+		}
+		for i := range *charges {
+			(*charges)[i].Amount = convert((*charges)[i].Amount)
+		}
+	}
+
+	if detail := listing.ShortletDetails; detail != nil {
+		detail.NightlyRate = convert(detail.NightlyRate)
+		convertPtr(detail.CautionFee)
+		convertPtr(detail.CleaningFee)
+		convertPtr(detail.ServiceFee)
+		convertPtr(detail.ExtraGuestFee)
+	}
+
+	if detail := listing.RentalDetails; detail != nil {
+		detail.RentalPrice = convert(detail.RentalPrice)
+		convertPtr(detail.AgencyFee)
+		convertPtr(detail.LegalFee)
+		convertPtr(detail.RegistrationFee)
+		convertPtr(detail.CautionFee)
+		convertPtr(detail.ServiceCharge)
+		convertCharges(detail.ServiceChargeBreakdown)
+	}
+
+	if detail := listing.SaleDetails; detail != nil {
+		detail.SalePrice = convert(detail.SalePrice)
+		convertPtr(detail.AgencyFee)
+		convertPtr(detail.LegalFee)
+		convertPtr(detail.SurveyFee)
+		convertPtr(detail.TitleProcessingFee)
+		convertPtr(detail.DevelopmentFee)
+		convertPtr(detail.OtherFees)
+		convertPtr(detail.ServiceCharge)
+		convertCharges(detail.ServiceChargeBreakdown)
+	}
+
+	listing.Currency = domain.CurrencyCode(target)
 }
 
 // MyIndividualListings retrieves individual listings owned by the authenticated user.
@@ -272,6 +364,7 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 		if len(listings[i].Media) > 0 {
 			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
 		}
+		r.localizeListing(ctx, &listings[i])
 	}
 
 	return buildListingConnection(listings, total, offset, limit, ctx, v), nil
@@ -308,6 +401,7 @@ func (r *Resolver) SearchListings(ctx context.Context, filter *model.ListingFilt
 		if len(l.Media) > 0 {
 			l.Media = helpers.BuildListingMediaURLs(l.Media, r.cdnHost)
 		}
+		r.localizeListing(ctx, &l)
 		sanitized := sanitizeListingForViewer(ctx, &l, v)
 		if sanitized == nil {
 			continue
@@ -349,6 +443,7 @@ func (r *Resolver) SimilarListings(ctx context.Context, listingID uuid.UUID, lim
 		if len(l.Media) > 0 {
 			l.Media = helpers.BuildListingMediaURLs(l.Media, r.cdnHost)
 		}
+		r.localizeListing(ctx, &l)
 		sanitized := sanitizeListingForViewer(ctx, &l, v)
 		if sanitized == nil {
 			continue

@@ -1,0 +1,199 @@
+# internal/modules/payments/port/graphql/schema.graphqls
+
+enum PaymentStatus {
+  pending
+  processing
+  succeeded
+  failed
+  refunded
+  partially_refunded
+}
+
+enum PaymentMethodType {
+  card
+  bank_transfer
+  bank_account
+  mobile_money
+}
+
+enum Market {
+  ghana
+  kenya
+  nigeria
+  south_africa
+  other
+}
+
+enum TransactionType {
+  payment
+  refund
+  payout
+  reversal
+}
+
+enum TransactionStatus {
+  pending
+  processing
+  succeeded
+  failed
+  reversed
+}
+
+type Payment {
+  id: UUID!
+  reference: String!
+  providerRef: String
+  bookingId: UUID
+  businessId: UUID
+  payerId: UUID!
+  payerName: String!
+  payerEmail: String!
+  amount: Int!
+  currency: String!
+  market: Market!
+  status: PaymentStatus!
+  description: String
+  refundedAmount: Int!
+  refundedAt: Time
+  metadata: Map
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type PaymentMethod {
+  id: UUID!
+  userId: UUID!
+  type: PaymentMethodType!
+  provider: String!
+  authorizationCode: String
+  cardLast4: String
+  cardExpMonth: Int
+  cardExpYear: Int
+  cardBrand: String
+  bankName: String
+  accountName: String
+  accountNumberLast4: String
+  isDefault: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type Transaction {
+  id: UUID!
+  paymentId: UUID
+  reference: String!
+  type: TransactionType!
+  amount: Int!
+  currency: String!
+  status: TransactionStatus!
+  description: String
+  providerRef: String
+  providerResponse: Map
+  processedAt: Time
+  failureReason: String
+  createdAt: Time!
+}
+
+type PayoutDetail {
+  id: UUID!
+  businessId: UUID!
+  recipientCode: String!
+  bankCode: String!
+  bankName: String!
+  accountNumber: String!
+  accountName: String!
+  isActive: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type PaymentInitResponse {
+  payment: Payment!
+  authorizationUrl: String
+  accessCode: String
+}
+
+input CreatePaymentInput {
+  bookingId: UUID
+  businessId: UUID
+  amount: Int!
+  currency: String!
+  market: Market!
+  payerEmail: String!
+  payerName: String!
+  description: String
+  metadata: Map
+  callbackUrl: String
+  paymentMethodId: UUID
+}
+
+input RefundPaymentInput {
+  paymentId: UUID!
+  amount: Int
+  reason: String
+}
+
+input CreatePaymentMethodInput {
+  authorizationCode: String!
+  provider: String!
+  isDefault: Boolean
+}
+
+input CreatePayoutDetailInput {
+  businessId: UUID!
+  bankCode: String!
+  accountNumber: String!
+  accountName: String!
+}
+
+input CreatePayoutInput {
+  businessId: UUID!
+  amount: Int!
+  currency: String!
+  description: String
+  recipientCode: String!
+}
+
+extend type Query {
+  payment(id: UUID!): Payment
+  payments(
+    bookingId: UUID
+    businessId: UUID
+    payerId: UUID
+    status: PaymentStatus
+    limit: Int
+    offset: Int
+  ): [Payment!]!
+
+  paymentMethod(id: UUID!): PaymentMethod
+  paymentMethods(userId: UUID!): [PaymentMethod!]!
+
+  transaction(id: UUID!): Transaction
+  transactions(
+    paymentId: UUID
+    type: TransactionType
+    status: TransactionStatus
+    limit: Int
+    offset: Int
+  ): [Transaction!]!
+
+  payoutDetail(id: UUID!): PayoutDetail
+  payoutDetails(businessId: UUID!): [PayoutDetail!]!
+}
+
+extend type Mutation {
+  # Payment mutations
+  createPayment(input: CreatePaymentInput!): PaymentInitResponse!
+  verifyPayment(reference: String!): Payment!
+  refundPayment(input: RefundPaymentInput!): Payment!
+
+  # Payment method mutations
+  savePaymentMethod(input: CreatePaymentMethodInput!): PaymentMethod!
+  setDefaultPaymentMethod(id: UUID!): PaymentMethod!
+  deletePaymentMethod(id: UUID!): Boolean!
+
+  # Payout mutations
+  createPayoutDetail(input: CreatePayoutDetailInput!): PayoutDetail!
+  deactivatePayoutDetail(id: UUID!): PayoutDetail!
+  createPayout(input: CreatePayoutInput!): Transaction!
+}

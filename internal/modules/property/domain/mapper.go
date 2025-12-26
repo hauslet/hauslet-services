@@ -361,6 +361,7 @@ func MapShortletDetailFromSchema(schemaDetail *schema.ShortletDetail) *ShortletD
 		CheckInTime:          schemaDetail.CheckInTime,
 		CheckOutTime:         schemaDetail.CheckOutTime,
 		AccommodationType:    AccommodationType(schemaDetail.AccommodationType),
+		AutoAcceptBookings:   schemaDetail.AutoAcceptBookings,
 		CalendarMonthsAhead:  schemaDetail.CalendarMonthsAhead,
 		AutoGenerateCalendar: schemaDetail.AutoGenerateCalendar,
 	}
@@ -402,6 +403,7 @@ func MapShortletDetailToSchema(domainDetail *ShortletDetail) *schema.ShortletDet
 		CheckInTime:          domainDetail.CheckInTime,
 		CheckOutTime:         domainDetail.CheckOutTime,
 		AccommodationType:    schema.AccommodationType(domainDetail.AccommodationType),
+		AutoAcceptBookings:   domainDetail.AutoAcceptBookings,
 		CalendarMonthsAhead:  domainDetail.CalendarMonthsAhead,
 		AutoGenerateCalendar: domainDetail.AutoGenerateCalendar,
 	}

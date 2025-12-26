@@ -1,0 +1,33 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        Booking request not approved
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.GuestName}}, the host declined your booking request.
+    </p>
+
+    {{if .Reason}}
+    <div style="background-color: #FFF3CD; border-left: 4px solid #FFC107; border-radius: 4px; padding: 16px; margin: 24px 0;">
+        <p style="font-size: 14px; line-height: 22px; color: #856404; margin: 0;">
+            <strong>Reason:</strong> {{.Reason}}
+        </p>
+    </div>
+    {{end}}
+
+    <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
+            <strong>Check-in:</strong> {{.CheckIn}}<br/>
+            <strong>Check-out:</strong> {{.CheckOut}}<br/>
+            <strong>Guests:</strong> {{.GuestCount}}
+        </p>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        You can search for another listing and submit a new request at any time.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

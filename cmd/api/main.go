@@ -5,8 +5,13 @@ import (
 	"hauslet/cmd/api/server"
 	"hauslet/config"
 	authSchema "hauslet/internal/modules/auth/repository/schema"
+	bookingSchema "hauslet/internal/modules/booking/repository/schema"
 	businessSchema "hauslet/internal/modules/business/repository/schema"
+	calendarSchema "hauslet/internal/modules/calendar/repository/schema"
+	financeSchema "hauslet/internal/modules/finance/repository/schema"
 	moderationSchema "hauslet/internal/modules/moderation/repository/schema"
+	paymentsSchema "hauslet/internal/modules/payments/repository/schema"
+	pricingSchema "hauslet/internal/modules/pricing/repository/schema"
 	profileSchema "hauslet/internal/modules/profile/repository/schema"
 	propertySchema "hauslet/internal/modules/property/repository/schema"
 	wishlistSchema "hauslet/internal/modules/wishlist/repository/schema"
@@ -66,8 +71,21 @@ func main() {
 		&businessSchema.BusinessMember{},
 		&businessSchema.BusinessInvitation{},
 		&moderationSchema.Moderation{},
+		&paymentsSchema.Payment{},
+		&paymentsSchema.Transaction{},
+		&paymentsSchema.PaymentMethod{},
+		&paymentsSchema.PayoutDetail{},
 		&wishlistSchema.Wishlist{},
 		&wishlistSchema.WishlistItem{},
+		&bookingSchema.Booking{},
+		&calendarSchema.CalendarEvent{},
+		&calendarSchema.CalendarConfig{},
+		&pricingSchema.PricingRule{},
+		&pricingSchema.MultiPropertyDiscount{},
+		&financeSchema.Wallet{},
+		&financeSchema.LedgerEntry{},
+		&financeSchema.Transaction{},
+		&financeSchema.Disbursement{},
 	); err != nil {
 		log.Logf("ERROR failed to run migrations: %v", err)
 		return

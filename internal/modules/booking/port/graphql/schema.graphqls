@@ -1,0 +1,190 @@
+# internal/modules/booking/port/graphql/schema.graphqls
+
+enum BookingStatus {
+  draft
+  pending_host_approval
+  awaiting_payment
+  payment_failed
+  confirmed
+  active
+  completed
+  cancelled
+  archived
+  disputed
+  settled
+}
+
+enum BookingType {
+  instant
+  request
+}
+
+type Booking {
+  id: UUID!
+  listingId: UUID!
+  calendarEventId: UUID!
+  cleaningEventId: UUID
+
+  guestId: UUID!
+  guestName: String!
+  guestEmail: String!
+  guestPhone: String
+
+  guestCount: Int!
+
+  status: BookingStatus!
+  bookingType: BookingType!
+
+  checkIn: Time!
+  checkOut: Time!
+
+  checkInTime: String
+  checkOutTime: String
+
+  holdExpiresAt: Time
+  paymentDueAt: Time
+  activeAt: Time
+  completedAt: Time
+  archivedAt: Time
+
+  paymentReference: String
+  lastPaymentId: UUID
+
+  specialRequests: String
+
+  priceBreakdown: PriceBreakdownSnapshot
+  totalPrice: Float!
+  currency: String!
+
+  confirmedAt: Time
+  cancelledAt: Time
+
+  createdAt: Time!
+  updatedAt: Time!
+  deletedAt: Time
+}
+
+type PriceBreakdownSnapshot {
+  baseTotal: Float!
+  cleaningFee: Float
+  serviceFee: Float
+  cautionFee: Float
+  discounts: [DiscountSnapshot!]
+  nightlyRates: [DailyRate!]
+  subtotal: Float!
+  total: Float!
+  currency: String!
+}
+
+type DiscountSnapshot {
+  name: String!
+  amount: Float!
+  type: String!
+}
+
+type DailyRate {
+  date: String!
+  baseRate: Float!
+  finalRate: Float!
+}
+
+type BookingQuote {
+  listingId: UUID!
+  checkIn: Time!
+  checkOut: Time!
+  guestCount: Int!
+  available: Boolean!
+  priceBreakdown: PriceBreakdownSnapshot
+  totalPrice: Float!
+  currency: String!
+
+  instantBooking: Boolean!
+  minNights: Int!
+  maxNights: Int
+  maxGuests: Int!
+  checkInTime: String
+  checkOutTime: String
+
+  responseWindowHours: Float
+  unavailabilityReason: String
+}
+
+input ReserveBookingInput {
+  listingId: UUID!
+  checkIn: Time!
+  checkOut: Time!
+  guestCount: Int!
+  paymentMethodId: UUID
+  specialRequests: String
+}
+
+input RequestBookingInput {
+  listingId: UUID!
+  checkIn: Time!
+  checkOut: Time!
+  guestCount: Int!
+  specialRequests: String
+}
+
+input PayForBookingInput {
+  bookingId: UUID!
+  paymentMethodId: UUID
+}
+
+input CancelBookingInput {
+  bookingId: UUID!
+  reason: String
+}
+
+type CompleteBookingPayload {
+  booking: Booking!
+  paymentId: UUID!
+  paymentStatus: String!
+  paymentReference: String!
+  authorizationUrl: String
+  requiresAuthorization: Boolean!
+}
+
+extend type Query {
+  # Get pricing and availability quote without creating a booking
+  quoteBooking(
+    listingId: UUID!
+    checkIn: Time!
+    checkOut: Time!
+    guestCount: Int!
+  ): BookingQuote!
+
+  # Get a single booking by ID
+  booking(id: UUID!): Booking
+
+  # List bookings for the authenticated guest
+  myBookings(
+    limit: Int
+    offset: Int
+  ): [Booking!]!
+
+  # List bookings for a specific listing (owner/host view)
+  listingBookings(
+    listingId: UUID!
+    status: BookingStatus
+    limit: Int
+    offset: Int
+  ): [Booking!]!
+}
+
+extend type Mutation {
+  # Reserve an instant booking with payment in one operation (auto-accept only)
+  reserveBooking(input: ReserveBookingInput!): CompleteBookingPayload!
+
+  # Create a manual-approval booking request (requires host approval)
+  requestBooking(input: RequestBookingInput!): Booking!
+
+  # Pay for an approved booking (after host approval or for retry)
+  payForBooking(input: PayForBookingInput!): CompleteBookingPayload!
+
+  # Confirm/approve a booking request (host action for manual-approval bookings)
+  confirmBooking(bookingId: UUID!): Booking!
+
+  # Cancel a booking
+  cancelBooking(input: CancelBookingInput!): Booking!
+}

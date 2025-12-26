@@ -5,12 +5,16 @@ import (
 
 	"hauslet/config"
 	"hauslet/internal/modules/auth/service"
+	bookingservice "hauslet/internal/modules/booking/service"
 	businessservice "hauslet/internal/modules/business/service"
+	paymentsservice "hauslet/internal/modules/payments/service"
 	profileservice "hauslet/internal/modules/profile/service"
 	propertyservice "hauslet/internal/modules/property/service"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
+	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/viewer"
+	localization "hauslet/internal/transport/middleware/localization"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -27,14 +31,17 @@ func SetupGraphQL(r chi.Router,
 	profileService profileservice.ProfileService,
 	propertyService propertyservice.Service,
 	businessService businessservice.BusinessService,
+	paymentsService paymentsservice.PaymentService,
+	bookingService bookingservice.BookingService,
 	wishlistService wishlistservice.WishlistService,
 	tenantSlugMiddleware func(http.Handler) http.Handler,
+	fxClient xchange.XChange,
 	cfg *config.GlobalConfig,
 	log *lgr.Logger) {
 
 	srv := handler.New(
 		NewExecutableSchema(Config{
-			Resolvers:  NewResolver(authService, profileService, propertyService, businessService, wishlistService, cfg, log),
+			Resolvers:  NewResolver(authService, profileService, propertyService, businessService, paymentsService, bookingService, wishlistService, fxClient, cfg, log),
 			Complexity: NewComplexityRoot(defaultMaxListLimit),
 		}),
 	)
@@ -67,6 +74,8 @@ func SetupGraphQL(r chi.Router,
 		if tenantSlugMiddleware != nil {
 			r.Use(tenantSlugMiddleware)
 		}
+		// Preferred currency for price localization.
+		r.Use(localization.WithPreferredCurrency)
 		// DataLoaders to batch profile and property fetches.
 		r.Use(loaders.Middleware(profileService, propertyService))
 

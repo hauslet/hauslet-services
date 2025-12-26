@@ -1,0 +1,36 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        New Booking Request
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.HostName}}, <strong>{{.GuestName}}</strong> wants to stay at your listing from
+        <strong>{{.CheckIn}}</strong> to <strong>{{.CheckOut}}</strong>.
+    </p>
+
+    <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
+            <strong>Guests:</strong> {{.GuestCount}} &nbsp;&nbsp; <strong>Nights:</strong> {{.Nights}}<br/>
+            <strong>Total:</strong> {{.TotalPrice}} &nbsp;&nbsp; <strong>Booking ID:</strong> {{.BookingID}}
+        </p>
+        {{if .SpecialRequests}}
+        <p style="margin-top: 16px; font-size: 14px; color: #5F4B6B;">
+            <strong>Special Requests:</strong> {{.SpecialRequests}}
+        </p>
+        {{end}}
+    </div>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.ManageURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            Review Request
+        </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        We'll hold the dates {{.HoldWindow}}. If you do nothing the request will expire automatically.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

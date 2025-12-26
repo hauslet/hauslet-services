@@ -1,0 +1,31 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        New confirmed booking
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.HostName}}, <strong>{{.GuestName}}</strong> booked your place for <strong>{{.CheckIn}}</strong> - <strong>{{.CheckOut}}</strong>.
+    </p>
+
+    <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
+            <strong>Guests:</strong> {{.GuestCount}}<br/>
+            <strong>Nights:</strong> {{.Nights}}<br/>
+            <strong>Total:</strong> {{.TotalPrice}}
+        </p>
+    </div>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.ManageURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            View Booking
+        </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        Message the guest anytime from your dashboard if you need arrival details.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

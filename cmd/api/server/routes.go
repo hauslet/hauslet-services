@@ -5,15 +5,29 @@ import (
 	"hauslet/config"
 	authhttp "hauslet/internal/modules/auth/port/http"
 	authrepository "hauslet/internal/modules/auth/repository"
-	"hauslet/internal/modules/auth/service"
+	authservice "hauslet/internal/modules/auth/service"
 	authsession "hauslet/internal/modules/auth/session"
+	bookingnotification "hauslet/internal/modules/booking/notification"
+	bookingadapters "hauslet/internal/modules/booking/port/adapters"
+	bookinghooks "hauslet/internal/modules/booking/port/hooks"
+	bookingrepository "hauslet/internal/modules/booking/repository"
+	bookingservice "hauslet/internal/modules/booking/service"
 	businessmiddleware "hauslet/internal/modules/business/middleware"
 	businessnotification "hauslet/internal/modules/business/notification"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
+	calendarhttp "hauslet/internal/modules/calendar/port/http"
+	calendarrepository "hauslet/internal/modules/calendar/repository"
+	calendarservice "hauslet/internal/modules/calendar/service"
 	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
+	paymentsnotification "hauslet/internal/modules/payments/notification"
+	paymentshttp "hauslet/internal/modules/payments/port/http"
+	paymentsrepository "hauslet/internal/modules/payments/repository"
+	paymentsservice "hauslet/internal/modules/payments/service"
+	pricingrepository "hauslet/internal/modules/pricing/repository"
+	pricingservice "hauslet/internal/modules/pricing/service"
 	profilenotification "hauslet/internal/modules/profile/notification"
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
@@ -27,9 +41,11 @@ import (
 	wishlistservice "hauslet/internal/modules/wishlist/service"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/payment"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
+	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph"
 
 	"github.com/go-chi/chi/v5"
@@ -62,6 +78,7 @@ func setupRoutes(r chi.Router,
 	profileService := profileservice.NewProfileService(profileRepo, r2, moderationAdapter, profileNotificationService, log)
 	authProfileAdapter := profileport.NewAuthHooksAdapter(profileService, cfg.Storage.R2.CDNHost)
 	businessProfileAdapter := profileport.NewBusinessProfileAdapter(profileService)
+	bookingProfileAdapter := profileport.NewBookingProfileAdapter(profileService)
 
 	// Initialize business service (before property service to enable business adapter)
 	businessRepo := businessrepository.NewBusinessRepository(db)
@@ -73,6 +90,22 @@ func setupRoutes(r chi.Router,
 		log,
 	)
 	businessMW := businessmiddleware.NewMiddleware(businessService, log)
+
+	// Initialize payment platform client and services
+	paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
+	paymentClient := payment.New(paymentFactory)
+	paymentsRepo := paymentsrepository.NewRepository(db)
+	paymentsNotificationSvc := paymentsnotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
+	bookingNotificationService := bookingnotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
+	paymentsService := paymentsservice.NewPaymentService(
+		paymentsRepo,
+		paymentClient,
+		paymentsNotificationSvc,
+		log,
+	)
+
+	// Initialize booking repository (service will be created after calendar/pricing are ready)
+	bookingRepo := bookingrepository.NewBookingRepository(db)
 
 	// Initialize property service with business adapter and moderation hooks
 	propertyRepo := propertyrepository.NewPropertyRepository(db)
@@ -100,6 +133,43 @@ func setupRoutes(r chi.Router,
 		businessmiddleware.NewPropertyAuthHelper(businessService),
 		businessService,
 	)
+	calendarRepo := calendarrepository.NewCalendarRepository(db)
+	calendarHooksAdapter := propertyhooks.NewCalendarHooksAdapter(propertyService)
+	calendarService := calendarservice.NewCalendarService(calendarRepo, *rds, calendarHooksAdapter, log)
+	calendarHTTP := calendarhttp.NewHTTPHandler(ctx, calendarService, log)
+
+	// Initialize pricing service for booking
+	pricingRepo := pricingrepository.NewPricingRepository(db)
+	pricingHooksAdapter := propertyhooks.NewPricingHooksAdapter(propertyService)
+	pricingService := pricingservice.NewPricingService(
+		pricingRepo,
+		*rds,
+		pricingHooksAdapter,
+		log,
+		cfg.YAML.Platform,
+	)
+
+	// Initialize payment adapter for booking
+	paymentAdapter := bookingadapters.NewPaymentServiceAdapter(paymentsService, log)
+
+	// Initialize booking service with all dependencies
+	propertyHooksAdapter := bookinghooks.NewPropertyHooksAdapter(propertyRepo)
+	bookingService := bookingservice.NewBookingService(
+		bookingRepo,
+		calendarService,
+		pricingService,
+		paymentAdapter,
+		propertyHooksAdapter,
+		bookingProfileAdapter,
+		bookingNotificationService,
+		log,
+	)
+
+	// Initialize booking hooks adapter for payment lifecycle
+	bookingHooksAdapter := bookinghooks.NewBookingHooksAdapter(bookingService)
+
+	// Initialize payment webhook handler with booking hooks
+	paymentsWebhookHandler := paymentshttp.NewWebhookHandler(paymentsService, paymentClient, bookingHooksAdapter, log)
 
 	// Initialize wishlist service
 	wishlistRepo := wishlistrepository.NewWishlistRepository(db)
@@ -107,7 +177,7 @@ func setupRoutes(r chi.Router,
 	wishlistService := wishlistservice.NewWishlistService(wishlistRepo, *rds, wishListListAdapter, log)
 
 	// Initialize auth service
-	authService := service.NewAuthService(
+	authService := authservice.NewAuthService(
 		&cfg.Auth,
 		authRepo,
 		log, mC, *rds, q,
@@ -139,6 +209,40 @@ func setupRoutes(r chi.Router,
 		})
 	}
 
+	// Setup business routes with optional rate limiting in production
+	if cfg.App.Env == "production" {
+		r.Group(func(r chi.Router) {
+			calendarHTTP.SetupRoutes(r, authService, businessMW)
+		})
+	} else {
+		r.Group(func(r chi.Router) {
+			calendarHTTP.SetupRoutesWithRateLimiting(r, authService, *rds, businessMW)
+		})
+	}
+
+	// Setup payment webhook routes
+	r.Post("/webhooks/paystack", paymentsWebhookHandler.HandlePaystackWebhook)
+
+	// Initialize FX client
+	fxProvider := xchange.NewExchangeRateAdapter(
+		cfg.Services.FX.APIKey,
+		cfg.Services.FX.BaseURL,
+		*rds,
+	)
+	fxClient := xchange.New(fxProvider)
+
 	// Setup GraphQL routes
-	graph.SetupGraphQL(r, authService, profileService, propertyService, businessService, wishlistService, businessMW.Auth.WithTenantSlug, cfg, log)
+	graph.SetupGraphQL(r,
+		authService,
+		profileService,
+		propertyService,
+		businessService,
+		paymentsService,
+		bookingService,
+		wishlistService,
+		businessMW.Auth.WithTenantSlug,
+		fxClient,
+		cfg,
+		log,
+	)
 }
