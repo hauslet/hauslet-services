@@ -382,6 +382,11 @@ import paymentsHTTP "hauslet/internal/modules/payments/port/http"
 webhookHandler := paymentsHTTP.NewWebhookHandler(
     paymentsSvc,
     paymentClient,
+    nil, // booking hooks
+    nil, // finance hooks
+    nil, // payout hooks
+    queueClient,
+    "payment.webhook",
     log,
 )
 

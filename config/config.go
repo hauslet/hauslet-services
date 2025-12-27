@@ -66,13 +66,6 @@ func Load() *GlobalConfig {
 					Endpoint:        must("R2_ENDPOINT"),
 					CDNHost:         must("CDN_HOST"),
 				},
-				Elastic: ElasticsearchConfig{
-					URL:      must("ELASTICSEARCH_URL"),
-					Index:    must("ELASTICSEARCH_INDEX"),
-					Username: must("ELASTICSEARCH_USERNAME"),
-					Password: must("ELASTICSEARCH_PASSWORD"),
-					APIKey:   def("ELASTICSEARCH_API_KEY", ""),
-				},
 			},
 			Services: ServicesConfig{
 				Email: EmailConfig{
@@ -89,12 +82,12 @@ func Load() *GlobalConfig {
 				},
 				Anthropic: AnthropicConfig{
 					APIKey:   must("ANTHROPIC_API_KEY"),
-					APIURL:   must("ANTHROPIC_API_URL"),
-					APIModel: must("ANTHROPIC_API_MODEL"),
+					APIURL:   def("ANTHROPIC_API_URL", "https://api.anthropic.com/v1"),
+					APIModel: def("ANTHROPIC_API_MODEL", "claude-sonnet-4-20250514"),
 				},
 				Gemini: GeminiConfig{
 					APIKey:     must("GEMINI_API_KEY"),
-					APIModel:   def("GEMINI_API_MODEL", "gemini-2.5-flash"),
+					APIModel:   def("GEMINI_API_MODEL", "gemini-3-flash-preview"),
 					Project:    def("GEMINI_PROJECT", ""),
 					EmbedModel: def("GEMINI_EMBED_MODEL", "gemini-embedding-001"),
 				},
@@ -116,12 +109,11 @@ func Load() *GlobalConfig {
 				},
 			},
 			Infra: InfraConfig{
-				RabbitMQ: RabbitMQConfig{
-					Addr: must("RABBITMQ_URL"),
-				},
-				NATS: NATSConfig{
-					URL: def("NATS_URL", "nats://localhost:4222"),
-					// StreamName, Subjects, and Consumers moved to YAML (cfg.YAML.Queue)
+				CloudTasks: CloudTasksConfig{
+					ProjectID:           def("CLOUD_TASKS_PROJECT_ID", ""),
+					Location:            def("CLOUD_TASKS_LOCATION", ""),
+					WorkerBaseURL:       def("CLOUD_TASKS_WORKER_URL", ""),
+					ServiceAccountEmail: def("CLOUD_TASKS_SERVICE_ACCOUNT", ""),
 				},
 			},
 		}

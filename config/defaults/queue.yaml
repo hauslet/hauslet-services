@@ -1,24 +1,25 @@
-# Queue Configuration (NATS JetStream)
+# Queue Configuration (Cloud Tasks)
 # This file defines queue settings for job processing
 
 queue:
-  # JetStream stream name (storage for all jobs)
+  # Legacy field (unused for Cloud Tasks)
   stream_name: JOBS
 
-  # Subject mappings (key=purpose, value=NATS subject)
+  # Queue mappings (key=purpose, value=Cloud Tasks queue name)
   subjects:
-    email: "email.send"
-    notification: "notification.push"
-    moderation: "moderation.check"
-    media_thumbnail: "media.thumbnail"
-    media_cleanup: "media.cleanup"
-    ai_moderation: "ai.moderation"
-    booking_expiry: "booking.expiry.check"
-    booking_refund: "booking.refund"
-    payout_process: "finance.payout.process"
-    payout_retry: "finance.payout.retry"
+    email: "email-queue"
+    notification: "notification-queue"
+    moderation: "moderation-queue"
+    media_thumbnail: "media-thumbnail-queue"
+    media_cleanup: "media-cleanup-queue"
+    ai_moderation: "ai-moderation-queue"
+    booking_expiry: "booking-expiry-queue"
+    booking_refund: "booking-refund-queue"
+    payment_webhook: "payment-webhook-queue"
+    payout_process: "payout-process-queue"
+    payout_retry: "payout-retry-queue"
 
-  # Consumer mappings (worker names for each job type)
+  # Legacy field (unused for Cloud Tasks)
   consumers:
     email: "email-worker"
     notification: "notification-worker"
@@ -28,5 +29,6 @@ queue:
     ai_moderation: "ai-moderation-worker"
     booking_expiry: "booking-expiry-worker"
     booking_refund: "booking-refund-worker"
+    payment_webhook: "payment-webhook-worker"
     payout_process: "payout-process-worker"
     payout_retry: "payout-retry-worker"

@@ -190,20 +190,22 @@ func setupRoutes(r chi.Router,
 	// Initialize booking querier adapter for payout processing
 	bookingQuerierAdapter := financehooks.NewBookingQuerierAdapter(bookingRepo)
 
+	// Initialize payout hooks adapter for marking bookings as settled
+	bookingPayoutHooksAdapter := bookinghooks.NewPayoutHooksAdapter(bookingService)
+
 	// Initialize payout service for automated host payouts
-	// TODO: Add booking hooks when implementing booking completion trigger
 	payoutService := financeservice.NewPayoutService(
 		financeWalletRepo,
 		financeLedgerRepo,
 		financeTransactionRepo,
 		financeDisbursementRepo,
-		paymentsRepo,            // PayoutDetailRepository for fetching host bank details
-		bookingQuerierAdapter,   // Booking querier for finding bookings ready for payout
-		financeNotificationSvc,  // Notification service for payout emails
-		nil,                     // booking hooks - will be added in Phase 4.5
+		paymentsRepo,               // PayoutDetailRepository for fetching host bank details
+		bookingQuerierAdapter,      // Booking querier for finding bookings ready for payout
+		financeNotificationSvc,     // Notification service for payout emails
+		bookingPayoutHooksAdapter,  // Booking hooks for marking bookings as settled after payout
 		paymentClient,
-		financeProfileAdapter,   // Profile adapter for getting host email/name
-		cfg.YAML.Platform,       // Platform config for commission rate and retry settings
+		financeProfileAdapter,      // Profile adapter for getting host email/name
+		cfg.YAML.Platform,          // Platform config for commission rate and retry settings
 		db,
 		log,
 	)
@@ -218,7 +220,16 @@ func setupRoutes(r chi.Router,
 	payoutHooksAdapter := financehooks.NewPayoutHooksAdapter(payoutService)
 
 	// Initialize payment webhook handler with booking, finance, and payout hooks
-	paymentsWebhookHandler := paymentshttp.NewWebhookHandler(paymentsService, paymentClient, bookingHooksAdapter, financeHooksAdapter, payoutHooksAdapter, log)
+	paymentsWebhookHandler := paymentshttp.NewWebhookHandler(
+		paymentsService,
+		paymentClient,
+		bookingHooksAdapter,
+		financeHooksAdapter,
+		payoutHooksAdapter,
+		q,
+		cfg.YAML.Queue.Subjects["payment_webhook"],
+		log,
+	)
 
 	// Initialize wishlist service
 	wishlistRepo := wishlistrepository.NewWishlistRepository(db)

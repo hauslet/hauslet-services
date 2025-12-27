@@ -41,6 +41,8 @@ func NewHTTPServer(
 		r.Use(securitymiddleware.SecurityHeaders)
 	}
 
+	registerHealthRoutes(r, db, rds)
+
 	// Set up routes
 	setupRoutes(r, ctx, db, rds, log, cfg, mC, q, r2)
 

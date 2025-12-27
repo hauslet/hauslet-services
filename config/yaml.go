@@ -26,7 +26,7 @@ type CalendarYAMLConfig struct {
 	RetryDelayMinutes   int  `yaml:"retry_delay_minutes"`
 }
 
-// QueueYAMLConfig defines queue/NATS service settings
+// QueueYAMLConfig defines queue/Cloud Tasks settings
 type QueueYAMLConfig struct {
 	StreamName string            `yaml:"stream_name"`
 	Subjects   map[string]string `yaml:"subjects"`

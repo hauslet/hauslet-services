@@ -145,30 +145,21 @@ func main() {
 	mailClient := email.New(emailSender)
 	log.Logf("INFO ✅ Email client initialized")
 
-	// Initialize NATS queue (optional fallback to direct send on failure)
+	// Initialize Cloud Tasks queue (optional fallback to direct send on failure)
 	var queueClient *queue.Client
-	queueSubjects := []string{cfg.YAML.Queue.Subjects["email"]}
-	if thumbSub := cfg.YAML.Queue.Subjects["media_thumbnail"]; thumbSub != "" {
-		queueSubjects = append(queueSubjects, thumbSub)
+	queueCfg := queue.Config{
+		ProjectID:           cfg.Infra.CloudTasks.ProjectID,
+		Location:            cfg.Infra.CloudTasks.Location,
+		WorkerBaseURL:       cfg.Infra.CloudTasks.WorkerBaseURL,
+		ServiceAccountEmail: cfg.Infra.CloudTasks.ServiceAccountEmail,
+		Environment:         cfg.App.Env,
 	}
-	if cleanupSub := cfg.YAML.Queue.Subjects["media_cleanup"]; cleanupSub != "" {
-		queueSubjects = append(queueSubjects, cleanupSub)
-	}
-	if aiModSub := cfg.YAML.Queue.Subjects["ai_moderation"]; aiModSub != "" {
-		queueSubjects = append(queueSubjects, aiModSub)
-	}
-	if expirySub := cfg.YAML.Queue.Subjects["booking_expiry"]; expirySub != "" {
-		queueSubjects = append(queueSubjects, expirySub)
-	}
-	if refundSub := cfg.YAML.Queue.Subjects["booking_refund"]; refundSub != "" {
-		queueSubjects = append(queueSubjects, refundSub)
-	}
-	if q, err := queue.New(initCtx, cfg.Infra.NATS.URL, cfg.YAML.Queue.StreamName, queueSubjects); err != nil {
-		log.Logf("WARN ⚠️ failed to initialize NATS queue, direct send will be used: %v", err)
+	if q, err := queue.New(initCtx, queueCfg, cfg.YAML.Queue.Subjects, log); err != nil {
+		log.Logf("WARN ⚠️ failed to initialize Cloud Tasks queue, direct send will be used: %v", err)
 	} else {
 		queueClient = q
 		defer queueClient.Close()
-		log.Logf("INFO ✅ NATS queue initialized")
+		log.Logf("INFO ✅ Cloud Tasks queue initialized")
 	}
 
 	// Create and start the HTTP server

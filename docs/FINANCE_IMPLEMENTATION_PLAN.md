@@ -972,17 +972,158 @@ Building a comprehensive double-entry ledger system for managing all monetary fl
 - **Wallet Owner Types:** "user", "business", "platform"
 - **Resource Types:** "booking" (others: subscription, verification, etc.)
 
-NOTES AFTER PHASE 4.5
+---
 
-- processSinglePayout: Will be used when ProcessDuePayouts is fully implemented with booking module integration
-- ProcessDuePayouts TODO: Needs booking module query integration in a future phase
-- Provider hardcode: Minor TODO to move to config
+## ✅ Phase 4 COMPLETE - Payout Automation (2025-12-27)
 
-All the infrastructure is in place, just needs the booking query logic to tie it all together
-The cron jobs are running and will work once ProcessDuePayouts is implemented to query bookings. For now, you could manually call processSinglePayout if needed, or implement the booking query logic as part of Phase 5.
+**Status:** FULLY IMPLEMENTED ✅
+
+### What Was Completed:
+
+**4.1 ProcessDuePayouts Implementation**
+- ✅ Implemented full `ProcessDuePayouts` in `internal/modules/finance/service/payout.go:47-132`
+- ✅ Queries bookings ready for payout via `bookingQuerier` interface
+- ✅ Processes each booking through `processSinglePayout`
+- ✅ Comprehensive audit logging with success/failure tracking
+- ✅ Configurable payout window (default: 48 hours from config)
+- ✅ Batch processing (100 bookings per run)
+
+**4.2 Booking Module Integration**
+- ✅ Created `BookingPayoutInfo` struct in `internal/modules/booking/repository/interface.go:12-19`
+- ✅ Implemented `FindBookingsReadyForPayout` in booking repository with JOIN to listings table
+- ✅ Query includes: booking ID, host ID (from listing owner), total amount, currency, payment ID
+- ✅ Filters: status=completed, checkout + window passed, has payment
+
+**4.3 Finance-Booking Adapter**
+- ✅ Created `BookingQuerierAdapter` in `internal/modules/finance/port/hooks/booking_querier_adapter.go`
+- ✅ Converts `BookingPayoutInfo` to `BookingForPayout`
+- ✅ Handles float to int conversion for minor currency units (multiply by 100)
+
+**4.4 Service Wiring**
+- ✅ Updated API server (`cmd/api/server/routes.go:190-209`) with booking querier adapter
+- ✅ Updated worker (`cmd/worker/setup/handlers.go:207-235`) with booking querier adapter
+- ✅ Both environments fully wired for payout automation
+
+**Key Technical Decisions:**
+- Used adapter pattern to decouple finance from booking module
+- JOIN query in repository for efficiency (single DB call)
+- Graceful handling when booking querier not configured
+- Comprehensive logging for audit trail
+
+**Remaining Notes:**
+- Provider is hardcoded to "paystack" - could be made configurable
+- Cron jobs are registered and ready to run ProcessDuePayouts
+- All code compiles successfully
 
 ---
 
-**Last Updated:** 2025-12-26
-**Estimated Total Effort:** 5-7 days for Phases 1-5
+## 🚧 Phase 6.1 IN PROGRESS - Dispute Handling (Started 2025-12-27)
+
+**Status:** Repository Layer Complete (60%) ✅ | Service Layer Pending
+
+### Completed (Phase 6.1.1 - 6.1.3):
+
+**6.1.1 Domain Model ✅**
+- ✅ Created `internal/modules/finance/domain/dispute.go` with full Dispute model
+- ✅ Added enums to `domain/enums.go`:
+  - `DisputeStatus`: open, investigating, resolved_refund, resolved_release, cancelled
+  - `DisputeReason`: property_mismatch, uninhabitable, safety_issue, cleanliness, etc.
+  - `DisputeParty`: guest, host
+- ✅ Added dispute errors to `domain/errors.go`
+- ✅ Business logic methods: `CanBeUpdated()`, `IsResolved()`, `MarkInvestigating()`, `Resolve()`, `Cancel()`, `AddEvidence()`
+
+**6.1.2 Repository Schema ✅**
+- ✅ Added `Dispute` GORM schema to `repository/schema/gorm.go:93-124`
+- ✅ Fields: booking_id (unique), wallet_id, filed_by, reason, status, description, amount, evidence (JSONB), resolution (JSONB)
+- ✅ Added `DisputeRepository` interface to `repository/interface.go:61-73`
+- ✅ Methods: Create, GetByID, GetByBookingID, Update, UpdateStatus, ListByStatus, ListByFiledBy, ListAll, WithTx
+
+**6.1.3 Repository Implementation ✅**
+- ✅ Created `internal/modules/finance/repository/dispute_repo.go`
+- ✅ Full `DisputeRepositoryImpl` with all interface methods
+- ✅ Transaction-aware with `WithTx` support
+- ✅ Added mappers to `domain/mapper.go:206-286`
+  - `MapDisputeFromSchema` - handles JSON unmarshaling for evidence and resolution
+  - `MapDisputeToSchema` - handles JSON marshaling for evidence and resolution
+- ✅ Code compiles successfully
+
+### Pending (Phase 6.1.4 - 6.1.7):
+
+**6.1.4 Dispute Service** (NEXT UP)
+- [ ] Create `internal/modules/finance/service/dispute_service.go`
+- [ ] Interface: `DisputeService` with methods:
+  - `FileDispute(ctx, bookingID, filedBy, filedByID, reason, description, amount, currency)` - Creates dispute and freezes wallet
+  - `InvestigateDispute(ctx, disputeID, adminID)` - Marks as investigating
+  - `ResolveDispute(ctx, disputeID, adminID, outcome, refundAmount, reason, notes)` - Resolves with refund or release
+  - `CancelDispute(ctx, disputeID, cancelledByID)` - Cancels/withdraws dispute
+  - `AddEvidence(ctx, disputeID, evidenceType, url, description, uploadedBy)` - Adds evidence
+  - `GetDispute(ctx, disputeID)` - Retrieves dispute
+  - `ListDisputes(ctx, filters)` - Lists with filters
+- [ ] Implement wallet freeze/unfreeze logic
+- [ ] Implement refund transaction creation (via ledger service)
+- [ ] Implement release transaction creation
+- [ ] Validation: check dispute window, prevent duplicates, verify ownership
+
+**6.1.5 GraphQL Schema**
+- [ ] Add dispute types to `internal/modules/finance/port/graphql/schema.graphqls`
+- [ ] Mutations: fileDispute, resolveDispute, cancelDispute, addDisputeEvidence
+- [ ] Queries: dispute, disputes, myDisputes
+- [ ] Authorization: guests/hosts can file, only admins can resolve
+
+**6.1.6 GraphQL Resolvers**
+- [ ] Create resolver implementations in `internal/modules/finance/port/graphql/resolvers.go`
+- [ ] Add authorization checks
+- [ ] Wire into main resolver
+
+**6.1.7 Database Migration**
+- [ ] Add `schema.Dispute{}` to AutoMigrate in `cmd/api/main.go`
+- [ ] Run migration to create `disputes` table
+
+**6.1.8 Integration & Testing**
+- [ ] Wire dispute service into API server
+- [ ] Test dispute filing end-to-end
+- [ ] Test wallet freeze on dispute
+- [ ] Test refund resolution
+- [ ] Test release resolution
+
+### Architecture Decisions:
+- Disputes are linked to booking escrow wallets
+- One dispute per booking (unique constraint on booking_id)
+- Evidence stored as JSONB array for flexibility
+- Resolution stored as JSONB for rich metadata
+- Wallet freeze prevents payouts during investigation
+- Refund creates reversal transaction in ledger
+- Release unfreezes wallet and allows payout to proceed
+
+---
+
+## 📊 Updated Progress Tracking
+
+**Current Phase:** Phase 6.1 - Dispute Handling (60% Complete)
+**Overall Completion:** 4.5/6 phases ✅ (75%)
+**Files Created:** ~28 files
+**Lines of Code:** ~3,800
+
+**Phase Summary:**
+- ✅ Phase 1: Foundation (Domain & Repository) - 100%
+- ✅ Phase 2: Core Services (Wallet & Ledger) - 100%
+- ✅ Phase 3: Payment Integration - 100%
+- ✅ Phase 4: Payout Automation - 100%
+- ✅ Phase 5: Notifications & Admin (GraphQL) - 100%
+- 🚧 Phase 6.1: Dispute Handling - 60% (Repository complete, Service pending)
+- ⏸️  Phase 6.2: Multi-Currency - Not started
+- ⏸️  Phase 6.3: Reconciliation - Not started
+- ⏸️  Phase 6.4: Backfill - Not started
+
+**Next Immediate Tasks:**
+1. Implement `DisputeService` with freeze/resolution logic
+2. Add GraphQL schema for disputes
+3. Wire into API server
+4. Run database migration
+5. Test end-to-end dispute workflow
+
+---
+
+**Last Updated:** 2025-12-27
+**Estimated Total Effort:** 6-8 days for Phases 1-6.1
 **Risk Level:** Medium (complex financial logic, integration points)

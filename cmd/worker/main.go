@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"sync/atomic"
 
 	"hauslet/cmd/worker/setup"
 	"hauslet/config"
-	"hauslet/internal/transport/worker"
 )
 
 func main() {
@@ -27,8 +27,7 @@ func main() {
 	defer infra.CloseCache()
 
 	// 3) Queue client
-	queueSubjects := setup.GetActiveSubjects(cfg)
-	qClient, err := setup.InitQueue(ctx, cfg, queueSubjects)
+	qClient, err := setup.InitQueue(ctx, cfg, log)
 	if err != nil {
 		log.Logf("CRITICAL failed to initialize queue: %v", err)
 		panic(err)
@@ -40,19 +39,18 @@ func main() {
 	registry := setup.RegisterHandlers(infra, cfg, log)
 	log.Logf("INFO ✅ Registered %d job handlers", registry.HandlerCount())
 
-	// 5) Start worker processor
-	processor := worker.NewProcessor(infra.Queue, registry, log, cfg)
-	if err := processor.Start(ctx); err != nil {
-		log.Logf("CRITICAL failed to start processor: %v", err)
-		return
-	}
+	ready := atomic.Bool{}
+	workerServer := startWorkerServer(cfg, registry, log, &ready)
 
-	// 6) Background publishers
-	setup.StartPeriodicCleanup(ctx, infra.Queue, cfg, log)
-	setup.StartBookingExpiryCheck(ctx, infra.Queue, cfg, log)
-	setup.StartPayoutProcessing(ctx, infra.Queue, cfg, log)
-	setup.StartDisbursementRetry(ctx, infra.Queue, cfg, log)
+	// 6) Background publishers - REMOVED: Now handled by Cloud Scheduler
+	// Cloud Scheduler jobs trigger these endpoints directly:
+	// - /tasks/media/cleanup (every 15 min)
+	// - /tasks/booking/expiry (every 2 min)
+	// - /tasks/finance/payout/process (every hour)
+	// - /tasks/finance/payout/retry (every 15 min)
+
+	ready.Store(true)
 
 	// 7) Graceful shutdown
-	setup.HandleShutdown(log, processor)
+	setup.HandleShutdown(log, workerServer)
 }

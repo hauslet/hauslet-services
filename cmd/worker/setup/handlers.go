@@ -2,15 +2,16 @@ package setup
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"hauslet/config"
 	bookinghooks "hauslet/internal/modules/booking/port/hooks"
 	bookingrepository "hauslet/internal/modules/booking/repository"
 	bookingservice "hauslet/internal/modules/booking/service"
+	bookingnotification "hauslet/internal/modules/booking/notification"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
 	calendarrepository "hauslet/internal/modules/calendar/repository"
@@ -22,6 +23,7 @@ import (
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
 	paymentsnotification "hauslet/internal/modules/payments/notification"
+	paymentshttp "hauslet/internal/modules/payments/port/http"
 	paymentsrepository "hauslet/internal/modules/payments/repository"
 	paymentsservice "hauslet/internal/modules/payments/service"
 	pricingrepository "hauslet/internal/modules/pricing/repository"
@@ -34,17 +36,13 @@ import (
 	propertyhooks "hauslet/internal/modules/property/port/hooks"
 	propertyrepository "hauslet/internal/modules/property/repository"
 	"hauslet/internal/platform/payment"
-	platformQueue "hauslet/internal/platform/queue"
 	"hauslet/internal/queue"
-	bookingJobs "hauslet/internal/queue/jobs/booking"
-	financeJobs "hauslet/internal/queue/jobs/finance"
-	jobs "hauslet/internal/queue/jobs/listing"
-	"hauslet/internal/transport/worker"
 	bookingHandler "hauslet/internal/transport/worker/handlers/booking"
 	emailHandler "hauslet/internal/transport/worker/handlers/emails"
 	financeHandler "hauslet/internal/transport/worker/handlers/finance"
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
+	paymentHandler "hauslet/internal/transport/worker/handlers/payments"
 
 	"github.com/go-pkgz/lgr"
 )
@@ -62,6 +60,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 	hasThumbnail := qCfg["media_thumbnail"] != ""
 	hasCleanup := qCfg["media_cleanup"] != ""
 	hasModeration := qCfg["ai_moderation"] != ""
+	hasPaymentWebhook := qCfg["payment_webhook"] != ""
 
 	// Shared repos/services
 	var propertyRepo propertyrepository.Repository
@@ -69,7 +68,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 	var propertyProfileAdapter *profileport.PropertyProfileAdapter
 	var profileRepo profilerepository.ProfileRepository
 
-	if hasThumbnail || hasCleanup || hasModeration {
+	if hasThumbnail || hasCleanup || hasModeration || hasPaymentWebhook {
 		propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
 		profileRepo = profilerepository.NewProfileRepository(infra.DB)
 		profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
@@ -187,6 +186,100 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 		}
 	}
 
+	if hasPaymentWebhook {
+		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
+
+		listingHooks := bookinghooks.NewPropertyHooksAdapter(propertyRepo)
+		calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
+		calendarHooksAdapter := propertyhooks.NewCalendarHooksRepoAdapter(propertyRepo)
+		calendarSvc := calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, log)
+
+		bookingNotificationService := bookingnotification.NewNotificationService(
+			infra.Email,
+			infra.Queue,
+			qCfg["email"],
+			cfg.App.Client,
+			log,
+		)
+		bookingProfileAdapter := profileport.NewBookingProfileAdapter(profileSvc)
+
+		bookingSvc := bookingservice.NewBookingService(
+			bookingRepo,
+			calendarSvc,
+			nil, // pricing not needed for webhook processing
+			nil, // payment gateway not needed for webhook processing
+			listingHooks,
+			bookingProfileAdapter,
+			bookingNotificationService,
+			nil, // refund queue not needed for webhook processing
+			"",
+			log,
+		)
+		bookingHooksAdapter := bookinghooks.NewBookingHooksAdapter(bookingSvc)
+
+		paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
+		paymentClient := payment.New(paymentFactory)
+		paymentsRepo := paymentsrepository.NewRepository(infra.DB)
+		paymentsNotification := paymentsnotification.NewNotificationService(
+			infra.Email,
+			infra.Queue,
+			qCfg["email"],
+			cfg.App.Client,
+			log,
+		)
+		paymentsSvc := paymentsservice.NewPaymentService(
+			paymentsRepo,
+			paymentClient,
+			paymentsNotification,
+			log,
+		)
+
+		financeWalletRepo := financerepository.NewWalletRepository(infra.DB)
+		financeLedgerRepo := financerepository.NewLedgerRepository(infra.DB)
+		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
+		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
+		financeSvc := financeservice.NewFinanceService(
+			financeWalletRepo,
+			financeLedgerRepo,
+			financeTransactionRepo,
+			financeDisbursementRepo,
+			infra.DB,
+			log,
+		)
+		financeHooksAdapter := financehooks.NewPaymentHooksAdapter(financeSvc)
+
+		payoutSvc := financeservice.NewPayoutService(
+			financeWalletRepo,
+			financeLedgerRepo,
+			financeTransactionRepo,
+			financeDisbursementRepo,
+			paymentsRepo,
+			nil, // booking querier not needed for webhook updates
+			nil, // notification service not required for webhook updates
+			nil, // booking hooks not required for webhook updates
+			paymentClient,
+			nil, // profile adapter not required for webhook updates
+			cfg.YAML.Platform,
+			infra.DB,
+			log,
+		)
+		payoutHooksAdapter := financehooks.NewPayoutHooksAdapter(payoutSvc)
+
+		webhookHandler := paymentshttp.NewWebhookHandler(
+			paymentsSvc,
+			paymentClient,
+			bookingHooksAdapter,
+			financeHooksAdapter,
+			payoutHooksAdapter,
+			nil,
+			"",
+			log,
+		)
+
+		h := paymentHandler.NewPaymentWebhookHandler(paymentClient, webhookHandler, log, qCfg["payment_webhook"])
+		registry.Register(h)
+	}
+
 	// Payout processing handlers
 	hasPayoutProcess := qCfg["payout_process"] != ""
 	hasPayoutRetry := qCfg["payout_retry"] != ""
@@ -208,6 +301,9 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
 		bookingQuerierAdapter := financehooks.NewBookingQuerierAdapter(bookingRepo)
 
+		// Initialize payout hooks adapter for marking bookings as settled
+		bookingPayoutHooksAdapter := bookinghooks.NewSimplePayoutHooksAdapter(bookingRepo, log)
+
 		// Initialize finance notification service
 		financeNotificationSvc := financenotification.NewNotificationService(
 			infra.Email,
@@ -224,9 +320,9 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			financeTransactionRepo,
 			financeDisbursementRepo,
 			paymentsRepo,
-			bookingQuerierAdapter, // Booking querier for finding bookings ready for payout
+			bookingQuerierAdapter,        // Booking querier for finding bookings ready for payout
 			financeNotificationSvc,
-			nil, // booking hooks not needed for worker
+			bookingPayoutHooksAdapter,    // Booking hooks for marking bookings as settled after payout
 			paymentClient,
 			nil, // profile adapter not needed for worker (notifications handled by API)
 			cfg.YAML.Platform,
@@ -248,118 +344,12 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 	return registry
 }
 
-// StartPeriodicCleanup initializes background tickers.
-func StartPeriodicCleanup(ctx context.Context, queueClient *platformQueue.Client, cfg *config.GlobalConfig, log *lgr.Logger) {
-	cleanupSubject := cfg.YAML.Queue.Subjects["media_cleanup"]
-	if cleanupSubject == "" {
-		return
-	}
-
-	go func() {
-		ticker := time.NewTicker(15 * time.Minute)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				job := jobs.ListingMediaCleanupJob{
-					OlderThanMinutes: 120,
-					Limit:            200,
-				}
-				if err := queueClient.Publish(ctx, cleanupSubject, job); err != nil {
-					log.Logf("ERROR failed to publish cleanup job: %v", err)
-				}
-			}
-		}
-	}()
-}
-
-// StartBookingExpiryCheck initializes periodic booking expiry checks.
-func StartBookingExpiryCheck(ctx context.Context, queueClient *platformQueue.Client, cfg *config.GlobalConfig, log *lgr.Logger) {
-	expirySubject := cfg.YAML.Queue.Subjects["booking_expiry"]
-	if expirySubject == "" {
-		return
-	}
-
-	go func() {
-		// Check every 2 minutes (PRD specifies 5 minutes, but 2 minutes provides faster response)
-		ticker := time.NewTicker(2 * time.Minute)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				job := bookingJobs.BookingExpiryCheckJob{
-					CheckTime: time.Now(),
-				}
-				if err := queueClient.Publish(ctx, expirySubject, job); err != nil {
-					log.Logf("ERROR failed to publish booking expiry check job: %v", err)
-				}
-			}
-		}
-	}()
-}
-
-// StartPayoutProcessing initializes periodic payout processing.
-func StartPayoutProcessing(ctx context.Context, queueClient *platformQueue.Client, cfg *config.GlobalConfig, log *lgr.Logger) {
-	payoutSubject := cfg.YAML.Queue.Subjects["payout_process"]
-	if payoutSubject == "" {
-		return
-	}
-
-	go func() {
-		// Process payouts every hour (as configured in platform.yaml)
-		interval := time.Duration(cfg.YAML.Platform.Payouts.BatchIntervalMinutes) * time.Minute
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				job := financeJobs.ProcessPayoutsJob{
-					ProcessTime: time.Now(),
-				}
-				if err := queueClient.Publish(ctx, payoutSubject, job); err != nil {
-					log.Logf("ERROR failed to publish payout processing job: %v", err)
-				}
-			}
-		}
-	}()
-}
-
-// StartDisbursementRetry initializes periodic disbursement retry checks.
-func StartDisbursementRetry(ctx context.Context, queueClient *platformQueue.Client, cfg *config.GlobalConfig, log *lgr.Logger) {
-	retrySubject := cfg.YAML.Queue.Subjects["payout_retry"]
-	if retrySubject == "" {
-		return
-	}
-
-	go func() {
-		// Retry failed disbursements every 15 minutes (matches retry backoff interval)
-		interval := time.Duration(cfg.YAML.Platform.Payouts.RetryBackoffMinutes) * time.Minute
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				job := financeJobs.RetryDisbursementsJob{
-					RetryTime: time.Now(),
-				}
-				if err := queueClient.Publish(ctx, retrySubject, job); err != nil {
-					log.Logf("ERROR failed to publish disbursement retry job: %v", err)
-				}
-			}
-		}
-	}()
-}
+// REMOVED: Ticker functions (StartPeriodicCleanup, StartBookingExpiryCheck,
+// StartPayoutProcessing, StartDisbursementRetry) - replaced by Cloud Scheduler.
+// See deploy/terraform/cloudscheduler.tf for the new scheduler configuration.
 
 // HandleShutdown manages graceful shutdown on signals.
-func HandleShutdown(log *lgr.Logger, processor *worker.Processor) {
+func HandleShutdown(log *lgr.Logger, srv *http.Server) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
@@ -369,9 +359,9 @@ func HandleShutdown(log *lgr.Logger, processor *worker.Processor) {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
 	defer cancel()
 
-	if err := processor.Stop(shutdownCtx); err != nil {
-		log.Logf("ERROR Worker shutdown error: %v", err)
-	} else {
-		log.Logf("INFO Worker shutdown cleanly")
+	if srv != nil {
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			log.Logf("ERROR worker server shutdown error: %v", err)
+		}
 	}
 }

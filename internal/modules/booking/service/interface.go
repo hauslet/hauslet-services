@@ -35,6 +35,9 @@ type BookingService interface {
 	HandlePaymentFailure(ctx context.Context, bookingID uuid.UUID, paymentID uuid.UUID, reason string) error
 	HandlePaymentRefund(ctx context.Context, bookingID uuid.UUID, paymentID uuid.UUID, refundedAmount int64) error
 	ArchiveExpiredBookings(ctx context.Context, expiredBefore time.Time) ([]uuid.UUID, error)
+
+	// Payout lifecycle methods
+	MarkAsSettled(ctx context.Context, bookingID uuid.UUID) error
 }
 
 type ContactInfo struct {

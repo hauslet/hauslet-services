@@ -18,7 +18,7 @@ config/
 ├── defaults/              # Default YAML configurations (committed to git)
 │   ├── calendar.yaml     # Calendar service settings
 │   ├── features.yaml     # Feature flags
-│   └── queue.yaml        # Queue/NATS settings
+│   └── queue.yaml        # Queue settings
 └── overrides/             # User-specific overrides (gitignored)
     └── *.yaml            # Optional: override any default config
 ```
@@ -31,14 +31,14 @@ config/
 **Examples:**
 - Database credentials (`DB_PASSWORD`, `DB_HOST`)
 - API keys (`GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`)
-- Service URLs (`NATS_URL`, `REDIS_ADDR`, `ELASTICSEARCH_URL`)
+- Service endpoints (`REDIS_ADDR`, `CLOUD_TASKS_WORKER_URL`)
 - Encryption keys (`JWT_SECRET`, `ENCRYPTION_KEY`)
 
 **Access in code:**
 ```go
 cfg := config.Load()
 dbPassword := cfg.Storage.DB.DBPassword  // From ENV
-natsURL := cfg.Infra.NATS.URL            // From ENV
+workerURL := cfg.Infra.CloudTasks.WorkerBaseURL // From ENV
 ```
 
 ### YAML Configuration (config/defaults/*.yaml)
@@ -68,13 +68,13 @@ Calendar service settings:
 - `retry_delay_minutes` - Retry delay for failed ops
 
 ### queue.yaml
-Queue/NATS JetStream settings:
-- `stream_name` - JetStream stream name
-- `subjects` - Map of job types to NATS subjects
+Queue settings:
+- `stream_name` - Legacy field (unused for Cloud Tasks)
+- `subjects` - Map of job types to Cloud Tasks queue names
   - `email`: Email sending jobs
   - `notification`: Notification jobs
   - `moderation`: Moderation jobs
-- `consumers` - Map of consumer names per job type
+- `consumers` - Legacy field (unused for Cloud Tasks)
 
 ### features.yaml
 Feature toggle flags:
@@ -115,11 +115,10 @@ func main() {
 
     // Access ENV-based config
     dbHost := cfg.Storage.DB.DBHost
-    natsURL := cfg.Infra.NATS.URL
+    workerURL := cfg.Infra.CloudTasks.WorkerBaseURL
 
     // Access YAML-based config
-    streamName := cfg.YAML.Queue.StreamName
-    emailSubject := cfg.YAML.Queue.Subjects["email"]
+    emailQueue := cfg.YAML.Queue.Subjects["email"]
     maintenanceHour := cfg.YAML.Calendar.MaintenanceHour
 }
 ```
@@ -128,47 +127,34 @@ func main() {
 
 **Queue Setup:**
 ```go
-emailSubject := cfg.YAML.Queue.Subjects["email"]
-q, err := queue.New(ctx, cfg.Infra.NATS.URL, cfg.YAML.Queue.StreamName, []string{emailSubject})
-```
-
-**Worker Setup:**
-```go
-consumerName := cfg.YAML.Queue.Consumers["email"]
-emailSubject := cfg.YAML.Queue.Subjects["email"]
-
-consumerCfg := jetstream.ConsumerConfig{
-    Name:          consumerName,
-    Durable:       consumerName,
-    FilterSubject: emailSubject,
-}
+q, err := queue.New(ctx, queue.Config{
+    ProjectID:     cfg.Infra.CloudTasks.ProjectID,
+    Location:      cfg.Infra.CloudTasks.Location,
+    WorkerBaseURL: cfg.Infra.CloudTasks.WorkerBaseURL,
+}, cfg.YAML.Queue.Subjects, log)
 ```
 
 ## Migration from ENV-only Config
 
 **Before (ENV):**
 ```bash
-NATS_STREAM=EMAILS
-NATS_SUBJECT_SEND=email.send
+QUEUE_EMAIL=email.send
 CALENDAR_MAINTENANCE_HOUR=2
 ```
 
 ```go
-streamName := cfg.Infra.NATS.StreamName
-subject := cfg.Infra.NATS.SubjectSend
+subject := "email.send"
 ```
 
 **After (YAML):**
 ```yaml
 # config/defaults/queue.yaml
 queue:
-  stream_name: JOBS
   subjects:
-    email: "email.send"
+    email: "email-queue"
 ```
 
 ```go
-streamName := cfg.YAML.Queue.StreamName
 subject := cfg.YAML.Queue.Subjects["email"]
 ```
 
@@ -211,6 +197,6 @@ yamllint config/defaults/*.yaml
 - Verify override structure matches defaults
 
 **Missing values:**
-- Check if ENV variable is set: `echo $NATS_URL`
+- Check if ENV variable is set: `echo $CLOUD_TASKS_WORKER_URL`
 - Verify YAML file exists and is readable
 - Review config loading logs for errors

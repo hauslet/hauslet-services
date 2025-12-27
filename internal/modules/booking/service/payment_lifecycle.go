@@ -233,3 +233,54 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 
 	return archivedIDs, nil
 }
+
+// MarkAsSettled marks a booking as settled after host payout completes.
+// Transitions booking from completed -> settled status.
+// Called by finance module after successful payout to host.
+func (s *BookingServiceImpl) MarkAsSettled(ctx context.Context, bookingID uuid.UUID) error {
+	if s.log != nil {
+		s.log.Logf("INFO marking booking %s as settled", bookingID)
+	}
+
+	// Get the booking
+	schemaBooking, err := s.repo.GetBookingByID(ctx, bookingID)
+	if err != nil {
+		if s.log != nil {
+			s.log.Logf("ERROR failed to get booking %s: %v", bookingID, err)
+		}
+		return fmt.Errorf("failed to get booking: %w", err)
+	}
+
+	if schemaBooking == nil {
+		return domain.ErrBookingNotFound
+	}
+
+	booking := domain.MapBookingFromSchema(schemaBooking)
+
+	// Only mark as settled if currently completed
+	if booking.Status != domain.BookingStatusCompleted {
+		if s.log != nil {
+			s.log.Logf("WARN booking %s cannot be settled (status=%s, expected=completed)", bookingID, booking.Status)
+		}
+		// Don't fail - just log warning (payout already succeeded)
+		return nil
+	}
+
+	// Update status to settled
+	booking.Status = domain.BookingStatusSettled
+	booking.UpdatedAt = time.Now()
+
+	// Save updated booking
+	if err := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
+		if s.log != nil {
+			s.log.Logf("ERROR failed to update booking status to settled: %v", err)
+		}
+		return fmt.Errorf("failed to update booking: %w", err)
+	}
+
+	if s.log != nil {
+		s.log.Logf("INFO booking %s marked as settled", bookingID)
+	}
+
+	return nil
+}

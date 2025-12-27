@@ -4,90 +4,133 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
+	"strings"
 
-	"github.com/nats-io/nats.go"
-	"github.com/nats-io/nats.go/jetstream"
+	cloudtasks "cloud.google.com/go/cloudtasks/apiv2"
+	cloudtaskspb "cloud.google.com/go/cloudtasks/apiv2/cloudtaskspb"
+	"github.com/go-pkgz/lgr"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
-const defaultStreamDescription = "Hauslet work queue stream"
-
-// Client wraps a JetStream connection for publishing jobs.
-type Client struct {
-	js       jetstream.JetStream
-	nc       *nats.Conn
-	stream   string
-	subjects []string
+type Config struct {
+	ProjectID           string
+	Location            string
+	WorkerBaseURL       string
+	ServiceAccountEmail string
+	Environment         string
 }
 
-// New connects to NATS, ensures the stream exists, and returns a client.
-// subjects are the subjects bound to the stream (e.g., []string{"email.send", "moderation.*"}).
-func New(ctx context.Context, url, stream string, subjects []string) (*Client, error) {
-	nc, err := nats.Connect(url)
+// Client wraps a Cloud Tasks client for publishing jobs.
+type Client struct {
+	client *cloudtasks.Client
+	cfg    Config
+	log    *lgr.Logger
+	routes map[string]QueueRoute
+}
+
+// New initializes a Cloud Tasks client with queue routing config.
+func New(ctx context.Context, cfg Config, queueNames map[string]string, log *lgr.Logger) (*Client, error) {
+	if cfg.ProjectID == "" || cfg.Location == "" || cfg.WorkerBaseURL == "" {
+		return nil, fmt.Errorf("cloud tasks config incomplete")
+	}
+
+	workerURL := strings.TrimRight(cfg.WorkerBaseURL, "/")
+	cfg.WorkerBaseURL = workerURL
+
+	c, err := cloudtasks.NewClient(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("nats connect: %w", err)
+		return nil, fmt.Errorf("cloud tasks client: %w", err)
 	}
 
-	js, err := jetstream.New(nc)
-	if err != nil {
-		_ = nc.Drain()
-		return nil, fmt.Errorf("jetstream init: %w", err)
-	}
-
-	streamCfg := jetstream.StreamConfig{
-		Name:        stream,
-		Subjects:    subjects,
-		Retention:   jetstream.WorkQueuePolicy,
-		Description: defaultStreamDescription,
-	}
-
-	streamCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
-	if _, err := js.CreateOrUpdateStream(streamCtx, streamCfg); err != nil {
-		_ = nc.Drain()
-		return nil, fmt.Errorf("ensure stream: %w", err)
+	routes := BuildQueueRoutes(queueNames)
+	if len(routes) == 0 {
+		_ = c.Close()
+		return nil, fmt.Errorf("no queue routes configured")
 	}
 
 	return &Client{
-		js:       js,
-		nc:       nc,
-		stream:   stream,
-		subjects: subjects,
+		client: c,
+		cfg:    cfg,
+		log:    log,
+		routes: routes,
 	}, nil
 }
 
-// Close drains and closes the underlying NATS connection.
+// Close closes the underlying Cloud Tasks client.
 func (c *Client) Close() {
-	if c == nil || c.nc == nil {
+	if c == nil || c.client == nil {
 		return
 	}
-	_ = c.nc.Drain()
+	_ = c.client.Close()
 }
 
-// Publish marshals payload (any JSON-able value) and enqueues it on the subject.
-func (c *Client) Publish(ctx context.Context, subject string, payload interface{}) error {
+// Publish marshals payload (any JSON-able value) and enqueues it on the queue name.
+func (c *Client) Publish(ctx context.Context, queueName string, payload interface{}) error {
 	if c == nil {
 		return fmt.Errorf("queue client is nil")
 	}
 
-	data, err := json.Marshal(payload)
+	route, ok := c.routes[queueName]
+	if !ok {
+		return fmt.Errorf("queue route not configured for %s", queueName)
+	}
+
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("marshal payload: %w", err)
 	}
 
-	if _, err := c.js.Publish(ctx, subject, data); err != nil {
+	parent := fmt.Sprintf("projects/%s/locations/%s/queues/%s", c.cfg.ProjectID, c.cfg.Location, route.Name)
+	url := c.cfg.WorkerBaseURL + route.Path
+
+	req := &cloudtaskspb.CreateTaskRequest{
+		Parent: parent,
+		Task: &cloudtaskspb.Task{
+			MessageType: &cloudtaskspb.Task_HttpRequest{
+				HttpRequest: &cloudtaskspb.HttpRequest{
+					HttpMethod: cloudtaskspb.HttpMethod_POST,
+					Url:        url,
+					Headers: map[string]string{
+						"Content-Type": "application/json",
+					},
+					Body: body,
+				},
+			},
+			DispatchDeadline: durationpb.New(route.Timeout),
+		},
+	}
+
+	if c.cfg.ServiceAccountEmail != "" {
+		// You must use the "AuthorizationHeader" field with the specific wrapper type
+		req.Task.GetHttpRequest().AuthorizationHeader = &cloudtaskspb.HttpRequest_OidcToken{
+			OidcToken: &cloudtaskspb.OidcToken{
+				ServiceAccountEmail: c.cfg.ServiceAccountEmail,
+			},
+		}
+	}
+
+	if _, err := c.client.CreateTask(ctx, req); err != nil {
+		if c.log != nil {
+			c.log.Logf("ERROR failed to publish task to %s: %v", queueName, err)
+		}
 		return fmt.Errorf("publish: %w", err)
 	}
+
 	return nil
 }
 
-// JetStream exposes the underlying JetStream instance for consumers.
-func (c *Client) JetStream() jetstream.JetStream {
-	return c.js
+// AllowFallback returns true when direct fallback is allowed for queue failures.
+func (c *Client) AllowFallback() bool {
+	if c == nil {
+		return true
+	}
+	return c.cfg.Environment != "production"
 }
 
-// StreamName returns the stream name.
-func (c *Client) StreamName() string {
-	return c.stream
+// QueueRoutes returns the resolved queue routes.
+func (c *Client) QueueRoutes() map[string]QueueRoute {
+	if c == nil {
+		return nil
+	}
+	return c.routes
 }

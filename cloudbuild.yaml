@@ -1,0 +1,239 @@
+# Cloud Build configuration for Hauslet Services - Production
+# Triggered on push to main branch
+# Builds and deploys API and Worker services to Cloud Run
+
+substitutions:
+  _REGION: 'europe-north1'
+  _ENV: 'production'
+  _API_SERVICE_NAME: 'hauslet-api'
+  _WORKER_SERVICE_NAME: 'hauslet-worker'
+  _API_MIN_INSTANCES: '1'
+  _WORKER_MIN_INSTANCES: '0'
+  _API_MAX_INSTANCES: '10'
+  _WORKER_MAX_INSTANCES: '5'
+
+options:
+  # Use high-performance machine for faster builds
+  machineType: 'E2_HIGHCPU_8'
+  # Build logs retention
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  # Step 1: Build API Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-api'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_API_SERVICE_NAME}:$COMMIT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_API_SERVICE_NAME}:latest'
+      - '-f'
+      - 'deploy/Dockerfile.api'
+      - '.'
+    waitFor: ['-']  # Start immediately
+
+  # Step 2: Build Worker Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-worker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_WORKER_SERVICE_NAME}:$COMMIT_SHA'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_WORKER_SERVICE_NAME}:latest'
+      - '-f'
+      - 'deploy/Dockerfile.worker'
+      - '.'
+    waitFor: ['-']  # Start immediately (parallel with API build)
+
+  # Step 3: Push API image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-api'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_API_SERVICE_NAME}'
+    waitFor: ['build-api']
+
+  # Step 4: Push Worker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-worker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_WORKER_SERVICE_NAME}'
+    waitFor: ['build-worker']
+
+  # Step 5: Deploy API to Cloud Run
+  # Note: API runs database.RunMigrations on startup with advisory lock (safe for concurrent instances)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-api'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_API_SERVICE_NAME}'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_API_SERVICE_NAME}:$COMMIT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--min-instances=${_API_MIN_INSTANCES}'
+      - '--max-instances=${_API_MAX_INSTANCES}'
+      - '--cpu=2'
+      - '--memory=2Gi'
+      - '--timeout=60s'
+      - '--concurrency=80'
+      - '--set-env-vars=APP_ENV=${_ENV},PORT=8080'
+      - '--set-cloudsql-instances=$PROJECT_ID:${_REGION}:hauslet-postgres'
+      - '--service-account=hauslet-api-sa@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--vpc-connector=hauslet-vpc-connector'
+      - '--vpc-egress=private-ranges-only'
+    waitFor: ['push-api']
+
+  # Step 6: Deploy Worker to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-worker'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_WORKER_SERVICE_NAME}'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_WORKER_SERVICE_NAME}:$COMMIT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'  # Only accessible via Cloud Tasks/Scheduler
+      - '--min-instances=${_WORKER_MIN_INSTANCES}'
+      - '--max-instances=${_WORKER_MAX_INSTANCES}'
+      - '--cpu=2'
+      - '--memory=2Gi'
+      - '--timeout=300s'  # 5 minutes for long-running tasks
+      - '--concurrency=10'  # Lower concurrency for worker tasks
+      - '--set-env-vars=APP_ENV=${_ENV},PORT=8080'
+      - '--set-cloudsql-instances=$PROJECT_ID:${_REGION}:hauslet-postgres'
+      - '--service-account=hauslet-worker-sa@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--vpc-connector=hauslet-vpc-connector'
+      - '--vpc-egress=private-ranges-only'
+    waitFor: ['push-worker']
+
+  # Step 7: Run smoke tests on API
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'smoke-test-api'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Get API URL
+        API_URL=$$(gcloud run services describe ${_API_SERVICE_NAME} \
+          --region=${_REGION} \
+          --format='value(status.url)')
+
+        echo "Testing API health endpoint: $$API_URL/health"
+
+        # Test health endpoint
+        HTTP_CODE=$$(curl -s -o /dev/null -w "%{http_code}" $$API_URL/health)
+        if [ "$$HTTP_CODE" != "200" ]; then
+          echo "ERROR: API health check failed with code $$HTTP_CODE"
+          exit 1
+        fi
+
+        echo "✅ API health check passed"
+
+        # Test ready endpoint
+        HTTP_CODE=$$(curl -s -o /dev/null -w "%{http_code}" $$API_URL/health/ready)
+        if [ "$$HTTP_CODE" != "200" ]; then
+          echo "ERROR: API ready check failed with code $$HTTP_CODE"
+          exit 1
+        fi
+
+        echo "✅ API ready check passed"
+        echo "✅ API deployed successfully at $$API_URL"
+    waitFor: ['deploy-api']
+
+  # Step 8: Run smoke tests on Worker
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'smoke-test-worker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Get Worker URL (internal only)
+        WORKER_URL=$$(gcloud run services describe ${_WORKER_SERVICE_NAME} \
+          --region=${_REGION} \
+          --format='value(status.url)')
+
+        echo "Worker deployed at: $$WORKER_URL"
+
+        # Worker is not publicly accessible, so we just verify deployment succeeded
+        STATUS=$$(gcloud run services describe ${_WORKER_SERVICE_NAME} \
+          --region=${_REGION} \
+          --format='value(status.conditions[0].status)')
+
+        if [ "$$STATUS" != "True" ]; then
+          echo "ERROR: Worker service not ready"
+          exit 1
+        fi
+
+        echo "✅ Worker service deployed and ready"
+    waitFor: ['deploy-worker']
+
+  # Step 9: Update traffic to new revision (gradual rollout)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'traffic-api'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Get latest revision
+        LATEST_REVISION=$$(gcloud run services describe ${_API_SERVICE_NAME} \
+          --region=${_REGION} \
+          --format='value(status.latestReadyRevisionName)')
+
+        echo "Latest API revision: $$LATEST_REVISION"
+        echo "Routing 100% traffic to latest revision"
+
+        gcloud run services update-traffic ${_API_SERVICE_NAME} \
+          --region=${_REGION} \
+          --to-revisions=$$LATEST_REVISION=100
+
+        echo "✅ API traffic updated"
+    waitFor: ['smoke-test-api']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'traffic-worker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Get latest revision
+        LATEST_REVISION=$$(gcloud run services describe ${_WORKER_SERVICE_NAME} \
+          --region=${_REGION} \
+          --format='value(status.latestReadyRevisionName)')
+
+        echo "Latest Worker revision: $$LATEST_REVISION"
+        echo "Routing 100% traffic to latest revision"
+
+        gcloud run services update-traffic ${_WORKER_SERVICE_NAME} \
+          --region=${_REGION} \
+          --to-revisions=$$LATEST_REVISION=100
+
+        echo "✅ Worker traffic updated"
+    waitFor: ['smoke-test-worker']
+
+# Images to be pushed to Artifact Registry
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_API_SERVICE_NAME}:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_API_SERVICE_NAME}:latest'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_WORKER_SERVICE_NAME}:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/hauslet/${_WORKER_SERVICE_NAME}:latest'
+
+# Build artifacts
+artifacts:
+  objects:
+    location: 'gs://$PROJECT_ID-build-artifacts'
+    paths:
+      - 'deploy/Dockerfile.api'
+      - 'deploy/Dockerfile.worker'
+
+# Build timeout
+timeout: '1200s'

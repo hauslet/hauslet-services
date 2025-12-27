@@ -5,37 +5,18 @@ import (
 
 	"hauslet/config"
 	"hauslet/internal/platform/queue"
+
+	"github.com/go-pkgz/lgr"
 )
 
-// GetActiveSubjects builds the list of NATS subjects needed based on config.
-func GetActiveSubjects(cfg *config.GlobalConfig) []string {
-	subjects := []string{cfg.YAML.Queue.Subjects["email"]}
-
-	if s := cfg.YAML.Queue.Subjects["media_thumbnail"]; s != "" {
-		subjects = append(subjects, s)
+// InitQueue initializes the Cloud Tasks client.
+func InitQueue(ctx context.Context, cfg *config.GlobalConfig, log *lgr.Logger) (*queue.Client, error) {
+	queueCfg := queue.Config{
+		ProjectID:           cfg.Infra.CloudTasks.ProjectID,
+		Location:            cfg.Infra.CloudTasks.Location,
+		WorkerBaseURL:       cfg.Infra.CloudTasks.WorkerBaseURL,
+		ServiceAccountEmail: cfg.Infra.CloudTasks.ServiceAccountEmail,
+		Environment:         cfg.App.Env,
 	}
-	if s := cfg.YAML.Queue.Subjects["media_cleanup"]; s != "" {
-		subjects = append(subjects, s)
-	}
-	if s := cfg.YAML.Queue.Subjects["ai_moderation"]; s != "" {
-		subjects = append(subjects, s)
-	}
-	if s := cfg.YAML.Queue.Subjects["booking_expiry"]; s != "" {
-		subjects = append(subjects, s)
-	}
-	if s := cfg.YAML.Queue.Subjects["booking_refund"]; s != "" {
-		subjects = append(subjects, s)
-	}
-	if s := cfg.YAML.Queue.Subjects["payout_process"]; s != "" {
-		subjects = append(subjects, s)
-	}
-	if s := cfg.YAML.Queue.Subjects["payout_retry"]; s != "" {
-		subjects = append(subjects, s)
-	}
-	return subjects
-}
-
-// InitQueue initializes the queue client.
-func InitQueue(ctx context.Context, cfg *config.GlobalConfig, subjects []string) (*queue.Client, error) {
-	return queue.New(ctx, cfg.Infra.NATS.URL, cfg.YAML.Queue.StreamName, subjects)
+	return queue.New(ctx, queueCfg, cfg.YAML.Queue.Subjects, log)
 }

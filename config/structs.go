@@ -45,7 +45,6 @@ type StorageConfig struct {
 	DB      DBConfig
 	Redis   RedisConfig
 	R2      R2Config
-	Elastic ElasticsearchConfig
 }
 
 type DBConfig struct {
@@ -68,14 +67,6 @@ type R2Config struct {
 	BucketName      string
 	Endpoint        string
 	CDNHost         string
-}
-
-type ElasticsearchConfig struct {
-	URL      string
-	Index    string
-	Username string
-	Password string
-	APIKey   string
 }
 
 type ServicesConfig struct {
@@ -146,17 +137,14 @@ type FXConfig struct {
 }
 
 type InfraConfig struct {
-	RabbitMQ RabbitMQConfig
-	NATS     NATSConfig
+	CloudTasks CloudTasksConfig
 }
 
-type RabbitMQConfig struct {
-	Addr string
-}
-
-type NATSConfig struct {
-	URL string // NATS connection URL (infrastructure)
-	// StreamName, Subjects, and Consumers moved to YAML config
+type CloudTasksConfig struct {
+	ProjectID           string
+	Location            string
+	WorkerBaseURL       string
+	ServiceAccountEmail string
 }
 
 func must(k string) string {

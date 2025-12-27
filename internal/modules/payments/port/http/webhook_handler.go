@@ -3,12 +3,17 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	paymentdomain "hauslet/internal/modules/payments/domain"
 	"hauslet/internal/modules/payments/service"
 	"hauslet/internal/platform/payment"
+	platformQueue "hauslet/internal/platform/queue"
+	paymentJob "hauslet/internal/queue/jobs/payments"
 	"io"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
@@ -41,6 +46,8 @@ type WebhookHandler struct {
 	bookingHooks   BookingHooks
 	financeHooks   FinanceHooks
 	payoutHooks    PayoutHooks
+	queueClient    *platformQueue.Client
+	queueSubject   string
 	log            *lgr.Logger
 }
 
@@ -51,6 +58,8 @@ func NewWebhookHandler(
 	bookingHooks BookingHooks,
 	financeHooks FinanceHooks,
 	payoutHooks PayoutHooks,
+	queueClient *platformQueue.Client,
+	queueSubject string,
 	log *lgr.Logger,
 ) *WebhookHandler {
 	return &WebhookHandler{
@@ -59,6 +68,8 @@ func NewWebhookHandler(
 		bookingHooks:   bookingHooks,
 		financeHooks:   financeHooks,
 		payoutHooks:    payoutHooks,
+		queueClient:    queueClient,
+		queueSubject:   queueSubject,
 		log:            log,
 	}
 }
@@ -91,7 +102,73 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// Parse webhook event
+	// Minimal parse for sanity checks
+	var envelope struct {
+		Event string `json:"event"`
+		Data  struct {
+			Reference            string `json:"reference"`
+			TransactionReference string `json:"transaction_reference"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		h.log.Logf("ERROR failed to parse webhook envelope: %v", err)
+		http.Error(w, "Invalid webhook data", http.StatusBadRequest)
+		return
+	}
+
+	eventType := strings.TrimSpace(envelope.Event)
+	reference := strings.TrimSpace(envelope.Data.Reference)
+	if reference == "" {
+		reference = strings.TrimSpace(envelope.Data.TransactionReference)
+	}
+
+	if eventType == "" || reference == "" {
+		h.log.Logf("ERROR webhook missing event or reference: event=%s ref=%s", eventType, reference)
+		http.Error(w, "Invalid webhook data", http.StatusBadRequest)
+		return
+	}
+
+	if isPaymentEvent(eventType) {
+		if _, err := h.paymentService.GetPaymentByReference(r.Context(), reference); err != nil {
+			if errors.Is(err, paymentdomain.ErrPaymentNotFound) {
+				h.log.Logf("WARN webhook reference not found: event=%s ref=%s", eventType, reference)
+				http.Error(w, "Unknown reference", http.StatusNotFound)
+				return
+			}
+			h.log.Logf("ERROR webhook reference lookup failed: %v", err)
+			http.Error(w, "Failed to validate reference", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if h.queueClient != nil && h.queueSubject != "" {
+		job := paymentJob.PaymentWebhookJob{
+			Provider:   "paystack",
+			EventType:  eventType,
+			Reference:  reference,
+			Payload:    json.RawMessage(body),
+			ReceivedAt: time.Now(),
+		}
+
+		pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := h.queueClient.Publish(pubCtx, h.queueSubject, job); err != nil {
+			h.log.Logf("WARN failed to publish payment webhook job: %v", err)
+			if !h.queueClient.AllowFallback() {
+				http.Error(w, "Queue unavailable", http.StatusServiceUnavailable)
+				return
+			}
+		} else {
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{
+				"status": "queued",
+			})
+			return
+		}
+	}
+
+	// Parse webhook event for synchronous fallback
 	event, err := h.paymentClient.ParseWebhookEvent("paystack", body)
 	if err != nil {
 		h.log.Logf("ERROR failed to parse webhook event: %v", err)
@@ -99,61 +176,17 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	if event.Reference == "" {
+		event.Reference = reference
+	}
+
 	h.log.Logf("INFO processing webhook event: type=%s, ref=%s", event.Type, event.Reference)
 
 	// Handle different event types
-	ctx := r.Context()
-	switch event.Type {
-	case "charge.success":
-		// Payment succeeded
-		if err := h.handleChargeSuccess(ctx, event); err != nil {
-			h.log.Logf("ERROR failed to handle charge.success: %v", err)
-			http.Error(w, "Failed to process event", http.StatusInternalServerError)
-			return
-		}
-
-	case "charge.failed":
-		// Payment failed
-		if err := h.handleChargeFailed(ctx, event); err != nil {
-			h.log.Logf("ERROR failed to handle charge.failed: %v", err)
-			http.Error(w, "Failed to process event", http.StatusInternalServerError)
-			return
-		}
-
-	case "transfer.success":
-		// Payout succeeded
-		if err := h.handleTransferSuccess(ctx, event); err != nil {
-			h.log.Logf("ERROR failed to handle transfer.success: %v", err)
-			http.Error(w, "Failed to process event", http.StatusInternalServerError)
-			return
-		}
-
-	case "transfer.failed":
-		// Payout failed
-		if err := h.handleTransferFailed(ctx, event); err != nil {
-			h.log.Logf("ERROR failed to handle transfer.failed: %v", err)
-			http.Error(w, "Failed to process event", http.StatusInternalServerError)
-			return
-		}
-
-	case "refund.processed":
-		// Refund processed successfully
-		if err := h.handleRefundProcessed(ctx, event); err != nil {
-			h.log.Logf("ERROR failed to handle refund.processed: %v", err)
-			http.Error(w, "Failed to process event", http.StatusInternalServerError)
-			return
-		}
-
-	case "refund.failed":
-		// Refund failed
-		if err := h.handleRefundFailed(ctx, event); err != nil {
-			h.log.Logf("ERROR failed to handle refund.failed: %v", err)
-			http.Error(w, "Failed to process event", http.StatusInternalServerError)
-			return
-		}
-
-	default:
-		h.log.Logf("INFO unhandled webhook event type: %s", event.Type)
+	if err := h.ProcessEvent(r.Context(), event); err != nil {
+		h.log.Logf("ERROR failed to process webhook event: %v", err)
+		http.Error(w, "Failed to process event", http.StatusInternalServerError)
+		return
 	}
 
 	// Return success
@@ -161,6 +194,37 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(map[string]string{
 		"status": "success",
 	})
+}
+
+// ProcessEvent handles a parsed webhook event.
+func (h *WebhookHandler) ProcessEvent(ctx context.Context, event *payment.UnifiedEvent) error {
+	if event == nil {
+		return fmt.Errorf("event is nil")
+	}
+
+	switch event.Type {
+	case "charge.success":
+		return h.handleChargeSuccess(ctx, event)
+	case "charge.failed":
+		return h.handleChargeFailed(ctx, event)
+	case "transfer.success":
+		return h.handleTransferSuccess(ctx, event)
+	case "transfer.failed":
+		return h.handleTransferFailed(ctx, event)
+	case "refund.processed":
+		return h.handleRefundProcessed(ctx, event)
+	case "refund.failed":
+		return h.handleRefundFailed(ctx, event)
+	default:
+		if h.log != nil {
+			h.log.Logf("INFO unhandled webhook event type: %s", event.Type)
+		}
+		return nil
+	}
+}
+
+func isPaymentEvent(eventType string) bool {
+	return strings.HasPrefix(eventType, "charge.") || strings.HasPrefix(eventType, "refund.")
 }
 
 // handleChargeSuccess handles successful payment webhook

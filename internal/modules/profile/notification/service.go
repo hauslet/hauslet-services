@@ -2,6 +2,7 @@ package notification
 
 import (
 	"context"
+	"fmt"
 	profiletemplates "hauslet/internal/modules/profile/templates"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
@@ -43,13 +44,12 @@ func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	}()
 }
 
-// publishEmailJob tries to enqueue the email job and returns true on success.
+// publishEmailJob tries to enqueue the email job and returns an error on failure.
 // It uses a short-lived background context so request cancellation does not
-// prevent publishing. On failure, it logs a warning and callers can fall back
-// to direct send.
-func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
+// prevent publishing.
+func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 	if s.queueClient == nil || s.queueSubject == "" {
-		return false
+		return fmt.Errorf("queue not configured")
 	}
 
 	pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -57,12 +57,12 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("[WARN] failed to publish business email job to %s: %v; falling back to direct send", s.queueSubject, err)
+			s.log.Logf("[WARN] failed to publish business email job to %s: %v", s.queueSubject, err)
 		}
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 // SendProfileModerationRejectedEmail sends an email to the profile owner notifying them

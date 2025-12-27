@@ -49,10 +49,10 @@ func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	}()
 }
 
-// publishEmailJob tries to enqueue the email job and returns true on success
-func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
+// publishEmailJob tries to enqueue the email job and returns an error on failure.
+func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 	if s.queueClient == nil || s.queueSubject == "" {
-		return false
+		return fmt.Errorf("queue not configured")
 	}
 
 	pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -60,12 +60,12 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to publish finance email job to %s: %v; falling back to direct send", s.queueSubject, err)
+			s.log.Logf("WARN failed to publish finance email job to %s: %v", s.queueSubject, err)
 		}
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 // SendPaymentReceipt sends a payment receipt email to the guest
@@ -116,8 +116,10 @@ func (s *NotificationService) SendPaymentReceipt(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, guestEmail, subject, htmlBody)
 	})
@@ -173,8 +175,10 @@ func (s *NotificationService) SendPayoutInitiated(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, hostEmail, subject, htmlBody)
 	})
@@ -236,8 +240,10 @@ func (s *NotificationService) SendPayoutSuccess(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, hostEmail, subject, htmlBody)
 	})
@@ -302,8 +308,10 @@ func (s *NotificationService) SendPayoutFailed(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, hostEmail, subject, htmlBody)
 	})
@@ -359,8 +367,10 @@ func (s *NotificationService) SendRefundProcessed(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, guestEmail, subject, htmlBody)
 	})
