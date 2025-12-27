@@ -8,13 +8,15 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	domain6 "hauslet/internal/modules/auth/domain"
+	domain7 "hauslet/internal/modules/auth/domain"
 	domain2 "hauslet/internal/modules/booking/domain"
 	graphql2 "hauslet/internal/modules/booking/port/graphql"
 	"hauslet/internal/modules/business/domain"
+	domain5 "hauslet/internal/modules/finance/domain"
+	graphql3 "hauslet/internal/modules/finance/port/graphql"
 	domain3 "hauslet/internal/modules/payments/domain"
 	graphql1 "hauslet/internal/modules/payments/port/graphql"
-	domain5 "hauslet/internal/modules/profile/domain"
+	domain6 "hauslet/internal/modules/profile/domain"
 	domain4 "hauslet/internal/modules/property/domain"
 	domain1 "hauslet/internal/modules/wishlist/domain"
 	"hauslet/internal/transport/graph/model"
@@ -52,6 +54,9 @@ type Config struct {
 type ResolverRoot interface {
 	Business() BusinessResolver
 	CompleteBookingPayload() CompleteBookingPayloadResolver
+	Disbursement() DisbursementResolver
+	FinanceTransaction() FinanceTransactionResolver
+	LedgerEntry() LedgerEntryResolver
 	Listing() ListingResolver
 	ListingMedia() ListingMediaResolver
 	Mutation() MutationResolver
@@ -65,6 +70,7 @@ type ResolverRoot interface {
 	SaleDetail() SaleDetailResolver
 	Transaction() TransactionResolver
 	TravelCompanion() TravelCompanionResolver
+	Wallet() WalletResolver
 	Wishlist() WishlistResolver
 	WishlistItem() WishlistItemResolver
 	CreatePaymentInput() CreatePaymentInputResolver
@@ -222,10 +228,63 @@ type ComplexityRoot struct {
 		FinalRate func(childComplexity int) int
 	}
 
+	Disbursement struct {
+		Amount        func(childComplexity int) int
+		Attempts      func(childComplexity int) int
+		CompletedAt   func(childComplexity int) int
+		CreatedAt     func(childComplexity int) int
+		Currency      func(childComplexity int) int
+		FailureReason func(childComplexity int) int
+		ID            func(childComplexity int) int
+		NextRetryAt   func(childComplexity int) int
+		Provider      func(childComplexity int) int
+		Status        func(childComplexity int) int
+		TransactionID func(childComplexity int) int
+		TransferCode  func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
+		WalletID      func(childComplexity int) int
+	}
+
 	DiscountSnapshot struct {
 		Amount func(childComplexity int) int
 		Name   func(childComplexity int) int
 		Type   func(childComplexity int) int
+	}
+
+	EarningsSummary struct {
+		AvailableBalance func(childComplexity int) int
+		Currency         func(childComplexity int) int
+		PendingPayouts   func(childComplexity int) int
+		TotalEarned      func(childComplexity int) int
+	}
+
+	FinanceTransaction struct {
+		Amount        func(childComplexity int) int
+		CreatedAt     func(childComplexity int) int
+		Currency      func(childComplexity int) int
+		ID            func(childComplexity int) int
+		LedgerEntries func(childComplexity int) int
+		Metadata      func(childComplexity int) int
+		PaymentID     func(childComplexity int) int
+		ResourceID    func(childComplexity int) int
+		ResourceType  func(childComplexity int) int
+		Status        func(childComplexity int) int
+		Type          func(childComplexity int) int
+		UpdatedAt     func(childComplexity int) int
+	}
+
+	LedgerEntry struct {
+		Amount         func(childComplexity int) int
+		CreatedAt      func(childComplexity int) int
+		CreditWalletID func(childComplexity int) int
+		Currency       func(childComplexity int) int
+		DebitWalletID  func(childComplexity int) int
+		ID             func(childComplexity int) int
+		Memo           func(childComplexity int) int
+		Reference      func(childComplexity int) int
+		ResourceID     func(childComplexity int) int
+		ResourceType   func(childComplexity int) int
+		TransactionID  func(childComplexity int) int
 	}
 
 	Listing struct {
@@ -538,6 +597,8 @@ type ComplexityRoot struct {
 		BusinessListings           func(childComplexity int, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) int
 		BusinessMember             func(childComplexity int, businessID uuid.UUID, userID uuid.UUID) int
 		BusinessMembers            func(childComplexity int, businessID uuid.UUID) int
+		Disbursement               func(childComplexity int, id uuid.UUID) int
+		FinanceTransactionHistory  func(childComplexity int, resourceType string, resourceID uuid.UUID) int
 		IsListingInWishlist        func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID) int
 		Listing                    func(childComplexity int, id uuid.UUID) int
 		ListingBookings            func(childComplexity int, listingID uuid.UUID, status *domain2.BookingStatus, limit *int, offset *int) int
@@ -550,6 +611,7 @@ type ComplexityRoot struct {
 		Me                         func(childComplexity int) int
 		MyBookings                 func(childComplexity int, limit *int, offset *int) int
 		MyBusinessPermissions      func(childComplexity int, businessID uuid.UUID) int
+		MyEarnings                 func(childComplexity int) int
 		MyIndividualListings       func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		MyInvitations              func(childComplexity int, email string) int
 		MyListings                 func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
@@ -574,6 +636,9 @@ type ComplexityRoot struct {
 		Transactions               func(childComplexity int, paymentID *uuid.UUID, typeArg *domain3.TransactionType, status *domain3.TransactionStatus, limit *int, offset *int) int
 		UploadProfilePhoto         func(childComplexity int, userID string, fileName string) int
 		UploadTravelCompanionPhoto func(childComplexity int, userID string, companionID string, fileName string) int
+		UserWallets                func(childComplexity int, userID uuid.UUID) int
+		Wallet                     func(childComplexity int, id uuid.UUID) int
+		WalletLedger               func(childComplexity int, walletID uuid.UUID, limit *int, offset *int) int
 		Wishlist                   func(childComplexity int, id uuid.UUID) int
 		WishlistItems              func(childComplexity int, wishlistID uuid.UUID, limit *int, offset *int) int
 	}
@@ -728,6 +793,18 @@ type ComplexityRoot struct {
 		UserID        func(childComplexity int) int
 	}
 
+	Wallet struct {
+		Balance    func(childComplexity int) int
+		CreatedAt  func(childComplexity int) int
+		Currency   func(childComplexity int) int
+		ID         func(childComplexity int) int
+		OwnerID    func(childComplexity int) int
+		OwnerType  func(childComplexity int) int
+		Status     func(childComplexity int) int
+		UpdatedAt  func(childComplexity int) int
+		WalletType func(childComplexity int) int
+	}
+
 	Wishlist struct {
 		CreatedAt   func(childComplexity int) int
 		Description func(childComplexity int) int
@@ -758,8 +835,23 @@ type BusinessResolver interface {
 type CompleteBookingPayloadResolver interface {
 	PaymentID(ctx context.Context, obj *graphql2.CompleteBookingPayload) (uuid.UUID, error)
 }
+type DisbursementResolver interface {
+	TransferCode(ctx context.Context, obj *domain5.Disbursement) (*string, error)
+
+	NextRetryAt(ctx context.Context, obj *domain5.Disbursement) (*time.Time, error)
+	CompletedAt(ctx context.Context, obj *domain5.Disbursement) (*time.Time, error)
+	FailureReason(ctx context.Context, obj *domain5.Disbursement) (*string, error)
+}
+type FinanceTransactionResolver interface {
+	ResourceType(ctx context.Context, obj *domain5.Transaction) (string, error)
+
+	Metadata(ctx context.Context, obj *domain5.Transaction) (map[string]any, error)
+}
+type LedgerEntryResolver interface {
+	ResourceType(ctx context.Context, obj *domain5.LedgerEntry) (string, error)
+}
 type ListingResolver interface {
-	OwnerProfile(ctx context.Context, obj *domain4.Listing) (*domain5.Profile, error)
+	OwnerProfile(ctx context.Context, obj *domain4.Listing) (*domain6.Profile, error)
 
 	Property(ctx context.Context, obj *domain4.Listing) (*domain4.Property, error)
 }
@@ -768,7 +860,7 @@ type ListingMediaResolver interface {
 }
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
-	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain5.Profile, error)
+	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain6.Profile, error)
 	AddTravelCompanion(ctx context.Context, userID string, input model.TravelCompanionInput) (bool, error)
 	UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input model.TravelCompanionInput) (bool, error)
 	DeleteTravelCompanion(ctx context.Context, userID string, companionID string) (bool, error)
@@ -825,7 +917,7 @@ type PaymentMethodResolver interface {
 	AccountNumberLast4(ctx context.Context, obj *domain3.PaymentMethod) (*string, error)
 }
 type ProfileResolver interface {
-	Gender(ctx context.Context, obj *domain5.Profile) (*string, error)
+	Gender(ctx context.Context, obj *domain6.Profile) (*string, error)
 }
 type PropertyResolver interface {
 	Amenities(ctx context.Context, obj *domain4.Property) ([]*model.AmenityGroup, error)
@@ -833,12 +925,12 @@ type PropertyResolver interface {
 	Listings(ctx context.Context, obj *domain4.Property, first *int, after *string) (*model.ListingConnection, error)
 }
 type QueryResolver interface {
-	Me(ctx context.Context) (*domain6.User, error)
-	Profile(ctx context.Context, id uuid.UUID) (*domain5.Profile, error)
-	ProfileByUserID(ctx context.Context, userID string) (*domain5.Profile, error)
-	Profiles(ctx context.Context, limit *int, offset *int) ([]*domain5.Profile, error)
-	SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain5.Profile, error)
-	MyProfile(ctx context.Context) (*domain5.Profile, error)
+	Me(ctx context.Context) (*domain7.User, error)
+	Profile(ctx context.Context, id uuid.UUID) (*domain6.Profile, error)
+	ProfileByUserID(ctx context.Context, userID string) (*domain6.Profile, error)
+	Profiles(ctx context.Context, limit *int, offset *int) ([]*domain6.Profile, error)
+	SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain6.Profile, error)
+	MyProfile(ctx context.Context) (*domain6.Profile, error)
 	UploadProfilePhoto(ctx context.Context, userID string, fileName string) (*model.UploadResult, error)
 	UploadTravelCompanionPhoto(ctx context.Context, userID string, companionID string, fileName string) (*model.UploadResult, error)
 	Listing(ctx context.Context, id uuid.UUID) (*domain4.Listing, error)
@@ -875,6 +967,12 @@ type QueryResolver interface {
 	Transactions(ctx context.Context, paymentID *uuid.UUID, typeArg *domain3.TransactionType, status *domain3.TransactionStatus, limit *int, offset *int) ([]*domain3.Transaction, error)
 	PayoutDetail(ctx context.Context, id uuid.UUID) (*domain3.PayoutDetail, error)
 	PayoutDetails(ctx context.Context, businessID uuid.UUID) ([]*domain3.PayoutDetail, error)
+	Wallet(ctx context.Context, id uuid.UUID) (*domain5.Wallet, error)
+	UserWallets(ctx context.Context, userID uuid.UUID) ([]*domain5.Wallet, error)
+	FinanceTransactionHistory(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*domain5.Transaction, error)
+	WalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain5.LedgerEntry, error)
+	Disbursement(ctx context.Context, id uuid.UUID) (*domain5.Disbursement, error)
+	MyEarnings(ctx context.Context) (*graphql3.EarningsSummary, error)
 	Wishlist(ctx context.Context, id uuid.UUID) (*domain1.Wishlist, error)
 	MyWishlists(ctx context.Context, limit *int, offset *int) ([]*domain1.Wishlist, error)
 	WishlistItems(ctx context.Context, wishlistID uuid.UUID, limit *int, offset *int) ([]*domain1.WishlistItem, error)
@@ -898,9 +996,12 @@ type TransactionResolver interface {
 	FailureReason(ctx context.Context, obj *domain3.Transaction) (*string, error)
 }
 type TravelCompanionResolver interface {
-	AgeGroup(ctx context.Context, obj *domain5.TravelCompanion) (string, error)
+	AgeGroup(ctx context.Context, obj *domain6.TravelCompanion) (string, error)
 
-	Relationship(ctx context.Context, obj *domain5.TravelCompanion) (string, error)
+	Relationship(ctx context.Context, obj *domain6.TravelCompanion) (string, error)
+}
+type WalletResolver interface {
+	OwnerType(ctx context.Context, obj *domain5.Wallet) (string, error)
 }
 type WishlistResolver interface {
 	ItemCount(ctx context.Context, obj *domain1.Wishlist) (int, error)
@@ -1650,6 +1751,91 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.DailyRate.FinalRate(childComplexity), true
 
+	case "Disbursement.amount":
+		if e.complexity.Disbursement.Amount == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.Amount(childComplexity), true
+	case "Disbursement.attempts":
+		if e.complexity.Disbursement.Attempts == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.Attempts(childComplexity), true
+	case "Disbursement.completedAt":
+		if e.complexity.Disbursement.CompletedAt == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.CompletedAt(childComplexity), true
+	case "Disbursement.createdAt":
+		if e.complexity.Disbursement.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.CreatedAt(childComplexity), true
+	case "Disbursement.currency":
+		if e.complexity.Disbursement.Currency == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.Currency(childComplexity), true
+	case "Disbursement.failureReason":
+		if e.complexity.Disbursement.FailureReason == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.FailureReason(childComplexity), true
+	case "Disbursement.id":
+		if e.complexity.Disbursement.ID == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.ID(childComplexity), true
+	case "Disbursement.nextRetryAt":
+		if e.complexity.Disbursement.NextRetryAt == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.NextRetryAt(childComplexity), true
+	case "Disbursement.provider":
+		if e.complexity.Disbursement.Provider == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.Provider(childComplexity), true
+	case "Disbursement.status":
+		if e.complexity.Disbursement.Status == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.Status(childComplexity), true
+	case "Disbursement.transactionId":
+		if e.complexity.Disbursement.TransactionID == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.TransactionID(childComplexity), true
+	case "Disbursement.transferCode":
+		if e.complexity.Disbursement.TransferCode == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.TransferCode(childComplexity), true
+	case "Disbursement.updatedAt":
+		if e.complexity.Disbursement.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.UpdatedAt(childComplexity), true
+	case "Disbursement.walletId":
+		if e.complexity.Disbursement.WalletID == nil {
+			break
+		}
+
+		return e.complexity.Disbursement.WalletID(childComplexity), true
+
 	case "DiscountSnapshot.amount":
 		if e.complexity.DiscountSnapshot.Amount == nil {
 			break
@@ -1668,6 +1854,171 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.DiscountSnapshot.Type(childComplexity), true
+
+	case "EarningsSummary.availableBalance":
+		if e.complexity.EarningsSummary.AvailableBalance == nil {
+			break
+		}
+
+		return e.complexity.EarningsSummary.AvailableBalance(childComplexity), true
+	case "EarningsSummary.currency":
+		if e.complexity.EarningsSummary.Currency == nil {
+			break
+		}
+
+		return e.complexity.EarningsSummary.Currency(childComplexity), true
+	case "EarningsSummary.pendingPayouts":
+		if e.complexity.EarningsSummary.PendingPayouts == nil {
+			break
+		}
+
+		return e.complexity.EarningsSummary.PendingPayouts(childComplexity), true
+	case "EarningsSummary.totalEarned":
+		if e.complexity.EarningsSummary.TotalEarned == nil {
+			break
+		}
+
+		return e.complexity.EarningsSummary.TotalEarned(childComplexity), true
+
+	case "FinanceTransaction.amount":
+		if e.complexity.FinanceTransaction.Amount == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.Amount(childComplexity), true
+	case "FinanceTransaction.createdAt":
+		if e.complexity.FinanceTransaction.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.CreatedAt(childComplexity), true
+	case "FinanceTransaction.currency":
+		if e.complexity.FinanceTransaction.Currency == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.Currency(childComplexity), true
+	case "FinanceTransaction.id":
+		if e.complexity.FinanceTransaction.ID == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.ID(childComplexity), true
+	case "FinanceTransaction.ledgerEntries":
+		if e.complexity.FinanceTransaction.LedgerEntries == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.LedgerEntries(childComplexity), true
+	case "FinanceTransaction.metadata":
+		if e.complexity.FinanceTransaction.Metadata == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.Metadata(childComplexity), true
+	case "FinanceTransaction.paymentId":
+		if e.complexity.FinanceTransaction.PaymentID == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.PaymentID(childComplexity), true
+	case "FinanceTransaction.resourceId":
+		if e.complexity.FinanceTransaction.ResourceID == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.ResourceID(childComplexity), true
+	case "FinanceTransaction.resourceType":
+		if e.complexity.FinanceTransaction.ResourceType == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.ResourceType(childComplexity), true
+	case "FinanceTransaction.status":
+		if e.complexity.FinanceTransaction.Status == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.Status(childComplexity), true
+	case "FinanceTransaction.type":
+		if e.complexity.FinanceTransaction.Type == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.Type(childComplexity), true
+	case "FinanceTransaction.updatedAt":
+		if e.complexity.FinanceTransaction.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.FinanceTransaction.UpdatedAt(childComplexity), true
+
+	case "LedgerEntry.amount":
+		if e.complexity.LedgerEntry.Amount == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.Amount(childComplexity), true
+	case "LedgerEntry.createdAt":
+		if e.complexity.LedgerEntry.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.CreatedAt(childComplexity), true
+	case "LedgerEntry.creditWalletId":
+		if e.complexity.LedgerEntry.CreditWalletID == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.CreditWalletID(childComplexity), true
+	case "LedgerEntry.currency":
+		if e.complexity.LedgerEntry.Currency == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.Currency(childComplexity), true
+	case "LedgerEntry.debitWalletId":
+		if e.complexity.LedgerEntry.DebitWalletID == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.DebitWalletID(childComplexity), true
+	case "LedgerEntry.id":
+		if e.complexity.LedgerEntry.ID == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.ID(childComplexity), true
+	case "LedgerEntry.memo":
+		if e.complexity.LedgerEntry.Memo == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.Memo(childComplexity), true
+	case "LedgerEntry.reference":
+		if e.complexity.LedgerEntry.Reference == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.Reference(childComplexity), true
+	case "LedgerEntry.resourceId":
+		if e.complexity.LedgerEntry.ResourceID == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.ResourceID(childComplexity), true
+	case "LedgerEntry.resourceType":
+		if e.complexity.LedgerEntry.ResourceType == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.ResourceType(childComplexity), true
+	case "LedgerEntry.transactionId":
+		if e.complexity.LedgerEntry.TransactionID == nil {
+			break
+		}
+
+		return e.complexity.LedgerEntry.TransactionID(childComplexity), true
 
 	case "Listing.boostLevel":
 		if e.complexity.Listing.BoostLevel == nil {
@@ -3489,6 +3840,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.BusinessMembers(childComplexity, args["businessID"].(uuid.UUID)), true
+	case "Query.disbursement":
+		if e.complexity.Query.Disbursement == nil {
+			break
+		}
+
+		args, err := ec.field_Query_disbursement_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Disbursement(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.financeTransactionHistory":
+		if e.complexity.Query.FinanceTransactionHistory == nil {
+			break
+		}
+
+		args, err := ec.field_Query_financeTransactionHistory_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FinanceTransactionHistory(childComplexity, args["resourceType"].(string), args["resourceId"].(uuid.UUID)), true
 	case "Query.isListingInWishlist":
 		if e.complexity.Query.IsListingInWishlist == nil {
 			break
@@ -3616,6 +3989,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyBusinessPermissions(childComplexity, args["businessID"].(uuid.UUID)), true
+	case "Query.myEarnings":
+		if e.complexity.Query.MyEarnings == nil {
+			break
+		}
+
+		return e.complexity.Query.MyEarnings(childComplexity), true
 	case "Query.myIndividualListings":
 		if e.complexity.Query.MyIndividualListings == nil {
 			break
@@ -3870,6 +4249,39 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.UploadTravelCompanionPhoto(childComplexity, args["userID"].(string), args["companionID"].(string), args["fileName"].(string)), true
+	case "Query.userWallets":
+		if e.complexity.Query.UserWallets == nil {
+			break
+		}
+
+		args, err := ec.field_Query_userWallets_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UserWallets(childComplexity, args["userId"].(uuid.UUID)), true
+	case "Query.wallet":
+		if e.complexity.Query.Wallet == nil {
+			break
+		}
+
+		args, err := ec.field_Query_wallet_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Wallet(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.walletLedger":
+		if e.complexity.Query.WalletLedger == nil {
+			break
+		}
+
+		args, err := ec.field_Query_walletLedger_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.WalletLedger(childComplexity, args["walletId"].(uuid.UUID), args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.wishlist":
 		if e.complexity.Query.Wishlist == nil {
 			break
@@ -4554,6 +4966,61 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.UserIdentity.UserID(childComplexity), true
+
+	case "Wallet.balance":
+		if e.complexity.Wallet.Balance == nil {
+			break
+		}
+
+		return e.complexity.Wallet.Balance(childComplexity), true
+	case "Wallet.createdAt":
+		if e.complexity.Wallet.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Wallet.CreatedAt(childComplexity), true
+	case "Wallet.currency":
+		if e.complexity.Wallet.Currency == nil {
+			break
+		}
+
+		return e.complexity.Wallet.Currency(childComplexity), true
+	case "Wallet.id":
+		if e.complexity.Wallet.ID == nil {
+			break
+		}
+
+		return e.complexity.Wallet.ID(childComplexity), true
+	case "Wallet.ownerId":
+		if e.complexity.Wallet.OwnerID == nil {
+			break
+		}
+
+		return e.complexity.Wallet.OwnerID(childComplexity), true
+	case "Wallet.ownerType":
+		if e.complexity.Wallet.OwnerType == nil {
+			break
+		}
+
+		return e.complexity.Wallet.OwnerType(childComplexity), true
+	case "Wallet.status":
+		if e.complexity.Wallet.Status == nil {
+			break
+		}
+
+		return e.complexity.Wallet.Status(childComplexity), true
+	case "Wallet.updatedAt":
+		if e.complexity.Wallet.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Wallet.UpdatedAt(childComplexity), true
+	case "Wallet.walletType":
+		if e.complexity.Wallet.WalletType == nil {
+			break
+		}
+
+		return e.complexity.Wallet.WalletType(childComplexity), true
 
 	case "Wishlist.createdAt":
 		if e.complexity.Wishlist.CreatedAt == nil {
@@ -6467,6 +6934,133 @@ extend type Mutation {
   createPayout(input: CreatePayoutInput!): Transaction!
 }
 `, BuiltIn: false},
+	{Name: "../../modules/finance/port/graphql/schema.graphqls", Input: `# internal/modules/finance/port/graphql/schema.graphqls
+
+enum WalletType {
+  escrow
+  host_available
+  platform_fee
+  refund_pool
+}
+
+enum WalletStatus {
+  active
+  frozen
+  closed
+}
+
+enum FinanceTransactionType {
+  charge
+  refund
+  payout
+  commission
+}
+
+enum FinanceTransactionStatus {
+  pending
+  completed
+  failed
+}
+
+enum DisbursementStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+type Wallet {
+  id: UUID!
+  ownerType: String!
+  ownerId: UUID!
+  walletType: WalletType!
+  balance: Int!
+  currency: String!
+  status: WalletStatus!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type LedgerEntry {
+  id: UUID!
+  transactionId: UUID!
+  reference: String!
+  debitWalletId: UUID
+  creditWalletId: UUID
+  amount: Int!
+  currency: String!
+  resourceType: String!
+  resourceId: UUID!
+  memo: String!
+  createdAt: Time!
+}
+
+type FinanceTransaction {
+  id: UUID!
+  type: FinanceTransactionType!
+  status: FinanceTransactionStatus!
+  resourceType: String!
+  resourceId: UUID!
+  paymentId: UUID
+  amount: Int!
+  currency: String!
+  metadata: Map
+  ledgerEntries: [LedgerEntry!]!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type Disbursement {
+  id: UUID!
+  walletId: UUID!
+  transactionId: UUID!
+  amount: Int!
+  currency: String!
+  status: DisbursementStatus!
+  provider: String!
+  transferCode: String
+  attempts: Int!
+  nextRetryAt: Time
+  completedAt: Time
+  failureReason: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type EarningsSummary {
+  totalEarned: Int!
+  availableBalance: Int!
+  pendingPayouts: Int!
+  currency: String!
+}
+
+extend type Query {
+  # Admin: View wallet details
+  wallet(id: UUID!): Wallet
+
+  # Admin: List all wallets for a user
+  userWallets(userId: UUID!): [Wallet!]!
+
+  # Admin/Host: View transaction history for a resource (booking, payment, etc)
+  financeTransactionHistory(
+    resourceType: String!
+    resourceId: UUID!
+  ): [FinanceTransaction!]!
+
+  # Admin/Host: View wallet ledger
+  walletLedger(
+    walletId: UUID!
+    limit: Int
+    offset: Int
+  ): [LedgerEntry!]!
+
+  # Admin/Host: View disbursement status
+  disbursement(id: UUID!): Disbursement
+
+  # Host: My earnings summary (requires authentication)
+  myEarnings: EarningsSummary!
+}
+`, BuiltIn: false},
 	{Name: "../../modules/wishlist/port/graphql/schema.graphqls", Input: `# internal/modules/wishlist/port/graphql/schema.graphqls
 
 enum WishlistItemSource {
@@ -7238,6 +7832,33 @@ func (ec *executionContext) field_Query_business_args(ctx context.Context, rawAr
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_disbursement_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_financeTransactionHistory_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "resourceType", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["resourceType"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "resourceId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["resourceId"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_isListingInWishlist_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -7803,6 +8424,49 @@ func (ec *executionContext) field_Query_uploadTravelCompanionPhoto_args(ctx cont
 		return nil, err
 	}
 	args["fileName"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_userWallets_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["userId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_walletLedger_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "walletId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["walletId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_wallet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -11415,6 +12079,412 @@ func (ec *executionContext) fieldContext_DailyRate_finalRate(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Disbursement_id(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_walletId(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_walletId,
+		func(ctx context.Context) (any, error) {
+			return obj.WalletID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_walletId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_transactionId(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_transactionId,
+		func(ctx context.Context) (any, error) {
+			return obj.TransactionID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_transactionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_amount(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_amount,
+		func(ctx context.Context) (any, error) {
+			return obj.Amount, nil
+		},
+		nil,
+		ec.marshalNInt2int64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_amount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_currency(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_currency,
+		func(ctx context.Context) (any, error) {
+			return obj.Currency, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_currency(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_status(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNDisbursementStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DisbursementStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_provider(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_provider,
+		func(ctx context.Context) (any, error) {
+			return obj.Provider, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_provider(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_transferCode(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_transferCode,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Disbursement().TransferCode(ctx, obj)
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_transferCode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_attempts(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_attempts,
+		func(ctx context.Context) (any, error) {
+			return obj.Attempts, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_attempts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_nextRetryAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_nextRetryAt,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Disbursement().NextRetryAt(ctx, obj)
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_nextRetryAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_completedAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_completedAt,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Disbursement().CompletedAt(ctx, obj)
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_completedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_failureReason(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_failureReason,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Disbursement().FailureReason(ctx, obj)
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_failureReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Disbursement_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Disbursement) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Disbursement_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Disbursement_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Disbursement",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _DiscountSnapshot_name(ctx context.Context, field graphql.CollectedField, obj *domain2.DiscountSnapshot) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11497,6 +12567,813 @@ func (ec *executionContext) fieldContext_DiscountSnapshot_type(_ context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EarningsSummary_totalEarned(ctx context.Context, field graphql.CollectedField, obj *graphql3.EarningsSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EarningsSummary_totalEarned,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalEarned, nil
+		},
+		nil,
+		ec.marshalNInt2int64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EarningsSummary_totalEarned(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EarningsSummary",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EarningsSummary_availableBalance(ctx context.Context, field graphql.CollectedField, obj *graphql3.EarningsSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EarningsSummary_availableBalance,
+		func(ctx context.Context) (any, error) {
+			return obj.AvailableBalance, nil
+		},
+		nil,
+		ec.marshalNInt2int64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EarningsSummary_availableBalance(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EarningsSummary",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EarningsSummary_pendingPayouts(ctx context.Context, field graphql.CollectedField, obj *graphql3.EarningsSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EarningsSummary_pendingPayouts,
+		func(ctx context.Context) (any, error) {
+			return obj.PendingPayouts, nil
+		},
+		nil,
+		ec.marshalNInt2int64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EarningsSummary_pendingPayouts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EarningsSummary",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EarningsSummary_currency(ctx context.Context, field graphql.CollectedField, obj *graphql3.EarningsSummary) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EarningsSummary_currency,
+		func(ctx context.Context) (any, error) {
+			return obj.Currency, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EarningsSummary_currency(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EarningsSummary",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_id(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_type(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_type,
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		ec.marshalNFinanceTransactionType2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type FinanceTransactionType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_status(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNFinanceTransactionStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type FinanceTransactionStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_resourceType(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_resourceType,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.FinanceTransaction().ResourceType(ctx, obj)
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_resourceType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_resourceId(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_resourceId,
+		func(ctx context.Context) (any, error) {
+			return obj.ResourceID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_resourceId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_paymentId(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_paymentId,
+		func(ctx context.Context) (any, error) {
+			return obj.PaymentID, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_paymentId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_amount(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_amount,
+		func(ctx context.Context) (any, error) {
+			return obj.Amount, nil
+		},
+		nil,
+		ec.marshalNInt2int64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_amount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_currency(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_currency,
+		func(ctx context.Context) (any, error) {
+			return obj.Currency, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_currency(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_metadata(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_metadata,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.FinanceTransaction().Metadata(ctx, obj)
+		},
+		nil,
+		ec.marshalOMap2map,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Map does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_ledgerEntries(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_ledgerEntries,
+		func(ctx context.Context) (any, error) {
+			return obj.LedgerEntries, nil
+		},
+		nil,
+		ec.marshalNLedgerEntry2ᚕhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_ledgerEntries(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_LedgerEntry_id(ctx, field)
+			case "transactionId":
+				return ec.fieldContext_LedgerEntry_transactionId(ctx, field)
+			case "reference":
+				return ec.fieldContext_LedgerEntry_reference(ctx, field)
+			case "debitWalletId":
+				return ec.fieldContext_LedgerEntry_debitWalletId(ctx, field)
+			case "creditWalletId":
+				return ec.fieldContext_LedgerEntry_creditWalletId(ctx, field)
+			case "amount":
+				return ec.fieldContext_LedgerEntry_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_LedgerEntry_currency(ctx, field)
+			case "resourceType":
+				return ec.fieldContext_LedgerEntry_resourceType(ctx, field)
+			case "resourceId":
+				return ec.fieldContext_LedgerEntry_resourceId(ctx, field)
+			case "memo":
+				return ec.fieldContext_LedgerEntry_memo(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_LedgerEntry_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type LedgerEntry", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _FinanceTransaction_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Transaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FinanceTransaction_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FinanceTransaction_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FinanceTransaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_id(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_transactionId(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_transactionId,
+		func(ctx context.Context) (any, error) {
+			return obj.TransactionID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_transactionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_reference(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_reference,
+		func(ctx context.Context) (any, error) {
+			return obj.Reference, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_reference(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_debitWalletId(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_debitWalletId,
+		func(ctx context.Context) (any, error) {
+			return obj.DebitWalletID, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_debitWalletId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_creditWalletId(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_creditWalletId,
+		func(ctx context.Context) (any, error) {
+			return obj.CreditWalletID, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_creditWalletId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_amount(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_amount,
+		func(ctx context.Context) (any, error) {
+			return obj.Amount, nil
+		},
+		nil,
+		ec.marshalNInt2int64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_amount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_currency(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_currency,
+		func(ctx context.Context) (any, error) {
+			return obj.Currency, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_currency(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_resourceType(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_resourceType,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.LedgerEntry().ResourceType(ctx, obj)
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_resourceType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_resourceId(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_resourceId,
+		func(ctx context.Context) (any, error) {
+			return obj.ResourceID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_resourceId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_memo(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_memo,
+		func(ctx context.Context) (any, error) {
+			return obj.Memo, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_memo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LedgerEntry_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain5.LedgerEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LedgerEntry_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LedgerEntry_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LedgerEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -18768,7 +20645,7 @@ func (ec *executionContext) fieldContext_PriceBreakdownSnapshot_currency(_ conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_id(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_id(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18797,7 +20674,7 @@ func (ec *executionContext) fieldContext_Profile_id(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_userId(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_userId(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18826,7 +20703,7 @@ func (ec *executionContext) fieldContext_Profile_userId(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_userTypes(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_userTypes(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18855,7 +20732,7 @@ func (ec *executionContext) fieldContext_Profile_userTypes(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_fullName(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_fullName(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18884,7 +20761,7 @@ func (ec *executionContext) fieldContext_Profile_fullName(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_birthDate(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_birthDate(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18913,7 +20790,7 @@ func (ec *executionContext) fieldContext_Profile_birthDate(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_gender(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_gender(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18942,7 +20819,7 @@ func (ec *executionContext) fieldContext_Profile_gender(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_photoUrl(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_photoUrl(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18971,7 +20848,7 @@ func (ec *executionContext) fieldContext_Profile_photoUrl(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_email(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_email(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19000,7 +20877,7 @@ func (ec *executionContext) fieldContext_Profile_email(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_phoneNumbers(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_phoneNumbers(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19029,7 +20906,7 @@ func (ec *executionContext) fieldContext_Profile_phoneNumbers(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_address(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_address(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19058,7 +20935,7 @@ func (ec *executionContext) fieldContext_Profile_address(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_street(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_street(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19087,7 +20964,7 @@ func (ec *executionContext) fieldContext_Profile_street(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_houseNumber(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_houseNumber(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19116,7 +20993,7 @@ func (ec *executionContext) fieldContext_Profile_houseNumber(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_area(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_area(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19145,7 +21022,7 @@ func (ec *executionContext) fieldContext_Profile_area(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_lga(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_lga(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19174,7 +21051,7 @@ func (ec *executionContext) fieldContext_Profile_lga(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_district(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_district(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19203,7 +21080,7 @@ func (ec *executionContext) fieldContext_Profile_district(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_digitalAddress(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_digitalAddress(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19232,7 +21109,7 @@ func (ec *executionContext) fieldContext_Profile_digitalAddress(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_city(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_city(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19261,7 +21138,7 @@ func (ec *executionContext) fieldContext_Profile_city(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_state(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_state(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19290,7 +21167,7 @@ func (ec *executionContext) fieldContext_Profile_state(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_country(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_country(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19319,7 +21196,7 @@ func (ec *executionContext) fieldContext_Profile_country(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_zipCode(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_zipCode(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19348,7 +21225,7 @@ func (ec *executionContext) fieldContext_Profile_zipCode(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_occupation(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_occupation(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19377,7 +21254,7 @@ func (ec *executionContext) fieldContext_Profile_occupation(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_education(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_education(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19406,7 +21283,7 @@ func (ec *executionContext) fieldContext_Profile_education(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_bio(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_bio(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19435,7 +21312,7 @@ func (ec *executionContext) fieldContext_Profile_bio(_ context.Context, field gr
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_skills(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_skills(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19464,7 +21341,7 @@ func (ec *executionContext) fieldContext_Profile_skills(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_languages(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_languages(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19493,7 +21370,7 @@ func (ec *executionContext) fieldContext_Profile_languages(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_interests(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_interests(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19522,7 +21399,7 @@ func (ec *executionContext) fieldContext_Profile_interests(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_hobbies(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_hobbies(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19551,7 +21428,7 @@ func (ec *executionContext) fieldContext_Profile_hobbies(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_funFact(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_funFact(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19580,7 +21457,7 @@ func (ec *executionContext) fieldContext_Profile_funFact(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_obsessedWith(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_obsessedWith(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19609,7 +21486,7 @@ func (ec *executionContext) fieldContext_Profile_obsessedWith(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_communityCommitment(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_communityCommitment(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19638,7 +21515,7 @@ func (ec *executionContext) fieldContext_Profile_communityCommitment(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_travelCompanions(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_travelCompanions(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19679,7 +21556,7 @@ func (ec *executionContext) fieldContext_Profile_travelCompanions(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_phoneVerified(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_phoneVerified(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19708,7 +21585,7 @@ func (ec *executionContext) fieldContext_Profile_phoneVerified(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_idVerified(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_idVerified(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19737,7 +21614,7 @@ func (ec *executionContext) fieldContext_Profile_idVerified(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_verificationDate(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_verificationDate(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19766,7 +21643,7 @@ func (ec *executionContext) fieldContext_Profile_verificationDate(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_verificationLevel(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_verificationLevel(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19795,7 +21672,7 @@ func (ec *executionContext) fieldContext_Profile_verificationLevel(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_rating(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_rating(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19824,7 +21701,7 @@ func (ec *executionContext) fieldContext_Profile_rating(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_reviewsCount(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_reviewsCount(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19853,7 +21730,7 @@ func (ec *executionContext) fieldContext_Profile_reviewsCount(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_trustScore(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_trustScore(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19882,7 +21759,7 @@ func (ec *executionContext) fieldContext_Profile_trustScore(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_badges(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_badges(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19911,7 +21788,7 @@ func (ec *executionContext) fieldContext_Profile_badges(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_bioVisible(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_bioVisible(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19940,7 +21817,7 @@ func (ec *executionContext) fieldContext_Profile_bioVisible(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_allowPersonalizedOffers(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_allowPersonalizedOffers(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19969,7 +21846,7 @@ func (ec *executionContext) fieldContext_Profile_allowPersonalizedOffers(_ conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_enablePerformanceAnalytics(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_enablePerformanceAnalytics(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -19998,7 +21875,7 @@ func (ec *executionContext) fieldContext_Profile_enablePerformanceAnalytics(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -20027,7 +21904,7 @@ func (ec *executionContext) fieldContext_Profile_createdAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Profile_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Profile) (ret graphql.Marshaler) {
+func (ec *executionContext) _Profile_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain6.Profile) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24157,6 +26034,370 @@ func (ec *executionContext) fieldContext_Query_payoutDetails(ctx context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_wallet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_wallet,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Wallet(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalOWallet2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWallet,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_wallet(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Wallet_id(ctx, field)
+			case "ownerType":
+				return ec.fieldContext_Wallet_ownerType(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_Wallet_ownerId(ctx, field)
+			case "walletType":
+				return ec.fieldContext_Wallet_walletType(ctx, field)
+			case "balance":
+				return ec.fieldContext_Wallet_balance(ctx, field)
+			case "currency":
+				return ec.fieldContext_Wallet_currency(ctx, field)
+			case "status":
+				return ec.fieldContext_Wallet_status(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Wallet_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Wallet_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Wallet", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_wallet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_userWallets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_userWallets,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().UserWallets(ctx, fc.Args["userId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNWallet2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_userWallets(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Wallet_id(ctx, field)
+			case "ownerType":
+				return ec.fieldContext_Wallet_ownerType(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_Wallet_ownerId(ctx, field)
+			case "walletType":
+				return ec.fieldContext_Wallet_walletType(ctx, field)
+			case "balance":
+				return ec.fieldContext_Wallet_balance(ctx, field)
+			case "currency":
+				return ec.fieldContext_Wallet_currency(ctx, field)
+			case "status":
+				return ec.fieldContext_Wallet_status(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Wallet_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Wallet_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Wallet", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_userWallets_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_financeTransactionHistory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_financeTransactionHistory,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().FinanceTransactionHistory(ctx, fc.Args["resourceType"].(string), fc.Args["resourceId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNFinanceTransaction2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_financeTransactionHistory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FinanceTransaction_id(ctx, field)
+			case "type":
+				return ec.fieldContext_FinanceTransaction_type(ctx, field)
+			case "status":
+				return ec.fieldContext_FinanceTransaction_status(ctx, field)
+			case "resourceType":
+				return ec.fieldContext_FinanceTransaction_resourceType(ctx, field)
+			case "resourceId":
+				return ec.fieldContext_FinanceTransaction_resourceId(ctx, field)
+			case "paymentId":
+				return ec.fieldContext_FinanceTransaction_paymentId(ctx, field)
+			case "amount":
+				return ec.fieldContext_FinanceTransaction_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_FinanceTransaction_currency(ctx, field)
+			case "metadata":
+				return ec.fieldContext_FinanceTransaction_metadata(ctx, field)
+			case "ledgerEntries":
+				return ec.fieldContext_FinanceTransaction_ledgerEntries(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FinanceTransaction_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FinanceTransaction_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FinanceTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_financeTransactionHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_walletLedger(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_walletLedger,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().WalletLedger(ctx, fc.Args["walletId"].(uuid.UUID), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNLedgerEntry2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_walletLedger(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_LedgerEntry_id(ctx, field)
+			case "transactionId":
+				return ec.fieldContext_LedgerEntry_transactionId(ctx, field)
+			case "reference":
+				return ec.fieldContext_LedgerEntry_reference(ctx, field)
+			case "debitWalletId":
+				return ec.fieldContext_LedgerEntry_debitWalletId(ctx, field)
+			case "creditWalletId":
+				return ec.fieldContext_LedgerEntry_creditWalletId(ctx, field)
+			case "amount":
+				return ec.fieldContext_LedgerEntry_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_LedgerEntry_currency(ctx, field)
+			case "resourceType":
+				return ec.fieldContext_LedgerEntry_resourceType(ctx, field)
+			case "resourceId":
+				return ec.fieldContext_LedgerEntry_resourceId(ctx, field)
+			case "memo":
+				return ec.fieldContext_LedgerEntry_memo(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_LedgerEntry_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type LedgerEntry", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_walletLedger_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_disbursement(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_disbursement,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Disbursement(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalODisbursement2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursement,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_disbursement(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Disbursement_id(ctx, field)
+			case "walletId":
+				return ec.fieldContext_Disbursement_walletId(ctx, field)
+			case "transactionId":
+				return ec.fieldContext_Disbursement_transactionId(ctx, field)
+			case "amount":
+				return ec.fieldContext_Disbursement_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_Disbursement_currency(ctx, field)
+			case "status":
+				return ec.fieldContext_Disbursement_status(ctx, field)
+			case "provider":
+				return ec.fieldContext_Disbursement_provider(ctx, field)
+			case "transferCode":
+				return ec.fieldContext_Disbursement_transferCode(ctx, field)
+			case "attempts":
+				return ec.fieldContext_Disbursement_attempts(ctx, field)
+			case "nextRetryAt":
+				return ec.fieldContext_Disbursement_nextRetryAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Disbursement_completedAt(ctx, field)
+			case "failureReason":
+				return ec.fieldContext_Disbursement_failureReason(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Disbursement_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Disbursement_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Disbursement", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_disbursement_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myEarnings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myEarnings,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyEarnings(ctx)
+		},
+		nil,
+		ec.marshalNEarningsSummary2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐEarningsSummary,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myEarnings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "totalEarned":
+				return ec.fieldContext_EarningsSummary_totalEarned(ctx, field)
+			case "availableBalance":
+				return ec.fieldContext_EarningsSummary_availableBalance(ctx, field)
+			case "pendingPayouts":
+				return ec.fieldContext_EarningsSummary_pendingPayouts(ctx, field)
+			case "currency":
+				return ec.fieldContext_EarningsSummary_currency(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EarningsSummary", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_wishlist(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -26940,7 +29181,7 @@ func (ec *executionContext) fieldContext_Transaction_createdAt(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_name(ctx context.Context, field graphql.CollectedField, obj *domain5.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_name(ctx context.Context, field graphql.CollectedField, obj *domain6.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -26969,7 +29210,7 @@ func (ec *executionContext) fieldContext_TravelCompanion_name(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_ageGroup(ctx context.Context, field graphql.CollectedField, obj *domain5.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_ageGroup(ctx context.Context, field graphql.CollectedField, obj *domain6.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -26998,7 +29239,7 @@ func (ec *executionContext) fieldContext_TravelCompanion_ageGroup(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_phone(ctx context.Context, field graphql.CollectedField, obj *domain5.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_phone(ctx context.Context, field graphql.CollectedField, obj *domain6.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27027,7 +29268,7 @@ func (ec *executionContext) fieldContext_TravelCompanion_phone(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_relationship(ctx context.Context, field graphql.CollectedField, obj *domain5.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_relationship(ctx context.Context, field graphql.CollectedField, obj *domain6.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27056,7 +29297,7 @@ func (ec *executionContext) fieldContext_TravelCompanion_relationship(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _TravelCompanion_photoUrl(ctx context.Context, field graphql.CollectedField, obj *domain5.TravelCompanion) (ret graphql.Marshaler) {
+func (ec *executionContext) _TravelCompanion_photoUrl(ctx context.Context, field graphql.CollectedField, obj *domain6.TravelCompanion) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27230,7 +29471,7 @@ func (ec *executionContext) fieldContext_UploadResult_travelCompanionID(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27259,7 +29500,7 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	return fc, nil
 }
 
-func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27288,7 +29529,7 @@ func (ec *executionContext) fieldContext_User_name(_ context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_primaryEmail(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_primaryEmail(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27317,7 +29558,7 @@ func (ec *executionContext) fieldContext_User_primaryEmail(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _User_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27346,7 +29587,7 @@ func (ec *executionContext) fieldContext_User_avatarUrl(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27375,7 +29616,7 @@ func (ec *executionContext) fieldContext_User_role(_ context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_isActive(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_isActive(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27404,7 +29645,7 @@ func (ec *executionContext) fieldContext_User_isActive(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _User_lastLoginAt(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_lastLoginAt(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27433,7 +29674,7 @@ func (ec *executionContext) fieldContext_User_lastLoginAt(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27462,7 +29703,7 @@ func (ec *executionContext) fieldContext_User_createdAt(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27491,7 +29732,7 @@ func (ec *executionContext) fieldContext_User_updatedAt(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_identities(ctx context.Context, field graphql.CollectedField, obj *domain6.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_identities(ctx context.Context, field graphql.CollectedField, obj *domain7.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27536,7 +29777,7 @@ func (ec *executionContext) fieldContext_User_identities(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_id(ctx context.Context, field graphql.CollectedField, obj *domain6.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_id(ctx context.Context, field graphql.CollectedField, obj *domain7.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27565,7 +29806,7 @@ func (ec *executionContext) fieldContext_UserIdentity_id(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_userId(ctx context.Context, field graphql.CollectedField, obj *domain6.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_userId(ctx context.Context, field graphql.CollectedField, obj *domain7.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27594,7 +29835,7 @@ func (ec *executionContext) fieldContext_UserIdentity_userId(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_provider(ctx context.Context, field graphql.CollectedField, obj *domain6.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_provider(ctx context.Context, field graphql.CollectedField, obj *domain7.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27623,7 +29864,7 @@ func (ec *executionContext) fieldContext_UserIdentity_provider(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_email(ctx context.Context, field graphql.CollectedField, obj *domain6.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_email(ctx context.Context, field graphql.CollectedField, obj *domain7.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27652,7 +29893,7 @@ func (ec *executionContext) fieldContext_UserIdentity_email(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_emailVerified(ctx context.Context, field graphql.CollectedField, obj *domain6.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_emailVerified(ctx context.Context, field graphql.CollectedField, obj *domain7.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27681,7 +29922,7 @@ func (ec *executionContext) fieldContext_UserIdentity_emailVerified(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *domain6.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *domain7.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27710,7 +29951,7 @@ func (ec *executionContext) fieldContext_UserIdentity_lastUsedAt(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain6.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain7.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -27729,6 +29970,267 @@ func (ec *executionContext) _UserIdentity_createdAt(ctx context.Context, field g
 func (ec *executionContext) fieldContext_UserIdentity_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "UserIdentity",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Wallet_id(ctx context.Context, field graphql.CollectedField, obj *domain5.Wallet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Wallet_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Wallet_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Wallet",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Wallet_ownerType(ctx context.Context, field graphql.CollectedField, obj *domain5.Wallet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Wallet_ownerType,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Wallet().OwnerType(ctx, obj)
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Wallet_ownerType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Wallet",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Wallet_ownerId(ctx context.Context, field graphql.CollectedField, obj *domain5.Wallet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Wallet_ownerId,
+		func(ctx context.Context) (any, error) {
+			return obj.OwnerID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Wallet_ownerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Wallet",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Wallet_walletType(ctx context.Context, field graphql.CollectedField, obj *domain5.Wallet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Wallet_walletType,
+		func(ctx context.Context) (any, error) {
+			return obj.WalletType, nil
+		},
+		nil,
+		ec.marshalNWalletType2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Wallet_walletType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Wallet",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type WalletType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Wallet_balance(ctx context.Context, field graphql.CollectedField, obj *domain5.Wallet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Wallet_balance,
+		func(ctx context.Context) (any, error) {
+			return obj.Balance, nil
+		},
+		nil,
+		ec.marshalNInt2int64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Wallet_balance(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Wallet",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Wallet_currency(ctx context.Context, field graphql.CollectedField, obj *domain5.Wallet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Wallet_currency,
+		func(ctx context.Context) (any, error) {
+			return obj.Currency, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Wallet_currency(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Wallet",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Wallet_status(ctx context.Context, field graphql.CollectedField, obj *domain5.Wallet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Wallet_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNWalletStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Wallet_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Wallet",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type WalletStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Wallet_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Wallet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Wallet_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Wallet_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Wallet",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Wallet_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain5.Wallet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Wallet_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Wallet_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Wallet",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -33913,6 +36415,222 @@ func (ec *executionContext) _DailyRate(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var disbursementImplementors = []string{"Disbursement"}
+
+func (ec *executionContext) _Disbursement(ctx context.Context, sel ast.SelectionSet, obj *domain5.Disbursement) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, disbursementImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Disbursement")
+		case "id":
+			out.Values[i] = ec._Disbursement_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "walletId":
+			out.Values[i] = ec._Disbursement_walletId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "transactionId":
+			out.Values[i] = ec._Disbursement_transactionId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "amount":
+			out.Values[i] = ec._Disbursement_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "currency":
+			out.Values[i] = ec._Disbursement_currency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "status":
+			out.Values[i] = ec._Disbursement_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "provider":
+			out.Values[i] = ec._Disbursement_provider(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "transferCode":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Disbursement_transferCode(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "attempts":
+			out.Values[i] = ec._Disbursement_attempts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "nextRetryAt":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Disbursement_nextRetryAt(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "completedAt":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Disbursement_completedAt(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "failureReason":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Disbursement_failureReason(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "createdAt":
+			out.Values[i] = ec._Disbursement_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._Disbursement_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var discountSnapshotImplementors = []string{"DiscountSnapshot"}
 
 func (ec *executionContext) _DiscountSnapshot(ctx context.Context, sel ast.SelectionSet, obj *domain2.DiscountSnapshot) graphql.Marshaler {
@@ -33938,6 +36656,324 @@ func (ec *executionContext) _DiscountSnapshot(ctx context.Context, sel ast.Selec
 			out.Values[i] = ec._DiscountSnapshot_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var earningsSummaryImplementors = []string{"EarningsSummary"}
+
+func (ec *executionContext) _EarningsSummary(ctx context.Context, sel ast.SelectionSet, obj *graphql3.EarningsSummary) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, earningsSummaryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EarningsSummary")
+		case "totalEarned":
+			out.Values[i] = ec._EarningsSummary_totalEarned(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "availableBalance":
+			out.Values[i] = ec._EarningsSummary_availableBalance(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pendingPayouts":
+			out.Values[i] = ec._EarningsSummary_pendingPayouts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "currency":
+			out.Values[i] = ec._EarningsSummary_currency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var financeTransactionImplementors = []string{"FinanceTransaction"}
+
+func (ec *executionContext) _FinanceTransaction(ctx context.Context, sel ast.SelectionSet, obj *domain5.Transaction) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, financeTransactionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FinanceTransaction")
+		case "id":
+			out.Values[i] = ec._FinanceTransaction_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "type":
+			out.Values[i] = ec._FinanceTransaction_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "status":
+			out.Values[i] = ec._FinanceTransaction_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "resourceType":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._FinanceTransaction_resourceType(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "resourceId":
+			out.Values[i] = ec._FinanceTransaction_resourceId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "paymentId":
+			out.Values[i] = ec._FinanceTransaction_paymentId(ctx, field, obj)
+		case "amount":
+			out.Values[i] = ec._FinanceTransaction_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "currency":
+			out.Values[i] = ec._FinanceTransaction_currency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "metadata":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._FinanceTransaction_metadata(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "ledgerEntries":
+			out.Values[i] = ec._FinanceTransaction_ledgerEntries(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._FinanceTransaction_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._FinanceTransaction_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var ledgerEntryImplementors = []string{"LedgerEntry"}
+
+func (ec *executionContext) _LedgerEntry(ctx context.Context, sel ast.SelectionSet, obj *domain5.LedgerEntry) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ledgerEntryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LedgerEntry")
+		case "id":
+			out.Values[i] = ec._LedgerEntry_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "transactionId":
+			out.Values[i] = ec._LedgerEntry_transactionId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "reference":
+			out.Values[i] = ec._LedgerEntry_reference(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "debitWalletId":
+			out.Values[i] = ec._LedgerEntry_debitWalletId(ctx, field, obj)
+		case "creditWalletId":
+			out.Values[i] = ec._LedgerEntry_creditWalletId(ctx, field, obj)
+		case "amount":
+			out.Values[i] = ec._LedgerEntry_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "currency":
+			out.Values[i] = ec._LedgerEntry_currency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "resourceType":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._LedgerEntry_resourceType(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "resourceId":
+			out.Values[i] = ec._LedgerEntry_resourceId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "memo":
+			out.Values[i] = ec._LedgerEntry_memo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._LedgerEntry_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -35682,7 +38718,7 @@ func (ec *executionContext) _PriceBreakdownSnapshot(ctx context.Context, sel ast
 
 var profileImplementors = []string{"Profile"}
 
-func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, obj *domain5.Profile) graphql.Marshaler {
+func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, obj *domain6.Profile) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, profileImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -37035,6 +40071,132 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "wallet":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_wallet(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "userWallets":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userWallets(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "financeTransactionHistory":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_financeTransactionHistory(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "walletLedger":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_walletLedger(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "disbursement":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_disbursement(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myEarnings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myEarnings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "wishlist":
 			field := field
 
@@ -38007,7 +41169,7 @@ func (ec *executionContext) _Transaction(ctx context.Context, sel ast.SelectionS
 
 var travelCompanionImplementors = []string{"TravelCompanion"}
 
-func (ec *executionContext) _TravelCompanion(ctx context.Context, sel ast.SelectionSet, obj *domain5.TravelCompanion) graphql.Marshaler {
+func (ec *executionContext) _TravelCompanion(ctx context.Context, sel ast.SelectionSet, obj *domain6.TravelCompanion) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, travelCompanionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -38178,7 +41340,7 @@ func (ec *executionContext) _UploadResult(ctx context.Context, sel ast.Selection
 
 var userImplementors = []string{"User"}
 
-func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *domain6.User) graphql.Marshaler {
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *domain7.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -38253,7 +41415,7 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 
 var userIdentityImplementors = []string{"UserIdentity"}
 
-func (ec *executionContext) _UserIdentity(ctx context.Context, sel ast.SelectionSet, obj *domain6.UserIdentity) graphql.Marshaler {
+func (ec *executionContext) _UserIdentity(ctx context.Context, sel ast.SelectionSet, obj *domain7.UserIdentity) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userIdentityImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -38293,6 +41455,116 @@ func (ec *executionContext) _UserIdentity(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._UserIdentity_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var walletImplementors = []string{"Wallet"}
+
+func (ec *executionContext) _Wallet(ctx context.Context, sel ast.SelectionSet, obj *domain5.Wallet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, walletImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Wallet")
+		case "id":
+			out.Values[i] = ec._Wallet_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "ownerType":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Wallet_ownerType(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "ownerId":
+			out.Values[i] = ec._Wallet_ownerId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "walletType":
+			out.Values[i] = ec._Wallet_walletType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "balance":
+			out.Values[i] = ec._Wallet_balance(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "currency":
+			out.Values[i] = ec._Wallet_currency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "status":
+			out.Values[i] = ec._Wallet_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "createdAt":
+			out.Values[i] = ec._Wallet_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "updatedAt":
+			out.Values[i] = ec._Wallet_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -39011,13 +42283,13 @@ func (ec *executionContext) unmarshalNAmenityHighlightInput2ᚖhausletᚋinterna
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx context.Context, v any) (domain5.Badge, error) {
+func (ec *executionContext) unmarshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx context.Context, v any) (domain6.Badge, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain5.Badge(tmp)
+	res := domain6.Badge(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx context.Context, sel ast.SelectionSet, v domain5.Badge) graphql.Marshaler {
+func (ec *executionContext) marshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx context.Context, sel ast.SelectionSet, v domain6.Badge) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -39028,11 +42300,11 @@ func (ec *executionContext) marshalNBadge2hausletᚋinternalᚋmodulesᚋprofile
 	return res
 }
 
-func (ec *executionContext) unmarshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, v any) ([]domain5.Badge, error) {
+func (ec *executionContext) unmarshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, v any) ([]domain6.Badge, error) {
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]domain5.Badge, len(vSlice))
+	res := make([]domain6.Badge, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNBadge2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadge(ctx, vSlice[i])
@@ -39043,7 +42315,7 @@ func (ec *executionContext) unmarshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋpr
 	return res, nil
 }
 
-func (ec *executionContext) marshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain5.Badge) graphql.Marshaler {
+func (ec *executionContext) marshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐBadgeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain6.Badge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -39506,8 +42778,127 @@ func (ec *executionContext) marshalNDailyRate2hausletᚋinternalᚋmodulesᚋboo
 	return ec._DailyRate(ctx, sel, &v)
 }
 
+func (ec *executionContext) unmarshalNDisbursementStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementStatus(ctx context.Context, v any) (domain5.DisbursementStatus, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain5.DisbursementStatus(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDisbursementStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementStatus(ctx context.Context, sel ast.SelectionSet, v domain5.DisbursementStatus) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNDiscountSnapshot2hausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐDiscountSnapshot(ctx context.Context, sel ast.SelectionSet, v domain2.DiscountSnapshot) graphql.Marshaler {
 	return ec._DiscountSnapshot(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEarningsSummary2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐEarningsSummary(ctx context.Context, sel ast.SelectionSet, v graphql3.EarningsSummary) graphql.Marshaler {
+	return ec._EarningsSummary(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEarningsSummary2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐEarningsSummary(ctx context.Context, sel ast.SelectionSet, v *graphql3.EarningsSummary) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EarningsSummary(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFinanceTransaction2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain5.Transaction) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFinanceTransaction2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransaction(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNFinanceTransaction2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransaction(ctx context.Context, sel ast.SelectionSet, v *domain5.Transaction) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._FinanceTransaction(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNFinanceTransactionStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionStatus(ctx context.Context, v any) (domain5.TransactionStatus, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain5.TransactionStatus(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFinanceTransactionStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionStatus(ctx context.Context, sel ast.SelectionSet, v domain5.TransactionStatus) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNFinanceTransactionType2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionType(ctx context.Context, v any) (domain5.TransactionType, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain5.TransactionType(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFinanceTransactionType2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionType(ctx context.Context, sel ast.SelectionSet, v domain5.TransactionType) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v any) (float64, error) {
@@ -39595,6 +42986,108 @@ func (ec *executionContext) marshalNInvitationStatus2hausletᚋinternalᚋmodule
 func (ec *executionContext) unmarshalNInviteMemberInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInviteMemberInput(ctx context.Context, v any) (model.InviteMemberInput, error) {
 	res, err := ec.unmarshalInputInviteMemberInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNLedgerEntry2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntry(ctx context.Context, sel ast.SelectionSet, v domain5.LedgerEntry) graphql.Marshaler {
+	return ec._LedgerEntry(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLedgerEntry2ᚕhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntryᚄ(ctx context.Context, sel ast.SelectionSet, v []domain5.LedgerEntry) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNLedgerEntry2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntry(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNLedgerEntry2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntryᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain5.LedgerEntry) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNLedgerEntry2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntry(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNLedgerEntry2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntry(ctx context.Context, sel ast.SelectionSet, v *domain5.LedgerEntry) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._LedgerEntry(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNListing2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing(ctx context.Context, sel ast.SelectionSet, v domain4.Listing) graphql.Marshaler {
@@ -40168,11 +43661,11 @@ func (ec *executionContext) marshalNPayoutDetail2ᚖhausletᚋinternalᚋmodules
 	return ec._PayoutDetail(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNProfile2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v domain5.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalNProfile2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v domain6.Profile) graphql.Marshaler {
 	return ec._Profile(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNProfile2ᚕᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfileᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain5.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalNProfile2ᚕᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfileᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain6.Profile) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -40216,7 +43709,7 @@ func (ec *executionContext) marshalNProfile2ᚕᚖhausletᚋinternalᚋmodules�
 	return ret
 }
 
-func (ec *executionContext) marshalNProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain5.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalNProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain6.Profile) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -40323,13 +43816,13 @@ func (ec *executionContext) marshalNReviewStatus2hausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
-func (ec *executionContext) unmarshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, v any) (domain6.UserRole, error) {
+func (ec *executionContext) unmarshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, v any) (domain7.UserRole, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain6.UserRole(tmp)
+	res := domain7.UserRole(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, sel ast.SelectionSet, v domain6.UserRole) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, sel ast.SelectionSet, v domain7.UserRole) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -40771,11 +44264,11 @@ func (ec *executionContext) marshalNTransactionType2hausletᚋinternalᚋmodules
 	return res
 }
 
-func (ec *executionContext) marshalNTravelCompanion2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐTravelCompanion(ctx context.Context, sel ast.SelectionSet, v domain5.TravelCompanion) graphql.Marshaler {
+func (ec *executionContext) marshalNTravelCompanion2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐTravelCompanion(ctx context.Context, sel ast.SelectionSet, v domain6.TravelCompanion) graphql.Marshaler {
 	return ec._TravelCompanion(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTravelCompanion2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐTravelCompanionᚄ(ctx context.Context, sel ast.SelectionSet, v []domain5.TravelCompanion) graphql.Marshaler {
+func (ec *executionContext) marshalNTravelCompanion2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐTravelCompanionᚄ(ctx context.Context, sel ast.SelectionSet, v []domain6.TravelCompanion) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -40882,17 +44375,17 @@ func (ec *executionContext) marshalNUploadResult2ᚖhausletᚋinternalᚋtranspo
 	return ec._UploadResult(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNUserIdentity2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentity(ctx context.Context, sel ast.SelectionSet, v domain6.UserIdentity) graphql.Marshaler {
+func (ec *executionContext) marshalNUserIdentity2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentity(ctx context.Context, sel ast.SelectionSet, v domain7.UserIdentity) graphql.Marshaler {
 	return ec._UserIdentity(ctx, sel, &v)
 }
 
-func (ec *executionContext) unmarshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx context.Context, v any) (domain5.UserType, error) {
+func (ec *executionContext) unmarshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx context.Context, v any) (domain6.UserType, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain5.UserType(tmp)
+	res := domain6.UserType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx context.Context, sel ast.SelectionSet, v domain5.UserType) graphql.Marshaler {
+func (ec *executionContext) marshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx context.Context, sel ast.SelectionSet, v domain6.UserType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -40903,11 +44396,11 @@ func (ec *executionContext) marshalNUserType2hausletᚋinternalᚋmodulesᚋprof
 	return res
 }
 
-func (ec *executionContext) unmarshalNUserType2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserTypeᚄ(ctx context.Context, v any) ([]domain5.UserType, error) {
+func (ec *executionContext) unmarshalNUserType2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserTypeᚄ(ctx context.Context, v any) ([]domain6.UserType, error) {
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]domain5.UserType, len(vSlice))
+	res := make([]domain6.UserType, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNUserType2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserType(ctx, vSlice[i])
@@ -40918,7 +44411,7 @@ func (ec *executionContext) unmarshalNUserType2ᚕhausletᚋinternalᚋmodules�
 	return res, nil
 }
 
-func (ec *executionContext) marshalNUserType2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain5.UserType) graphql.Marshaler {
+func (ec *executionContext) marshalNUserType2ᚕhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐUserTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain6.UserType) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -40960,6 +44453,94 @@ func (ec *executionContext) marshalNUserType2ᚕhausletᚋinternalᚋmodulesᚋp
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalNWallet2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain5.Wallet) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNWallet2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWallet(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNWallet2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWallet(ctx context.Context, sel ast.SelectionSet, v *domain5.Wallet) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Wallet(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNWalletStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletStatus(ctx context.Context, v any) (domain5.WalletStatus, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain5.WalletStatus(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNWalletStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletStatus(ctx context.Context, sel ast.SelectionSet, v domain5.WalletStatus) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNWalletType2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletType(ctx context.Context, v any) (domain5.WalletType, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain5.WalletType(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNWalletType2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletType(ctx context.Context, sel ast.SelectionSet, v domain5.WalletType) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) marshalNWishlist2hausletᚋinternalᚋmodulesᚋwishlistᚋdomainᚐWishlist(ctx context.Context, sel ast.SelectionSet, v domain1.Wishlist) graphql.Marshaler {
@@ -41631,6 +45212,13 @@ func (ec *executionContext) marshalODailyRate2ᚕhausletᚋinternalᚋmodulesᚋ
 	return ret
 }
 
+func (ec *executionContext) marshalODisbursement2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursement(ctx context.Context, sel ast.SelectionSet, v *domain5.Disbursement) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Disbursement(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalODiscountSnapshot2ᚕhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐDiscountSnapshotᚄ(ctx context.Context, sel ast.SelectionSet, v []domain2.DiscountSnapshot) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -42253,7 +45841,7 @@ func (ec *executionContext) marshalOPriceBreakdownSnapshot2ᚖhausletᚋinternal
 	return ec._PriceBreakdownSnapshot(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain5.Profile) graphql.Marshaler {
+func (ec *executionContext) marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain6.Profile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -42913,14 +46501,14 @@ func (ec *executionContext) unmarshalOUpdateShortletDetailInput2ᚖhausletᚋint
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOUser2ᚖhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUser(ctx context.Context, sel ast.SelectionSet, v *domain6.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUser(ctx context.Context, sel ast.SelectionSet, v *domain7.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOUserIdentity2ᚕhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentityᚄ(ctx context.Context, sel ast.SelectionSet, v []domain6.UserIdentity) graphql.Marshaler {
+func (ec *executionContext) marshalOUserIdentity2ᚕhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentityᚄ(ctx context.Context, sel ast.SelectionSet, v []domain7.UserIdentity) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -42965,6 +46553,13 @@ func (ec *executionContext) marshalOUserIdentity2ᚕhausletᚋinternalᚋmodules
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalOWallet2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWallet(ctx context.Context, sel ast.SelectionSet, v *domain5.Wallet) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Wallet(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOWishlist2ᚖhausletᚋinternalᚋmodulesᚋwishlistᚋdomainᚐWishlist(ctx context.Context, sel ast.SelectionSet, v *domain1.Wishlist) graphql.Marshaler {

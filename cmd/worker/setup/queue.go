@@ -20,6 +20,18 @@ func GetActiveSubjects(cfg *config.GlobalConfig) []string {
 	if s := cfg.YAML.Queue.Subjects["ai_moderation"]; s != "" {
 		subjects = append(subjects, s)
 	}
+	if s := cfg.YAML.Queue.Subjects["booking_expiry"]; s != "" {
+		subjects = append(subjects, s)
+	}
+	if s := cfg.YAML.Queue.Subjects["booking_refund"]; s != "" {
+		subjects = append(subjects, s)
+	}
+	if s := cfg.YAML.Queue.Subjects["payout_process"]; s != "" {
+		subjects = append(subjects, s)
+	}
+	if s := cfg.YAML.Queue.Subjects["payout_retry"]; s != "" {
+		subjects = append(subjects, s)
+	}
 	return subjects
 }
 

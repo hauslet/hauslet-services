@@ -79,3 +79,8 @@ func (r *WalletRepositoryImpl) ListByOwner(ctx context.Context, ownerType string
 	}
 	return wallets, nil
 }
+
+// WithTx returns a new repository instance using the provided transaction
+func (r *WalletRepositoryImpl) WithTx(tx *gorm.DB) WalletRepository {
+	return &WalletRepositoryImpl{db: tx}
+}

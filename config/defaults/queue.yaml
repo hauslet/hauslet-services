@@ -14,6 +14,9 @@ queue:
     media_cleanup: "media.cleanup"
     ai_moderation: "ai.moderation"
     booking_expiry: "booking.expiry.check"
+    booking_refund: "booking.refund"
+    payout_process: "finance.payout.process"
+    payout_retry: "finance.payout.retry"
 
   # Consumer mappings (worker names for each job type)
   consumers:
@@ -24,4 +27,6 @@ queue:
     media_cleanup: "media-cleanup-worker"
     ai_moderation: "ai-moderation-worker"
     booking_expiry: "booking-expiry-worker"
-
+    booking_refund: "booking-refund-worker"
+    payout_process: "payout-process-worker"
+    payout_retry: "payout-retry-worker"

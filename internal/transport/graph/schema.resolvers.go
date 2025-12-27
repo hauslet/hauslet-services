@@ -12,6 +12,8 @@ import (
 	domain5 "hauslet/internal/modules/booking/domain"
 	bookinggraphql "hauslet/internal/modules/booking/port/graphql"
 	domain3 "hauslet/internal/modules/business/domain"
+	domain7 "hauslet/internal/modules/finance/domain"
+	graphql2 "hauslet/internal/modules/finance/port/graphql"
 	domain6 "hauslet/internal/modules/payments/domain"
 	graphql1 "hauslet/internal/modules/payments/port/graphql"
 	domain1 "hauslet/internal/modules/profile/domain"
@@ -53,6 +55,41 @@ func (r *businessResolver) Members(ctx context.Context, obj *domain3.Business) (
 // PaymentID is the resolver for the paymentId field.
 func (r *completeBookingPayloadResolver) PaymentID(ctx context.Context, obj *bookinggraphql.CompleteBookingPayload) (uuid.UUID, error) {
 	return uuid.Parse(obj.PaymentID)
+}
+
+// TransferCode is the resolver for the transferCode field.
+func (r *disbursementResolver) TransferCode(ctx context.Context, obj *domain7.Disbursement) (*string, error) {
+	panic(fmt.Errorf("not implemented: TransferCode - transferCode"))
+}
+
+// NextRetryAt is the resolver for the nextRetryAt field.
+func (r *disbursementResolver) NextRetryAt(ctx context.Context, obj *domain7.Disbursement) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: NextRetryAt - nextRetryAt"))
+}
+
+// CompletedAt is the resolver for the completedAt field.
+func (r *disbursementResolver) CompletedAt(ctx context.Context, obj *domain7.Disbursement) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: CompletedAt - completedAt"))
+}
+
+// FailureReason is the resolver for the failureReason field.
+func (r *disbursementResolver) FailureReason(ctx context.Context, obj *domain7.Disbursement) (*string, error) {
+	panic(fmt.Errorf("not implemented: FailureReason - failureReason"))
+}
+
+// ResourceType is the resolver for the resourceType field.
+func (r *financeTransactionResolver) ResourceType(ctx context.Context, obj *domain7.Transaction) (string, error) {
+	panic(fmt.Errorf("not implemented: ResourceType - resourceType"))
+}
+
+// Metadata is the resolver for the metadata field.
+func (r *financeTransactionResolver) Metadata(ctx context.Context, obj *domain7.Transaction) (map[string]any, error) {
+	panic(fmt.Errorf("not implemented: Metadata - metadata"))
+}
+
+// ResourceType is the resolver for the resourceType field.
+func (r *ledgerEntryResolver) ResourceType(ctx context.Context, obj *domain7.LedgerEntry) (string, error) {
+	panic(fmt.Errorf("not implemented: ResourceType - resourceType"))
 }
 
 // OwnerProfile is the resolver for the ownerProfile field.
@@ -793,6 +830,36 @@ func (r *queryResolver) PayoutDetails(ctx context.Context, businessID uuid.UUID)
 	return result, nil
 }
 
+// Wallet is the resolver for the wallet field.
+func (r *queryResolver) Wallet(ctx context.Context, id uuid.UUID) (*domain7.Wallet, error) {
+	panic(fmt.Errorf("not implemented: Wallet - wallet"))
+}
+
+// UserWallets is the resolver for the userWallets field.
+func (r *queryResolver) UserWallets(ctx context.Context, userID uuid.UUID) ([]*domain7.Wallet, error) {
+	panic(fmt.Errorf("not implemented: UserWallets - userWallets"))
+}
+
+// FinanceTransactionHistory is the resolver for the financeTransactionHistory field.
+func (r *queryResolver) FinanceTransactionHistory(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*domain7.Transaction, error) {
+	panic(fmt.Errorf("not implemented: FinanceTransactionHistory - financeTransactionHistory"))
+}
+
+// WalletLedger is the resolver for the walletLedger field.
+func (r *queryResolver) WalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain7.LedgerEntry, error) {
+	panic(fmt.Errorf("not implemented: WalletLedger - walletLedger"))
+}
+
+// Disbursement is the resolver for the disbursement field.
+func (r *queryResolver) Disbursement(ctx context.Context, id uuid.UUID) (*domain7.Disbursement, error) {
+	panic(fmt.Errorf("not implemented: Disbursement - disbursement"))
+}
+
+// MyEarnings is the resolver for the myEarnings field.
+func (r *queryResolver) MyEarnings(ctx context.Context) (*graphql2.EarningsSummary, error) {
+	panic(fmt.Errorf("not implemented: MyEarnings - myEarnings"))
+}
+
 // Wishlist is the resolver for the wishlist field.
 func (r *queryResolver) Wishlist(ctx context.Context, id uuid.UUID) (*domain4.Wishlist, error) {
 	return r.WishlistResolver.Wishlist(ctx, id)
@@ -902,6 +969,11 @@ func (r *travelCompanionResolver) Relationship(ctx context.Context, obj *domain1
 	return string(obj.Relationship), nil
 }
 
+// OwnerType is the resolver for the ownerType field.
+func (r *walletResolver) OwnerType(ctx context.Context, obj *domain7.Wallet) (string, error) {
+	panic(fmt.Errorf("not implemented: OwnerType - ownerType"))
+}
+
 // ItemCount is the resolver for the itemCount field.
 func (r *wishlistResolver) ItemCount(ctx context.Context, obj *domain4.Wishlist) (int, error) {
 	return r.WishlistResolver.WishlistItemCount(ctx, obj)
@@ -970,6 +1042,17 @@ func (r *Resolver) CompleteBookingPayload() CompleteBookingPayloadResolver {
 	return &completeBookingPayloadResolver{r}
 }
 
+// Disbursement returns DisbursementResolver implementation.
+func (r *Resolver) Disbursement() DisbursementResolver { return &disbursementResolver{r} }
+
+// FinanceTransaction returns FinanceTransactionResolver implementation.
+func (r *Resolver) FinanceTransaction() FinanceTransactionResolver {
+	return &financeTransactionResolver{r}
+}
+
+// LedgerEntry returns LedgerEntryResolver implementation.
+func (r *Resolver) LedgerEntry() LedgerEntryResolver { return &ledgerEntryResolver{r} }
+
 // Listing returns ListingResolver implementation.
 func (r *Resolver) Listing() ListingResolver { return &listingResolver{r} }
 
@@ -1009,6 +1092,9 @@ func (r *Resolver) Transaction() TransactionResolver { return &transactionResolv
 // TravelCompanion returns TravelCompanionResolver implementation.
 func (r *Resolver) TravelCompanion() TravelCompanionResolver { return &travelCompanionResolver{r} }
 
+// Wallet returns WalletResolver implementation.
+func (r *Resolver) Wallet() WalletResolver { return &walletResolver{r} }
+
 // Wishlist returns WishlistResolver implementation.
 func (r *Resolver) Wishlist() WishlistResolver { return &wishlistResolver{r} }
 
@@ -1037,6 +1123,9 @@ func (r *Resolver) RefundPaymentInput() RefundPaymentInputResolver {
 
 type businessResolver struct{ *Resolver }
 type completeBookingPayloadResolver struct{ *Resolver }
+type disbursementResolver struct{ *Resolver }
+type financeTransactionResolver struct{ *Resolver }
+type ledgerEntryResolver struct{ *Resolver }
 type listingResolver struct{ *Resolver }
 type listingMediaResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
@@ -1050,6 +1139,7 @@ type ruleGroupResolver struct{ *Resolver }
 type saleDetailResolver struct{ *Resolver }
 type transactionResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }
+type walletResolver struct{ *Resolver }
 type wishlistResolver struct{ *Resolver }
 type wishlistItemResolver struct{ *Resolver }
 type createPaymentInputResolver struct{ *Resolver }

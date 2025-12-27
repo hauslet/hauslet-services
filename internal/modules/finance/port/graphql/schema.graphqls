@@ -1,0 +1,126 @@
+# internal/modules/finance/port/graphql/schema.graphqls
+
+enum WalletType {
+  escrow
+  host_available
+  platform_fee
+  refund_pool
+}
+
+enum WalletStatus {
+  active
+  frozen
+  closed
+}
+
+enum FinanceTransactionType {
+  charge
+  refund
+  payout
+  commission
+}
+
+enum FinanceTransactionStatus {
+  pending
+  completed
+  failed
+}
+
+enum DisbursementStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+type Wallet {
+  id: UUID!
+  ownerType: String!
+  ownerId: UUID!
+  walletType: WalletType!
+  balance: Int!
+  currency: String!
+  status: WalletStatus!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type LedgerEntry {
+  id: UUID!
+  transactionId: UUID!
+  reference: String!
+  debitWalletId: UUID
+  creditWalletId: UUID
+  amount: Int!
+  currency: String!
+  resourceType: String!
+  resourceId: UUID!
+  memo: String!
+  createdAt: Time!
+}
+
+type FinanceTransaction {
+  id: UUID!
+  type: FinanceTransactionType!
+  status: FinanceTransactionStatus!
+  resourceType: String!
+  resourceId: UUID!
+  paymentId: UUID
+  amount: Int!
+  currency: String!
+  metadata: Map
+  ledgerEntries: [LedgerEntry!]!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type Disbursement {
+  id: UUID!
+  walletId: UUID!
+  transactionId: UUID!
+  amount: Int!
+  currency: String!
+  status: DisbursementStatus!
+  provider: String!
+  transferCode: String
+  attempts: Int!
+  nextRetryAt: Time
+  completedAt: Time
+  failureReason: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type EarningsSummary {
+  totalEarned: Int!
+  availableBalance: Int!
+  pendingPayouts: Int!
+  currency: String!
+}
+
+extend type Query {
+  # Admin: View wallet details
+  wallet(id: UUID!): Wallet
+
+  # Admin: List all wallets for a user
+  userWallets(userId: UUID!): [Wallet!]!
+
+  # Admin/Host: View transaction history for a resource (booking, payment, etc)
+  financeTransactionHistory(
+    resourceType: String!
+    resourceId: UUID!
+  ): [FinanceTransaction!]!
+
+  # Admin/Host: View wallet ledger
+  walletLedger(
+    walletId: UUID!
+    limit: Int
+    offset: Int
+  ): [LedgerEntry!]!
+
+  # Admin/Host: View disbursement status
+  disbursement(id: UUID!): Disbursement
+
+  # Host: My earnings summary (requires authentication)
+  myEarnings: EarningsSummary!
+}

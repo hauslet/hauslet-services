@@ -21,6 +21,15 @@ var (
 	ErrDisbursementFailed   = errors.New("disbursement failed")
 	ErrMaxRetriesExceeded   = errors.New("maximum retry attempts exceeded")
 
+	// Dispute errors
+	ErrDisputeNotFound           = errors.New("dispute not found")
+	ErrDisputeAlreadyExists      = errors.New("dispute already exists for this booking")
+	ErrDisputeAlreadyResolved    = errors.New("dispute has already been resolved")
+	ErrDisputeAlreadyInProgress  = errors.New("dispute is already being investigated")
+	ErrInvalidDisputeResolution  = errors.New("invalid dispute resolution outcome")
+	ErrCannotDisputeBeforeCheckout = errors.New("cannot dispute booking before checkout")
+	ErrDisputeWindowExpired      = errors.New("dispute filing window has expired")
+
 	// General errors
 	ErrInvalidCurrency = errors.New("invalid currency")
 	ErrInvalidOwner    = errors.New("invalid owner type or ID")

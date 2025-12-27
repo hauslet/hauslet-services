@@ -94,3 +94,8 @@ func (r *TransactionRepositoryImpl) ListByStatus(ctx context.Context, status str
 	}
 	return txs, nil
 }
+
+// WithTx returns a new repository instance using the provided transaction
+func (r *TransactionRepositoryImpl) WithTx(tx *gorm.DB) TransactionRepository {
+	return &TransactionRepositoryImpl{db: tx}
+}

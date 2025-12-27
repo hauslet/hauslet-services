@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hauslet/internal/modules/booking/domain"
 	calendardomain "hauslet/internal/modules/calendar/domain"
 	pricingdomain "hauslet/internal/modules/pricing/domain"
+	bookingJobs "hauslet/internal/queue/jobs/booking"
 	"time"
 
 	"github.com/google/uuid"
@@ -119,6 +121,12 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 
 	createdEvent, err := s.calendar.CreateEvent(ctx, event)
 	if err != nil {
+		if errors.Is(err, calendardomain.ErrUnauthorized) {
+			if s.log != nil {
+				s.log.Logf("WARN calendar disabled for listing=%s; cannot create booking", listingID)
+			}
+			return nil, fmt.Errorf("calendar disabled for listing; enable calendar to allow bookings")
+		}
 		return nil, err
 	}
 
@@ -301,31 +309,66 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 
 	// Process refund if amount > 0 and payment gateway is available
 	var refundReference *string
+	var refundProcessedAt *time.Time
+	refundQueued := false
+
 	if refundAmount > 0 && booking.LastPaymentID != nil && s.payment != nil {
-		if s.log != nil {
-			s.log.Logf("INFO initiating refund: booking=%s, payment=%s, amount=%d",
-				bookingID, *booking.LastPaymentID, refundAmount)
-		}
+		refundReason := s.buildRefundReason(cancelledBy, reason, refundBreakdown)
 
 		refundInput := RefundPaymentInput{
 			PaymentID:  *booking.LastPaymentID,
 			Amount:     &refundAmount,
-			Reason:     s.buildRefundReason(cancelledBy, reason, refundBreakdown),
+			Reason:     refundReason,
 			RefundedBy: actorID,
 		}
 
-		refundResult, err := s.payment.RefundPayment(ctx, refundInput)
-		if err != nil {
-			if s.log != nil {
-				s.log.Logf("ERROR failed to process refund: %v", err)
+		if s.refundQueue != nil && s.refundSubject != "" {
+			job := bookingJobs.BookingRefundJob{
+				BookingID:   booking.ID,
+				PaymentID:   *booking.LastPaymentID,
+				Amount:      refundAmount,
+				Reason:      refundReason,
+				RefundedBy:  actorID,
+				RequestedAt: time.Now(),
 			}
-			// Don't fail the cancellation if refund fails - log and continue
-			// The refund can be processed manually or retried later
-		} else {
-			refundReference = &refundResult.RefundID
+
+			if err := s.refundQueue.Publish(ctx, s.refundSubject, job); err != nil {
+				if s.log != nil {
+					s.log.Logf("WARN failed to queue refund job for booking=%s: %v", bookingID, err)
+				}
+			} else {
+				refundQueued = true
+				if s.log != nil {
+					s.log.Logf("INFO refund job queued: booking=%s payment=%s amount=%d",
+						bookingID, *booking.LastPaymentID, refundAmount)
+				}
+			}
+		}
+
+		if !refundQueued {
 			if s.log != nil {
-				s.log.Logf("INFO refund initiated successfully: booking=%s, refund_id=%s",
-					bookingID, refundResult.RefundID)
+				s.log.Logf("INFO initiating refund: booking=%s, payment=%s, amount=%d",
+					bookingID, *booking.LastPaymentID, refundAmount)
+			}
+
+			refundResult, err := s.payment.RefundPayment(ctx, refundInput)
+			if err != nil {
+				if s.log != nil {
+					s.log.Logf("ERROR failed to process refund: %v", err)
+				}
+				// Don't fail the cancellation if refund fails - log and continue
+				// The refund can be processed manually or retried later
+			} else {
+				refundReference = &refundResult.RefundID
+				if !refundResult.RefundedAt.IsZero() {
+					refundProcessedAt = &refundResult.RefundedAt
+				} else if !refundResult.ProcessedAt.IsZero() {
+					refundProcessedAt = &refundResult.ProcessedAt
+				}
+				if s.log != nil {
+					s.log.Logf("INFO refund initiated successfully: booking=%s, refund_id=%s",
+						bookingID, refundResult.RefundID)
+				}
 			}
 		}
 	}
@@ -352,6 +395,9 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 		booking.RefundInitiatedAt = &now
 		booking.RefundReason = reason
 		booking.RefundReference = refundReference
+		if refundProcessedAt != nil {
+			booking.RefundProcessedAt = refundProcessedAt
+		}
 	}
 
 	if err := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {

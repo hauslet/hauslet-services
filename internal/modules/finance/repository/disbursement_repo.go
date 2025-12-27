@@ -117,3 +117,8 @@ func (r *DisbursementRepositoryImpl) ListByWallet(ctx context.Context, walletID 
 	}
 	return disbursements, nil
 }
+
+// WithTx returns a new repository instance using the provided transaction
+func (r *DisbursementRepositoryImpl) WithTx(tx *gorm.DB) DisbursementRepository {
+	return &DisbursementRepositoryImpl{db: tx}
+}

@@ -15,8 +15,15 @@ import (
 	businessservice "hauslet/internal/modules/business/service"
 	calendarrepository "hauslet/internal/modules/calendar/repository"
 	calendarservice "hauslet/internal/modules/calendar/service"
+	financenotification "hauslet/internal/modules/finance/notification"
+	financehooks "hauslet/internal/modules/finance/port/hooks"
+	financerepository "hauslet/internal/modules/finance/repository"
+	financeservice "hauslet/internal/modules/finance/service"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
+	paymentsnotification "hauslet/internal/modules/payments/notification"
+	paymentsrepository "hauslet/internal/modules/payments/repository"
+	paymentsservice "hauslet/internal/modules/payments/service"
 	pricingrepository "hauslet/internal/modules/pricing/repository"
 	pricingservice "hauslet/internal/modules/pricing/service"
 	profilenotification "hauslet/internal/modules/profile/notification"
@@ -26,13 +33,16 @@ import (
 	propertynotification "hauslet/internal/modules/property/notification"
 	propertyhooks "hauslet/internal/modules/property/port/hooks"
 	propertyrepository "hauslet/internal/modules/property/repository"
+	"hauslet/internal/platform/payment"
 	platformQueue "hauslet/internal/platform/queue"
 	"hauslet/internal/queue"
 	bookingJobs "hauslet/internal/queue/jobs/booking"
+	financeJobs "hauslet/internal/queue/jobs/finance"
 	jobs "hauslet/internal/queue/jobs/listing"
 	"hauslet/internal/transport/worker"
 	bookingHandler "hauslet/internal/transport/worker/handlers/booking"
 	emailHandler "hauslet/internal/transport/worker/handlers/emails"
+	financeHandler "hauslet/internal/transport/worker/handlers/finance"
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
 
@@ -117,37 +127,122 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 
 	// Booking expiry handler
 	hasBookingExpiry := qCfg["booking_expiry"] != ""
-	if hasBookingExpiry {
+	hasBookingRefund := qCfg["booking_refund"] != ""
+	if hasBookingExpiry || hasBookingRefund {
 		// Initialize booking dependencies
 		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
 
-		// Property/listing hooks (needed to get listing owner for calendar operations)
-		if propertyRepo == nil {
-			propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
+		if hasBookingExpiry {
+			// Property/listing hooks (needed to get listing owner for calendar operations)
+			if propertyRepo == nil {
+				propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
+			}
+			listingHooks := bookinghooks.NewPropertyHooksAdapter(propertyRepo)
+
+			// Calendar gateway (needed to cancel expired booking events)
+			calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
+			calendarHooksAdapter := propertyhooks.NewCalendarHooksRepoAdapter(propertyRepo)
+			calendarSvc := calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, log)
+
+			// Pricing service with minimal dependencies
+			pricingRepo := pricingrepository.NewPricingRepository(infra.DB)
+			pricingSvc := pricingservice.NewPricingService(pricingRepo, nil, nil, log, cfg.YAML.Platform)
+
+			bookingSvc := bookingservice.NewBookingService(
+				bookingRepo,
+				calendarSvc,
+				pricingSvc,
+				nil, // payment gateway not needed for expiry checks
+				listingHooks,
+				nil, // profile provider not required for expiry checks
+				nil, // notification service not required for expiry checks
+				nil, // refund queue not required for expiry checks
+				"",
+				log,
+			)
+			h := bookingHandler.NewBookingExpiryCheckHandler(bookingSvc, log, qCfg["booking_expiry"])
+			registry.Register(h)
 		}
-		listingHooks := bookinghooks.NewPropertyHooksAdapter(propertyRepo)
 
-		// Calendar gateway (needed to cancel expired booking events)
-		calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
-		calendarHooksAdapter := propertyhooks.NewCalendarHooksAdapter(nil) // nil property service for worker
-		calendarSvc := calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, log)
+		if hasBookingRefund {
+			paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
+			paymentClient := payment.New(paymentFactory)
+			paymentsRepo := paymentsrepository.NewRepository(infra.DB)
+			paymentsNotification := paymentsnotification.NewNotificationService(
+				infra.Email,
+				infra.Queue,
+				qCfg["email"],
+				cfg.App.Client,
+				log,
+			)
+			paymentsSvc := paymentsservice.NewPaymentService(
+				paymentsRepo,
+				paymentClient,
+				paymentsNotification,
+				log,
+			)
 
-		// Pricing service with minimal dependencies
-		pricingRepo := pricingrepository.NewPricingRepository(infra.DB)
-		pricingSvc := pricingservice.NewPricingService(pricingRepo, nil, nil, log, cfg.YAML.Platform)
+			h := bookingHandler.NewBookingRefundHandler(bookingRepo, paymentsSvc, log, qCfg["booking_refund"])
+			registry.Register(h)
+		}
+	}
 
-		bookingSvc := bookingservice.NewBookingService(
-			bookingRepo,
-			calendarSvc,
-			pricingSvc,
-			nil, // payment gateway not needed for expiry checks
-			listingHooks,
-			nil, // profile provider not required for expiry checks
-			nil, // notification service not required for expiry checks
+	// Payout processing handlers
+	hasPayoutProcess := qCfg["payout_process"] != ""
+	hasPayoutRetry := qCfg["payout_retry"] != ""
+	if hasPayoutProcess || hasPayoutRetry {
+		// Initialize finance repositories
+		financeWalletRepo := financerepository.NewWalletRepository(infra.DB)
+		financeLedgerRepo := financerepository.NewLedgerRepository(infra.DB)
+		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
+		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
+
+		// Initialize payments repository for payout details
+		paymentsRepo := paymentsrepository.NewRepository(infra.DB)
+
+		// Initialize payment client
+		paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
+		paymentClient := payment.New(paymentFactory)
+
+		// Initialize booking repository for payout processing
+		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
+		bookingQuerierAdapter := financehooks.NewBookingQuerierAdapter(bookingRepo)
+
+		// Initialize finance notification service
+		financeNotificationSvc := financenotification.NewNotificationService(
+			infra.Email,
+			infra.Queue,
+			qCfg["email"],
+			cfg.App.Client,
 			log,
 		)
-		h := bookingHandler.NewBookingExpiryCheckHandler(bookingSvc, log, qCfg["booking_expiry"])
-		registry.Register(h)
+
+		// Initialize payout service
+		payoutSvc := financeservice.NewPayoutService(
+			financeWalletRepo,
+			financeLedgerRepo,
+			financeTransactionRepo,
+			financeDisbursementRepo,
+			paymentsRepo,
+			bookingQuerierAdapter, // Booking querier for finding bookings ready for payout
+			financeNotificationSvc,
+			nil, // booking hooks not needed for worker
+			paymentClient,
+			nil, // profile adapter not needed for worker (notifications handled by API)
+			cfg.YAML.Platform,
+			infra.DB,
+			log,
+		)
+
+		if hasPayoutProcess {
+			h := financeHandler.NewPayoutProcessHandler(payoutSvc, log, qCfg["payout_process"])
+			registry.Register(h)
+		}
+
+		if hasPayoutRetry {
+			h := financeHandler.NewDisbursementRetryHandler(payoutSvc, log, qCfg["payout_retry"])
+			registry.Register(h)
+		}
 	}
 
 	return registry
@@ -201,6 +296,62 @@ func StartBookingExpiryCheck(ctx context.Context, queueClient *platformQueue.Cli
 				}
 				if err := queueClient.Publish(ctx, expirySubject, job); err != nil {
 					log.Logf("ERROR failed to publish booking expiry check job: %v", err)
+				}
+			}
+		}
+	}()
+}
+
+// StartPayoutProcessing initializes periodic payout processing.
+func StartPayoutProcessing(ctx context.Context, queueClient *platformQueue.Client, cfg *config.GlobalConfig, log *lgr.Logger) {
+	payoutSubject := cfg.YAML.Queue.Subjects["payout_process"]
+	if payoutSubject == "" {
+		return
+	}
+
+	go func() {
+		// Process payouts every hour (as configured in platform.yaml)
+		interval := time.Duration(cfg.YAML.Platform.Payouts.BatchIntervalMinutes) * time.Minute
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				job := financeJobs.ProcessPayoutsJob{
+					ProcessTime: time.Now(),
+				}
+				if err := queueClient.Publish(ctx, payoutSubject, job); err != nil {
+					log.Logf("ERROR failed to publish payout processing job: %v", err)
+				}
+			}
+		}
+	}()
+}
+
+// StartDisbursementRetry initializes periodic disbursement retry checks.
+func StartDisbursementRetry(ctx context.Context, queueClient *platformQueue.Client, cfg *config.GlobalConfig, log *lgr.Logger) {
+	retrySubject := cfg.YAML.Queue.Subjects["payout_retry"]
+	if retrySubject == "" {
+		return
+	}
+
+	go func() {
+		// Retry failed disbursements every 15 minutes (matches retry backoff interval)
+		interval := time.Duration(cfg.YAML.Platform.Payouts.RetryBackoffMinutes) * time.Minute
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				job := financeJobs.RetryDisbursementsJob{
+					RetryTime: time.Now(),
+				}
+				if err := queueClient.Publish(ctx, retrySubject, job); err != nil {
+					log.Logf("ERROR failed to publish disbursement retry job: %v", err)
 				}
 			}
 		}

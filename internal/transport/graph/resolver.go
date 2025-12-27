@@ -8,6 +8,8 @@ import (
 	bookingservice "hauslet/internal/modules/booking/service"
 	businessgraphql "hauslet/internal/modules/business/port/graphql"
 	businessservice "hauslet/internal/modules/business/service"
+	financegraphql "hauslet/internal/modules/finance/port/graphql"
+	financeservice "hauslet/internal/modules/finance/service"
 	paymentsgraphql "hauslet/internal/modules/payments/port/graphql"
 	paymentsservice "hauslet/internal/modules/payments/service"
 	profilegraphql "hauslet/internal/modules/profile/port/graphql"
@@ -29,6 +31,7 @@ type Resolver struct {
 	PropertyResolver *propertygraphql.Resolver
 	BusinessResolver *businessgraphql.Resolver
 	PaymentsResolver *paymentsgraphql.Resolver
+	FinanceResolver  *financegraphql.Resolver
 	BookingResolver  *bookinggraphql.Resolver
 	WishlistResolver *wishlistgraphql.Resolver
 }
@@ -39,6 +42,8 @@ func NewResolver(
 	propertySvc propertyservice.Service,
 	businessSvc businessservice.BusinessService,
 	paymentsSvc paymentsservice.PaymentService,
+	financeSvc financeservice.FinanceService,
+	payoutSvc financeservice.PayoutService,
 	bookingSvc bookingservice.BookingService,
 	wishlistSvc wishlistservice.WishlistService,
 	fxClient xchange.XChange,
@@ -52,7 +57,8 @@ func NewResolver(
 		PropertyResolver: propertygraphql.NewResolver(propertySvc, &appCfg.Storage, fxClient, log),
 		BusinessResolver: businessgraphql.NewResolver(businessSvc, log),
 		PaymentsResolver: paymentsgraphql.NewResolver(paymentsSvc, log),
-		BookingResolver:  bookinggraphql.NewResolver(bookingSvc, log),
+		FinanceResolver:  financegraphql.NewResolver(financeSvc, payoutSvc, log),
+		BookingResolver:  bookinggraphql.NewResolver(bookingSvc, fxClient, log),
 		WishlistResolver: wishlistgraphql.NewResolver(wishlistSvc, log),
 	}
 }

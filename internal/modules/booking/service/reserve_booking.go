@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hauslet/internal/modules/booking/domain"
 	calendardomain "hauslet/internal/modules/calendar/domain"
@@ -137,6 +138,12 @@ func (s *BookingServiceImpl) ReserveBooking(
 
 	createdEvent, err := s.calendar.CreateEvent(ctx, event)
 	if err != nil {
+		if errors.Is(err, calendardomain.ErrUnauthorized) {
+			if s.log != nil {
+				s.log.Logf("WARN calendar disabled for listing=%s; cannot reserve booking", listingID)
+			}
+			return nil, nil, fmt.Errorf("calendar disabled for listing; enable calendar to allow bookings")
+		}
 		return nil, nil, err
 	}
 
@@ -233,14 +240,15 @@ func (s *BookingServiceImpl) ReserveBooking(
 	booking.UpdatedAt = time.Now()
 
 	// If payment succeeded immediately, confirm booking
-	if paymentResult.Status == "succeeded" {
+	switch paymentResult.Status {
+	case "succeeded":
 		if s.log != nil {
 			s.log.Logf("INFO payment succeeded immediately for booking=%s", bookingID)
 		}
 		if _, err := s.confirmBookingAfterPayment(ctx, booking, ownerID, paymentResult.PaymentID); err != nil && s.log != nil {
 			s.log.Logf("WARN failed to confirm booking after immediate payment success: %v", err)
 		}
-	} else if paymentResult.Status == "failed" {
+	case "failed":
 		booking.Status = domain.BookingStatusPaymentFailed
 		booking.UpdatedAt = time.Now()
 		s.notifyPaymentFailed(ctx, booking)

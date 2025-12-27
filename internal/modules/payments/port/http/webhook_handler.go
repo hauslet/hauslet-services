@@ -21,11 +21,26 @@ type BookingHooks interface {
 	OnPaymentRefunded(ctx context.Context, bookingID uuid.UUID, payment *paymentdomain.Payment) error
 }
 
+// FinanceHooks defines the interface for finance module callbacks
+type FinanceHooks interface {
+	OnPaymentSucceeded(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
+	OnRefundProcessed(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
+	OnBookingCompleted(ctx context.Context, bookingID, hostID uuid.UUID) error
+}
+
+// PayoutHooks defines the interface for payout/disbursement callbacks
+type PayoutHooks interface {
+	OnTransferSuccess(ctx context.Context, transferCode string) error
+	OnTransferFailed(ctx context.Context, transferCode string, reason string) error
+}
+
 // WebhookHandler handles payment provider webhooks
 type WebhookHandler struct {
 	paymentService service.PaymentService
 	paymentClient  *payment.Client
 	bookingHooks   BookingHooks
+	financeHooks   FinanceHooks
+	payoutHooks    PayoutHooks
 	log            *lgr.Logger
 }
 
@@ -34,12 +49,16 @@ func NewWebhookHandler(
 	paymentService service.PaymentService,
 	paymentClient *payment.Client,
 	bookingHooks BookingHooks,
+	financeHooks FinanceHooks,
+	payoutHooks PayoutHooks,
 	log *lgr.Logger,
 ) *WebhookHandler {
 	return &WebhookHandler{
 		paymentService: paymentService,
 		paymentClient:  paymentClient,
 		bookingHooks:   bookingHooks,
+		financeHooks:   financeHooks,
+		payoutHooks:    payoutHooks,
 		log:            log,
 	}
 }
@@ -163,14 +182,28 @@ func (h *WebhookHandler) handleChargeSuccess(ctx context.Context, event *payment
 		// Authorization saving is optional for future one-click payments
 	}
 
-	// If payment is for a booking, notify booking module
-	if pmt.BookingID != nil && h.bookingHooks != nil {
-		h.log.Logf("INFO notifying booking module of payment success: booking=%s", *pmt.BookingID)
+	// If payment is for a booking, record in finance ledger FIRST, then notify booking
+	if pmt.BookingID != nil {
+		// Finance records transaction FIRST (idempotent)
+		if h.financeHooks != nil {
+			h.log.Logf("INFO recording charge in finance: booking=%s, amount=%d", *pmt.BookingID, pmt.Amount)
 
-		if err := h.bookingHooks.OnPaymentSucceeded(ctx, *pmt.BookingID, pmt); err != nil {
-			h.log.Logf("ERROR failed to notify booking of payment success: %v", err)
-			// Don't fail the webhook - payment already succeeded
-			// The booking can be confirmed manually or via retry
+			if err := h.financeHooks.OnPaymentSucceeded(ctx, *pmt.BookingID, pmt.ID, pmt.Amount, string(pmt.Currency)); err != nil {
+				h.log.Logf("ERROR failed to record charge in finance: %v", err)
+				// Continue - don't fail webhook, but alert admin
+				// Finance ledger can be corrected manually
+			}
+		}
+
+		// Then update booking status
+		if h.bookingHooks != nil {
+			h.log.Logf("INFO notifying booking module of payment success: booking=%s", *pmt.BookingID)
+
+			if err := h.bookingHooks.OnPaymentSucceeded(ctx, *pmt.BookingID, pmt); err != nil {
+				h.log.Logf("ERROR failed to notify booking of payment success: %v", err)
+				// Don't fail the webhook - payment already succeeded
+				// The booking can be confirmed manually or via retry
+			}
 		}
 	}
 
@@ -313,9 +346,27 @@ func (h *WebhookHandler) handleChargeFailed(ctx context.Context, event *payment.
 func (h *WebhookHandler) handleTransferSuccess(ctx context.Context, event *payment.UnifiedEvent) error {
 	h.log.Logf("INFO handling transfer.success for ref=%s", event.Reference)
 
-	// TODO: Update transaction status
-	// For now, just log
-	h.log.Logf("INFO payout succeeded: ref=%s, provider_tx=%s", event.Reference, event.ProviderTxID)
+	// The reference in the event is the disbursement ID (set when initiating transfer)
+	// Notify the payout service to update disbursement status
+	if h.payoutHooks != nil {
+		transferCode := event.Reference
+		if event.ProviderTxID != "" {
+			transferCode = event.ProviderTxID
+		}
+
+		h.log.Logf("INFO notifying payout service of transfer success: ref=%s", transferCode)
+
+		if err := h.payoutHooks.OnTransferSuccess(ctx, transferCode); err != nil {
+			h.log.Logf("ERROR failed to update disbursement status: %v", err)
+			// Don't fail webhook - transfer already succeeded
+			// Can be updated manually or via reconciliation
+			return nil
+		}
+
+		h.log.Logf("INFO disbursement marked as completed: ref=%s", transferCode)
+	} else {
+		h.log.Logf("WARN payout hooks not configured, transfer success not processed")
+	}
 
 	return nil
 }
@@ -324,9 +375,31 @@ func (h *WebhookHandler) handleTransferSuccess(ctx context.Context, event *payme
 func (h *WebhookHandler) handleTransferFailed(ctx context.Context, event *payment.UnifiedEvent) error {
 	h.log.Logf("WARN handling transfer.failed for ref=%s", event.Reference)
 
-	// TODO: Update transaction status to failed
-	// For now, just log
-	h.log.Logf("WARN payout failed: ref=%s, provider_tx=%s", event.Reference, event.ProviderTxID)
+	// Notify the payout service to mark disbursement as failed and schedule retry
+	if h.payoutHooks != nil {
+		transferCode := event.Reference
+		if event.ProviderTxID != "" {
+			transferCode = event.ProviderTxID
+		}
+
+		// Extract failure reason from event
+		reason := "Transfer failed"
+		if event.Status != "" {
+			reason = fmt.Sprintf("Transfer failed: %s", event.Status)
+		}
+
+		h.log.Logf("WARN notifying payout service of transfer failure: ref=%s, reason=%s", transferCode, reason)
+
+		if err := h.payoutHooks.OnTransferFailed(ctx, transferCode, reason); err != nil {
+			h.log.Logf("ERROR failed to update disbursement failure status: %v", err)
+			// Don't fail webhook - we still want to acknowledge receipt
+			return nil
+		}
+
+		h.log.Logf("INFO disbursement marked as failed with retry scheduled: ref=%s", transferCode)
+	} else {
+		h.log.Logf("WARN payout hooks not configured, transfer failure not processed")
+	}
 
 	return nil
 }
@@ -351,13 +424,27 @@ func (h *WebhookHandler) handleRefundProcessed(ctx context.Context, event *payme
 	h.log.Logf("INFO refund processed: payment_id=%s, refunded_amount=%d, status=%s",
 		pmt.ID, verifiedPmt.RefundedAmount, verifiedPmt.Status)
 
-	// If refund is for a booking, notify booking module
-	if verifiedPmt.BookingID != nil && h.bookingHooks != nil {
-		h.log.Logf("INFO notifying booking module of refund: booking=%s", *verifiedPmt.BookingID)
+	// If refund is for a booking, record in finance ledger FIRST, then notify booking
+	if verifiedPmt.BookingID != nil {
+		// Finance records refund FIRST (idempotent)
+		if h.financeHooks != nil {
+			h.log.Logf("INFO recording refund in finance: booking=%s, amount=%d", *verifiedPmt.BookingID, verifiedPmt.RefundedAmount)
 
-		if err := h.bookingHooks.OnPaymentRefunded(ctx, *verifiedPmt.BookingID, verifiedPmt); err != nil {
-			h.log.Logf("ERROR failed to notify booking of refund: %v", err)
-			// Don't fail the webhook - just log the error
+			if err := h.financeHooks.OnRefundProcessed(ctx, *verifiedPmt.BookingID, verifiedPmt.ID, verifiedPmt.RefundedAmount, string(verifiedPmt.Currency)); err != nil {
+				h.log.Logf("ERROR failed to record refund in finance: %v", err)
+				// Continue - don't fail webhook, but alert admin
+				// Finance ledger can be corrected manually
+			}
+		}
+
+		// Then update booking status
+		if h.bookingHooks != nil {
+			h.log.Logf("INFO notifying booking module of refund: booking=%s", *verifiedPmt.BookingID)
+
+			if err := h.bookingHooks.OnPaymentRefunded(ctx, *verifiedPmt.BookingID, verifiedPmt); err != nil {
+				h.log.Logf("ERROR failed to notify booking of refund: %v", err)
+				// Don't fail the webhook - just log the error
+			}
 		}
 	}
 

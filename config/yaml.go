@@ -64,10 +64,11 @@ type PlatformFeesConfig struct {
 }
 
 type PlatformPayoutConfig struct {
-	EscrowReleaseHours   int `yaml:"escrow_release_hours"`
-	BatchIntervalMinutes int `yaml:"batch_interval_minutes"`
-	MaxRetryAttempts     int `yaml:"max_retry_attempts"`
-	RetryBackoffMinutes  int `yaml:"retry_backoff_minutes"`
+	EscrowReleaseHours   int    `yaml:"escrow_release_hours"`
+	EscrowReleaseEvent   string `yaml:"escrow_release_event"`
+	BatchIntervalMinutes int    `yaml:"batch_interval_minutes"`
+	MaxRetryAttempts     int    `yaml:"max_retry_attempts"`
+	RetryBackoffMinutes  int    `yaml:"retry_backoff_minutes"`
 }
 
 type PlatformRefundConfig struct {
@@ -80,14 +81,14 @@ type PlatformRefundConfig struct {
 
 // RefundPolicyTier defines a cancellation/refund policy tier
 type RefundPolicyTier struct {
-	Name                     string  `yaml:"name"`
-	Description              string  `yaml:"description"`
-	CutoffHoursBeforeCheckIn int     `yaml:"cutoff_hours_before_checkin"`
+	Name                      string  `yaml:"name"`
+	Description               string  `yaml:"description"`
+	CutoffHoursBeforeCheckIn  int     `yaml:"cutoff_hours_before_checkin"`
 	RefundPercentBeforeCutoff float64 `yaml:"refund_percent_before_cutoff"`
 	RefundPercentAfterCutoff  float64 `yaml:"refund_percent_after_cutoff"`
-	MinStayDays              int     `yaml:"min_stay_days,omitempty"`              // For long_term
-	NoticePeriodDays         int     `yaml:"notice_period_days,omitempty"`         // For long_term
-	CancellationChargeDays   int     `yaml:"cancellation_charge_days,omitempty"`   // For long_term
+	MinStayDays               int     `yaml:"min_stay_days,omitempty"`            // For long_term
+	NoticePeriodDays          int     `yaml:"notice_period_days,omitempty"`       // For long_term
+	CancellationChargeDays    int     `yaml:"cancellation_charge_days,omitempty"` // For long_term
 }
 
 type PlatformAutoAcceptConfig struct {

@@ -403,12 +403,13 @@ func (p *PaystackAdapter) ParseEvent(payload []byte) (*UnifiedEvent, error) {
 	var webhook struct {
 		Event string `json:"event"`
 		Data  struct {
-			ID        float64        `json:"id"`
-			Status    string         `json:"status"`
-			Reference string         `json:"reference"`
-			Amount    float64        `json:"amount"`
-			Currency  string         `json:"currency"`
-			Metadata  map[string]any `json:"metadata"`
+			ID                   json.RawMessage `json:"id"`
+			Status               string          `json:"status"`
+			Reference            string          `json:"reference"`
+			TransactionReference string          `json:"transaction_reference"`
+			Amount               float64         `json:"amount"`
+			Currency             string          `json:"currency"`
+			Metadata             json.RawMessage `json:"metadata"`
 		} `json:"data"`
 	}
 
@@ -416,15 +417,40 @@ func (p *PaystackAdapter) ParseEvent(payload []byte) (*UnifiedEvent, error) {
 		return nil, fmt.Errorf("paystack: failed to parse webhook: %w", err)
 	}
 
+	reference := webhook.Data.Reference
+	if reference == "" {
+		reference = webhook.Data.TransactionReference
+	}
+
+	providerTxID := parsePaystackID(webhook.Data.ID)
+
 	return &UnifiedEvent{
 		Type:         webhook.Event,
-		Reference:    webhook.Data.Reference,
-		ProviderTxID: fmt.Sprintf("%.0f", webhook.Data.ID),
+		Reference:    reference,
+		ProviderTxID: providerTxID,
 		Status:       webhook.Data.Status,
 		Amount:       int64(webhook.Data.Amount),
 		Currency:     Currency(webhook.Data.Currency),
 		RawData:      json.RawMessage(payload),
 	}, nil
+}
+
+func parsePaystackID(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+
+	var asString string
+	if err := json.Unmarshal(raw, &asString); err == nil {
+		return asString
+	}
+
+	var asNumber float64
+	if err := json.Unmarshal(raw, &asNumber); err == nil {
+		return fmt.Sprintf("%.0f", asNumber)
+	}
+
+	return ""
 }
 
 // ============================================================================

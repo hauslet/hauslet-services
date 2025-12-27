@@ -21,15 +21,8 @@ func (r *LedgerRepositoryImpl) CreateEntry(ctx context.Context, entry *schema.Le
 }
 
 func (r *LedgerRepositoryImpl) CreateEntries(ctx context.Context, entries []*schema.LedgerEntry) error {
-	// Use transaction to ensure atomic creation
-	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		for _, entry := range entries {
-			if err := tx.Create(entry).Error; err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	// Create all entries in bulk - transaction is handled by the caller
+	return r.db.WithContext(ctx).Create(entries).Error
 }
 
 func (r *LedgerRepositoryImpl) GetByReference(ctx context.Context, reference string) (*schema.LedgerEntry, error) {
@@ -89,4 +82,9 @@ func (r *LedgerRepositoryImpl) ListByWallet(ctx context.Context, walletID uuid.U
 		return nil, err
 	}
 	return entries, nil
+}
+
+// WithTx returns a new repository instance using the provided transaction
+func (r *LedgerRepositoryImpl) WithTx(tx *gorm.DB) LedgerRepository {
+	return &LedgerRepositoryImpl{db: tx}
 }

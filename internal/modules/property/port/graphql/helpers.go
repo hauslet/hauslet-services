@@ -638,6 +638,13 @@ func mapAmenityGroupInputsToDomain(inputs []*model.AmenityGroupInput) []domain.A
 
 // mapCreateListingInput converts the CreateListingInput into a domain listing with sane defaults.
 func mapCreateListingInput(input model.CreateListingInput, ownerID uuid.UUID) domain.Listing {
+	hasCalendar := false
+	if input.HasCalendar != nil {
+		hasCalendar = *input.HasCalendar
+	} else if input.ListingType == domain.ListingShortLet || input.ShortletDetails != nil {
+		hasCalendar = true
+	}
+
 	listing := domain.Listing{
 		OwnerID:            ownerID,
 		OwnerType:          input.OwnerType,
@@ -649,7 +656,7 @@ func mapCreateListingInput(input model.CreateListingInput, ownerID uuid.UUID) do
 		Status:             domain.StatusDraft,
 		Published:          false,
 		LatestReviewStatus: domain.ReviewPending,
-		HasCalendar:        boolOrDefault(input.HasCalendar, false),
+		HasCalendar:        hasCalendar,
 	}
 
 	if input.ShortletDetails != nil {
@@ -698,6 +705,9 @@ func mapListingUpdateInput(input *model.UpdateListingInput) map[string]any {
 	}
 	if input.SaleDetails != nil {
 		updates["sale_details"] = mapUpdateSaleInputToDomain(input.SaleDetails)
+	}
+	if _, ok := updates["has_calendar"]; !ok && input.ShortletDetails != nil {
+		updates["has_calendar"] = true
 	}
 	return updates
 }

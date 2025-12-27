@@ -163,7 +163,19 @@ func (r *CalendarRepositoryImpl) HasConflictingBooking(ctx context.Context, list
 // --- Event Status Management ---
 
 func (r *CalendarRepositoryImpl) UpdateEventStatus(ctx context.Context, eventID uuid.UUID, newStatus schema.EventStatus, version int) error {
+	switch newStatus {
+	case schema.EventStatusPending,
+		schema.EventStatusConfirmed,
+		schema.EventStatusInProgress,
+		schema.EventStatusCompleted,
+		schema.EventStatusCancelled,
+		schema.EventStatusNoShow:
+	default:
+		return schema.ErrInvalidEventStatus
+	}
+
 	result := r.db.WithContext(ctx).
+		Session(&gorm.Session{SkipHooks: true}).
 		Model(&schema.CalendarEvent{}).
 		Where("id = ?", eventID).
 		Where("version = ?", version).

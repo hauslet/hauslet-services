@@ -89,3 +89,35 @@ type Disbursement struct {
 func (Disbursement) TableName() string {
 	return "disbursements"
 }
+
+// Dispute represents a financial dispute in the database
+type Dispute struct {
+	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	BookingID    uuid.UUID  `gorm:"type:uuid;not null;uniqueIndex;index"` // Unique: one dispute per booking
+	WalletID     uuid.UUID  `gorm:"type:uuid;not null;index"`
+	FiledBy      string     `gorm:"type:varchar(20);not null"` // guest or host
+	FiledByID    uuid.UUID  `gorm:"type:uuid;not null;index"`
+	Reason       string     `gorm:"type:varchar(50);not null;index"`
+	Status       string     `gorm:"type:varchar(30);not null;index"`
+	Description  string     `gorm:"type:text;not null"`
+	Amount       int64      `gorm:"not null"` // Amount in dispute
+	Currency     string     `gorm:"type:varchar(3);not null"`
+
+	// Evidence and resolution (stored as JSONB)
+	Evidence     string     `gorm:"type:jsonb"` // JSON array of DisputeEvidence
+	AdminNotes   *string    `gorm:"type:text"`
+	Resolution   *string    `gorm:"type:jsonb"` // DisputeResolution as JSON
+
+	ResolvedByID   *uuid.UUID `gorm:"type:uuid;index"`
+	ResolvedAt     *time.Time `gorm:"index"`
+	RefundAmount   *int64
+	TransactionID  *uuid.UUID `gorm:"type:uuid;index"` // Resolution transaction
+
+	CreatedAt time.Time `gorm:"not null;default:now();index"`
+	UpdatedAt time.Time `gorm:"not null;default:now()"`
+}
+
+// TableName specifies the table name for Dispute
+func (Dispute) TableName() string {
+	return "disputes"
+}

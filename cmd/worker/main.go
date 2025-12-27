@@ -50,6 +50,8 @@ func main() {
 	// 6) Background publishers
 	setup.StartPeriodicCleanup(ctx, infra.Queue, cfg, log)
 	setup.StartBookingExpiryCheck(ctx, infra.Queue, cfg, log)
+	setup.StartPayoutProcessing(ctx, infra.Queue, cfg, log)
+	setup.StartDisbursementRetry(ctx, infra.Queue, cfg, log)
 
 	// 7) Graceful shutdown
 	setup.HandleShutdown(log, processor)

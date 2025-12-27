@@ -82,3 +82,55 @@ func (r *BookingRepositoryImpl) FindExpiredHolds(ctx context.Context, expiredBef
 	}
 	return bookings, nil
 }
+
+// bookingPayoutRow is used for scanning the joined query result
+type bookingPayoutRow struct {
+	ID            uuid.UUID  `gorm:"column:id"`
+	HostID        uuid.UUID  `gorm:"column:host_id"`
+	TotalPrice    float64    `gorm:"column:total_price"`
+	Currency      string     `gorm:"column:currency"`
+	LastPaymentID *uuid.UUID `gorm:"column:last_payment_id"`
+}
+
+// FindBookingsReadyForPayout finds completed bookings ready for host payout
+// Criteria: status=completed, checkout + payoutWindowHours has passed, not settled, has payment
+func (r *BookingRepositoryImpl) FindBookingsReadyForPayout(ctx context.Context, payoutWindowHours int, limit int) ([]*BookingPayoutInfo, error) {
+	var rows []bookingPayoutRow
+
+	// Calculate the cutoff time (now - payoutWindowHours)
+	cutoffTime := time.Now().Add(-time.Duration(payoutWindowHours) * time.Hour)
+
+	// Join with listings table to get the owner_id (host)
+	// Select only the fields needed for payout processing
+	if err := r.db.WithContext(ctx).
+		Table("bookings").
+		Select("bookings.id, bookings.total_price, bookings.currency, bookings.last_payment_id, listings.owner_id as host_id").
+		Joins("JOIN listings ON listings.id = bookings.listing_id").
+		Where("bookings.status = ?", schema.BookingStatusCompleted).
+		Where("bookings.check_out < ?", cutoffTime).
+		Where("bookings.last_payment_id IS NOT NULL").
+		Order("bookings.check_out ASC").
+		Limit(limit).
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	// Convert to BookingPayoutInfo
+	results := make([]*BookingPayoutInfo, 0, len(rows))
+	for _, row := range rows {
+		// Skip if last_payment_id is nil (shouldn't happen due to WHERE clause, but be safe)
+		if row.LastPaymentID == nil {
+			continue
+		}
+
+		results = append(results, &BookingPayoutInfo{
+			ID:            row.ID,
+			HostID:        row.HostID,
+			TotalPrice:    row.TotalPrice,
+			Currency:      row.Currency,
+			LastPaymentID: *row.LastPaymentID,
+		})
+	}
+
+	return results, nil
+}

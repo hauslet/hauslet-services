@@ -7,6 +7,7 @@ import (
 	"hauslet/internal/modules/booking/repository"
 	calendardomain "hauslet/internal/modules/calendar/domain"
 	pricingdomain "hauslet/internal/modules/pricing/domain"
+	platformQueue "hauslet/internal/platform/queue"
 	"time"
 
 	"github.com/go-pkgz/lgr"
@@ -139,6 +140,8 @@ type BookingServiceImpl struct {
 	listingHooks ListingHooks
 	profiles     ProfileProvider
 	notifier     *notification.NotificationService
+	refundQueue  *platformQueue.Client
+	refundSubject string
 	log          *lgr.Logger
 }
 
@@ -150,6 +153,8 @@ func NewBookingService(
 	listingHooks ListingHooks,
 	profiles ProfileProvider,
 	notifier *notification.NotificationService,
+	refundQueue *platformQueue.Client,
+	refundSubject string,
 	log *lgr.Logger,
 ) BookingService {
 	return &BookingServiceImpl{
@@ -160,6 +165,8 @@ func NewBookingService(
 		listingHooks: listingHooks,
 		profiles:     profiles,
 		notifier:     notifier,
+		refundQueue:  refundQueue,
+		refundSubject: refundSubject,
 		log:          log,
 	}
 }

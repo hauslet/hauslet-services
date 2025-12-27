@@ -12,11 +12,15 @@ import (
 	bookinghooks "hauslet/internal/modules/booking/port/hooks"
 	bookingrepository "hauslet/internal/modules/booking/repository"
 	bookingservice "hauslet/internal/modules/booking/service"
+	financenotification "hauslet/internal/modules/finance/notification"
+	financehooks "hauslet/internal/modules/finance/port/hooks"
 	businessmiddleware "hauslet/internal/modules/business/middleware"
 	businessnotification "hauslet/internal/modules/business/notification"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
 	calendarhttp "hauslet/internal/modules/calendar/port/http"
+	financerepository "hauslet/internal/modules/finance/repository"
+	financeservice "hauslet/internal/modules/finance/service"
 	calendarrepository "hauslet/internal/modules/calendar/repository"
 	calendarservice "hauslet/internal/modules/calendar/service"
 	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
@@ -79,6 +83,7 @@ func setupRoutes(r chi.Router,
 	authProfileAdapter := profileport.NewAuthHooksAdapter(profileService, cfg.Storage.R2.CDNHost)
 	businessProfileAdapter := profileport.NewBusinessProfileAdapter(profileService)
 	bookingProfileAdapter := profileport.NewBookingProfileAdapter(profileService)
+	financeProfileAdapter := financehooks.NewFinanceProfileAdapter(profileService)
 
 	// Initialize business service (before property service to enable business adapter)
 	businessRepo := businessrepository.NewBusinessRepository(db)
@@ -97,6 +102,7 @@ func setupRoutes(r chi.Router,
 	paymentsRepo := paymentsrepository.NewRepository(db)
 	paymentsNotificationSvc := paymentsnotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
 	bookingNotificationService := bookingnotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
+	financeNotificationSvc := financenotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
 	paymentsService := paymentsservice.NewPaymentService(
 		paymentsRepo,
 		paymentClient,
@@ -162,14 +168,57 @@ func setupRoutes(r chi.Router,
 		propertyHooksAdapter,
 		bookingProfileAdapter,
 		bookingNotificationService,
+		q,
+		cfg.YAML.Queue.Subjects["booking_refund"],
+		log,
+	)
+
+	// Initialize finance service
+	financeWalletRepo := financerepository.NewWalletRepository(db)
+	financeLedgerRepo := financerepository.NewLedgerRepository(db)
+	financeTransactionRepo := financerepository.NewTransactionRepository(db)
+	financeDisbursementRepo := financerepository.NewDisbursementRepository(db)
+	financeService := financeservice.NewFinanceService(
+		financeWalletRepo,
+		financeLedgerRepo,
+		financeTransactionRepo,
+		financeDisbursementRepo,
+		db,
+		log,
+	)
+
+	// Initialize booking querier adapter for payout processing
+	bookingQuerierAdapter := financehooks.NewBookingQuerierAdapter(bookingRepo)
+
+	// Initialize payout service for automated host payouts
+	// TODO: Add booking hooks when implementing booking completion trigger
+	payoutService := financeservice.NewPayoutService(
+		financeWalletRepo,
+		financeLedgerRepo,
+		financeTransactionRepo,
+		financeDisbursementRepo,
+		paymentsRepo,            // PayoutDetailRepository for fetching host bank details
+		bookingQuerierAdapter,   // Booking querier for finding bookings ready for payout
+		financeNotificationSvc,  // Notification service for payout emails
+		nil,                     // booking hooks - will be added in Phase 4.5
+		paymentClient,
+		financeProfileAdapter,   // Profile adapter for getting host email/name
+		cfg.YAML.Platform,       // Platform config for commission rate and retry settings
+		db,
 		log,
 	)
 
 	// Initialize booking hooks adapter for payment lifecycle
 	bookingHooksAdapter := bookinghooks.NewBookingHooksAdapter(bookingService)
 
-	// Initialize payment webhook handler with booking hooks
-	paymentsWebhookHandler := paymentshttp.NewWebhookHandler(paymentsService, paymentClient, bookingHooksAdapter, log)
+	// Initialize finance hooks adapter for payment lifecycle
+	financeHooksAdapter := financehooks.NewPaymentHooksAdapter(financeService)
+
+	// Initialize payout hooks adapter for transfer webhooks
+	payoutHooksAdapter := financehooks.NewPayoutHooksAdapter(payoutService)
+
+	// Initialize payment webhook handler with booking, finance, and payout hooks
+	paymentsWebhookHandler := paymentshttp.NewWebhookHandler(paymentsService, paymentClient, bookingHooksAdapter, financeHooksAdapter, payoutHooksAdapter, log)
 
 	// Initialize wishlist service
 	wishlistRepo := wishlistrepository.NewWishlistRepository(db)
@@ -238,6 +287,8 @@ func setupRoutes(r chi.Router,
 		propertyService,
 		businessService,
 		paymentsService,
+		financeService,
+		payoutService,
 		bookingService,
 		wishlistService,
 		businessMW.Auth.WithTenantSlug,

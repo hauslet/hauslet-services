@@ -70,6 +70,39 @@ const (
 	OwnerTypePlatform OwnerType = "platform" // Platform-owned wallet
 )
 
+// DisputeStatus defines the current status of a dispute
+type DisputeStatus string
+
+const (
+	DisputeStatusOpen        DisputeStatus = "open"        // Dispute has been filed and is under review
+	DisputeStatusInvestigating DisputeStatus = "investigating" // Admin is actively investigating
+	DisputeStatusResolvedRefund DisputeStatus = "resolved_refund" // Resolved in favor of guest (refund issued)
+	DisputeStatusResolvedRelease DisputeStatus = "resolved_release" // Resolved in favor of host (funds released)
+	DisputeStatusCancelled   DisputeStatus = "cancelled"   // Dispute was cancelled/withdrawn
+)
+
+// DisputeReason defines the reason for filing a dispute
+type DisputeReason string
+
+const (
+	DisputeReasonPropertyMismatch    DisputeReason = "property_mismatch"    // Property doesn't match listing
+	DisputeReasonUninhabitable       DisputeReason = "uninhabitable"        // Property is not livable
+	DisputeReasonSafetyIssue         DisputeReason = "safety_issue"         // Safety concerns
+	DisputeReasonCleanliness         DisputeReason = "cleanliness"          // Poor cleanliness
+	DisputeReasonAmenityMissing      DisputeReason = "amenity_missing"      // Advertised amenity not available
+	DisputeReasonNoShow              DisputeReason = "no_show"              // Host/Guest didn't show up
+	DisputeReasonUnauthorizedCharges DisputeReason = "unauthorized_charges" // Unexpected charges
+	DisputeReasonOther               DisputeReason = "other"                // Other reason
+)
+
+// DisputeParty defines who initiated the dispute
+type DisputeParty string
+
+const (
+	DisputePartyGuest DisputeParty = "guest" // Guest filed the dispute
+	DisputePartyHost  DisputeParty = "host"  // Host filed the dispute
+)
+
 // String methods for enums
 func (w WalletType) String() string {
 	return string(w)
@@ -97,4 +130,16 @@ func (r ResourceType) String() string {
 
 func (o OwnerType) String() string {
 	return string(o)
+}
+
+func (d DisputeStatus) String() string {
+	return string(d)
+}
+
+func (r DisputeReason) String() string {
+	return string(r)
+}
+
+func (p DisputeParty) String() string {
+	return string(p)
 }

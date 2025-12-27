@@ -192,7 +192,7 @@ func MapDisbursementToSchema(d *Disbursement) *schema.Disbursement {
 		Currency:         d.Currency,
 		Provider:         d.Provider,
 		TransferCode:     d.TransferCode,
-		ProviderResponse: d.ProviderResponse,
+		ProviderResponse:d.ProviderResponse,
 		Status:           d.Status.String(),
 		Attempts:         d.Attempts,
 		NextRetryAt:      d.NextRetryAt,
@@ -200,5 +200,87 @@ func MapDisbursementToSchema(d *Disbursement) *schema.Disbursement {
 		FailureReason:    d.FailureReason,
 		CreatedAt:        d.CreatedAt,
 		UpdatedAt:        d.UpdatedAt,
+	}
+}
+
+// MapDisputeFromSchema converts schema.Dispute to domain.Dispute
+func MapDisputeFromSchema(s *schema.Dispute) *Dispute {
+	if s == nil {
+		return nil
+	}
+
+	var evidence []DisputeEvidence
+	if s.Evidence != "" {
+		json.Unmarshal([]byte(s.Evidence), &evidence)
+	}
+
+	var resolution *DisputeResolution
+	if s.Resolution != nil && *s.Resolution != "" {
+		resolution = &DisputeResolution{}
+		json.Unmarshal([]byte(*s.Resolution), resolution)
+	}
+
+	return &Dispute{
+		ID:            s.ID,
+		BookingID:     s.BookingID,
+		WalletID:      s.WalletID,
+		FiledBy:       DisputeParty(s.FiledBy),
+		FiledByID:     s.FiledByID,
+		Reason:        DisputeReason(s.Reason),
+		Status:        DisputeStatus(s.Status),
+		Description:   s.Description,
+		Amount:        s.Amount,
+		Currency:      s.Currency,
+		Evidence:      evidence,
+		AdminNotes:    s.AdminNotes,
+		Resolution:    resolution,
+		ResolvedByID:  s.ResolvedByID,
+		ResolvedAt:    s.ResolvedAt,
+		RefundAmount:  s.RefundAmount,
+		TransactionID: s.TransactionID,
+		CreatedAt:     s.CreatedAt,
+		UpdatedAt:     s.UpdatedAt,
+	}
+}
+
+// MapDisputeToSchema converts domain.Dispute to schema.Dispute
+func MapDisputeToSchema(d *Dispute) *schema.Dispute {
+	if d == nil {
+		return nil
+	}
+
+	var evidenceJSON string
+	if d.Evidence != nil {
+		bytes, _ := json.Marshal(d.Evidence)
+		evidenceJSON = string(bytes)
+	}
+
+	var resolutionJSON *string
+	if d.Resolution != nil {
+		bytes, _ := json.Marshal(d.Resolution)
+		resJSON := string(bytes)
+		resolutionJSON = &resJSON
+	}
+
+	return &schema.Dispute{
+		ID:            d.ID,
+		BookingID:     d.BookingID,
+		WalletID:      d.WalletID,
+		FiledBy:       d.FiledBy.String(),
+		FiledByID:     d.FiledByID,
+		Reason:        d.Reason.String(),
+		Status:        d.Status.String(),
+		Description:   d.Description,
+		Amount:        d.Amount,
+		Currency:      d.Currency,
+		Evidence:      evidenceJSON,
+		AdminNotes:    d.AdminNotes,
+		Resolution:    resolutionJSON,
+		ResolvedByID:  d.ResolvedByID,
+		ResolvedAt:    d.ResolvedAt,
+		RefundAmount:  d.RefundAmount,
+		TransactionID: d.TransactionID,
+		CreatedAt:     d.CreatedAt,
+		UpdatedAt:     d.UpdatedAt,
 	}
 }

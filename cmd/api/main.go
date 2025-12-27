@@ -157,6 +157,12 @@ func main() {
 	if aiModSub := cfg.YAML.Queue.Subjects["ai_moderation"]; aiModSub != "" {
 		queueSubjects = append(queueSubjects, aiModSub)
 	}
+	if expirySub := cfg.YAML.Queue.Subjects["booking_expiry"]; expirySub != "" {
+		queueSubjects = append(queueSubjects, expirySub)
+	}
+	if refundSub := cfg.YAML.Queue.Subjects["booking_refund"]; refundSub != "" {
+		queueSubjects = append(queueSubjects, refundSub)
+	}
 	if q, err := queue.New(initCtx, cfg.Infra.NATS.URL, cfg.YAML.Queue.StreamName, queueSubjects); err != nil {
 		log.Logf("WARN ⚠️ failed to initialize NATS queue, direct send will be used: %v", err)
 	} else {

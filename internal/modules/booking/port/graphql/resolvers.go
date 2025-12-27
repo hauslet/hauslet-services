@@ -3,9 +3,14 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"math"
+	"strings"
+	"time"
+
 	"hauslet/internal/modules/booking/domain"
 	"hauslet/internal/modules/booking/service"
-	"time"
+	"hauslet/internal/platform/xchange"
+	localization "hauslet/internal/transport/middleware/localization"
 
 	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
@@ -15,13 +20,15 @@ import (
 type Resolver struct {
 	bookingService service.BookingService
 	log            *lgr.Logger
+	fx             xchange.XChange
 }
 
 // NewResolver creates a new GraphQL resolver
-func NewResolver(bookingService service.BookingService, log *lgr.Logger) *Resolver {
+func NewResolver(bookingService service.BookingService, fx xchange.XChange, log *lgr.Logger) *Resolver {
 	return &Resolver{
 		bookingService: bookingService,
 		log:            log,
+		fx:             fx,
 	}
 }
 
@@ -59,6 +66,7 @@ func (r *Resolver) QuoteBooking(ctx context.Context, listingID string, checkIn s
 		return nil, err
 	}
 
+	r.localizeBookingQuote(ctx, quote)
 	return quote, nil
 }
 
@@ -82,6 +90,7 @@ func (r *Resolver) Booking(ctx context.Context, id string) (*domain.Booking, err
 		return nil, err
 	}
 
+	r.localizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -109,6 +118,9 @@ func (r *Resolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*
 		return nil, err
 	}
 
+	for i := range bookings {
+		r.localizeBooking(ctx, bookings[i])
+	}
 	return bookings, nil
 }
 
@@ -148,6 +160,9 @@ func (r *Resolver) ListingBookings(ctx context.Context, listingID string, status
 		return nil, err
 	}
 
+	for i := range bookings {
+		r.localizeBooking(ctx, bookings[i])
+	}
 	return bookings, nil
 }
 
@@ -228,6 +243,7 @@ func (r *Resolver) ReserveBooking(ctx context.Context, input *ReserveBookingInpu
 		RequiresAuthorization: paymentResult.AuthorizationURL != nil,
 	}
 
+	r.localizeBooking(ctx, payload.Booking)
 	return payload, nil
 }
 
@@ -280,6 +296,7 @@ func (r *Resolver) RequestBooking(ctx context.Context, input *RequestBookingInpu
 	}
 
 	r.log.Logf("INFO booking request created: %s", booking.ID)
+	r.localizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -330,6 +347,7 @@ func (r *Resolver) PayForBooking(ctx context.Context, input *PayForBookingInput)
 		RequiresAuthorization: paymentResult.AuthorizationURL != nil,
 	}
 
+	r.localizeBooking(ctx, payload.Booking)
 	return payload, nil
 }
 
@@ -353,6 +371,7 @@ func (r *Resolver) ConfirmBooking(ctx context.Context, bookingID string) (*domai
 	}
 
 	r.log.Logf("INFO booking confirmed: %s", booking.ID)
+	r.localizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -382,6 +401,7 @@ func (r *Resolver) CancelBooking(ctx context.Context, input *CancelBookingInput)
 	}
 
 	r.log.Logf("INFO booking cancelled: %s", booking.ID)
+	r.localizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -393,4 +413,117 @@ type CompleteBookingPayload struct {
 	PaymentReference      string          `json:"paymentReference"`
 	AuthorizationURL      *string         `json:"authorizationUrl"`
 	RequiresAuthorization bool            `json:"requiresAuthorization"`
+}
+
+func (r *Resolver) localizeBookingQuote(ctx context.Context, quote *domain.BookingQuote) {
+	if quote == nil || r.fx == nil {
+		return
+	}
+
+	target, ok := localization.PreferredCurrency(ctx)
+	if !ok {
+		return
+	}
+	target = xchange.NormalizeCurrency(target)
+
+	source := quote.Currency
+	if source == "" {
+		source = xchange.NormalizeCurrency("")
+	}
+	if strings.EqualFold(source, target) {
+		return
+	}
+
+	rate, err := r.fx.GetExchangeRate(source, target)
+	if err != nil {
+		if r.log != nil {
+			r.log.Logf("WARN failed to convert booking quote listing=%s from=%s to=%s: %v", quote.ListingID, source, target, err)
+		}
+		return
+	}
+
+	convert := func(value float64) float64 {
+		return math.Round(value*rate*100) / 100
+	}
+
+	quote.TotalPrice = convert(quote.TotalPrice)
+	r.localizePriceBreakdownSnapshot(quote.PriceBreakdown, convert, target)
+	quote.Currency = target
+}
+
+func (r *Resolver) localizeBooking(ctx context.Context, booking *domain.Booking) {
+	if booking == nil || r.fx == nil {
+		return
+	}
+
+	target, ok := localization.PreferredCurrency(ctx)
+	if !ok {
+		return
+	}
+	target = xchange.NormalizeCurrency(target)
+
+	source := booking.Currency
+	if source == "" {
+		source = xchange.NormalizeCurrency("")
+	}
+	if strings.EqualFold(source, target) {
+		return
+	}
+
+	rate, err := r.fx.GetExchangeRate(source, target)
+	if err != nil {
+		if r.log != nil {
+			r.log.Logf("WARN failed to convert booking=%s from=%s to=%s: %v", booking.ID, source, target, err)
+		}
+		return
+	}
+
+	convert := func(value float64) float64 {
+		return math.Round(value*rate*100) / 100
+	}
+
+	booking.TotalPrice = convert(booking.TotalPrice)
+	r.localizePriceBreakdownSnapshot(booking.PriceBreakdown, convert, target)
+	booking.Currency = target
+}
+
+func (r *Resolver) localizePriceBreakdownSnapshot(breakdown *domain.PriceBreakdownSnapshot, convert func(float64) float64, currency string) {
+	if breakdown == nil {
+		return
+	}
+
+	breakdown.BaseTotal = convert(breakdown.BaseTotal)
+	breakdown.ExtraGuestFee = convert(breakdown.ExtraGuestFee)
+	breakdown.Subtotal = convert(breakdown.Subtotal)
+	breakdown.Total = convert(breakdown.Total)
+	breakdown.Currency = currency
+
+	if breakdown.CleaningFee != nil {
+		val := convert(*breakdown.CleaningFee)
+		breakdown.CleaningFee = &val
+	}
+	if breakdown.ServiceFee != nil {
+		val := convert(*breakdown.ServiceFee)
+		breakdown.ServiceFee = &val
+	}
+	if breakdown.CautionFee != nil {
+		val := convert(*breakdown.CautionFee)
+		breakdown.CautionFee = &val
+	}
+
+	for i := range breakdown.Discounts {
+		breakdown.Discounts[i].Amount = convert(breakdown.Discounts[i].Amount)
+	}
+
+	for i := range breakdown.NightlyRates {
+		breakdown.NightlyRates[i].BaseRate = convert(breakdown.NightlyRates[i].BaseRate)
+		breakdown.NightlyRates[i].FinalRate = convert(breakdown.NightlyRates[i].FinalRate)
+	}
+
+	if breakdown.PlatformFees != nil {
+		breakdown.PlatformFees.GuestFeeAmount = convert(breakdown.PlatformFees.GuestFeeAmount)
+		breakdown.PlatformFees.HostCommissionAmount = convert(breakdown.PlatformFees.HostCommissionAmount)
+		breakdown.PlatformFees.PayoutProcessingAmount = convert(breakdown.PlatformFees.PayoutProcessingAmount)
+		breakdown.PlatformFees.HostNetAmount = convert(breakdown.PlatformFees.HostNetAmount)
+	}
 }

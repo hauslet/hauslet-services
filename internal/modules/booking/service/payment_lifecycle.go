@@ -169,10 +169,6 @@ func (s *BookingServiceImpl) HandlePaymentRefund(ctx context.Context, bookingID 
 // ArchiveExpiredBookings finds bookings with expired payment holds and archives them.
 // Called by CRON job to clean up unpaid bookings.
 func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expiredBefore time.Time) ([]uuid.UUID, error) {
-	if s.log != nil {
-		s.log.Logf("INFO archiving expired bookings before %s", expiredBefore.Format(time.RFC3339))
-	}
-
 	// Find bookings where:
 	// - status = awaiting_payment
 	// - hold_expires_at < expiredBefore
@@ -185,9 +181,6 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 	}
 
 	if len(expiredBookings) == 0 {
-		if s.log != nil {
-			s.log.Logf("INFO no expired bookings found")
-		}
 		return []uuid.UUID{}, nil
 	}
 
@@ -196,10 +189,6 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 	for _, schemaBooking := range expiredBookings {
 		booking := domain.MapBookingFromSchema(schemaBooking)
 		expiredStatus := booking.Status
-
-		if s.log != nil {
-			s.log.Logf("INFO archiving expired booking=%s (hold expired at %s)", booking.ID, booking.HoldExpiresAt)
-		}
 
 		// Get listing owner for calendar operations
 		ownerID, err := s.listingHooks.GetListingOwner(ctx, booking.ListingID)
@@ -240,10 +229,6 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 		s.notifyBookingExpired(ctx, booking, expiredStatus)
 
 		archivedIDs = append(archivedIDs, booking.ID)
-	}
-
-	if s.log != nil {
-		s.log.Logf("INFO archived %d expired bookings", len(archivedIDs))
 	}
 
 	return archivedIDs, nil

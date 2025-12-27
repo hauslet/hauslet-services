@@ -9,6 +9,7 @@ schema:
   - internal/modules/business/port/graphql/*.graphqls
   - internal/modules/booking/port/graphql/*.graphqls
   - internal/modules/payments/port/graphql/*.graphqls
+  - internal/modules/finance/port/graphql/*.graphqls
   - internal/modules/wishlist/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
@@ -241,3 +242,39 @@ models:
     model: hauslet/internal/modules/payments/domain.TransactionType
   TransactionStatus:
     model: hauslet/internal/modules/payments/domain.TransactionStatus
+
+  # --- Finance Module Bindings ---
+  Wallet:
+    model: hauslet/internal/modules/finance/domain.Wallet
+  LedgerEntry:
+    model: hauslet/internal/modules/finance/domain.LedgerEntry
+  FinanceTransaction:
+    model: hauslet/internal/modules/finance/domain.Transaction
+    fields:
+      metadata:
+        resolver: true
+  Disbursement:
+    model: hauslet/internal/modules/finance/domain.Disbursement
+    fields:
+      transferCode:
+        resolver: true
+      nextRetryAt:
+        resolver: true
+      completedAt:
+        resolver: true
+      failureReason:
+        resolver: true
+  EarningsSummary:
+    model: hauslet/internal/modules/finance/port/graphql.EarningsSummary
+
+  # Finance Enums
+  WalletType:
+    model: hauslet/internal/modules/finance/domain.WalletType
+  WalletStatus:
+    model: hauslet/internal/modules/finance/domain.WalletStatus
+  FinanceTransactionType:
+    model: hauslet/internal/modules/finance/domain.TransactionType
+  FinanceTransactionStatus:
+    model: hauslet/internal/modules/finance/domain.TransactionStatus
+  DisbursementStatus:
+    model: hauslet/internal/modules/finance/domain.DisbursementStatus
