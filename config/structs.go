@@ -19,7 +19,6 @@ type GlobalConfig struct {
 
 type AppConfig struct {
 	Env    string
-	Host   string
 	Port   string
 	Client string
 	Server string
@@ -42,9 +41,9 @@ type AuthConfig struct {
 }
 
 type StorageConfig struct {
-	DB      DBConfig
-	Redis   RedisConfig
-	R2      R2Config
+	DB    DBConfig
+	Redis RedisConfig
+	R2    R2Config
 }
 
 type DBConfig struct {

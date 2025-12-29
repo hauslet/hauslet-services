@@ -44,10 +44,11 @@ func (h *BookingExpiryCheckHandler) Handle(ctx context.Context, data []byte) err
 		return fmt.Errorf("invalid booking expiry job: %w", err)
 	}
 
-	h.log.Logf("INFO processing booking expiry check for time=%s", job.CheckTime.Format("2006-01-02 15:04:05"))
+	checkTime := job.GetCheckTime()
+	h.log.Logf("INFO processing booking expiry check for time=%s", checkTime.Format("2006-01-02 15:04:05"))
 
 	// Archive expired bookings
-	archivedIDs, err := h.bookingSvc.ArchiveExpiredBookings(ctx, job.CheckTime)
+	archivedIDs, err := h.bookingSvc.ArchiveExpiredBookings(ctx, checkTime)
 	if err != nil {
 		return fmt.Errorf("failed to archive expired bookings: %w", err)
 	}

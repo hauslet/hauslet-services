@@ -90,8 +90,8 @@ else
 fi
 echo ""
 
-API_SA="hauslet-api-sa@${PROJECT_ID}.iam.gserviceaccount.com"
-WORKER_SA="hauslet-worker-sa@${PROJECT_ID}.iam.gserviceaccount.com"
+API_SA="hauslet-api-staging-sa@${PROJECT_ID}.iam.gserviceaccount.com"
+WORKER_SA="hauslet-worker-staging-sa@${PROJECT_ID}.iam.gserviceaccount.com"
 
 # ============================================================================
 # STEP 3: Grant IAM Permissions

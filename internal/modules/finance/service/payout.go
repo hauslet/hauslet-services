@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"hauslet/config"
 	"hauslet/internal/modules/finance/domain"
 	financeSchema "hauslet/internal/modules/finance/repository/schema"
 	"time"
@@ -59,14 +60,25 @@ func (s *PayoutServiceImpl) ProcessDuePayouts(ctx context.Context) error {
 		return nil
 	}
 
-	// Get payout window from config (default 48 hours)
+	// Get payout window and event from config
 	payoutWindowHours := s.platformConfig.Payouts.EscrowReleaseHours
 	if payoutWindowHours == 0 {
 		payoutWindowHours = 48 // Default to 48 hours
 	}
 
-	// Query bookings ready for payout (limit 100 per batch)
-	bookings, err := s.bookingQuerier.FindBookingsReadyForPayout(ctx, payoutWindowHours, 100)
+	// Keep typed for validation and type safety
+	escrowReleaseEvent := s.platformConfig.Payouts.EscrowReleaseEvent
+	if !escrowReleaseEvent.IsValid() {
+		escrowReleaseEvent = config.EscrowReleaseCheckoutConfirmed // Type-safe default
+	}
+
+	if s.log != nil {
+		s.log.Logf("INFO [AUDIT] payout_config escrow_release_event=%s escrow_release_hours=%d",
+			escrowReleaseEvent, payoutWindowHours)
+	}
+
+	// Convert to string only when passing to the query
+	bookings, err := s.bookingQuerier.FindBookingsReadyForPayout(ctx, escrowReleaseEvent.String(), payoutWindowHours, 100)
 	if err != nil {
 		if s.log != nil {
 			s.log.Logf("ERROR failed to query bookings ready for payout: %v", err)

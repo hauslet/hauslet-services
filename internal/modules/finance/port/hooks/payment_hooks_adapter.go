@@ -43,12 +43,16 @@ func (a *PaymentHooksAdapter) OnRefundProcessed(
 
 // OnBookingCompleted handles booking completion (triggers payout process)
 // This is called when a booking is completed and ready for payout
+//
+// Note: Actual payout processing is handled by the ProcessDuePayouts cron job,
+// which automatically finds bookings ready for payout (completed + 48h window).
+// This hook is intentionally a no-op since the cron-based approach provides
+// better reliability and retry handling than webhook-triggered payouts.
 func (a *PaymentHooksAdapter) OnBookingCompleted(
 	ctx context.Context,
 	bookingID, hostID uuid.UUID,
 ) error {
-	// TODO: Implement payout queueing logic in Phase 4.5
-	// This will call payoutService.QueuePayout(ctx, bookingID, hostID, amount, currency)
-	// For now, this is a placeholder
+	// Payouts are processed by the ProcessDuePayouts cron job
+	// No action needed here - cron will pick up completed bookings automatically
 	return nil
 }

@@ -126,13 +126,12 @@ func (r *PricingRule) AppliesToDate(date time.Time) bool {
 	}
 
 	if r.DaysOfWeek != nil {
-		currentDay := int(date.Weekday())
 		spec := *r.DaysOfWeek
 		if spec == "" {
 			return false
 		}
 
-		match := false
+		currentDay := int(date.Weekday())
 		for i := 0; i < len(spec); {
 			ch := spec[i]
 			if ch < '0' || ch > '9' {
@@ -147,14 +146,11 @@ func (r *PricingRule) AppliesToDate(date time.Time) bool {
 			}
 
 			if val == currentDay {
-				match = true
-				break
+				return true
 			}
 		}
 
-		if !match {
-			return false
-		}
+		return false
 	}
 
 	return true

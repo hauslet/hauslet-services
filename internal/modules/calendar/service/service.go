@@ -571,7 +571,19 @@ func (s *CalendarServiceImpl) UpdateRecurringPattern(ctx context.Context, patter
 }
 
 func (s *CalendarServiceImpl) DeleteRecurringPattern(ctx context.Context, patternID uuid.UUID, ownerID uuid.UUID) error {
-	// TODO: Verify ownership
+	pattern, err := s.repo.GetRecurringPattern(ctx, patternID)
+	if err != nil {
+		return fmt.Errorf("failed to get recurring pattern: %w", err)
+	}
+
+	listingOwner, err := s.listingHooks.GetListingOwner(ctx, pattern.ListingID)
+	if err != nil {
+		return err
+	}
+	if listingOwner != ownerID {
+		return domain.ErrUnauthorized
+	}
+
 	if err := s.repo.DeleteRecurringPattern(ctx, patternID); err != nil {
 		return fmt.Errorf("failed to delete recurring pattern: %w", err)
 	}

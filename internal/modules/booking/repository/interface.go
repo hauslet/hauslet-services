@@ -26,8 +26,15 @@ type BookingRepository interface {
 	ListBookingsForGuest(ctx context.Context, guestID uuid.UUID, limit, offset int) ([]*schema.Booking, error)
 	ListBookingsForListing(ctx context.Context, listingID uuid.UUID, limit, offset int) ([]*schema.Booking, error)
 	FindExpiredHolds(ctx context.Context, expiredBefore time.Time) ([]*schema.Booking, error)
-	// FindBookingsReadyForPayout finds completed bookings ready for host payout (checkout + payoutWindowHours passed, not settled, has payment)
-	FindBookingsReadyForPayout(ctx context.Context, payoutWindowHours int, limit int) ([]*BookingPayoutInfo, error)
+	// FindBookingsReadyForPayout finds completed bookings ready for host payout
+	// escrowReleaseEvent: "checkin_confirmed" or "checkout_confirmed" - determines which timestamp to use
+	// payoutWindowHours: hours after the event before payout is available
+	FindBookingsReadyForPayout(ctx context.Context, escrowReleaseEvent string, payoutWindowHours int, limit int) ([]*BookingPayoutInfo, error)
+
+	// FindBookingsReadyForCompletion finds active bookings ready to be marked as completed
+	// escrowReleaseEvent: "checkin_confirmed" or "checkout_confirmed" - determines which timestamp to use
+	// escrowReleaseHours: hours after the event before booking is considered completed
+	FindBookingsReadyForCompletion(ctx context.Context, escrowReleaseEvent string, escrowReleaseHours int, limit int) ([]*schema.Booking, error)
 }
 
 type BookingRepositoryImpl struct {

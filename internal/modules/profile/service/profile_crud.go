@@ -68,7 +68,7 @@ func (s *ProfileServiceImpl) CreateProfile(ctx context.Context, profile domain.P
 		return nil, err
 	}
 
-	s.log.Logf("[INFO] created profile for user %s  profileID=%s (trust score: %.2f)", profile.UserID, profile.ID, profile.TrustScore)
+	s.log.Logf("[INFO] created profile for user %s  (trust score: %.2f)", profile.UserID, profile.TrustScore)
 	return domain.MapProfileFromSchema(schemaProfile), nil
 }
 

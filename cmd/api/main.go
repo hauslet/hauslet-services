@@ -86,6 +86,7 @@ func main() {
 		&financeSchema.LedgerEntry{},
 		&financeSchema.Transaction{},
 		&financeSchema.Disbursement{},
+		&financeSchema.Dispute{},
 	); err != nil {
 		log.Logf("ERROR failed to run migrations: %v", err)
 		return

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-pkgz/lgr"
+	"github.com/google/uuid"
 )
 
 // NotificationService handles payment-related email notifications
@@ -21,6 +22,18 @@ type NotificationService struct {
 	queueSubject string
 	baseURL      string
 	log          *lgr.Logger
+	userContacts UserContactProvider
+	bizContacts  BusinessContactProvider
+}
+
+// UserContactProvider exposes minimal user contact info.
+type UserContactProvider interface {
+	GetUserContactEmail(ctx context.Context, userID string) (string, error)
+}
+
+// BusinessContactProvider exposes minimal business contact info.
+type BusinessContactProvider interface {
+	GetBusinessContactEmail(ctx context.Context, businessID uuid.UUID) (string, error)
 }
 
 // NewNotificationService creates a new notification service
@@ -29,6 +42,8 @@ func NewNotificationService(
 	queueClient *queue.Client,
 	queueSubject string,
 	baseURL string,
+	userContacts UserContactProvider,
+	bizContacts BusinessContactProvider,
 	log *lgr.Logger,
 ) *NotificationService {
 	return &NotificationService{
@@ -36,6 +51,8 @@ func NewNotificationService(
 		queueClient:  queueClient,
 		queueSubject: queueSubject,
 		baseURL:      baseURL,
+		userContacts: userContacts,
+		bizContacts:  bizContacts,
 		log:          log,
 	}
 }
@@ -176,9 +193,65 @@ func (s *NotificationService) SendPayoutNotification(tx *domain.Transaction, pd 
 	subject := fmt.Sprintf("Payout Processed - %s", tx.Reference)
 	preview := "Your payout has been successfully processed."
 
-	// TODO: Get recipient email from user/business service
-	// For now, using a placeholder
-	recipientEmail := "recipient@example.com"
+	recipientEmail := ""
+	switch {
+	case pd != nil && pd.UserID != nil:
+		if s.userContacts == nil {
+			if s.log != nil {
+				s.log.Logf("[WARN] user service not configured; cannot resolve payout recipient for user %s", pd.UserID.String())
+			}
+			return
+		}
+		email, err := s.userContacts.GetUserContactEmail(ctx, pd.UserID.String())
+		if err != nil {
+			if s.log != nil {
+				s.log.Logf("[WARN] failed to fetch payout recipient user %s: %v", pd.UserID.String(), err)
+			}
+			return
+		}
+		recipientEmail = email
+	case pd != nil && pd.BusinessID != nil:
+		if s.bizContacts == nil {
+			if s.log != nil {
+				s.log.Logf("[WARN] business service not configured; cannot resolve payout recipient for business %s", pd.BusinessID.String())
+			}
+			return
+		}
+		email, err := s.bizContacts.GetBusinessContactEmail(ctx, *pd.BusinessID)
+		if err != nil {
+			if s.log != nil {
+				s.log.Logf("[WARN] failed to fetch payout recipient business %s: %v", pd.BusinessID.String(), err)
+			}
+			return
+		}
+		recipientEmail = email
+	case tx != nil && tx.BusinessID != nil:
+		if s.bizContacts == nil {
+			if s.log != nil {
+				s.log.Logf("[WARN] business service not configured; cannot resolve payout recipient for business %s", tx.BusinessID.String())
+			}
+			return
+		}
+		email, err := s.bizContacts.GetBusinessContactEmail(ctx, *tx.BusinessID)
+		if err != nil {
+			if s.log != nil {
+				s.log.Logf("[WARN] failed to fetch payout recipient business %s: %v", tx.BusinessID.String(), err)
+			}
+			return
+		}
+		recipientEmail = email
+	default:
+		if s.log != nil {
+			s.log.Logf("[WARN] payout recipient not found for transaction %s", tx.ID)
+		}
+		return
+	}
+	if recipientEmail == "" {
+		if s.log != nil {
+			s.log.Logf("[WARN] payout recipient email missing for transaction %s", tx.ID)
+		}
+		return
+	}
 
 	emailData := map[string]any{
 		"TransactionID": tx.ID.String(),

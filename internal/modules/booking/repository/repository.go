@@ -93,25 +93,33 @@ type bookingPayoutRow struct {
 }
 
 // FindBookingsReadyForPayout finds completed bookings ready for host payout
-// Criteria: status=completed, checkout + payoutWindowHours has passed, not settled, has payment
-func (r *BookingRepositoryImpl) FindBookingsReadyForPayout(ctx context.Context, payoutWindowHours int, limit int) ([]*BookingPayoutInfo, error) {
+// Criteria: status=completed, event time + payoutWindowHours has passed, has payment
+// escrowReleaseEvent determines which timestamp to use: "checkin_confirmed" uses check_in, "checkout_confirmed" uses check_out
+func (r *BookingRepositoryImpl) FindBookingsReadyForPayout(ctx context.Context, escrowReleaseEvent string, payoutWindowHours int, limit int) ([]*BookingPayoutInfo, error) {
 	var rows []bookingPayoutRow
 
 	// Calculate the cutoff time (now - payoutWindowHours)
 	cutoffTime := time.Now().Add(-time.Duration(payoutWindowHours) * time.Hour)
 
+	// Determine which field to use based on escrow release event
+	timeField := "bookings.check_out" // Default to checkout
+	if escrowReleaseEvent == "checkin_confirmed" {
+		timeField = "bookings.check_in"
+	}
+
 	// Join with listings table to get the owner_id (host)
 	// Select only the fields needed for payout processing
-	if err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
 		Table("bookings").
 		Select("bookings.id, bookings.total_price, bookings.currency, bookings.last_payment_id, listings.owner_id as host_id").
 		Joins("JOIN listings ON listings.id = bookings.listing_id").
 		Where("bookings.status = ?", schema.BookingStatusCompleted).
-		Where("bookings.check_out < ?", cutoffTime).
+		Where(timeField+" < ?", cutoffTime).
 		Where("bookings.last_payment_id IS NOT NULL").
-		Order("bookings.check_out ASC").
-		Limit(limit).
-		Scan(&rows).Error; err != nil {
+		Order(timeField + " ASC").
+		Limit(limit)
+
+	if err := query.Scan(&rows).Error; err != nil {
 		return nil, err
 	}
 
@@ -133,4 +141,38 @@ func (r *BookingRepositoryImpl) FindBookingsReadyForPayout(ctx context.Context, 
 	}
 
 	return results, nil
+}
+
+// FindBookingsReadyForCompletion finds active bookings ready to be marked as completed
+// Criteria: status=active, event time + escrowReleaseHours has passed
+// escrowReleaseEvent determines which timestamp to use: "checkin_confirmed" uses check_in, "checkout_confirmed" uses check_out
+func (r *BookingRepositoryImpl) FindBookingsReadyForCompletion(
+	ctx context.Context,
+	escrowReleaseEvent string,
+	escrowReleaseHours int,
+	limit int,
+) ([]*schema.Booking, error) {
+	// Calculate the cutoff time (now - escrowReleaseHours)
+	cutoffTime := time.Now().Add(-time.Duration(escrowReleaseHours) * time.Hour)
+
+	// Determine which field to use based on escrow release event
+	timeField := "check_out" // Default to checkout
+	if escrowReleaseEvent == "checkin_confirmed" {
+		timeField = "check_in"
+	}
+
+	var bookings []*schema.Booking
+
+	// Query active bookings where the event time has passed
+	query := r.db.WithContext(ctx).
+		Where("status = ?", schema.BookingStatusActive).
+		Where(timeField+" < ?", cutoffTime).
+		Order(timeField + " ASC").
+		Limit(limit)
+
+	if err := query.Find(&bookings).Error; err != nil {
+		return nil, err
+	}
+
+	return bookings, nil
 }

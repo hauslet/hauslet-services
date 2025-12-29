@@ -95,6 +95,7 @@ type Dispute struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	BookingID    uuid.UUID  `gorm:"type:uuid;not null;uniqueIndex;index"` // Unique: one dispute per booking
 	WalletID     uuid.UUID  `gorm:"type:uuid;not null;index"`
+	PaymentID    uuid.UUID  `gorm:"type:uuid;not null;index"` // Payment associated with booking
 	FiledBy      string     `gorm:"type:varchar(20);not null"` // guest or host
 	FiledByID    uuid.UUID  `gorm:"type:uuid;not null;index"`
 	Reason       string     `gorm:"type:varchar(50);not null;index"`

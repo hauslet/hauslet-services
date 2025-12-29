@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"hauslet/config"
 	"hauslet/internal/modules/booking/domain"
 	"hauslet/internal/modules/booking/notification"
 	"hauslet/internal/modules/booking/repository"
@@ -13,6 +14,13 @@ import (
 	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
+
+// FinanceHooks defines callbacks to finance module for booking-related financial events
+type FinanceHooks interface {
+	OnPaymentSucceeded(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
+	OnRefundProcessed(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
+	OnBookingCompleted(ctx context.Context, bookingID, hostID uuid.UUID) error
+}
 
 type BookingService interface {
 	// Quote and pricing
@@ -38,6 +46,9 @@ type BookingService interface {
 
 	// Payout lifecycle methods
 	MarkAsSettled(ctx context.Context, bookingID uuid.UUID) error
+
+	// Completion lifecycle methods
+	CompleteBookings(ctx context.Context) error
 }
 
 type ContactInfo struct {
@@ -136,16 +147,18 @@ type ListingConstraints struct {
 }
 
 type BookingServiceImpl struct {
-	repo         repository.BookingRepository
-	calendar     CalendarGateway
-	pricing      PricingService
-	payment      PaymentGateway
-	listingHooks ListingHooks
-	profiles     ProfileProvider
-	notifier     *notification.NotificationService
-	refundQueue  *platformQueue.Client
-	refundSubject string
-	log          *lgr.Logger
+	repo           repository.BookingRepository
+	calendar       CalendarGateway
+	pricing        PricingService
+	payment        PaymentGateway
+	listingHooks   ListingHooks
+	profiles       ProfileProvider
+	notifier       *notification.NotificationService
+	refundQueue    *platformQueue.Client
+	refundSubject  string
+	financeHooks   FinanceHooks
+	platformConfig config.PlatformYAMLConfig
+	log            *lgr.Logger
 }
 
 func NewBookingService(
@@ -158,18 +171,22 @@ func NewBookingService(
 	notifier *notification.NotificationService,
 	refundQueue *platformQueue.Client,
 	refundSubject string,
+	financeHooks FinanceHooks,
+	platformConfig config.PlatformYAMLConfig,
 	log *lgr.Logger,
 ) BookingService {
 	return &BookingServiceImpl{
-		repo:         repo,
-		calendar:     calendar,
-		pricing:      pricing,
-		payment:      payment,
-		listingHooks: listingHooks,
-		profiles:     profiles,
-		notifier:     notifier,
-		refundQueue:  refundQueue,
-		refundSubject: refundSubject,
-		log:          log,
+		repo:           repo,
+		calendar:       calendar,
+		pricing:        pricing,
+		payment:        payment,
+		listingHooks:   listingHooks,
+		profiles:       profiles,
+		notifier:       notifier,
+		refundQueue:    refundQueue,
+		refundSubject:  refundSubject,
+		financeHooks:   financeHooks,
+		platformConfig: platformConfig,
+		log:            log,
 	}
 }

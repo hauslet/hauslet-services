@@ -81,8 +81,50 @@ type BookingHooks interface {
 	MarkAsSettled(ctx context.Context, bookingID uuid.UUID) error
 }
 
+// BookingPartyQuerier provides minimal booking authorization queries for finance
+type BookingPartyQuerier interface {
+	// GetBookingParty determines if a user is the guest or host of a booking
+	// Returns DisputePartyGuest, DisputePartyHost, or error if user not involved
+	GetBookingParty(ctx context.Context, bookingID, userID uuid.UUID) (domain.DisputeParty, error)
+
+	// GetBookingPaymentID retrieves the last payment ID for a booking
+	GetBookingPaymentID(ctx context.Context, bookingID uuid.UUID) (uuid.UUID, error)
+}
+
+// DisputeService handles dispute operations
+type DisputeService interface {
+	// FileDispute creates a new dispute and freezes the wallet
+	// The service internally determines if the user is guest or host and retrieves the payment ID
+	FileDispute(ctx context.Context, bookingID, userID uuid.UUID, reason domain.DisputeReason, description string, amount int64, currency string) (*domain.Dispute, error)
+
+	// InvestigateDispute marks a dispute as under investigation
+	InvestigateDispute(ctx context.Context, disputeID, adminID uuid.UUID) error
+
+	// ResolveDispute resolves a dispute with refund or release
+	ResolveDispute(ctx context.Context, disputeID, adminID uuid.UUID, outcome domain.DisputeStatus, refundAmount int64, reason, notes string) error
+
+	// CancelDispute cancels/withdraws a dispute
+	CancelDispute(ctx context.Context, disputeID, cancelledByID uuid.UUID) error
+
+	// AddEvidence adds evidence to a dispute (checks user authorization internally)
+	AddEvidence(ctx context.Context, disputeID, userID uuid.UUID, evidenceType, url, description string) error
+
+	// GetDispute retrieves a dispute by ID
+	GetDispute(ctx context.Context, disputeID uuid.UUID) (*domain.Dispute, error)
+
+	// GetDisputeByBooking retrieves a dispute by booking ID
+	GetDisputeByBooking(ctx context.Context, bookingID uuid.UUID) (*domain.Dispute, error)
+
+	// ListDisputes lists disputes with optional status filter
+	ListDisputes(ctx context.Context, status *domain.DisputeStatus, limit, offset int) ([]*domain.Dispute, error)
+
+	// ListUserDisputes lists disputes filed by a specific user
+	ListUserDisputes(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*domain.Dispute, error)
+}
+
 // FinanceService combines wallet and ledger services
 type FinanceService interface {
 	WalletService
 	LedgerService
+	DisputeService
 }

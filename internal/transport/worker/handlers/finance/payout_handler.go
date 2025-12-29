@@ -47,8 +47,9 @@ func (h *PayoutProcessHandler) Handle(ctx context.Context, data []byte) error {
 		return err
 	}
 
+	processTime := job.GetProcessTime()
 	if h.log != nil {
-		h.log.Logf("INFO processing payouts job at %s", job.ProcessTime)
+		h.log.Logf("INFO processing payouts job at %s", processTime)
 	}
 
 	if err := h.payoutSvc.ProcessDuePayouts(ctx); err != nil {
@@ -101,8 +102,9 @@ func (h *DisbursementRetryHandler) Handle(ctx context.Context, data []byte) erro
 		return err
 	}
 
+	retryTime := job.GetRetryTime()
 	if h.log != nil {
-		h.log.Logf("INFO retrying failed disbursements at %s", job.RetryTime)
+		h.log.Logf("INFO retrying failed disbursements at %s", retryTime)
 	}
 
 	if err := h.payoutSvc.RetryFailedDisbursements(ctx); err != nil {

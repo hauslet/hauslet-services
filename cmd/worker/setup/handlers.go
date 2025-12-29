@@ -147,6 +147,24 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			pricingRepo := pricingrepository.NewPricingRepository(infra.DB)
 			pricingSvc := pricingservice.NewPricingService(pricingRepo, nil, nil, log, cfg.YAML.Platform)
 
+			// Finance service and hooks (needed for booking completion)
+			financeWalletRepo := financerepository.NewWalletRepository(infra.DB)
+			financeLedgerRepo := financerepository.NewLedgerRepository(infra.DB)
+			financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
+			financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
+			financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
+			financeSvc := financeservice.NewFinanceService(
+				financeWalletRepo,
+				financeLedgerRepo,
+				financeTransactionRepo,
+				financeDisbursementRepo,
+				financeDisputeRepo,
+				nil, // bookingPartyQuerier not needed for worker payment tasks
+				infra.DB,
+				log,
+			)
+			financeHooksAdapter := financehooks.NewPaymentHooksAdapter(financeSvc)
+
 			bookingSvc := bookingservice.NewBookingService(
 				bookingRepo,
 				calendarSvc,
@@ -157,6 +175,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 				nil, // notification service not required for expiry checks
 				nil, // refund queue not required for expiry checks
 				"",
+				financeHooksAdapter,
+				cfg.YAML.Platform,
 				log,
 			)
 			h := bookingHandler.NewBookingExpiryCheckHandler(bookingSvc, log, qCfg["booking_expiry"])
@@ -172,6 +192,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 				infra.Queue,
 				qCfg["email"],
 				cfg.App.Client,
+				nil,
+				nil,
 				log,
 			)
 			paymentsSvc := paymentsservice.NewPaymentService(
@@ -203,6 +225,24 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 		)
 		bookingProfileAdapter := profileport.NewBookingProfileAdapter(profileSvc)
 
+		// Finance service and hooks (needed for booking lifecycle)
+		financeWalletRepo := financerepository.NewWalletRepository(infra.DB)
+		financeLedgerRepo := financerepository.NewLedgerRepository(infra.DB)
+		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
+		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
+		financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
+		financeSvc := financeservice.NewFinanceService(
+			financeWalletRepo,
+			financeLedgerRepo,
+			financeTransactionRepo,
+			financeDisbursementRepo,
+			financeDisputeRepo,
+			nil, // bookingPartyQuerier not needed for worker expiry tasks
+			infra.DB,
+			log,
+		)
+		financeHooksAdapter := financehooks.NewPaymentHooksAdapter(financeSvc)
+
 		bookingSvc := bookingservice.NewBookingService(
 			bookingRepo,
 			calendarSvc,
@@ -213,6 +253,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			bookingNotificationService,
 			nil, // refund queue not needed for webhook processing
 			"",
+			financeHooksAdapter,
+			cfg.YAML.Platform,
 			log,
 		)
 		bookingHooksAdapter := bookinghooks.NewBookingHooksAdapter(bookingSvc)
@@ -225,6 +267,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			infra.Queue,
 			qCfg["email"],
 			cfg.App.Client,
+			nil,
+			nil,
 			log,
 		)
 		paymentsSvc := paymentsservice.NewPaymentService(
@@ -234,19 +278,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			log,
 		)
 
-		financeWalletRepo := financerepository.NewWalletRepository(infra.DB)
-		financeLedgerRepo := financerepository.NewLedgerRepository(infra.DB)
-		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
-		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
-		financeSvc := financeservice.NewFinanceService(
-			financeWalletRepo,
-			financeLedgerRepo,
-			financeTransactionRepo,
-			financeDisbursementRepo,
-			infra.DB,
-			log,
-		)
-		financeHooksAdapter := financehooks.NewPaymentHooksAdapter(financeSvc)
+		// Note: financeWalletRepo, financeLedgerRepo, etc. already initialized above (line 228-241)
+		// Reusing the existing finance service and hooks adapter
 
 		payoutSvc := financeservice.NewPayoutService(
 			financeWalletRepo,

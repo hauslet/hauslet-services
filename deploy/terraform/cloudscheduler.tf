@@ -7,12 +7,12 @@ resource "google_cloud_scheduler_job" "media_cleanup" {
   description = "Triggers media cleanup job every 15 minutes"
   schedule    = "*/15 * * * *"  # Every 15 minutes
   time_zone   = "UTC"
-  region      = var.region
+  region      = "europe-west1"  # Cloud Scheduler not available in europe-north1
 
   retry_config {
     retry_count = 3
     min_backoff_duration = "5s"
-    max_backoff_duration = "1m"
+    max_backoff_duration = "60s"
   }
 
   http_target {
@@ -46,12 +46,12 @@ resource "google_cloud_scheduler_job" "booking_expiry" {
   description = "Checks for expired bookings every 2 minutes"
   schedule    = "*/2 * * * *"  # Every 2 minutes
   time_zone   = "UTC"
-  region      = var.region
+  region      = "europe-west1"  # Cloud Scheduler not available in europe-north1
 
   retry_config {
     retry_count = 3
     min_backoff_duration = "5s"
-    max_backoff_duration = "1m"
+    max_backoff_duration = "60s"
   }
 
   http_target {
@@ -63,10 +63,8 @@ resource "google_cloud_scheduler_job" "booking_expiry" {
     }
 
     # Job payload matching BookingExpiryCheckJob
-    # Note: check_time will be set by the job handler to current time
-    body = base64encode(jsonencode({
-      check_time = "dynamic"  # Handler will use time.Now()
-    }))
+    # Handler will use current time (time.Now())
+    body = base64encode(jsonencode({}))
 
     oidc_token {
       service_account_email = var.worker_service_account
@@ -85,12 +83,12 @@ resource "google_cloud_scheduler_job" "payout_process" {
   description = "Processes pending payouts every hour"
   schedule    = "0 * * * *"  # Every hour at minute 0
   time_zone   = "UTC"
-  region      = var.region
+  region      = "europe-west1"  # Cloud Scheduler not available in europe-north1
 
   retry_config {
     retry_count = 2  # Lower retry for financial operations
     min_backoff_duration = "10s"
-    max_backoff_duration = "5m"
+    max_backoff_duration = "300s"
   }
 
   http_target {
@@ -102,9 +100,8 @@ resource "google_cloud_scheduler_job" "payout_process" {
     }
 
     # Job payload matching ProcessPayoutsJob
-    body = base64encode(jsonencode({
-      process_time = "dynamic"  # Handler will use time.Now()
-    }))
+    # Handler will use current time (time.Now())
+    body = base64encode(jsonencode({}))
 
     oidc_token {
       service_account_email = var.worker_service_account
@@ -123,12 +120,12 @@ resource "google_cloud_scheduler_job" "disbursement_retry" {
   description = "Retries failed disbursements every 15 minutes"
   schedule    = "*/15 * * * *"  # Every 15 minutes
   time_zone   = "UTC"
-  region      = var.region
+  region      = "europe-west1"  # Cloud Scheduler not available in europe-north1
 
   retry_config {
     retry_count = 2  # Lower retry for financial operations
     min_backoff_duration = "10s"
-    max_backoff_duration = "5m"
+    max_backoff_duration = "300s"
   }
 
   http_target {
@@ -140,9 +137,8 @@ resource "google_cloud_scheduler_job" "disbursement_retry" {
     }
 
     # Job payload matching RetryDisbursementsJob
-    body = base64encode(jsonencode({
-      retry_time = "dynamic"  # Handler will use time.Now()
-    }))
+    # Handler will use current time (time.Now())
+    body = base64encode(jsonencode({}))
 
     oidc_token {
       service_account_email = var.worker_service_account

@@ -63,7 +63,7 @@ cd "$(dirname "$0")/.."
 gcloud builds submit \
     --config=cloudbuild-staging.yaml \
     --region=$REGION \
-    --substitutions=_TAG=$(git rev-parse --short HEAD)
+    --substitutions=_TAG=$(git rev-parse --short HEAD) \
 
 echo ""
 echo "✅ Staging deployment complete!"

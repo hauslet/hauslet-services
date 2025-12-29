@@ -15,12 +15,14 @@ import (
 
 // FinanceServiceImpl implements the FinanceService interface
 type FinanceServiceImpl struct {
-	walletRepo       repository.WalletRepository
-	ledgerRepo       repository.LedgerRepository
-	transactionRepo  repository.TransactionRepository
-	disbursementRepo repository.DisbursementRepository
-	db               *gorm.DB
-	log              *lgr.Logger
+	walletRepo         repository.WalletRepository
+	ledgerRepo         repository.LedgerRepository
+	transactionRepo    repository.TransactionRepository
+	disbursementRepo   repository.DisbursementRepository
+	disputeRepo        repository.DisputeRepository
+	bookingPartyQuerier BookingPartyQuerier
+	db                 *gorm.DB
+	log                *lgr.Logger
 }
 
 // NewFinanceService creates a new finance service
@@ -29,16 +31,20 @@ func NewFinanceService(
 	ledgerRepo repository.LedgerRepository,
 	transactionRepo repository.TransactionRepository,
 	disbursementRepo repository.DisbursementRepository,
+	disputeRepo repository.DisputeRepository,
+	bookingPartyQuerier BookingPartyQuerier,
 	db *gorm.DB,
 	log *lgr.Logger,
 ) FinanceService {
 	return &FinanceServiceImpl{
-		walletRepo:       walletRepo,
-		ledgerRepo:       ledgerRepo,
-		transactionRepo:  transactionRepo,
-		disbursementRepo: disbursementRepo,
-		db:               db,
-		log:              log,
+		walletRepo:          walletRepo,
+		ledgerRepo:          ledgerRepo,
+		transactionRepo:     transactionRepo,
+		disbursementRepo:    disbursementRepo,
+		disputeRepo:         disputeRepo,
+		bookingPartyQuerier: bookingPartyQuerier,
+		db:                  db,
+		log:                 log,
 	}
 }
 
@@ -58,7 +64,7 @@ type BookingForPayout struct {
 
 // BookingQuerier defines the interface for querying booking data for payouts
 type BookingQuerier interface {
-	FindBookingsReadyForPayout(ctx context.Context, payoutWindowHours int, limit int) ([]*BookingForPayout, error)
+	FindBookingsReadyForPayout(ctx context.Context, escrowReleaseEvent string, payoutWindowHours int, limit int) ([]*BookingForPayout, error)
 }
 
 // PayoutServiceImpl implements PayoutService

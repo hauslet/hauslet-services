@@ -9,6 +9,7 @@ config/overrides/
 .gomodcache/
 .gocache
 
+
 # Binary outputs
 /bin/
 /dist/
@@ -75,3 +76,5 @@ worker
 # Debug files
 debug
 __debug_bin
+
+CLAUDE.md

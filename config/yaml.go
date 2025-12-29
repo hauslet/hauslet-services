@@ -63,12 +63,37 @@ type PlatformFeesConfig struct {
 	MaximumServiceFeePercent float64 `yaml:"maximum_service_fee_percent"`
 }
 
+// EscrowReleaseEvent defines when escrow funds become available for payout
+type EscrowReleaseEvent string
+
+const (
+	// EscrowReleaseCheckinConfirmed releases funds N hours after check-in
+	EscrowReleaseCheckinConfirmed EscrowReleaseEvent = "checkin_confirmed"
+	// EscrowReleaseCheckoutConfirmed releases funds N hours after check-out
+	EscrowReleaseCheckoutConfirmed EscrowReleaseEvent = "checkout_confirmed"
+)
+
+// String returns the string representation of EscrowReleaseEvent
+func (e EscrowReleaseEvent) String() string {
+	return string(e)
+}
+
+// IsValid checks if the EscrowReleaseEvent is a valid value
+func (e EscrowReleaseEvent) IsValid() bool {
+	switch e {
+	case EscrowReleaseCheckinConfirmed, EscrowReleaseCheckoutConfirmed:
+		return true
+	default:
+		return false
+	}
+}
+
 type PlatformPayoutConfig struct {
-	EscrowReleaseHours   int    `yaml:"escrow_release_hours"`
-	EscrowReleaseEvent   string `yaml:"escrow_release_event"`
-	BatchIntervalMinutes int    `yaml:"batch_interval_minutes"`
-	MaxRetryAttempts     int    `yaml:"max_retry_attempts"`
-	RetryBackoffMinutes  int    `yaml:"retry_backoff_minutes"`
+	EscrowReleaseHours   int                `yaml:"escrow_release_hours"`
+	EscrowReleaseEvent   EscrowReleaseEvent `yaml:"escrow_release_event"`
+	BatchIntervalMinutes int                `yaml:"batch_interval_minutes"`
+	MaxRetryAttempts     int                `yaml:"max_retry_attempts"`
+	RetryBackoffMinutes  int                `yaml:"retry_backoff_minutes"`
 }
 
 type PlatformRefundConfig struct {
@@ -252,6 +277,9 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 	// Payouts
 	if src.Payouts.EscrowReleaseHours != 0 {
 		dst.Payouts.EscrowReleaseHours = src.Payouts.EscrowReleaseHours
+	}
+	if src.Payouts.EscrowReleaseEvent.IsValid() {
+		dst.Payouts.EscrowReleaseEvent = src.Payouts.EscrowReleaseEvent
 	}
 	if src.Payouts.BatchIntervalMinutes != 0 {
 		dst.Payouts.BatchIntervalMinutes = src.Payouts.BatchIntervalMinutes

@@ -20,7 +20,7 @@ func main() {
 	// 2) Core infrastructure (DB, storage, AI, email, cache)
 	infra, err := setup.InitInfrastructure(ctx, cfg, log)
 	if err != nil {
-		log.Logf("CRITICAL failed to initialize infrastructure: %v", err)
+		log.Logf("WARN failed to initialize infrastructure: %v", err)
 		return
 	}
 	defer infra.CloseDB()
@@ -29,8 +29,7 @@ func main() {
 	// 3) Queue client
 	qClient, err := setup.InitQueue(ctx, cfg, log)
 	if err != nil {
-		log.Logf("CRITICAL failed to initialize queue: %v", err)
-		panic(err)
+		log.Logf("WARN failed to initialize queue: %v", err)
 	}
 	infra.Queue = qClient
 	defer infra.CloseQueue()

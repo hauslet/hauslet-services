@@ -4,7 +4,6 @@
 
 substitutions:
   _REGION: 'europe-north1'
-  _ENV: 'staging'
   _TAG: 'manual'
   _API_SERVICE_NAME: 'hauslet-api-staging'
   _WORKER_SERVICE_NAME: 'hauslet-worker-staging'
@@ -82,8 +81,14 @@ steps:
       - '--memory=2Gi'
       - '--timeout=60s'
       - '--concurrency=80'
-      - '--set-env-vars=APP_ENV=${_ENV},PORT=8080'
+      
+      # Connect Cloud SQL
       - '--set-cloudsql-instances=$PROJECT_ID:${_REGION}:hauslet-postgres-primary'
+      
+      # Bind ALL Secrets (App Secrets + Cloud Tasks Credentials)
+      - '--set-secrets=APP_ENV=APP_ENV:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,CDN_HOST=CDN_HOST:latest,DB_HOST=DB_HOST:latest,DB_PORT=DB_PORT:latest,DB_NAME=DB_NAME:latest,DB_PASSWORD=DB_PASSWORD:latest,DB_SSLMODE=DB_SSLMODE:latest,DB_USER=DB_USER:latest,EMAIL_FROM=EMAIL_FROM:latest,ENCRYPTION_KEY=ENCRYPTION_KEY:latest,FX_API_KEY=FX_API_KEY:latest,FX_URL=FX_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,JWT_SECRET=JWT_SECRET:latest,PAYSTACK_PUBLIC_KEY=PAYSTACK_PUBLIC_KEY:latest,PAYSTACK_SECRET_KEY=PAYSTACK_SECRET_KEY:latest,R2_ACCESS_KEY_ID=R2_ACCESS_KEY_ID:latest,R2_ACCESS_KEY_SECRET=R2_ACCESS_KEY_SECRET:latest,R2_ACCOUNT_ID=R2_ACCOUNT_ID:latest,R2_BUCKET_NAME=R2_BUCKET_NAME:latest,R2_ENDPOINT=R2_ENDPOINT:latest,REDIRECT_URL=REDIRECT_URL:latest,REDIS_ADDR=REDIS_ADDR:latest,RESEND_API_KEY=RESEND_API_KEY:latest,STRIPE_PUBLISHABLE_KEY=STRIPE_PUBLISHABLE_KEY:latest,STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,CLOUD_TASKS_PROJECT_ID=CLOUD_TASKS_PROJECT_ID:latest,CLOUD_TASKS_LOCATION=CLOUD_TASKS_LOCATION:latest,CLOUD_TASKS_WORKER_URL=CLOUD_TASKS_WORKER_URL:latest,CLOUD_TASKS_SERVICE_ACCOUNT=CLOUD_TASKS_SERVICE_ACCOUNT:latest'
+      
+      # Network & Identity
       - '--service-account=hauslet-api-staging-sa@$PROJECT_ID.iam.gserviceaccount.com'
       - '--vpc-connector=hauslet-vpc-connector'
       - '--vpc-egress=private-ranges-only'
@@ -107,8 +112,14 @@ steps:
       - '--memory=2Gi'
       - '--timeout=300s'
       - '--concurrency=10'
-      - '--set-env-vars=APP_ENV=${_ENV},PORT=8080'
+      
+      # Connect Cloud SQL
       - '--set-cloudsql-instances=$PROJECT_ID:${_REGION}:hauslet-postgres-primary'
+      
+      # Bind ALL Secrets (Same as API)
+      - '--set-secrets=APP_ENV=APP_ENV:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,CDN_HOST=CDN_HOST:latest,DB_HOST=DB_HOST:latest,DB_PORT=DB_PORT:latest,DB_NAME=DB_NAME:latest,DB_PASSWORD=DB_PASSWORD:latest,DB_SSLMODE=DB_SSLMODE:latest,DB_USER=DB_USER:latest,EMAIL_FROM=EMAIL_FROM:latest,ENCRYPTION_KEY=ENCRYPTION_KEY:latest,FX_API_KEY=FX_API_KEY:latest,FX_URL=FX_URL:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,GOOGLE_CLIENT_ID=GOOGLE_CLIENT_ID:latest,GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,JWT_SECRET=JWT_SECRET:latest,PAYSTACK_PUBLIC_KEY=PAYSTACK_PUBLIC_KEY:latest,PAYSTACK_SECRET_KEY=PAYSTACK_SECRET_KEY:latest,R2_ACCESS_KEY_ID=R2_ACCESS_KEY_ID:latest,R2_ACCESS_KEY_SECRET=R2_ACCESS_KEY_SECRET:latest,R2_ACCOUNT_ID=R2_ACCOUNT_ID:latest,R2_BUCKET_NAME=R2_BUCKET_NAME:latest,R2_ENDPOINT=R2_ENDPOINT:latest,REDIRECT_URL=REDIRECT_URL:latest,REDIS_ADDR=REDIS_ADDR:latest,RESEND_API_KEY=RESEND_API_KEY:latest,STRIPE_PUBLISHABLE_KEY=STRIPE_PUBLISHABLE_KEY:latest,STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,CLOUD_TASKS_PROJECT_ID=CLOUD_TASKS_PROJECT_ID:latest,CLOUD_TASKS_LOCATION=CLOUD_TASKS_LOCATION:latest,CLOUD_TASKS_WORKER_URL=CLOUD_TASKS_WORKER_URL:latest,CLOUD_TASKS_SERVICE_ACCOUNT=CLOUD_TASKS_SERVICE_ACCOUNT:latest'
+      
+      # Network & Identity
       - '--service-account=hauslet-worker-staging-sa@$PROJECT_ID.iam.gserviceaccount.com'
       - '--vpc-connector=hauslet-vpc-connector'
       - '--vpc-egress=private-ranges-only'

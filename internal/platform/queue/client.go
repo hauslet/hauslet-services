@@ -65,7 +65,7 @@ func (c *Client) Close() {
 }
 
 // Publish marshals payload (any JSON-able value) and enqueues it on the queue name.
-func (c *Client) Publish(ctx context.Context, queueName string, payload interface{}) error {
+func (c *Client) Publish(ctx context.Context, queueName string, payload any) error {
 	if c == nil {
 		return fmt.Errorf("queue client is nil")
 	}

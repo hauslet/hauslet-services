@@ -26,7 +26,6 @@ func Load() *GlobalConfig {
 			YAML: yamlCfg,
 			App: AppConfig{
 				Env:    must("APP_ENV"),
-				Host:   must("HOST"),
 				Port:   def("PORT", "8080"),
 				Client: def("CLIENT", "http://localhost:3000"),
 				Server: def("SERVER", "http://localhost:3000/v1"),

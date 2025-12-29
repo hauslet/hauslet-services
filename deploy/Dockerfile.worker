@@ -11,9 +11,10 @@ COPY . .
 RUN go build -trimpath -buildvcs=false -ldflags="-s -w" -o /out/worker ./cmd/worker
 
 FROM gcr.io/distroless/base-debian13:nonroot
-WORKDIR /
+WORKDIR /app
 
-COPY --from=build /out/worker /app/worker
+COPY --from=build --chown=nonroot:nonroot /out/worker /app/worker
+COPY --from=build --chown=nonroot:nonroot /src/config /app/config
 
 ENV PORT=8080
 EXPOSE 8080
