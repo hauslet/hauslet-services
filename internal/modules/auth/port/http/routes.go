@@ -54,7 +54,7 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	r.Mount("/avatar", avatarRoutes)
 
 	// Custom registration endpoint (go-pkgz/auth doesn't provide registration)
-	r.Post("/register", h.Register)
+	r.Post("/auth/register", h.Register)
 	r.Post("/auth/forgot-password", h.ForgotPassword)
 	r.Post("/auth/reset-password", h.ResetPassword)
 
@@ -73,7 +73,7 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 		// User profile management.
 		r.Get("/me", h.GetCurrentUser)
 		r.Put("/me", h.UpdateCurrentUser)
-		r.Post("/change-password", h.ChangePassword)
+		r.Post("/me/change-password", h.ChangePassword)
 
 		// Identity management (OAuth providers, password)
 		r.Get("/me/identities", h.GetUserIdentities)
@@ -109,7 +109,7 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient redi
 	r.With(applyRateLimit(middleware.RateLimitConfig{
 		Requests: 3,
 		Window:   15 * time.Minute,
-	})).Post("/register", h.Register)
+	})).Post("/auth/register", h.Register)
 
 	// Email verification: Moderate rate limiting (prevent brute force)
 	r.With(applyRateLimit(middleware.RateLimitConfig{
@@ -142,7 +142,7 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient redi
 		r.With(applyRateLimit(middleware.RateLimitConfig{
 			Requests: 5,
 			Window:   time.Hour,
-		})).Post("/change-password", h.ChangePassword)
+		})).Post("/me/change-password", h.ChangePassword)
 
 		// Profile updates: Moderate rate limiting
 		r.With(applyRateLimit(middleware.RateLimitConfig{

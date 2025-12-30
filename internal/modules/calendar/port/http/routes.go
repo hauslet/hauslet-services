@@ -41,7 +41,7 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router, authService authservice.AuthServ
 			r.Use(businessMW.Auth.WithTenantSlug)
 		}
 
-		r.Route("/api/listings/{listingId}/calendar", func(r chi.Router) {
+		r.Route("/listings/{listingId}/calendar", func(r chi.Router) {
 			r.Post("/blocks", h.createBlock)
 			r.Delete("/blocks/{blockId}", h.deleteBlock)
 		})
@@ -63,7 +63,7 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService auth
 			r.Use(businessMW.Auth.WithTenantSlug)
 		}
 
-		r.Route("/api/listings/{listingId}/calendar", func(r chi.Router) {
+		r.Route("/listings/{listingId}/calendar", func(r chi.Router) {
 			// Create block: 10 requests/minute
 			r.With(applyRateLimit(middleware.RateLimitConfig{
 				Requests: 10,

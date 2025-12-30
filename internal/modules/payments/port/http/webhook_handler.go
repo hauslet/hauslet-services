@@ -5,16 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hauslet/cmd/api/server/middleware"
 	paymentdomain "hauslet/internal/modules/payments/domain"
 	"hauslet/internal/modules/payments/service"
 	"hauslet/internal/platform/payment"
 	platformQueue "hauslet/internal/platform/queue"
+	"hauslet/internal/platform/redis"
 	paymentJob "hauslet/internal/queue/jobs/payments"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
@@ -72,6 +75,28 @@ func NewWebhookHandler(
 		queueSubject:   queueSubject,
 		log:            log,
 	}
+}
+
+// SetupRoutes configures webhook routes (without rate limiting)
+func (h *WebhookHandler) SetupRoutes(r chi.Router) {
+	// Public webhook endpoint (no authentication required)
+	r.Post("/webhooks/paystack", h.HandlePaystackWebhook)
+}
+
+// SetupRoutesWithRateLimiting configures webhook routes with rate limiting for production
+func (h *WebhookHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient redis.RedisClient) {
+	// Helper to apply rate limiting
+	applyRateLimit := func(config middleware.RateLimitConfig) func(http.Handler) http.Handler {
+		return middleware.RateLimit(config, redisClient)
+	}
+
+	// Webhook endpoint with rate limiting
+	// Webhooks need higher limits than user endpoints (100/min)
+	// Too strict breaks legitimate provider webhooks, too loose allows DoS
+	r.With(applyRateLimit(middleware.RateLimitConfig{
+		Requests: 100,
+		Window:   time.Minute,
+	})).Post("/webhooks/paystack", h.HandlePaystackWebhook)
 }
 
 // HandlePaystackWebhook processes Paystack webhook events

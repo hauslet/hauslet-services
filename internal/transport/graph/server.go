@@ -2,7 +2,9 @@ package graph
 
 import (
 	"net/http"
+	"time"
 
+	"hauslet/cmd/api/server/middleware"
 	"hauslet/config"
 	"hauslet/internal/modules/auth/service"
 	bookingservice "hauslet/internal/modules/booking/service"
@@ -13,6 +15,7 @@ import (
 	propertyservice "hauslet/internal/modules/property/service"
 	reviewservice "hauslet/internal/modules/review/service"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
+	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/viewer"
@@ -41,6 +44,7 @@ func SetupGraphQL(r chi.Router,
 	reviewService reviewservice.ReviewService,
 	tenantSlugMiddleware func(http.Handler) http.Handler,
 	fxClient xchange.XChange,
+	redisClient *redis.RedisClient,
 	cfg *config.GlobalConfig,
 	log *lgr.Logger) {
 
@@ -97,6 +101,16 @@ func SetupGraphQL(r chi.Router,
 		r.Use(localization.WithPreferredCurrency)
 		// DataLoaders to batch profile and property fetches.
 		r.Use(loaders.Middleware(profileService, propertyService))
+
+		// Apply rate limiting in production
+		if cfg.App.Env == "production" && redisClient != nil {
+			rateLimitMiddleware := middleware.RateLimit(middleware.RateLimitConfig{
+				Requests: 60, // 60 requests per minute for GraphQL
+				Window:   time.Minute,
+			}, *redisClient)
+			r.Use(rateLimitMiddleware)
+			log.Logf("[INFO] GraphQL rate limiting enabled: 60 req/min")
+		}
 
 		// The Query Endpoint
 		r.Handle("/query", srv)

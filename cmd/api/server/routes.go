@@ -30,16 +30,20 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 	// Setup calendar routes with optional rate limiting in production
 	if cfg.App.Env == "production" {
 		r.Group(func(r chi.Router) {
-			container.CalendarHTTP.SetupRoutes(r, container.AuthSvc, container.BusinessMW)
+			container.CalendarHTTP.SetupRoutesWithRateLimiting(r, container.AuthSvc, *container.Redis, container.BusinessMW)
 		})
 	} else {
 		r.Group(func(r chi.Router) {
-			container.CalendarHTTP.SetupRoutesWithRateLimiting(r, container.AuthSvc, *container.Redis, container.BusinessMW)
+			container.CalendarHTTP.SetupRoutes(r, container.AuthSvc, container.BusinessMW)
 		})
 	}
 
-	// Setup payment webhook routes (public endpoint)
-	r.Post("/webhooks/paystack", container.PaymentWebhookHTTP.HandlePaystackWebhook)
+	// Setup payment webhook routes with optional rate limiting in production
+	if cfg.App.Env == "production" {
+		container.PaymentWebhookHTTP.SetupRoutesWithRateLimiting(r, *container.Redis)
+	} else {
+		container.PaymentWebhookHTTP.SetupRoutes(r)
+	}
 
 	// Setup GraphQL routes
 	graph.SetupGraphQL(r,
@@ -55,6 +59,7 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		container.ReviewSvc,
 		container.BusinessMW.Auth.WithTenantSlug,
 		container.FXClient,
+		container.Redis,
 		cfg,
 		container.Logger,
 	)

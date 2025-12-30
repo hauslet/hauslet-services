@@ -24,13 +24,13 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router, authService authservice.AuthServ
 		}
 
 		// Listing media routes
-		r.Route("/api/listings/{id}/media", func(r chi.Router) {
+		r.Route("/listings/{id}/media", func(r chi.Router) {
 			r.Post("/", h.UploadListingMedia)           // Upload media (get presigned URLs)
 			r.Post("/finalize", h.FinalizeListingMedia) // Finalize uploaded media
 			r.Delete("/", h.DeleteListingMedia)         // Delete media (bulk)
 		})
 
-		r.Route(`/api/listings/{id}/media/{mediaId:[0-9a-fA-F-]{36}}`, func(r chi.Router) {
+		r.Route(`/listings/{id}/media/{mediaId:[0-9a-fA-F-]{36}}`, func(r chi.Router) {
 			r.Patch("/", h.UpdateListingMedia) // Update media metadata
 		})
 	})
@@ -52,7 +52,7 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService auth
 			r.Use(businessMW.Auth.WithTenantSlug)
 		}
 		// Listing media routes
-		r.Route("/api/listings/{id}/media", func(r chi.Router) {
+		r.Route("/listings/{id}/media", func(r chi.Router) {
 			// Upload media: 20 requests/minute
 			r.With(applyRateLimit(middleware.RateLimitConfig{
 				Requests: 20,
@@ -72,7 +72,7 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService auth
 			})).Delete("/", h.DeleteListingMedia)
 		})
 
-		r.Route(`/api/listings/{id}/media/{mediaId:[0-9a-fA-F-]{36}}`, func(r chi.Router) {
+		r.Route(`/listings/{id}/media/{mediaId:[0-9a-fA-F-]{36}}`, func(r chi.Router) {
 			// Update media: 30 requests/minute
 			r.With(applyRateLimit(middleware.RateLimitConfig{
 				Requests: 30,

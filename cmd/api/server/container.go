@@ -148,7 +148,7 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 		return nil, fmt.Errorf("failed to initialize payments: %w", err)
 	}
 
-	if err := c.initProperty(ctx); err != nil {
+	if err := c.initProperty(); err != nil {
 		return nil, fmt.Errorf("failed to initialize property: %w", err)
 	}
 
@@ -311,7 +311,7 @@ func (c *Container) initPayments() error {
 }
 
 // initProperty initializes the property service
-func (c *Container) initProperty(ctx context.Context) error {
+func (c *Container) initProperty() error {
 	emailSubject := c.Config.YAML.Queue.Subjects["email"]
 	thumbnailSubject := c.Config.YAML.Queue.Subjects["media_thumbnail"]
 
