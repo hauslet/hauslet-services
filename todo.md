@@ -4,7 +4,7 @@
 
 [x] ~~Design and implement refund logic, including payment provider adapters, within the booking module.~~
 
-[ ] Build out the finance module end-to-end see **FINANCE_PLAN.md** for requirements, **FINANCE_IMPLEMENTATION_PLAN.md** for detailed implementation tracking (6 phases), with comprehensive integration with payments, booking module.
+[x] Build out the finance module end-to-end see **FINANCE_PLAN.md** for requirements, **FINANCE_IMPLEMENTATION_PLAN.md** for detailed implementation tracking (6 phases), with comprehensive integration with payments, booking module.
 
 [ ] Extend the booking service layer to support new pricing, refund, and lifecycle requirements.
 
