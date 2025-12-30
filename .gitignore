@@ -66,7 +66,19 @@ tmp/
 hauslet-api
 hauslet-worker
 hauslet
+api
+worker
 
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+tfplan
+.terraformrc
+terraform.rc
 
 # Compiled Object files
 *.o
