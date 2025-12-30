@@ -1,6 +1,7 @@
 package seeders
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // SeedAuth seeds users and user identities
@@ -57,94 +59,57 @@ func SeedAuth(ctx *SeedContext) error {
 // createAdminUser creates an admin user with password authentication
 func createAdminUser(ctx *SeedContext, email string) error {
 	// Check if user already exists
-	var existing authSchema.User
-	if err := ctx.DB.Where("primary_email = ?", email).First(&existing).Error; err == nil {
-		return nil // User already exists
+	var user authSchema.User
+	if err := ctx.DB.Where("primary_email = ?", email).First(&user).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		user = authSchema.User{
+			ID:           uuid.New(),
+			Name:         "Admin User",
+			PrimaryEmail: email,
+			Role:         authSchema.RoleAdmin,
+			IsActive:     true,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+
+		if err := ctx.DB.Create(&user).Error; err != nil {
+			return err
+		}
 	}
 
-	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	user := authSchema.User{
-		ID:           uuid.New(),
-		Name:         "Admin User",
-		PrimaryEmail: email,
-		Role:         authSchema.RoleAdmin,
-		IsActive:     true,
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-	}
-
-	if err := ctx.DB.Create(&user).Error; err != nil {
-		return err
-	}
-
-	// Create password identity
-	passwordHash := string(hashedPassword)
-	identity := authSchema.UserIdentity{
-		ID:            uuid.New(),
-		UserID:        user.ID,
-		Provider:      "password",
-		ProviderID:    email,
-		Email:         email,
-		EmailVerified: true,
-		PasswordHash:  &passwordHash,
-		CreatedAt:     time.Now(),
-		UpdatedAt:     time.Now(),
-	}
-
-	return ctx.DB.Create(&identity).Error
+	return ensurePasswordIdentity(ctx, user, email, "admin123")
 }
 
 // createTestUser creates a test user with known credentials
 func createTestUser(ctx *SeedContext, email, name string, role authSchema.UserRole, password string) error {
 	// Check if user already exists
-	var existing authSchema.User
-	if err := ctx.DB.Where("primary_email = ?", email).First(&existing).Error; err == nil {
-		return nil // User already exists
+	var user authSchema.User
+	if err := ctx.DB.Where("primary_email = ?", email).First(&user).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		lastLogin := utils.RandomPastDate(30)
+		user = authSchema.User{
+			ID:           uuid.New(),
+			Name:         name,
+			PrimaryEmail: email,
+			Role:         role,
+			IsActive:     true,
+			LastLoginAt:  &lastLogin,
+			CreatedAt:    utils.RandomPastDate(180),
+			UpdatedAt:    time.Now(),
+		}
+
+		if err := ctx.DB.Create(&user).Error; err != nil {
+			return err
+		}
 	}
 
-	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	lastLogin := utils.RandomPastDate(30)
-	user := authSchema.User{
-		ID:           uuid.New(),
-		Name:         name,
-		PrimaryEmail: email,
-		Role:         role,
-		IsActive:     true,
-		LastLoginAt:  &lastLogin,
-		CreatedAt:    utils.RandomPastDate(180),
-		UpdatedAt:    time.Now(),
-	}
-
-	if err := ctx.DB.Create(&user).Error; err != nil {
-		return err
-	}
-
-	// Create password identity
-	passwordHashStr := string(hashedPassword)
-	identity := authSchema.UserIdentity{
-		ID:            uuid.New(),
-		UserID:        user.ID,
-		Provider:      "password",
-		ProviderID:    email,
-		Email:         email,
-		EmailVerified: true,
-		PasswordHash:  &passwordHashStr,
-		LastUsedAt:    user.LastLoginAt,
-		CreatedAt:     user.CreatedAt,
-		UpdatedAt:     time.Now(),
-	}
-
-	return ctx.DB.Create(&identity).Error
+	return ensurePasswordIdentity(ctx, user, email, password)
 }
 
 // createRandomUser creates a random user with OAuth identity
@@ -160,28 +125,95 @@ func createRandomUser(ctx *SeedContext) error {
 		role = authSchema.RoleStaff
 	}
 
-	lastLogin := utils.RandomPastDate(60)
-	user := authSchema.User{
-		ID:           uuid.New(),
-		Name:         name,
-		PrimaryEmail: email,
-		Role:         role,
-		IsActive:     true,
-		LastLoginAt:  &lastLogin,
-		CreatedAt:    utils.RandomPastDate(365),
-		UpdatedAt:    time.Now(),
+	var user authSchema.User
+	if err := ctx.DB.Where("primary_email = ?", email).First(&user).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		lastLogin := utils.RandomPastDate(60)
+		user = authSchema.User{
+			ID:           uuid.New(),
+			Name:         name,
+			PrimaryEmail: email,
+			Role:         role,
+			IsActive:     true,
+			LastLoginAt:  &lastLogin,
+			CreatedAt:    utils.RandomPastDate(365),
+			UpdatedAt:    time.Now(),
+		}
+
+		if err := ctx.DB.Create(&user).Error; err != nil {
+			return err
+		}
 	}
 
-	if err := ctx.DB.Create(&user).Error; err != nil {
+	return ensureGoogleIdentity(ctx, user, email)
+}
+
+func ensurePasswordIdentity(ctx *SeedContext, user authSchema.User, email, password string) error {
+	var existing authSchema.UserIdentity
+	if err := ctx.DB.Where("user_id = ? AND provider = ?", user.ID, "password").First(&existing).Error; err == nil {
+		if existing.PasswordHash != nil {
+			return nil
+		}
+
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		passwordHash := string(hashedPassword)
+		updates := map[string]any{
+			"password_hash":  &passwordHash,
+			"email":          email,
+			"provider_id":    email,
+			"email_verified": true,
+		}
+
+		return ctx.DB.Model(&existing).Updates(updates).Error
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
 
-	// Create Google OAuth identity
-	googleIdentity := authSchema.UserIdentity{
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	passwordHash := string(hashedPassword)
+
+	identity := authSchema.UserIdentity{
+		ID:            uuid.New(),
+		UserID:        user.ID,
+		Provider:      "password",
+		ProviderID:    email,
+		Email:         email,
+		EmailVerified: true,
+		PasswordHash:  &passwordHash,
+		LastUsedAt:    user.LastLoginAt,
+		CreatedAt:     user.CreatedAt,
+		UpdatedAt:     time.Now(),
+	}
+
+	return ctx.DB.Create(&identity).Error
+}
+
+func ensureGoogleIdentity(ctx *SeedContext, user authSchema.User, email string) error {
+	var existing authSchema.UserIdentity
+	if err := ctx.DB.Where("user_id = ? AND provider = ?", user.ID, "google").First(&existing).Error; err == nil {
+		if existing.Email != "" {
+			return nil
+		}
+		return ctx.DB.Model(&existing).Update("email", email).Error
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+
+	providerID := fmt.Sprintf("google_%s", user.ID.String())
+	identity := authSchema.UserIdentity{
 		ID:            uuid.New(),
 		UserID:        user.ID,
 		Provider:      "google",
-		ProviderID:    fmt.Sprintf("google_%s", utils.RandomString(20)),
+		ProviderID:    providerID,
 		Email:         email,
 		EmailVerified: true,
 		LastUsedAt:    user.LastLoginAt,
@@ -189,5 +221,5 @@ func createRandomUser(ctx *SeedContext) error {
 		UpdatedAt:     time.Now(),
 	}
 
-	return ctx.DB.Create(&googleIdentity).Error
+	return ctx.DB.Create(&identity).Error
 }

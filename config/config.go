@@ -47,12 +47,7 @@ func Load() *GlobalConfig {
 			},
 			Storage: StorageConfig{
 				DB: DBConfig{
-					DBHost:     must("DB_HOST"),
-					DBUser:     must("DB_USER"),
-					DbName:     must("DB_NAME"),
-					DBPassword: must("DB_PASSWORD"),
-					DBPort:     must("DB_PORT"),
-					DBSslmode:  def("DB_SSLMODE", "disable"),
+					DatabaseURL: must("DATABASE_URL"),
 				},
 				Redis: RedisConfig{
 					Addr: must("REDIS_ADDR"),

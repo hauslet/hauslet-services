@@ -7,10 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"hauslet/config"
 	"hauslet/db/seeds/seeders"
-	"hauslet/internal/platform/database"
 
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -20,9 +19,6 @@ func main() {
 	modules := flag.String("modules", "all", "Comma-separated list of modules to seed (e.g., auth,property) or 'all'")
 	clearFirst := flag.Bool("clear", false, "Clear existing data before seeding")
 	flag.Parse()
-
-	// Load application config
-	appConfig := config.Load()
 
 	// Get seed configuration
 	var seedConfig *seeders.SeedConfig
@@ -71,18 +67,13 @@ func main() {
 		}
 	}
 
-	// Use DATABASE_URL from environment or config
-	if seedConfig.DatabaseURL == "" && appConfig != nil {
-		// Config doesn't have direct Database field, skip
-	}
-
 	if seedConfig.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL is required. Set it via environment variable.")
 	}
 
 	// Initialize database connection
 	fmt.Println("🔌 Connecting to database...")
-	db, err := database.NewPostgres(&appConfig.Storage.DB, appConfig.App.Env)
+	db, err := gorm.Open(postgres.Open(seedConfig.DatabaseURL), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
@@ -91,6 +82,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to get database instance: %v", err)
 	}
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(time.Hour)
 	defer sqlDB.Close()
 
 	fmt.Println("✅ Database connected successfully")
@@ -265,3 +259,5 @@ func printSummary(db *gorm.DB) {
 		fmt.Printf("  - %s: %d\n", cp.name, count)
 	}
 }
+
+

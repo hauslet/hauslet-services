@@ -47,12 +47,7 @@ type StorageConfig struct {
 }
 
 type DBConfig struct {
-	DBHost     string
-	DBUser     string
-	DbName     string
-	DBPassword string
-	DBPort     string
-	DBSslmode  string
+	DatabaseURL string
 }
 
 type RedisConfig struct {

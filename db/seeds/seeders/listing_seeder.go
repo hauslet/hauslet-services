@@ -23,11 +23,6 @@ type propertySeed struct {
 	Bedrooms     *int
 }
 
-type profileSeed struct {
-	UserID    uuid.UUID
-	UserTypes pq.StringArray
-}
-
 // SeedListing seeds property listings linked to existing users and properties.
 func SeedListing(ctx *SeedContext) error {
 	var properties []propertySeed
@@ -86,13 +81,23 @@ func loadOwnerTypes(ctx *SeedContext) (map[uuid.UUID]propertySchema.OwnerType, e
 		return ownerTypes, nil
 	}
 
-	var profiles []profileSeed
-	if err := ctx.DB.Table("profiles").Select("user_id, user_types").Scan(&profiles).Error; err != nil {
+	rows, err := ctx.DB.Table("profiles").Select("user_id, user_types").Rows()
+	if err != nil {
 		return nil, fmt.Errorf("failed to fetch profiles: %w", err)
 	}
+	defer rows.Close()
 
-	for _, profile := range profiles {
-		ownerTypes[profile.UserID] = ownerTypeFromUserTypes(profile.UserTypes)
+	for rows.Next() {
+		var userID uuid.UUID
+		var userTypes pq.StringArray
+		if err := rows.Scan(&userID, &userTypes); err != nil {
+			return nil, fmt.Errorf("failed to scan profiles: %w", err)
+		}
+		ownerTypes[userID] = ownerTypeFromUserTypes(userTypes)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate profiles: %w", err)
 	}
 
 	return ownerTypes, nil

@@ -29,7 +29,7 @@ config/
 **Purpose:** Deployment-specific values and secrets
 
 **Examples:**
-- Database credentials (`DB_PASSWORD`, `DB_HOST`)
+- Database connection string (`DATABASE_URL`)
 - API keys (`GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`)
 - Service endpoints (`REDIS_ADDR`, `CLOUD_TASKS_WORKER_URL`)
 - Encryption keys (`JWT_SECRET`, `ENCRYPTION_KEY`)
@@ -37,7 +37,7 @@ config/
 **Access in code:**
 ```go
 cfg := config.Load()
-dbPassword := cfg.Storage.DB.DBPassword  // From ENV
+dbURL := cfg.Storage.DB.DatabaseURL  // From ENV
 workerURL := cfg.Infra.CloudTasks.WorkerBaseURL // From ENV
 ```
 
@@ -114,7 +114,7 @@ func main() {
     cfg := config.Load()
 
     // Access ENV-based config
-    dbHost := cfg.Storage.DB.DBHost
+    dbURL := cfg.Storage.DB.DatabaseURL
     workerURL := cfg.Infra.CloudTasks.WorkerBaseURL
 
     // Access YAML-based config
