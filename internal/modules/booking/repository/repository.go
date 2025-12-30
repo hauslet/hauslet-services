@@ -176,3 +176,32 @@ func (r *BookingRepositoryImpl) FindBookingsReadyForCompletion(
 
 	return bookings, nil
 }
+
+// FindCompletedBookingsInRange finds bookings completed within a specific time range
+// Used by the review reminder system to find bookings that need review invites/reminders
+func (r *BookingRepositoryImpl) FindCompletedBookingsInRange(
+	ctx context.Context,
+	startTime, endTime time.Time,
+	limit int,
+) ([]*schema.Booking, error) {
+	var bookings []*schema.Booking
+
+	// Query completed bookings within the time range
+	query := r.db.WithContext(ctx).
+		Where("status = ?", schema.BookingStatusCompleted).
+		Where("completed_at IS NOT NULL").
+		Where("completed_at >= ?", startTime).
+		Where("completed_at <= ?", endTime).
+		Order("completed_at ASC")
+
+	// Apply limit if specified (0 = no limit)
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+
+	if err := query.Find(&bookings).Error; err != nil {
+		return nil, err
+	}
+
+	return bookings, nil
+}

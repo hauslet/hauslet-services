@@ -29,6 +29,10 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/booking/expiry",
 		Timeout: 60 * time.Second,
 	},
+	"booking_completion": {
+		Path:    "/tasks/booking/completion",
+		Timeout: 60 * time.Second,
+	},
 	"booking_refund": {
 		Path:    "/tasks/booking/refund",
 		Timeout: 60 * time.Second,

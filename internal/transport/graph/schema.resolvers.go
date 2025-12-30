@@ -18,6 +18,8 @@ import (
 	graphql1 "hauslet/internal/modules/payments/port/graphql"
 	domain1 "hauslet/internal/modules/profile/domain"
 	"hauslet/internal/modules/property/domain"
+	domain8 "hauslet/internal/modules/review/domain"
+	graphql3 "hauslet/internal/modules/review/port/graphql"
 	domain4 "hauslet/internal/modules/wishlist/domain"
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/transport/graph/model"
@@ -59,37 +61,59 @@ func (r *completeBookingPayloadResolver) PaymentID(ctx context.Context, obj *boo
 
 // TransferCode is the resolver for the transferCode field.
 func (r *disbursementResolver) TransferCode(ctx context.Context, obj *domain7.Disbursement) (*string, error) {
-	panic(fmt.Errorf("not implemented: TransferCode - transferCode"))
+	return obj.TransferCode, nil
 }
 
 // NextRetryAt is the resolver for the nextRetryAt field.
 func (r *disbursementResolver) NextRetryAt(ctx context.Context, obj *domain7.Disbursement) (*time.Time, error) {
-	panic(fmt.Errorf("not implemented: NextRetryAt - nextRetryAt"))
+	return obj.NextRetryAt, nil
 }
 
 // CompletedAt is the resolver for the completedAt field.
 func (r *disbursementResolver) CompletedAt(ctx context.Context, obj *domain7.Disbursement) (*time.Time, error) {
-	panic(fmt.Errorf("not implemented: CompletedAt - completedAt"))
+	return obj.CompletedAt, nil
 }
 
 // FailureReason is the resolver for the failureReason field.
 func (r *disbursementResolver) FailureReason(ctx context.Context, obj *domain7.Disbursement) (*string, error) {
-	panic(fmt.Errorf("not implemented: FailureReason - failureReason"))
+	return obj.FailureReason, nil
 }
 
 // ResourceType is the resolver for the resourceType field.
 func (r *financeTransactionResolver) ResourceType(ctx context.Context, obj *domain7.Transaction) (string, error) {
-	panic(fmt.Errorf("not implemented: ResourceType - resourceType"))
+	return string(obj.ResourceType), nil
 }
 
 // Metadata is the resolver for the metadata field.
 func (r *financeTransactionResolver) Metadata(ctx context.Context, obj *domain7.Transaction) (map[string]any, error) {
-	panic(fmt.Errorf("not implemented: Metadata - metadata"))
+	return obj.Metadata, nil
+}
+
+// TotalReviews is the resolver for the totalReviews field.
+func (r *hostStatsResolver) TotalReviews(ctx context.Context, obj *domain8.HostStats) (int, error) {
+	return obj.TotalReviewCount, nil
+}
+
+// AverageRating is the resolver for the averageRating field.
+func (r *hostStatsResolver) AverageRating(ctx context.Context, obj *domain8.HostStats) (float64, error) {
+	return obj.GlobalAverageRating, nil
+}
+
+// RatingDistribution is the resolver for the ratingDistribution field.
+func (r *hostStatsResolver) RatingDistribution(ctx context.Context, obj *domain8.HostStats) (*domain8.RatingDistribution, error) {
+	// NOTE: RatingDistribution is not currently in domain.HostStats
+	// TODO: Add this field to domain.HostStats or remove from GraphQL schema
+	return nil, nil
+}
+
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *hostStatsResolver) UpdatedAt(ctx context.Context, obj *domain8.HostStats) (*time.Time, error) {
+	return &obj.LastUpdatedAt, nil
 }
 
 // ResourceType is the resolver for the resourceType field.
 func (r *ledgerEntryResolver) ResourceType(ctx context.Context, obj *domain7.LedgerEntry) (string, error) {
-	panic(fmt.Errorf("not implemented: ResourceType - resourceType"))
+	return string(obj.ResourceType), nil
 }
 
 // OwnerProfile is the resolver for the ownerProfile field.
@@ -105,6 +129,64 @@ func (r *listingResolver) Property(ctx context.Context, obj *domain.Listing) (*d
 // Thumbnails is the resolver for the thumbnails field.
 func (r *listingMediaResolver) Thumbnails(ctx context.Context, obj *domain.ListingMedia) ([]*domain.ThumbnailVariant, error) {
 	return r.PropertyResolver.ListingMediaThumbnails(ctx, obj)
+}
+
+// TotalReviews is the resolver for the totalReviews field.
+func (r *listingStatsResolver) TotalReviews(ctx context.Context, obj *domain8.ListingStats) (int, error) {
+	return obj.ReviewCount, nil
+}
+
+// AverageCleanliness is the resolver for the averageCleanliness field.
+func (r *listingStatsResolver) AverageCleanliness(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
+	if obj.SubRatingAverages == nil {
+		return nil, nil
+	}
+	return &obj.SubRatingAverages.Cleanliness, nil
+}
+
+// AverageAccuracy is the resolver for the averageAccuracy field.
+func (r *listingStatsResolver) AverageAccuracy(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
+	if obj.SubRatingAverages == nil {
+		return nil, nil
+	}
+	return &obj.SubRatingAverages.Accuracy, nil
+}
+
+// AverageCommunication is the resolver for the averageCommunication field.
+func (r *listingStatsResolver) AverageCommunication(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
+	if obj.SubRatingAverages == nil {
+		return nil, nil
+	}
+	return &obj.SubRatingAverages.Communication, nil
+}
+
+// AverageLocation is the resolver for the averageLocation field.
+func (r *listingStatsResolver) AverageLocation(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
+	if obj.SubRatingAverages == nil {
+		return nil, nil
+	}
+	return &obj.SubRatingAverages.Location, nil
+}
+
+// AverageCheckin is the resolver for the averageCheckin field.
+func (r *listingStatsResolver) AverageCheckin(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
+	if obj.SubRatingAverages == nil {
+		return nil, nil
+	}
+	return &obj.SubRatingAverages.CheckIn, nil
+}
+
+// AverageValue is the resolver for the averageValue field.
+func (r *listingStatsResolver) AverageValue(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
+	if obj.SubRatingAverages == nil {
+		return nil, nil
+	}
+	return &obj.SubRatingAverages.Value, nil
+}
+
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *listingStatsResolver) UpdatedAt(ctx context.Context, obj *domain8.ListingStats) (*time.Time, error) {
+	return &obj.LastUpdatedAt, nil
 }
 
 // Ping is the resolver for the ping field.
@@ -342,6 +424,48 @@ func (r *mutationResolver) CreatePayout(ctx context.Context, input model.CreateP
 	return r.PaymentsResolver.CreatePayout(ctx, payoutInput)
 }
 
+// FileDispute is the resolver for the fileDispute field.
+func (r *mutationResolver) FileDispute(ctx context.Context, input model.FileDisputeInput) (*domain7.Dispute, error) {
+	return r.FinanceResolver.FileDispute(ctx, graphql2.FileDisputeInput{
+		BookingID:   input.BookingID.String(),
+		Reason:      input.Reason,
+		Description: input.Description,
+		Amount:      int64(input.Amount),
+		Currency:    input.Currency,
+	})
+}
+
+// InvestigateDispute is the resolver for the investigateDispute field.
+func (r *mutationResolver) InvestigateDispute(ctx context.Context, disputeID uuid.UUID) (*domain7.Dispute, error) {
+	return r.FinanceResolver.InvestigateDispute(ctx, disputeID.String())
+}
+
+// ResolveDispute is the resolver for the resolveDispute field.
+func (r *mutationResolver) ResolveDispute(ctx context.Context, input model.ResolveDisputeInput) (*domain7.Dispute, error) {
+	return r.FinanceResolver.ResolveDispute(ctx, graphql2.ResolveDisputeInput{
+		DisputeID:    input.DisputeID.String(),
+		Outcome:      input.Outcome,
+		RefundAmount: int64(input.RefundAmount),
+		Reason:       input.Reason,
+		Notes:        input.Notes,
+	})
+}
+
+// CancelDispute is the resolver for the cancelDispute field.
+func (r *mutationResolver) CancelDispute(ctx context.Context, disputeID uuid.UUID) (*domain7.Dispute, error) {
+	return r.FinanceResolver.CancelDispute(ctx, disputeID.String())
+}
+
+// AddDisputeEvidence is the resolver for the addDisputeEvidence field.
+func (r *mutationResolver) AddDisputeEvidence(ctx context.Context, input model.AddDisputeEvidenceInput) (*domain7.Dispute, error) {
+	return r.FinanceResolver.AddDisputeEvidence(ctx, graphql2.AddDisputeEvidenceInput{
+		DisputeID:   input.DisputeID.String(),
+		Type:        input.Type,
+		URL:         input.URL,
+		Description: input.Description,
+	})
+}
+
 // CreateWishlist is the resolver for the createWishlist field.
 func (r *mutationResolver) CreateWishlist(ctx context.Context, input model.CreateWishlistInput) (*domain4.Wishlist, error) {
 	return r.WishlistResolver.CreateWishlist(ctx, input)
@@ -370,6 +494,56 @@ func (r *mutationResolver) RemoveWishlistItem(ctx context.Context, wishlistID uu
 // ImportWishlist is the resolver for the importWishlist field.
 func (r *mutationResolver) ImportWishlist(ctx context.Context, sourceWishlistID uuid.UUID, newName *string) (*domain4.Wishlist, error) {
 	return r.WishlistResolver.ImportWishlist(ctx, sourceWishlistID, newName)
+}
+
+// CreateReview is the resolver for the createReview field.
+func (r *mutationResolver) CreateReview(ctx context.Context, input graphql3.CreateReviewInput) (*domain8.Review, error) {
+	return r.ReviewResolver.CreateReview(ctx, input)
+}
+
+// UpdateReview is the resolver for the updateReview field.
+func (r *mutationResolver) UpdateReview(ctx context.Context, reviewID uuid.UUID, input graphql3.UpdateReviewInput) (*domain8.Review, error) {
+	return r.ReviewResolver.UpdateReview(ctx, reviewID.String(), input)
+}
+
+// DeleteReview is the resolver for the deleteReview field.
+func (r *mutationResolver) DeleteReview(ctx context.Context, reviewID uuid.UUID) (bool, error) {
+	return r.ReviewResolver.DeleteReview(ctx, reviewID.String())
+}
+
+// PublishReview is the resolver for the publishReview field.
+func (r *mutationResolver) PublishReview(ctx context.Context, reviewID uuid.UUID) (*domain8.Review, error) {
+	return r.ReviewResolver.PublishReview(ctx, reviewID.String())
+}
+
+// HideReview is the resolver for the hideReview field.
+func (r *mutationResolver) HideReview(ctx context.Context, reviewID uuid.UUID, reason domain8.ModerationReason) (*domain8.Review, error) {
+	return r.ReviewResolver.HideReview(ctx, reviewID.String(), reason)
+}
+
+// UnhideReview is the resolver for the unhideReview field.
+func (r *mutationResolver) UnhideReview(ctx context.Context, reviewID uuid.UUID) (*domain8.Review, error) {
+	return r.ReviewResolver.UnhideReview(ctx, reviewID.String())
+}
+
+// ReportReview is the resolver for the reportReview field.
+func (r *mutationResolver) ReportReview(ctx context.Context, reviewID uuid.UUID, reason string) (bool, error) {
+	return r.ReviewResolver.ReportReview(ctx, reviewID.String(), reason)
+}
+
+// CreateResponse is the resolver for the createResponse field.
+func (r *mutationResolver) CreateResponse(ctx context.Context, reviewID uuid.UUID, body string) (*domain8.ReviewResponse, error) {
+	return r.ReviewResolver.CreateResponse(ctx, reviewID.String(), body)
+}
+
+// UpdateResponse is the resolver for the updateResponse field.
+func (r *mutationResolver) UpdateResponse(ctx context.Context, responseID uuid.UUID, body string) (*domain8.ReviewResponse, error) {
+	return r.ReviewResolver.UpdateResponse(ctx, responseID.String(), body)
+}
+
+// DeleteResponse is the resolver for the deleteResponse field.
+func (r *mutationResolver) DeleteResponse(ctx context.Context, responseID uuid.UUID) (bool, error) {
+	return r.ReviewResolver.DeleteResponse(ctx, responseID.String())
 }
 
 // Currency is the resolver for the currency field.
@@ -832,32 +1006,72 @@ func (r *queryResolver) PayoutDetails(ctx context.Context, businessID uuid.UUID)
 
 // Wallet is the resolver for the wallet field.
 func (r *queryResolver) Wallet(ctx context.Context, id uuid.UUID) (*domain7.Wallet, error) {
-	panic(fmt.Errorf("not implemented: Wallet - wallet"))
+	return r.FinanceResolver.Wallet(ctx, id.String())
 }
 
 // UserWallets is the resolver for the userWallets field.
 func (r *queryResolver) UserWallets(ctx context.Context, userID uuid.UUID) ([]*domain7.Wallet, error) {
-	panic(fmt.Errorf("not implemented: UserWallets - userWallets"))
+	return r.FinanceResolver.UserWallets(ctx, userID.String())
 }
 
 // FinanceTransactionHistory is the resolver for the financeTransactionHistory field.
 func (r *queryResolver) FinanceTransactionHistory(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*domain7.Transaction, error) {
-	panic(fmt.Errorf("not implemented: FinanceTransactionHistory - financeTransactionHistory"))
+	return r.FinanceResolver.FinanceTransactionHistory(ctx, resourceType, resourceID.String())
 }
 
 // WalletLedger is the resolver for the walletLedger field.
 func (r *queryResolver) WalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain7.LedgerEntry, error) {
-	panic(fmt.Errorf("not implemented: WalletLedger - walletLedger"))
+	return r.FinanceResolver.WalletLedger(ctx, walletID.String(), limit, offset)
 }
 
 // Disbursement is the resolver for the disbursement field.
 func (r *queryResolver) Disbursement(ctx context.Context, id uuid.UUID) (*domain7.Disbursement, error) {
-	panic(fmt.Errorf("not implemented: Disbursement - disbursement"))
+	return r.FinanceResolver.Disbursement(ctx, id.String())
 }
 
 // MyEarnings is the resolver for the myEarnings field.
 func (r *queryResolver) MyEarnings(ctx context.Context) (*graphql2.EarningsSummary, error) {
-	panic(fmt.Errorf("not implemented: MyEarnings - myEarnings"))
+	return r.FinanceResolver.MyEarnings(ctx)
+}
+
+// Dispute is the resolver for the dispute field.
+func (r *queryResolver) Dispute(ctx context.Context, id uuid.UUID) (*domain7.Dispute, error) {
+	return r.FinanceResolver.Dispute(ctx, id.String())
+}
+
+// DisputeByBooking is the resolver for the disputeByBooking field.
+func (r *queryResolver) DisputeByBooking(ctx context.Context, bookingID uuid.UUID) (*domain7.Dispute, error) {
+	return r.FinanceResolver.DisputeByBooking(ctx, bookingID.String())
+}
+
+// Disputes is the resolver for the disputes field.
+func (r *queryResolver) Disputes(ctx context.Context, status *domain7.DisputeStatus, limit *int, offset *int) ([]*domain7.Dispute, error) {
+	return r.FinanceResolver.Disputes(ctx, status, limit, offset)
+}
+
+// MyDisputes is the resolver for the myDisputes field.
+func (r *queryResolver) MyDisputes(ctx context.Context, limit *int, offset *int) ([]*domain7.Dispute, error) {
+	return r.FinanceResolver.MyDisputes(ctx, limit, offset)
+}
+
+// ReconciliationReport is the resolver for the reconciliationReport field.
+func (r *queryResolver) ReconciliationReport(ctx context.Context, id uuid.UUID) (*domain7.ReconciliationReport, error) {
+	return r.FinanceResolver.ReconciliationReport(ctx, id.String())
+}
+
+// ReconciliationReports is the resolver for the reconciliationReports field.
+func (r *queryResolver) ReconciliationReports(ctx context.Context, limit *int, offset *int) ([]*domain7.ReconciliationReport, error) {
+	return r.FinanceResolver.ReconciliationReports(ctx, limit, offset)
+}
+
+// LatestReconciliation is the resolver for the latestReconciliation field.
+func (r *queryResolver) LatestReconciliation(ctx context.Context) (*domain7.ReconciliationReport, error) {
+	return r.FinanceResolver.LatestReconciliation(ctx)
+}
+
+// ReconciliationDiscrepancies is the resolver for the reconciliationDiscrepancies field.
+func (r *queryResolver) ReconciliationDiscrepancies(ctx context.Context, reportID uuid.UUID, severity *domain7.DiscrepancySeverity) ([]*domain7.Discrepancy, error) {
+	return r.FinanceResolver.ReconciliationDiscrepancies(ctx, reportID.String(), severity)
 }
 
 // Wishlist is the resolver for the wishlist field.
@@ -880,6 +1094,66 @@ func (r *queryResolver) IsListingInWishlist(ctx context.Context, wishlistID uuid
 	return r.WishlistResolver.IsListingInWishlist(ctx, wishlistID, listingID)
 }
 
+// Review is the resolver for the review field.
+func (r *queryResolver) Review(ctx context.Context, id uuid.UUID) (*domain8.Review, error) {
+	return r.ReviewResolver.Review(ctx, id.String())
+}
+
+// ReviewForBooking is the resolver for the reviewForBooking field.
+func (r *queryResolver) ReviewForBooking(ctx context.Context, bookingID uuid.UUID) (*domain8.Review, error) {
+	return r.ReviewResolver.ReviewForBooking(ctx, bookingID.String())
+}
+
+// Reviews is the resolver for the reviews field.
+func (r *queryResolver) Reviews(ctx context.Context, targetType domain8.ReviewTargetType, targetID uuid.UUID, filter *graphql3.ReviewFilterInput) ([]*domain8.Review, error) {
+	return r.ReviewResolver.Reviews(ctx, targetType, targetID.String(), filter)
+}
+
+// UserReviews is the resolver for the userReviews field.
+func (r *queryResolver) UserReviews(ctx context.Context, userID uuid.UUID, limit *int, offset *int) ([]*domain8.Review, error) {
+	return r.ReviewResolver.UserReviews(ctx, userID.String(), limit, offset)
+}
+
+// ListingStats is the resolver for the listingStats field.
+func (r *queryResolver) ListingStats(ctx context.Context, listingID uuid.UUID) (*domain8.ListingStats, error) {
+	return r.ReviewResolver.ListingStats(ctx, listingID.String())
+}
+
+// HostStats is the resolver for the hostStats field.
+func (r *queryResolver) HostStats(ctx context.Context, hostID uuid.UUID) (*domain8.HostStats, error) {
+	return r.ReviewResolver.HostStats(ctx, hostID.String())
+}
+
+// ReviewResponse is the resolver for the reviewResponse field.
+func (r *queryResolver) ReviewResponse(ctx context.Context, reviewID uuid.UUID) (*domain8.ReviewResponse, error) {
+	return r.ReviewResolver.ReviewResponse(ctx, reviewID.String())
+}
+
+// OneStar is the resolver for the oneStar field.
+func (r *ratingDistributionResolver) OneStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
+	return obj.OneStarCount, nil
+}
+
+// TwoStar is the resolver for the twoStar field.
+func (r *ratingDistributionResolver) TwoStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
+	return obj.TwoStarCount, nil
+}
+
+// ThreeStar is the resolver for the threeStar field.
+func (r *ratingDistributionResolver) ThreeStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
+	return obj.ThreeStarCount, nil
+}
+
+// FourStar is the resolver for the fourStar field.
+func (r *ratingDistributionResolver) FourStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
+	return obj.FourStarCount, nil
+}
+
+// FiveStar is the resolver for the fiveStar field.
+func (r *ratingDistributionResolver) FiveStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
+	return obj.FiveStarCount, nil
+}
+
 // ServiceCharges is the resolver for the serviceCharges field.
 func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain.RentalDetail) ([]*domain.ServiceCharge, error) {
 	if obj == nil || obj.ServiceChargeBreakdown == nil {
@@ -892,6 +1166,34 @@ func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain.R
 		charges[i] = &c
 	}
 	return charges, nil
+}
+
+// Visibility is the resolver for the visibility field.
+func (r *reviewResolver) Visibility(ctx context.Context, obj *domain8.Review) (model.ReviewVisibility, error) {
+	switch obj.Status {
+	case domain8.ReviewStatusPublished:
+		return model.ReviewVisibilityVisible, nil
+	case domain8.ReviewStatusHidden:
+		return model.ReviewVisibilityHidden, nil
+	default:
+		return model.ReviewVisibilityHidden, nil
+	}
+}
+
+// CountryCode is the resolver for the countryCode field.
+func (r *reviewResolver) CountryCode(ctx context.Context, obj *domain8.Review) (*string, error) {
+	if obj.ReviewerCountryCode == "" {
+		return nil, nil
+	}
+	return &obj.ReviewerCountryCode, nil
+}
+
+// HiddenAt is the resolver for the hiddenAt field.
+func (r *reviewResolver) HiddenAt(ctx context.Context, obj *domain8.Review) (*time.Time, error) {
+	if obj.Status == domain8.ReviewStatusHidden {
+		return &obj.UpdatedAt, nil
+	}
+	return nil, nil
 }
 
 // Rules is the resolver for the rules field.
@@ -923,6 +1225,60 @@ func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain.Sal
 		charges[i] = &c
 	}
 	return charges, nil
+}
+
+// Cleanliness is the resolver for the cleanliness field.
+func (r *subRatingsResolver) Cleanliness(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	val := int(obj.Cleanliness)
+	return &val, nil
+}
+
+// Accuracy is the resolver for the accuracy field.
+func (r *subRatingsResolver) Accuracy(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	val := int(obj.Accuracy)
+	return &val, nil
+}
+
+// Communication is the resolver for the communication field.
+func (r *subRatingsResolver) Communication(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	val := int(obj.Communication)
+	return &val, nil
+}
+
+// Location is the resolver for the location field.
+func (r *subRatingsResolver) Location(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	val := int(obj.Location)
+	return &val, nil
+}
+
+// Checkin is the resolver for the checkin field.
+func (r *subRatingsResolver) Checkin(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	val := int(obj.CheckIn)
+	return &val, nil
+}
+
+// Value is the resolver for the value field.
+func (r *subRatingsResolver) Value(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	val := int(obj.Value)
+	return &val, nil
 }
 
 // Currency is the resolver for the currency field.
@@ -971,7 +1327,7 @@ func (r *travelCompanionResolver) Relationship(ctx context.Context, obj *domain1
 
 // OwnerType is the resolver for the ownerType field.
 func (r *walletResolver) OwnerType(ctx context.Context, obj *domain7.Wallet) (string, error) {
-	panic(fmt.Errorf("not implemented: OwnerType - ownerType"))
+	return string(obj.OwnerType), nil
 }
 
 // ItemCount is the resolver for the itemCount field.
@@ -991,47 +1347,97 @@ func (r *wishlistItemResolver) Listing(ctx context.Context, obj *domain4.Wishlis
 
 // BookingID is the resolver for the bookingId field.
 func (r *createPaymentInputResolver) BookingID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error {
-	panic(fmt.Errorf("not implemented: BookingID - bookingId"))
+	if data == nil {
+		obj.BookingID = nil
+		return nil
+	}
+	value := data.String()
+	obj.BookingID = &value
+	return nil
 }
 
 // BusinessID is the resolver for the businessId field.
 func (r *createPaymentInputResolver) BusinessID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error {
-	panic(fmt.Errorf("not implemented: BusinessID - businessId"))
+	if data == nil {
+		obj.BusinessID = nil
+		return nil
+	}
+	value := data.String()
+	obj.BusinessID = &value
+	return nil
 }
 
 // Currency is the resolver for the currency field.
 func (r *createPaymentInputResolver) Currency(ctx context.Context, obj *graphql1.CreatePaymentInput, data string) error {
-	panic(fmt.Errorf("not implemented: Currency - currency"))
+	obj.Currency = payment.Currency(data)
+	return nil
 }
 
 // Metadata is the resolver for the metadata field.
 func (r *createPaymentInputResolver) Metadata(ctx context.Context, obj *graphql1.CreatePaymentInput, data map[string]any) error {
-	panic(fmt.Errorf("not implemented: Metadata - metadata"))
+	if data == nil {
+		obj.Metadata = nil
+		return nil
+	}
+	metadata := make(map[string]string, len(data))
+	for key, value := range data {
+		switch typed := value.(type) {
+		case string:
+			metadata[key] = typed
+		default:
+			metadata[key] = fmt.Sprint(typed)
+		}
+	}
+	obj.Metadata = metadata
+	return nil
 }
 
 // PaymentMethodID is the resolver for the paymentMethodId field.
 func (r *createPaymentInputResolver) PaymentMethodID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error {
-	panic(fmt.Errorf("not implemented: PaymentMethodID - paymentMethodId"))
+	if data == nil {
+		obj.PaymentMethodID = nil
+		return nil
+	}
+	value := data.String()
+	obj.PaymentMethodID = &value
+	return nil
 }
 
 // Provider is the resolver for the provider field.
 func (r *createPaymentMethodInputResolver) Provider(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data string) error {
-	panic(fmt.Errorf("not implemented: Provider - provider"))
+	obj.Provider = data
+	return nil
 }
 
 // IsDefault is the resolver for the isDefault field.
 func (r *createPaymentMethodInputResolver) IsDefault(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data *bool) error {
-	panic(fmt.Errorf("not implemented: IsDefault - isDefault"))
+	obj.SetAsDefault = data
+	return nil
 }
 
 // BusinessID is the resolver for the businessId field.
 func (r *createPayoutDetailInputResolver) BusinessID(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data uuid.UUID) error {
-	panic(fmt.Errorf("not implemented: BusinessID - businessId"))
+	value := data.String()
+	obj.BusinessID = &value
+	return nil
+}
+
+// BookingID is the resolver for the bookingId field.
+func (r *createReviewInputResolver) BookingID(ctx context.Context, obj *graphql3.CreateReviewInput, data uuid.UUID) error {
+	obj.BookingID = data.String()
+	return nil
+}
+
+// TargetID is the resolver for the targetId field.
+func (r *createReviewInputResolver) TargetID(ctx context.Context, obj *graphql3.CreateReviewInput, data uuid.UUID) error {
+	obj.TargetID = data.String()
+	return nil
 }
 
 // PaymentID is the resolver for the paymentId field.
 func (r *refundPaymentInputResolver) PaymentID(ctx context.Context, obj *graphql1.RefundPaymentInput, data uuid.UUID) error {
-	panic(fmt.Errorf("not implemented: PaymentID - paymentId"))
+	obj.PaymentID = data.String()
+	return nil
 }
 
 // Business returns BusinessResolver implementation.
@@ -1050,6 +1456,9 @@ func (r *Resolver) FinanceTransaction() FinanceTransactionResolver {
 	return &financeTransactionResolver{r}
 }
 
+// HostStats returns HostStatsResolver implementation.
+func (r *Resolver) HostStats() HostStatsResolver { return &hostStatsResolver{r} }
+
 // LedgerEntry returns LedgerEntryResolver implementation.
 func (r *Resolver) LedgerEntry() LedgerEntryResolver { return &ledgerEntryResolver{r} }
 
@@ -1058,6 +1467,9 @@ func (r *Resolver) Listing() ListingResolver { return &listingResolver{r} }
 
 // ListingMedia returns ListingMediaResolver implementation.
 func (r *Resolver) ListingMedia() ListingMediaResolver { return &listingMediaResolver{r} }
+
+// ListingStats returns ListingStatsResolver implementation.
+func (r *Resolver) ListingStats() ListingStatsResolver { return &listingStatsResolver{r} }
 
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
@@ -1077,14 +1489,25 @@ func (r *Resolver) Property() PropertyResolver { return &propertyResolver{r} }
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// RatingDistribution returns RatingDistributionResolver implementation.
+func (r *Resolver) RatingDistribution() RatingDistributionResolver {
+	return &ratingDistributionResolver{r}
+}
+
 // RentalDetail returns RentalDetailResolver implementation.
 func (r *Resolver) RentalDetail() RentalDetailResolver { return &rentalDetailResolver{r} }
+
+// Review returns ReviewResolver implementation.
+func (r *Resolver) Review() ReviewResolver { return &reviewResolver{r} }
 
 // RuleGroup returns RuleGroupResolver implementation.
 func (r *Resolver) RuleGroup() RuleGroupResolver { return &ruleGroupResolver{r} }
 
 // SaleDetail returns SaleDetailResolver implementation.
 func (r *Resolver) SaleDetail() SaleDetailResolver { return &saleDetailResolver{r} }
+
+// SubRatings returns SubRatingsResolver implementation.
+func (r *Resolver) SubRatings() SubRatingsResolver { return &subRatingsResolver{r} }
 
 // Transaction returns TransactionResolver implementation.
 func (r *Resolver) Transaction() TransactionResolver { return &transactionResolver{r} }
@@ -1116,6 +1539,11 @@ func (r *Resolver) CreatePayoutDetailInput() CreatePayoutDetailInputResolver {
 	return &createPayoutDetailInputResolver{r}
 }
 
+// CreateReviewInput returns CreateReviewInputResolver implementation.
+func (r *Resolver) CreateReviewInput() CreateReviewInputResolver {
+	return &createReviewInputResolver{r}
+}
+
 // RefundPaymentInput returns RefundPaymentInputResolver implementation.
 func (r *Resolver) RefundPaymentInput() RefundPaymentInputResolver {
 	return &refundPaymentInputResolver{r}
@@ -1125,18 +1553,23 @@ type businessResolver struct{ *Resolver }
 type completeBookingPayloadResolver struct{ *Resolver }
 type disbursementResolver struct{ *Resolver }
 type financeTransactionResolver struct{ *Resolver }
+type hostStatsResolver struct{ *Resolver }
 type ledgerEntryResolver struct{ *Resolver }
 type listingResolver struct{ *Resolver }
 type listingMediaResolver struct{ *Resolver }
+type listingStatsResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type paymentResolver struct{ *Resolver }
 type paymentMethodResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
 type propertyResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type ratingDistributionResolver struct{ *Resolver }
 type rentalDetailResolver struct{ *Resolver }
+type reviewResolver struct{ *Resolver }
 type ruleGroupResolver struct{ *Resolver }
 type saleDetailResolver struct{ *Resolver }
+type subRatingsResolver struct{ *Resolver }
 type transactionResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }
 type walletResolver struct{ *Resolver }
@@ -1145,4 +1578,5 @@ type wishlistItemResolver struct{ *Resolver }
 type createPaymentInputResolver struct{ *Resolver }
 type createPaymentMethodInputResolver struct{ *Resolver }
 type createPayoutDetailInputResolver struct{ *Resolver }
+type createReviewInputResolver struct{ *Resolver }
 type refundPaymentInputResolver struct{ *Resolver }

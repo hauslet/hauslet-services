@@ -128,7 +128,7 @@ echo "🧪 Testing Jobs..."
 echo ""
 
 # Test each job
-JOBS=("media-cleanup-scheduler" "booking-expiry-scheduler" "payout-process-scheduler" "disbursement-retry-scheduler")
+JOBS=("media-cleanup-scheduler" "booking-expiry-scheduler" "booking-completion-scheduler" "payout-process-scheduler" "disbursement-retry-scheduler")
 
 for JOB in "${JOBS[@]}"; do
     echo "   Testing $JOB..."

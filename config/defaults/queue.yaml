@@ -14,10 +14,14 @@ queue:
     media_cleanup: "media-cleanup-queue"
     ai_moderation: "ai-moderation-queue"
     booking_expiry: "booking-expiry-queue"
+    booking_completion: "booking-completion-queue"
     booking_refund: "booking-refund-queue"
     payment_webhook: "payment-webhook-queue"
     payout_process: "payout-process-queue"
     payout_retry: "payout-retry-queue"
+    review_stats: "review-stats-queue"
+    review_standoff: "review-standoff-queue"
+    review_reminders: "review-reminders-queue"
 
   # Legacy field (unused for Cloud Tasks)
   consumers:
@@ -28,7 +32,11 @@ queue:
     media_cleanup: "media-cleanup-worker"
     ai_moderation: "ai-moderation-worker"
     booking_expiry: "booking-expiry-worker"
+    booking_completion: "booking-completion-worker"
     booking_refund: "booking-refund-worker"
     payment_webhook: "payment-webhook-worker"
     payout_process: "payout-process-worker"
     payout_retry: "payout-retry-worker"
+    review_stats: "review-stats-worker"
+    review_standoff: "review-standoff-worker"
+    review_reminders: "review-reminders-worker"

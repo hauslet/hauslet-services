@@ -47,6 +47,7 @@ type PlatformYAMLConfig struct {
 	Payouts       PlatformPayoutConfig       `yaml:"payouts"`
 	Refunds       PlatformRefundConfig       `yaml:"refunds"`
 	AutoAccept    PlatformAutoAcceptConfig   `yaml:"auto_accept"`
+	Reviews       PlatformReviewConfig       `yaml:"reviews"`
 	Notifications PlatformNotificationConfig `yaml:"notifications"`
 }
 
@@ -125,6 +126,10 @@ type PlatformNotificationConfig struct {
 	SendPaymentReceipts bool `yaml:"send_payment_receipts"`
 	SendPayoutUpdates   bool `yaml:"send_payout_updates"`
 	SendDisputeAlerts   bool `yaml:"send_dispute_alerts"`
+}
+
+type PlatformReviewConfig struct {
+	ReviewWindowDays int `yaml:"review_window_days"`
 }
 
 // LoadYAMLConfig loads service configuration from YAML files
@@ -308,6 +313,11 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 	}
 	if src.AutoAccept.MinNoticeHours != 0 {
 		dst.AutoAccept.MinNoticeHours = src.AutoAccept.MinNoticeHours
+	}
+
+	// Reviews
+	if src.Reviews.ReviewWindowDays != 0 {
+		dst.Reviews.ReviewWindowDays = src.Reviews.ReviewWindowDays
 	}
 
 	// Notifications

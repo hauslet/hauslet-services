@@ -26,6 +26,7 @@ type ModerationServiceImpl struct {
 	maxAIAttemptCount int
 	propertyHooks     PropertyHooks
 	profileHooks      ProfileHooks
+	reviewHooks       ReviewHooks
 	log               *lgr.Logger
 }
 
@@ -36,6 +37,7 @@ func NewModerationService(repo repository.ModerationRepository,
 	aiSubject string,
 	propertyHooks PropertyHooks,
 	profileHooks ProfileHooks,
+	reviewHooks ReviewHooks,
 	log *lgr.Logger) ModerationService {
 	return &ModerationServiceImpl{
 		repo:              repo,
@@ -45,6 +47,7 @@ func NewModerationService(repo repository.ModerationRepository,
 		maxAIAttemptCount: defaultMaxAttempts,
 		propertyHooks:     propertyHooks,
 		profileHooks:      profileHooks,
+		reviewHooks:       reviewHooks,
 		log:               log,
 	}
 }
@@ -207,6 +210,16 @@ func (s *ModerationServiceImpl) HandleAIJob(ctx context.Context, job moderationj
 		}
 	}
 
+	if serviceAggregate.FinalStatus() != domain.ModerationStatusPending &&
+		s.reviewHooks != nil &&
+		containsReviewContent(serviceAggregate.ContentTypes) {
+		s.log.Logf("[INFO] invoking review hooks for target %s with final status: %s", record.ContentID, serviceAggregate.FinalStatus())
+		if err := s.reviewHooks.OnModerationCompleted(ctx, serviceAggregate); err != nil {
+			s.log.Logf("[ERROR] review hooks failed for target %s: %v", record.ContentID, err)
+			return nil, err
+		}
+	}
+
 	return mapToDomain(record), nil
 }
 
@@ -338,6 +351,16 @@ func containsListingContent(contentTypes []domain.ContentType) bool {
 func containsProfileContent(contentTypes []domain.ContentType) bool {
 	for _, ct := range contentTypes {
 		if ct.IsProfileContent() {
+			return true
+		}
+	}
+	return false
+}
+
+// containsReviewContent checks if any content type relates to reviews.
+func containsReviewContent(contentTypes []domain.ContentType) bool {
+	for _, ct := range contentTypes {
+		if ct.IsReviewContent() {
 			return true
 		}
 	}

@@ -30,6 +30,10 @@ var (
 	ErrCannotDisputeBeforeCheckout = errors.New("cannot dispute booking before checkout")
 	ErrDisputeWindowExpired      = errors.New("dispute filing window has expired")
 
+	// Reconciliation errors
+	ErrReconciliationNotFound = errors.New("reconciliation report not found")
+	ErrReconciliationRunning  = errors.New("reconciliation is already running")
+
 	// General errors
 	ErrInvalidCurrency = errors.New("invalid currency")
 	ErrInvalidOwner    = errors.New("invalid owner type or ID")

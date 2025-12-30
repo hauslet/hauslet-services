@@ -41,12 +41,16 @@ func main() {
 	ready := atomic.Bool{}
 	workerServer := startWorkerServer(cfg, registry, log, &ready)
 
-	// 6) Background publishers - REMOVED: Now handled by Cloud Scheduler
+	// 6) Background publishers - Handled by Cloud Scheduler
 	// Cloud Scheduler jobs trigger these endpoints directly:
 	// - /tasks/media/cleanup (every 15 min)
 	// - /tasks/booking/expiry (every 2 min)
+	// - /tasks/booking/completion (every hour)
 	// - /tasks/finance/payout/process (every hour)
 	// - /tasks/finance/payout/retry (every 15 min)
+	// - /tasks/finance/reconciliation (daily at 2 AM UTC)
+	// - /tasks/review/standoff/publish (daily at midnight UTC)
+	// - /tasks/review/reminders (daily at 10 AM UTC)
 
 	ready.Store(true)
 

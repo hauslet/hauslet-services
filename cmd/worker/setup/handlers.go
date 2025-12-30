@@ -8,10 +8,10 @@ import (
 	"syscall"
 
 	"hauslet/config"
+	bookingnotification "hauslet/internal/modules/booking/notification"
 	bookinghooks "hauslet/internal/modules/booking/port/hooks"
 	bookingrepository "hauslet/internal/modules/booking/repository"
 	bookingservice "hauslet/internal/modules/booking/service"
-	bookingnotification "hauslet/internal/modules/booking/notification"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
 	calendarrepository "hauslet/internal/modules/calendar/repository"
@@ -35,6 +35,10 @@ import (
 	propertynotification "hauslet/internal/modules/property/notification"
 	propertyhooks "hauslet/internal/modules/property/port/hooks"
 	propertyrepository "hauslet/internal/modules/property/repository"
+	reviewnotification "hauslet/internal/modules/review/notification"
+	reviewhooks "hauslet/internal/modules/review/port/hooks"
+	reviewrepository "hauslet/internal/modules/review/repository"
+	reviewservice "hauslet/internal/modules/review/service"
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/queue"
 	bookingHandler "hauslet/internal/transport/worker/handlers/booking"
@@ -43,6 +47,7 @@ import (
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
 	paymentHandler "hauslet/internal/transport/worker/handlers/payments"
+	reviewHandler "hauslet/internal/transport/worker/handlers/review"
 
 	"github.com/go-pkgz/lgr"
 )
@@ -118,34 +123,40 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			qCfg["ai_moderation"],
 			propertyModerationCallback,
 			profileModerationCallback,
+			nil, // TODO: replace nil with reviewHooks after review service is initialized
 			log,
 		)
 		h := moderationHandler.NewAIModerationHandler(modService, log, qCfg["ai_moderation"])
 		registry.Register(h)
 	}
 
-	// Booking expiry handler
+	// Booking expiry/completion handlers
 	hasBookingExpiry := qCfg["booking_expiry"] != ""
+	hasBookingCompletion := qCfg["booking_completion"] != ""
 	hasBookingRefund := qCfg["booking_refund"] != ""
-	if hasBookingExpiry || hasBookingRefund {
+	if hasBookingExpiry || hasBookingCompletion || hasBookingRefund {
 		// Initialize booking dependencies
 		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
 
-		if hasBookingExpiry {
+		if hasBookingExpiry || hasBookingCompletion {
 			// Property/listing hooks (needed to get listing owner for calendar operations)
 			if propertyRepo == nil {
 				propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
 			}
 			listingHooks := bookinghooks.NewPropertyHooksAdapter(propertyRepo)
 
-			// Calendar gateway (needed to cancel expired booking events)
-			calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
-			calendarHooksAdapter := propertyhooks.NewCalendarHooksRepoAdapter(propertyRepo)
-			calendarSvc := calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, log)
+			var calendarSvc calendarservice.CalendarService
+			var pricingSvc pricingservice.PricingService
+			if hasBookingExpiry {
+				// Calendar gateway (needed to cancel expired booking events)
+				calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
+				calendarHooksAdapter := propertyhooks.NewCalendarHooksRepoAdapter(propertyRepo)
+				calendarSvc = calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, log)
 
-			// Pricing service with minimal dependencies
-			pricingRepo := pricingrepository.NewPricingRepository(infra.DB)
-			pricingSvc := pricingservice.NewPricingService(pricingRepo, nil, nil, log, cfg.YAML.Platform)
+				// Pricing service with minimal dependencies
+				pricingRepo := pricingrepository.NewPricingRepository(infra.DB)
+				pricingSvc = pricingservice.NewPricingService(pricingRepo, nil, nil, log, cfg.YAML.Platform)
+			}
 
 			// Finance service and hooks (needed for booking completion)
 			financeWalletRepo := financerepository.NewWalletRepository(infra.DB)
@@ -153,12 +164,14 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
 			financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
 			financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
+			financeReconciliationRepo := financerepository.NewReconciliationRepository(infra.DB)
 			financeSvc := financeservice.NewFinanceService(
 				financeWalletRepo,
 				financeLedgerRepo,
 				financeTransactionRepo,
 				financeDisbursementRepo,
 				financeDisputeRepo,
+				financeReconciliationRepo,
 				nil, // bookingPartyQuerier not needed for worker payment tasks
 				infra.DB,
 				log,
@@ -176,11 +189,18 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 				nil, // refund queue not required for expiry checks
 				"",
 				financeHooksAdapter,
+				nil, // review hooks not required for expiry checks
 				cfg.YAML.Platform,
 				log,
 			)
-			h := bookingHandler.NewBookingExpiryCheckHandler(bookingSvc, log, qCfg["booking_expiry"])
-			registry.Register(h)
+			if hasBookingExpiry {
+				h := bookingHandler.NewBookingExpiryCheckHandler(bookingSvc, log, qCfg["booking_expiry"])
+				registry.Register(h)
+			}
+			if hasBookingCompletion {
+				h := bookingHandler.NewBookingCompletionHandler(bookingSvc, log, qCfg["booking_completion"])
+				registry.Register(h)
+			}
 		}
 
 		if hasBookingRefund {
@@ -231,12 +251,14 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
 		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
 		financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
+		financeReconciliationRepo := financerepository.NewReconciliationRepository(infra.DB)
 		financeSvc := financeservice.NewFinanceService(
 			financeWalletRepo,
 			financeLedgerRepo,
 			financeTransactionRepo,
 			financeDisbursementRepo,
 			financeDisputeRepo,
+			financeReconciliationRepo,
 			nil, // bookingPartyQuerier not needed for worker expiry tasks
 			infra.DB,
 			log,
@@ -254,6 +276,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			nil, // refund queue not needed for webhook processing
 			"",
 			financeHooksAdapter,
+			nil, // review hooks not required for webhook processing
 			cfg.YAML.Platform,
 			log,
 		)
@@ -353,9 +376,9 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 			financeTransactionRepo,
 			financeDisbursementRepo,
 			paymentsRepo,
-			bookingQuerierAdapter,        // Booking querier for finding bookings ready for payout
+			bookingQuerierAdapter, // Booking querier for finding bookings ready for payout
 			financeNotificationSvc,
-			bookingPayoutHooksAdapter,    // Booking hooks for marking bookings as settled after payout
+			bookingPayoutHooksAdapter, // Booking hooks for marking bookings as settled after payout
 			paymentClient,
 			nil, // profile adapter not needed for worker (notifications handled by API)
 			cfg.YAML.Platform,
@@ -370,6 +393,106 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 
 		if hasPayoutRetry {
 			h := financeHandler.NewDisbursementRetryHandler(payoutSvc, log, qCfg["payout_retry"])
+			registry.Register(h)
+		}
+	}
+
+	// Reconciliation handler
+	hasReconciliation := qCfg["finance_reconciliation"] != ""
+	if hasReconciliation {
+		// Initialize finance repositories
+		financeWalletRepo := financerepository.NewWalletRepository(infra.DB)
+		financeLedgerRepo := financerepository.NewLedgerRepository(infra.DB)
+		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
+		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
+		financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
+		financeReconciliationRepo := financerepository.NewReconciliationRepository(infra.DB)
+
+		// Initialize finance service
+		financeSvc := financeservice.NewFinanceService(
+			financeWalletRepo,
+			financeLedgerRepo,
+			financeTransactionRepo,
+			financeDisbursementRepo,
+			financeDisputeRepo,
+			financeReconciliationRepo,
+			nil, // bookingPartyQuerier not needed for reconciliation
+			infra.DB,
+			log,
+		)
+
+		h := financeHandler.NewReconciliationHandler(financeSvc, log, qCfg["finance_reconciliation"])
+		registry.Register(h)
+	}
+
+	// Review handlers
+	hasReviewStats := qCfg["review_stats"] != ""
+	hasReviewStandoff := qCfg["review_standoff"] != ""
+	hasReviewReminders := qCfg["review_reminders"] != ""
+	if hasReviewStats || hasReviewStandoff || hasReviewReminders {
+		// Initialize review dependencies
+		reviewRepo := reviewrepository.NewReviewRepository(infra.DB)
+		responseRepo := reviewrepository.NewResponseRepository(infra.DB)
+		statsRepo := reviewrepository.NewStatsRepository(infra.DB)
+		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
+
+		// Initialize property repo if not already initialized
+		if propertyRepo == nil {
+			propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
+		}
+
+		// Initialize booking querier adapter for review service
+		bookingQuerierAdapter := reviewhooks.NewBookingQuerierAdapter(bookingRepo, propertyRepo)
+
+		// Initialize user querier adapter (wraps profile service)
+		if profileSvc == nil {
+			profileRepo = profilerepository.NewProfileRepository(infra.DB)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+		}
+		userQuerierAdapter := reviewhooks.NewReviewUserAdapter(profileSvc)
+
+		// Initialize review notification service
+		reviewNotificationSvc := reviewnotification.NewNotificationService(
+			infra.Email,
+			infra.Queue,
+			qCfg["email"],
+			cfg.App.Client,
+			log,
+		)
+
+		// Initialize review service (needed for stats and standoff handlers)
+		reviewSvc := reviewservice.NewReviewService(
+			reviewRepo,
+			responseRepo,
+			statsRepo,
+			reviewNotificationSvc,
+			bookingQuerierAdapter,
+			nil, // booking hooks not needed for worker tasks
+			userQuerierAdapter,
+			nil, // moderation service not needed for worker tasks
+			log,
+		)
+
+		if hasReviewStats {
+			h := reviewHandler.NewStatsRecalculationHandler(reviewSvc, log, qCfg["review_stats"])
+			registry.Register(h)
+		}
+
+		if hasReviewStandoff {
+			h := reviewHandler.NewStandoffPublishHandler(reviewSvc, log, qCfg["review_standoff"])
+			registry.Register(h)
+		}
+
+		if hasReviewReminders {
+			h := reviewHandler.NewReminderHandler(
+				bookingRepo,
+				reviewRepo,
+				bookingQuerierAdapter,
+				userQuerierAdapter,
+				reviewNotificationSvc,
+				log,
+				qCfg["review_reminders"],
+			)
 			registry.Register(h)
 		}
 	}

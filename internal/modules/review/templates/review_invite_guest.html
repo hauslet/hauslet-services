@@ -1,0 +1,28 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        How was your stay?
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.GuestName}}, your stay at <strong>{{.ListingTitle}}</strong> is complete.
+        Please leave a review within <strong>{{.ReviewWindowDays}} day(s)</strong>.
+    </p>
+
+    <p style="font-size: 15px; line-height: 24px; text-align: center; color: #000000;">
+        Your feedback helps future guests and helps great hosts stand out.
+    </p>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.ReviewURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            Write Your Review
+        </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        Reviews are published after both parties submit or the window expires.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

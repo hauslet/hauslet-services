@@ -39,6 +39,7 @@ type Booking struct {
 	ActiveAt      *time.Time
 	CompletedAt   *time.Time
 	ArchivedAt    *time.Time
+	ReviewInviteSentAt *time.Time `gorm:"index"`
 
 	// Payment tracking
 	PaymentReference *string    `gorm:"type:varchar(255);index"`
@@ -60,6 +61,10 @@ type Booking struct {
 
 	ConfirmedAt *time.Time
 	CancelledAt *time.Time
+
+	// Review tracking (populated by review module via hooks)
+	GuestReviewedAt *time.Time `gorm:"index"` // When guest reviewed the listing/host
+	HostReviewedAt  *time.Time `gorm:"index"` // When host reviewed the guest
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

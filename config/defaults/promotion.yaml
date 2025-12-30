@@ -1,0 +1,269 @@
+# Listing Promotion & Subscription Configuration
+# Defines pricing, limits, and features for listing promotions and agent subscriptions
+
+promotion:
+  currency:
+    code: NGN
+    minor_unit: 100                # Kobo per Naira
+
+  # Free Tier Limits (No subscription)
+  free_tier:
+    max_listings: 3                # Maximum active listings
+    max_photos_per_listing: 20     # Photo upload limit
+    max_virtual_tours: 0           # No virtual tours
+    analytics_enabled: false       # No analytics access
+    api_access_enabled: false      # No API access
+    bulk_upload_enabled: false     # No bulk upload
+    priority_support: false        # Standard support only
+    lead_management_enabled: false # No CRM/lead tools
+
+  # Pay-Per-Listing Promotion Tiers
+  listing_promotions:
+    # Featured Listing - Top placement in search
+    featured:
+      name: "Featured Listing"
+      description: "Top placement in search results and homepage"
+      enabled: true
+
+      # Pricing by duration (in minor units - kobo)
+      pricing:
+        7_days: 5000000           # ₦50,000 for 7 days (₦7,142/day)
+        14_days: 9000000          # ₦90,000 for 14 days (₦6,428/day)
+        30_days: 18000000         # ₦180,000 for 30 days (₦6,000/day)
+
+      # Benefits
+      benefits:
+        - "Top 5 placement in search results"
+        - "Homepage banner/carousel inclusion"
+        - "Featured badge on listing"
+        - "Social media promotion"
+        - "Email newsletter inclusion"
+        - "Highlighted in map view"
+        - "Priority in category pages"
+
+      # Placement rules
+      placement:
+        max_concurrent_per_category: 5    # Max featured in same category
+        rotation_enabled: true             # Rotate order hourly
+        search_boost_multiplier: 10.0      # 10x relevance boost
+
+    # Premium Listing - Enhanced listing features
+    premium:
+      name: "Premium Listing"
+      description: "Enhanced listing with premium features"
+      enabled: true
+
+      pricing:
+        30_days: 2500000          # ₦25,000 for 30 days
+        90_days: 6000000          # ₦60,000 for 90 days (20% discount)
+        180_days: 10000000        # ₦100,000 for 180 days (33% discount)
+
+      benefits:
+        - "Premium badge"
+        - "Priority in search (below featured)"
+        - "Up to 50 photos (vs 20 basic)"
+        - "Virtual tour support"
+        - "Analytics dashboard access"
+        - "Lead tracking"
+        - "3x search visibility"
+
+      placement:
+        search_boost_multiplier: 3.0       # 3x relevance boost
+        max_photos_allowed: 50
+        virtual_tour_enabled: true
+        analytics_enabled: true
+
+    # Sponsored Listing - Search ads placement
+    sponsored:
+      name: "Sponsored Listing"
+      description: "Appears in sponsored search results"
+      enabled: false                        # Not implemented yet
+
+      pricing:
+        per_click_minor: 500               # ₦5.00 per click (CPC model)
+        daily_budget_min: 5000000          # Min ₦50k/day budget
+        daily_budget_max: 500000000        # Max ₦5m/day budget
+
+      benefits:
+        - "Appears in 'Sponsored' section"
+        - "Pay per click (CPC)"
+        - "Budget control"
+        - "Detailed analytics"
+
+  # Agent Subscription Plans (For agencies/professionals)
+  subscription_plans:
+    # Basic Plan - Individual agents/landlords
+    basic:
+      name: "Basic Plan"
+      description: "For individual agents and small landlords"
+      enabled: true
+      target_audience: "individual_agents"
+
+      pricing:
+        monthly: 3000000          # ₦30,000/month
+        yearly: 30000000          # ₦300,000/year (₦25k/month, 17% discount)
+
+      limits:
+        max_listings: 10                    # Up to 10 active listings
+        max_photos_per_listing: 30          # 30 photos per listing
+        max_virtual_tours: 5                # Up to 5 virtual tours
+        included_featured_per_month: 2      # 2 free featured listings/month
+        included_premium_per_month: 0       # No free premium
+
+      features:
+        advanced_analytics: false
+        lead_management: true               # Basic CRM
+        bulk_upload: false
+        api_access: false
+        branded_page: false
+        priority_support: false
+        virtual_tour_support: true
+        social_media_sync: false
+        export_leads: true
+        white_label_reports: false
+
+    # Professional Plan - Agencies
+    professional:
+      name: "Professional Plan"
+      description: "For real estate agencies and professionals"
+      enabled: true
+      target_audience: "agencies"
+
+      pricing:
+        monthly: 10000000         # ₦100,000/month
+        yearly: 100000000         # ₦1,000,000/year (₦83k/month, 17% discount)
+
+      limits:
+        max_listings: 25                    # Up to 25 active listings
+        max_photos_per_listing: 50          # 50 photos per listing
+        max_virtual_tours: -1               # Unlimited virtual tours (-1 = unlimited)
+        included_featured_per_month: 5      # 5 free featured listings/month
+        included_premium_per_month: 10      # 10 free premium/month
+
+      features:
+        advanced_analytics: true
+        lead_management: true               # Advanced CRM
+        bulk_upload: true
+        api_access: true
+        branded_page: true                  # Custom agent page
+        priority_support: true
+        virtual_tour_support: true
+        social_media_sync: true
+        export_leads: true
+        white_label_reports: true
+
+    # Enterprise Plan - Large agencies
+    enterprise:
+      name: "Enterprise Plan"
+      description: "For large real estate firms and developers"
+      enabled: true
+      target_audience: "large_agencies"
+
+      pricing:
+        monthly: 25000000         # ₦250,000/month
+        yearly: 250000000         # ₦2,500,000/year (₦208k/month, 17% discount)
+
+      limits:
+        max_listings: -1                    # Unlimited listings
+        max_photos_per_listing: 100         # 100 photos per listing
+        max_virtual_tours: -1               # Unlimited virtual tours
+        included_featured_per_month: 15     # 15 free featured listings/month
+        included_premium_per_month: -1      # Unlimited free premium
+
+      features:
+        advanced_analytics: true
+        lead_management: true               # Enterprise CRM
+        bulk_upload: true
+        api_access: true
+        branded_page: true                  # Custom branded portal
+        priority_support: true              # Dedicated account manager
+        virtual_tour_support: true
+        social_media_sync: true
+        business_accounts: true              # Multiple agent accounts
+        export_leads: true
+        white_label_reports: true
+        custom_integrations: true           # Zapier, webhooks, etc.
+        multi_user_access: true             # Team collaboration
+
+  # Add-ons (Available to all tiers)
+  addons:
+    professional_photography:
+      name: "Professional Photography"
+      description: "Professional photo shoot for your listing"
+      pricing:
+        one_time: 1500000         # ₦15,000 one-time
+
+    virtual_tour_creation:
+      name: "Virtual Tour Creation"
+      description: "360° virtual tour creation service"
+      pricing:
+        one_time: 2000000         # ₦20,000 one-time
+
+    listing_video:
+      name: "Listing Video"
+      description: "Professional listing video production"
+      pricing:
+        one_time: 3000000         # ₦30,000 one-time
+
+    photo_boost:
+      name: "Photo Boost"
+      description: "Increase photo limit by 20"
+      pricing:
+        one_time: 500000          # ₦5,000 one-time per listing
+
+  # Billing & Usage Settings
+  billing:
+    trial_period_days: 14                  # 14-day free trial for subscriptions
+    grace_period_days: 3                   # 3 days grace after payment failure
+    auto_renew_default: true               # Auto-renew subscriptions by default
+    proration_enabled: true                # Pro-rate on upgrades/downgrades
+
+    # Usage reset schedule
+    usage_reset_day: 1                     # Reset monthly usage on 1st of month
+    usage_reset_time: "00:00"              # Reset at midnight UTC
+
+  # Analytics & Tracking
+  analytics:
+    track_impressions: true                # Track listing views
+    track_clicks: true                     # Track listing clicks
+    track_leads: true                      # Track lead submissions
+    track_messages: true                   # Track message sends
+    retention_days: 365                    # Keep analytics for 1 year
+
+    # Conversion funnel tracking
+    funnel_events:
+      - impression                         # Listing shown in search
+      - click                              # Listing clicked
+      - contact                            # Contact info revealed
+      - inquiry                            # Lead form submitted
+      - viewing_scheduled                  # Viewing appointment booked
+      - conversion                         # Deal closed (self-reported)
+
+  # Rate Limiting & Abuse Prevention
+  rate_limits:
+    # Free tier limits
+    free_tier:
+      leads_per_day: 50                    # Max leads received per day
+      promotions_per_month: 0              # No promotions allowed
+
+    # Paid tier limits
+    paid_tier:
+      leads_per_day: -1                    # Unlimited
+      promotions_per_month: -1             # Unlimited (pay-per-use)
+
+    # System-wide abuse prevention
+    max_active_promotions_per_listing: 1   # Only 1 active promotion per listing
+    min_promotion_duration_hours: 24       # Minimum 1 day promotion
+    cooldown_between_promotions_hours: 0   # No cooldown (can re-promote immediately)
+
+  # Notifications
+  notifications:
+    send_promotion_started: true           # Notify when promotion starts
+    send_promotion_expiring: true          # Notify 2 days before expiry
+    send_promotion_expired: true           # Notify when promotion ends
+    send_subscription_renewal: true        # Notify before auto-renewal
+    send_usage_warnings: true              # Notify when approaching limits
+    send_analytics_reports: true           # Weekly analytics digest (paid tiers only)
+
+    # Warning thresholds
+    usage_warning_threshold_percent: 80    # Warn at 80% of limit

@@ -122,5 +122,23 @@ func (s *BookingServiceImpl) completeSingleBooking(ctx context.Context, booking 
 		}
 	}
 
+	// Send review invites to guest and host (if not already sent)
+	if s.reviewHooks != nil && booking.ReviewInviteSentAt == nil {
+		if err := s.reviewHooks.SendReviewInvites(ctx, booking.ID); err != nil {
+			if s.log != nil {
+				s.log.Logf("WARN failed to send review invites for booking_id=%s: %v", booking.ID, err)
+			}
+		} else {
+			now := time.Now()
+			booking.ReviewInviteSentAt = &now
+			booking.UpdatedAt = now
+			if err := s.repo.UpdateBooking(ctx, booking); err != nil {
+				if s.log != nil {
+					s.log.Logf("WARN failed to update review invite timestamp for booking_id=%s: %v", booking.ID, err)
+				}
+			}
+		}
+	}
+
 	return nil
 }

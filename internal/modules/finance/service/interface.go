@@ -122,9 +122,31 @@ type DisputeService interface {
 	ListUserDisputes(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*domain.Dispute, error)
 }
 
+// ReconciliationService handles financial reconciliation
+type ReconciliationService interface {
+	// RunReconciliation executes a full reconciliation check
+	RunReconciliation(ctx context.Context) (*domain.ReconciliationReport, error)
+
+	// ValidateLedgerBalance checks that all transactions have balanced entries (debit = credit)
+	ValidateLedgerBalance(ctx context.Context) ([]domain.Discrepancy, error)
+
+	// ValidateWalletBalance checks that wallet balances match sum of ledger entries
+	ValidateWalletBalance(ctx context.Context) ([]domain.Discrepancy, error)
+
+	// GetReconciliationReport retrieves a reconciliation report by ID
+	GetReconciliationReport(ctx context.Context, reportID uuid.UUID) (*domain.ReconciliationReport, error)
+
+	// ListReconciliationReports lists reconciliation reports
+	ListReconciliationReports(ctx context.Context, limit, offset int) ([]*domain.ReconciliationReport, error)
+
+	// GetLatestReconciliation retrieves the most recent reconciliation report
+	GetLatestReconciliation(ctx context.Context) (*domain.ReconciliationReport, error)
+}
+
 // FinanceService combines wallet and ledger services
 type FinanceService interface {
 	WalletService
 	LedgerService
 	DisputeService
+	ReconciliationService
 }

@@ -6,7 +6,8 @@ import (
 	"bytes"
 	"fmt"
 	"hauslet/internal/modules/business/domain"
-	domain2 "hauslet/internal/modules/payments/domain"
+	domain2 "hauslet/internal/modules/finance/domain"
+	domain3 "hauslet/internal/modules/payments/domain"
 	domain1 "hauslet/internal/modules/property/domain"
 	"io"
 	"strconv"
@@ -14,6 +15,13 @@ import (
 
 	"github.com/google/uuid"
 )
+
+type AddDisputeEvidenceInput struct {
+	DisputeID   uuid.UUID `json:"disputeId"`
+	Type        string    `json:"type"`
+	URL         string    `json:"url"`
+	Description string    `json:"description"`
+}
 
 type AmenityGroup struct {
 	Group string   `json:"group"`
@@ -121,6 +129,14 @@ type CreateWishlistInput struct {
 	IsPrivate   *bool   `json:"isPrivate,omitempty"`
 }
 
+type FileDisputeInput struct {
+	BookingID   uuid.UUID             `json:"bookingId"`
+	Reason      domain2.DisputeReason `json:"reason"`
+	Description string                `json:"description"`
+	Amount      int                   `json:"amount"`
+	Currency    string                `json:"currency"`
+}
+
 type InviteMemberInput struct {
 	Email             string                  `json:"email"`
 	Role              domain.MemberRole       `json:"role"`
@@ -216,7 +232,7 @@ type PayForBookingInput struct {
 }
 
 type PaymentInitResponse struct {
-	Payment          *domain2.Payment `json:"payment"`
+	Payment          *domain3.Payment `json:"payment"`
 	AuthorizationURL *string          `json:"authorizationUrl,omitempty"`
 	AccessCode       *string          `json:"accessCode,omitempty"`
 }
@@ -271,6 +287,14 @@ type ReserveBookingInput struct {
 	GuestCount      int        `json:"guestCount"`
 	PaymentMethodID *uuid.UUID `json:"paymentMethodId,omitempty"`
 	SpecialRequests *string    `json:"specialRequests,omitempty"`
+}
+
+type ResolveDisputeInput struct {
+	DisputeID    uuid.UUID             `json:"disputeId"`
+	Outcome      domain2.DisputeStatus `json:"outcome"`
+	RefundAmount int                   `json:"refundAmount"`
+	Reason       string                `json:"reason"`
+	Notes        string                `json:"notes"`
 }
 
 type RuleGroupInput struct {
@@ -517,6 +541,61 @@ type UploadResult struct {
 	UploadURL         string     `json:"uploadURL"`
 	Key               string     `json:"key"`
 	TravelCompanionID *uuid.UUID `json:"travelCompanionID,omitempty"`
+}
+
+type ReviewVisibility string
+
+const (
+	ReviewVisibilityHidden  ReviewVisibility = "hidden"
+	ReviewVisibilityVisible ReviewVisibility = "visible"
+)
+
+var AllReviewVisibility = []ReviewVisibility{
+	ReviewVisibilityHidden,
+	ReviewVisibilityVisible,
+}
+
+func (e ReviewVisibility) IsValid() bool {
+	switch e {
+	case ReviewVisibilityHidden, ReviewVisibilityVisible:
+		return true
+	}
+	return false
+}
+
+func (e ReviewVisibility) String() string {
+	return string(e)
+}
+
+func (e *ReviewVisibility) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ReviewVisibility(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ReviewVisibility", str)
+	}
+	return nil
+}
+
+func (e ReviewVisibility) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ReviewVisibility) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ReviewVisibility) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type RuleSubCategory string

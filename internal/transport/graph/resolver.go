@@ -18,6 +18,8 @@ import (
 	propertyservice "hauslet/internal/modules/property/service"
 	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
+	reviewgraphql "hauslet/internal/modules/review/port/graphql"
+	reviewservice "hauslet/internal/modules/review/service"
 	"hauslet/internal/platform/xchange"
 
 	"github.com/go-pkgz/lgr"
@@ -34,6 +36,7 @@ type Resolver struct {
 	FinanceResolver  *financegraphql.Resolver
 	BookingResolver  *bookinggraphql.Resolver
 	WishlistResolver *wishlistgraphql.Resolver
+	ReviewResolver   *reviewgraphql.Resolver
 }
 
 func NewResolver(
@@ -46,6 +49,7 @@ func NewResolver(
 	payoutSvc financeservice.PayoutService,
 	bookingSvc bookingservice.BookingService,
 	wishlistSvc wishlistservice.WishlistService,
+	reviewSvc reviewservice.ReviewService,
 	fxClient xchange.XChange,
 	appCfg *cfg.GlobalConfig,
 	log *lgr.Logger,
@@ -60,5 +64,6 @@ func NewResolver(
 		FinanceResolver:  financegraphql.NewResolver(financeSvc, payoutSvc, log),
 		BookingResolver:  bookinggraphql.NewResolver(bookingSvc, fxClient, log),
 		WishlistResolver: wishlistgraphql.NewResolver(wishlistSvc, log),
+		ReviewResolver:   reviewgraphql.NewResolver(reviewSvc, log),
 	}
 }

@@ -13,6 +13,11 @@ output "scheduler_jobs" {
       schedule = google_cloud_scheduler_job.booking_expiry.schedule
       endpoint = google_cloud_scheduler_job.booking_expiry.http_target[0].uri
     }
+    booking_completion = {
+      name     = google_cloud_scheduler_job.booking_completion.name
+      schedule = google_cloud_scheduler_job.booking_completion.schedule
+      endpoint = google_cloud_scheduler_job.booking_completion.http_target[0].uri
+    }
     payout_process = {
       name     = google_cloud_scheduler_job.payout_process.name
       schedule = google_cloud_scheduler_job.payout_process.schedule
@@ -22,6 +27,21 @@ output "scheduler_jobs" {
       name     = google_cloud_scheduler_job.disbursement_retry.name
       schedule = google_cloud_scheduler_job.disbursement_retry.schedule
       endpoint = google_cloud_scheduler_job.disbursement_retry.http_target[0].uri
+    }
+    finance_reconciliation = {
+      name     = google_cloud_scheduler_job.finance_reconciliation.name
+      schedule = google_cloud_scheduler_job.finance_reconciliation.schedule
+      endpoint = google_cloud_scheduler_job.finance_reconciliation.http_target[0].uri
+    }
+    review_publish_standoffs = {
+      name     = google_cloud_scheduler_job.review_publish_standoffs.name
+      schedule = google_cloud_scheduler_job.review_publish_standoffs.schedule
+      endpoint = google_cloud_scheduler_job.review_publish_standoffs.http_target[0].uri
+    }
+    review_send_reminders = {
+      name     = google_cloud_scheduler_job.review_send_reminders.name
+      schedule = google_cloud_scheduler_job.review_send_reminders.schedule
+      endpoint = google_cloud_scheduler_job.review_send_reminders.http_target[0].uri
     }
   }
 }

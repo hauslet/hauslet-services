@@ -15,14 +15,15 @@ import (
 
 // FinanceServiceImpl implements the FinanceService interface
 type FinanceServiceImpl struct {
-	walletRepo         repository.WalletRepository
-	ledgerRepo         repository.LedgerRepository
-	transactionRepo    repository.TransactionRepository
-	disbursementRepo   repository.DisbursementRepository
-	disputeRepo        repository.DisputeRepository
+	walletRepo          repository.WalletRepository
+	ledgerRepo          repository.LedgerRepository
+	transactionRepo     repository.TransactionRepository
+	disbursementRepo    repository.DisbursementRepository
+	disputeRepo         repository.DisputeRepository
+	reconciliationRepo  repository.ReconciliationRepository
 	bookingPartyQuerier BookingPartyQuerier
-	db                 *gorm.DB
-	log                *lgr.Logger
+	db                  *gorm.DB
+	log                 *lgr.Logger
 }
 
 // NewFinanceService creates a new finance service
@@ -32,6 +33,7 @@ func NewFinanceService(
 	transactionRepo repository.TransactionRepository,
 	disbursementRepo repository.DisbursementRepository,
 	disputeRepo repository.DisputeRepository,
+	reconciliationRepo repository.ReconciliationRepository,
 	bookingPartyQuerier BookingPartyQuerier,
 	db *gorm.DB,
 	log *lgr.Logger,
@@ -42,6 +44,7 @@ func NewFinanceService(
 		transactionRepo:     transactionRepo,
 		disbursementRepo:    disbursementRepo,
 		disputeRepo:         disputeRepo,
+		reconciliationRepo:  reconciliationRepo,
 		bookingPartyQuerier: bookingPartyQuerier,
 		db:                  db,
 		log:                 log,

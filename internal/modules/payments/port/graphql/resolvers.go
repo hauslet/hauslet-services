@@ -202,6 +202,14 @@ func (r *Resolver) CreatePayment(ctx context.Context, input *CreatePaymentInput)
 		domainInput.BookingID = &bookingID
 	}
 
+	if input.BusinessID != nil {
+		businessID, err := uuid.Parse(*input.BusinessID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid business ID")
+		}
+		domainInput.BusinessID = &businessID
+	}
+
 	if input.PaymentMethodID != nil {
 		methodID, err := uuid.Parse(*input.PaymentMethodID)
 		if err != nil {
@@ -286,11 +294,15 @@ func (r *Resolver) SavePaymentMethod(ctx context.Context, input *SavePaymentMeth
 		return nil, err
 	}
 
+	provider := input.Provider
+	if provider == "" {
+		provider = "paystack"
+	}
 	domainInput := domain.CreatePaymentMethodInput{
 		UserID:            userID,
 		AuthorizationCode: input.AuthorizationCode,
 		Currency:          input.Currency,
-		Provider:          "paystack",
+		Provider:          provider,
 		SetAsDefault:      input.SetAsDefault != nil && *input.SetAsDefault,
 	}
 
@@ -331,13 +343,21 @@ func (r *Resolver) AddPayoutDetail(ctx context.Context, input *AddPayoutDetailIn
 	}
 
 	domainInput := domain.CreatePayoutDetailInput{
-		UserID:        &userID,
 		BankCode:      input.BankCode,
 		AccountNumber: input.AccountNumber,
 		AccountName:   input.AccountName,
 		Currency:      input.Currency,
 		Market:        input.Market,
 		SetAsDefault:  input.SetAsDefault != nil && *input.SetAsDefault,
+	}
+	if input.BusinessID != nil {
+		businessID, err := uuid.Parse(*input.BusinessID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid business ID")
+		}
+		domainInput.BusinessID = &businessID
+	} else {
+		domainInput.UserID = &userID
 	}
 
 	detail, err := r.paymentService.AddPayoutDetail(ctx, domainInput)
@@ -664,6 +684,7 @@ type CreatePaymentInput struct {
 	PayerEmail      string
 	PayerName       string
 	BookingID       *string
+	BusinessID      *string
 	PaymentMethodID *string
 	CallbackURL     *string
 	Description     string
@@ -679,6 +700,7 @@ type RefundPaymentInput struct {
 type SavePaymentMethodInput struct {
 	AuthorizationCode string
 	Currency          payment.Currency
+	Provider          string
 	SetAsDefault      *bool
 }
 
@@ -689,6 +711,7 @@ type AddPayoutDetailInput struct {
 	Currency      payment.Currency
 	Market        domain.Market
 	SetAsDefault  *bool
+	BusinessID    *string
 }
 
 type CreatePayoutInput struct {

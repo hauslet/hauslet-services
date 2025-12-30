@@ -124,6 +124,29 @@ resource "google_cloud_tasks_queue" "booking_expiry" {
   ]
 }
 
+# Booking Completion Queue - For completing eligible bookings
+resource "google_cloud_tasks_queue" "booking_completion" {
+  name     = "booking-completion-queue"
+  location = "europe-west2"
+
+  rate_limits {
+    max_dispatches_per_second = 10
+    max_concurrent_dispatches = 5
+  }
+
+  retry_config {
+    max_attempts       = 3
+    max_retry_duration = "300s"
+    min_backoff        = "5s"
+    max_backoff        = "60s"
+    max_doublings      = 2
+  }
+
+  depends_on = [
+    google_project_service.cloudtasks
+  ]
+}
+
 # Booking Refund Queue - For processing refunds
 resource "google_cloud_tasks_queue" "booking_refund" {
   name     = "booking-refund-queue"

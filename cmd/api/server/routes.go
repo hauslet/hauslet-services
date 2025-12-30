@@ -12,18 +12,18 @@ import (
 	bookinghooks "hauslet/internal/modules/booking/port/hooks"
 	bookingrepository "hauslet/internal/modules/booking/repository"
 	bookingservice "hauslet/internal/modules/booking/service"
-	financenotification "hauslet/internal/modules/finance/notification"
-	financehooks "hauslet/internal/modules/finance/port/hooks"
-	businesshooks "hauslet/internal/modules/business/port/hooks"
 	businessmiddleware "hauslet/internal/modules/business/middleware"
 	businessnotification "hauslet/internal/modules/business/notification"
+	businesshooks "hauslet/internal/modules/business/port/hooks"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
 	calendarhttp "hauslet/internal/modules/calendar/port/http"
-	financerepository "hauslet/internal/modules/finance/repository"
-	financeservice "hauslet/internal/modules/finance/service"
 	calendarrepository "hauslet/internal/modules/calendar/repository"
 	calendarservice "hauslet/internal/modules/calendar/service"
+	financenotification "hauslet/internal/modules/finance/notification"
+	financehooks "hauslet/internal/modules/finance/port/hooks"
+	financerepository "hauslet/internal/modules/finance/repository"
+	financeservice "hauslet/internal/modules/finance/service"
 	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
@@ -42,6 +42,10 @@ import (
 	propertyhttp "hauslet/internal/modules/property/port/http"
 	propertyrepository "hauslet/internal/modules/property/repository"
 	propertyservice "hauslet/internal/modules/property/service"
+	reviewnotification "hauslet/internal/modules/review/notification"
+	reviewhooks "hauslet/internal/modules/review/port/hooks"
+	reviewrepository "hauslet/internal/modules/review/repository"
+	reviewservice "hauslet/internal/modules/review/service"
 	wishlistrepository "hauslet/internal/modules/wishlist/repository"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
@@ -74,7 +78,7 @@ func setupRoutes(r chi.Router,
 	// Initialize moderation service (AI client not needed on API path; only enqueue/persist).
 	aiModerationSubject := cfg.YAML.Queue.Subjects["ai_moderation"]
 	moderationRepo := moderationrepository.NewModerationRepository(db)
-	moderationSvc := moderationservice.NewModerationService(moderationRepo, nil, q, aiModerationSubject, nil, nil, log)
+	moderationSvc := moderationservice.NewModerationService(moderationRepo, nil, q, aiModerationSubject, nil, nil, nil, log)
 	moderationAdapter := moderationhooks.NewModerationAdapter(moderationSvc)
 
 	// Initialize profile service
@@ -86,6 +90,7 @@ func setupRoutes(r chi.Router,
 	bookingProfileAdapter := profileport.NewBookingProfileAdapter(profileService)
 	financeProfileAdapter := financehooks.NewFinanceProfileAdapter(profileService)
 	paymentsProfileAdapter := profileport.NewPaymentsProfileAdapter(profileService)
+	reviewUserAdapter := reviewhooks.NewReviewUserAdapter(profileService)
 
 	// Initialize business service (before property service to enable business adapter)
 	businessRepo := businessrepository.NewBusinessRepository(db)
@@ -98,6 +103,7 @@ func setupRoutes(r chi.Router,
 	)
 	businessMW := businessmiddleware.NewMiddleware(businessService, log)
 	paymentsBusinessAdapter := businesshooks.NewPaymentsBusinessAdapter(businessService)
+	reviewNotificationService := reviewnotification.NewNotificationService(mC, q, emailSubject, cfg.App.Client, log)
 
 	// Initialize payment platform client and services
 	paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
@@ -181,12 +187,14 @@ func setupRoutes(r chi.Router,
 	financeTransactionRepo := financerepository.NewTransactionRepository(db)
 	financeDisbursementRepo := financerepository.NewDisbursementRepository(db)
 	financeDisputeRepo := financerepository.NewDisputeRepository(db)
+	financeReconciliationRepo := financerepository.NewReconciliationRepository(db)
 	financeService := financeservice.NewFinanceService(
 		financeWalletRepo,
 		financeLedgerRepo,
 		financeTransactionRepo,
 		financeDisbursementRepo,
 		financeDisputeRepo,
+		financeReconciliationRepo,
 		bookingPartyQuerier,
 		db,
 		log,
@@ -194,6 +202,17 @@ func setupRoutes(r chi.Router,
 
 	// Initialize finance hooks adapter for booking lifecycle (before booking service)
 	financeHooksAdapter := financehooks.NewPaymentHooksAdapter(financeService)
+
+	// Initialize review hooks adapter for booking completion
+	reviewBookingHooksAdapter := reviewhooks.NewReviewBookingHooksAdapter(
+		bookingRepo,
+		propertyRepo,
+		businessService,
+		reviewUserAdapter,
+		reviewNotificationService,
+		cfg.YAML.Platform.Reviews.ReviewWindowDays,
+		log,
+	)
 
 	// Initialize booking service with all dependencies
 	bookingService := bookingservice.NewBookingService(
@@ -207,6 +226,7 @@ func setupRoutes(r chi.Router,
 		q,
 		cfg.YAML.Queue.Subjects["booking_refund"],
 		financeHooksAdapter,
+		reviewBookingHooksAdapter,
 		cfg.YAML.Platform,
 		log,
 	)
@@ -223,13 +243,13 @@ func setupRoutes(r chi.Router,
 		financeLedgerRepo,
 		financeTransactionRepo,
 		financeDisbursementRepo,
-		paymentsRepo,               // PayoutDetailRepository for fetching host bank details
-		bookingQuerierAdapter,      // Booking querier for finding bookings ready for payout
-		financeNotificationSvc,     // Notification service for payout emails
-		bookingPayoutHooksAdapter,  // Booking hooks for marking bookings as settled after payout
+		paymentsRepo,              // PayoutDetailRepository for fetching host bank details
+		bookingQuerierAdapter,     // Booking querier for finding bookings ready for payout
+		financeNotificationSvc,    // Notification service for payout emails
+		bookingPayoutHooksAdapter, // Booking hooks for marking bookings as settled after payout
 		paymentClient,
-		financeProfileAdapter,      // Profile adapter for getting host email/name
-		cfg.YAML.Platform,          // Platform config for commission rate and retry settings
+		financeProfileAdapter, // Profile adapter for getting host email/name
+		cfg.YAML.Platform,     // Platform config for commission rate and retry settings
 		db,
 		log,
 	)
@@ -258,6 +278,24 @@ func setupRoutes(r chi.Router,
 	wishlistRepo := wishlistrepository.NewWishlistRepository(db)
 	wishListListAdapter := propertyhooks.NewWishlistHooksAdapter(propertyService)
 	wishlistService := wishlistservice.NewWishlistService(wishlistRepo, *rds, wishListListAdapter, log)
+
+	// Initialize review service
+	reviewRepo := reviewrepository.NewReviewRepository(db)
+	responseRepo := reviewrepository.NewResponseRepository(db)
+	statsRepo := reviewrepository.NewStatsRepository(db)
+	reviewBookingQuerier := reviewhooks.NewBookingQuerierAdapter(bookingRepo, propertyRepo)
+	bookingReviewHooksAdapter := bookinghooks.NewReviewHooksAdapter(bookingRepo)
+	reviewService := reviewservice.NewReviewService(
+		reviewRepo,
+		responseRepo,
+		statsRepo,
+		reviewNotificationService,
+		reviewBookingQuerier,
+		bookingReviewHooksAdapter,
+		reviewUserAdapter,
+		moderationSvc,
+		log,
+	)
 
 	// Initialize auth service
 	authService := authservice.NewAuthService(
@@ -325,6 +363,7 @@ func setupRoutes(r chi.Router,
 		payoutService,
 		bookingService,
 		wishlistService,
+		reviewService,
 		businessMW.Auth.WithTenantSlug,
 		fxClient,
 		cfg,

@@ -22,6 +22,11 @@ type FinanceHooks interface {
 	OnBookingCompleted(ctx context.Context, bookingID, hostID uuid.UUID) error
 }
 
+// ReviewHooks defines callbacks to review module for review-related notifications.
+type ReviewHooks interface {
+	SendReviewInvites(ctx context.Context, bookingID uuid.UUID) error
+}
+
 type BookingService interface {
 	// Quote and pricing
 	QuoteBooking(ctx context.Context, listingID uuid.UUID, checkIn, checkOut time.Time, guestCount int) (*domain.BookingQuote, error)
@@ -157,6 +162,7 @@ type BookingServiceImpl struct {
 	refundQueue    *platformQueue.Client
 	refundSubject  string
 	financeHooks   FinanceHooks
+	reviewHooks    ReviewHooks
 	platformConfig config.PlatformYAMLConfig
 	log            *lgr.Logger
 }
@@ -172,6 +178,7 @@ func NewBookingService(
 	refundQueue *platformQueue.Client,
 	refundSubject string,
 	financeHooks FinanceHooks,
+	reviewHooks ReviewHooks,
 	platformConfig config.PlatformYAMLConfig,
 	log *lgr.Logger,
 ) BookingService {
@@ -186,6 +193,7 @@ func NewBookingService(
 		refundQueue:    refundQueue,
 		refundSubject:  refundSubject,
 		financeHooks:   financeHooks,
+		reviewHooks:    reviewHooks,
 		platformConfig: platformConfig,
 		log:            log,
 	}

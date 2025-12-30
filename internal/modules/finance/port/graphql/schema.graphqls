@@ -251,3 +251,78 @@ extend type Mutation {
   # Add evidence to a dispute (involved parties only)
   addDisputeEvidence(input: AddDisputeEvidenceInput!): Dispute!
 }
+
+# ========================================================================
+# Reconciliation Types
+# ========================================================================
+
+enum ReconciliationStatus {
+  running
+  completed
+  failed
+}
+
+enum DiscrepancyType {
+  ledger_imbalance
+  wallet_mismatch
+  provider_mismatch
+  orphaned_transaction
+  invalid_state
+  other
+}
+
+enum DiscrepancySeverity {
+  low
+  medium
+  high
+  critical
+}
+
+type Discrepancy {
+  id: UUID!
+  reportId: UUID!
+  type: DiscrepancyType!
+  severity: DiscrepancySeverity!
+  walletId: UUID
+  transactionId: UUID
+  description: String!
+  expectedValue: Int
+  actualValue: Int
+  details: Map
+  createdAt: Time!
+}
+
+type ReconciliationReport {
+  id: UUID!
+  status: ReconciliationStatus!
+  startedAt: Time!
+  completedAt: Time
+  totalWalletsChecked: Int!
+  totalTransactionsChecked: Int!
+  discrepanciesFound: Int!
+  discrepancies: [Discrepancy!]!
+  summary: String!
+  errorMessage: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+extend type Query {
+  # Get a specific reconciliation report (admin only)
+  reconciliationReport(id: UUID!): ReconciliationReport
+
+  # List all reconciliation reports (admin only)
+  reconciliationReports(
+    limit: Int
+    offset: Int
+  ): [ReconciliationReport!]!
+
+  # Get the latest reconciliation report (admin only)
+  latestReconciliation: ReconciliationReport
+
+  # List discrepancies for a report (admin only)
+  reconciliationDiscrepancies(
+    reportId: UUID!
+    severity: DiscrepancySeverity
+  ): [Discrepancy!]!
+}

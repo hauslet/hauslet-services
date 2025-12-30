@@ -11,6 +11,7 @@ import (
 	paymentsservice "hauslet/internal/modules/payments/service"
 	profileservice "hauslet/internal/modules/profile/service"
 	propertyservice "hauslet/internal/modules/property/service"
+	reviewservice "hauslet/internal/modules/review/service"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
 	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph/loaders"
@@ -37,6 +38,7 @@ func SetupGraphQL(r chi.Router,
 	payoutService financeservice.PayoutService,
 	bookingService bookingservice.BookingService,
 	wishlistService wishlistservice.WishlistService,
+	reviewService reviewservice.ReviewService,
 	tenantSlugMiddleware func(http.Handler) http.Handler,
 	fxClient xchange.XChange,
 	cfg *config.GlobalConfig,
@@ -44,7 +46,21 @@ func SetupGraphQL(r chi.Router,
 
 	srv := handler.New(
 		NewExecutableSchema(Config{
-			Resolvers:  NewResolver(authService, profileService, propertyService, businessService, paymentsService, financeService, payoutService, bookingService, wishlistService, fxClient, cfg, log),
+			Resolvers: NewResolver(
+				authService,
+				profileService,
+				propertyService,
+				businessService,
+				paymentsService,
+				financeService,
+				payoutService,
+				bookingService,
+				wishlistService,
+				reviewService,
+				fxClient,
+				cfg,
+				log,
+			),
 			Complexity: NewComplexityRoot(defaultMaxListLimit),
 		}),
 	)

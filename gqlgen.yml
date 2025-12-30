@@ -11,6 +11,7 @@ schema:
   - internal/modules/payments/port/graphql/*.graphqls
   - internal/modules/finance/port/graphql/*.graphqls
   - internal/modules/wishlist/port/graphql/*.graphqls
+  - internal/modules/review/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
 exec:
@@ -278,3 +279,61 @@ models:
     model: hauslet/internal/modules/finance/domain.TransactionStatus
   DisbursementStatus:
     model: hauslet/internal/modules/finance/domain.DisbursementStatus
+
+  # Dispute Types
+  Dispute:
+    model: hauslet/internal/modules/finance/domain.Dispute
+  DisputeEvidence:
+    model: hauslet/internal/modules/finance/domain.DisputeEvidence
+  DisputeResolution:
+    model: hauslet/internal/modules/finance/domain.DisputeResolution
+
+  # Dispute Enums
+  DisputeStatus:
+    model: hauslet/internal/modules/finance/domain.DisputeStatus
+  DisputeReason:
+    model: hauslet/internal/modules/finance/domain.DisputeReason
+  DisputeParty:
+    model: hauslet/internal/modules/finance/domain.DisputeParty
+
+  # Reconciliation Types
+  ReconciliationReport:
+    model: hauslet/internal/modules/finance/domain.ReconciliationReport
+  Discrepancy:
+    model: hauslet/internal/modules/finance/domain.Discrepancy
+
+  # Reconciliation Enums
+  ReconciliationStatus:
+    model: hauslet/internal/modules/finance/domain.ReconciliationStatus
+  DiscrepancyType:
+    model: hauslet/internal/modules/finance/domain.DiscrepancyType
+  DiscrepancySeverity:
+    model: hauslet/internal/modules/finance/domain.DiscrepancySeverity
+
+  # --- Review Module Bindings ---
+  Review:
+    model: hauslet/internal/modules/review/domain.Review
+  ReviewResponse:
+    model: hauslet/internal/modules/review/domain.ReviewResponse
+  SubRatings:
+    model: hauslet/internal/modules/review/domain.SubRatings
+  ListingStats:
+    model: hauslet/internal/modules/review/domain.ListingStats
+  HostStats:
+    model: hauslet/internal/modules/review/domain.HostStats
+  RatingDistribution:
+    model: hauslet/internal/modules/review/domain.RatingDistribution
+
+  # Review Input/Output Types
+  CreateReviewInput:
+    model: hauslet/internal/modules/review/port/graphql.CreateReviewInput
+  UpdateReviewInput:
+    model: hauslet/internal/modules/review/port/graphql.UpdateReviewInput
+  ReviewFilterInput:
+    model: hauslet/internal/modules/review/port/graphql.ReviewFilterInput
+
+  # Review Enums
+  ReviewTargetType:
+    model: hauslet/internal/modules/review/domain.ReviewTargetType
+  ModerationReason:
+    model: hauslet/internal/modules/review/domain.ModerationReason
