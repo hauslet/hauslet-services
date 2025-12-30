@@ -10,7 +10,7 @@ import (
 	"fmt"
 	domain2 "hauslet/internal/modules/auth/domain"
 	domain5 "hauslet/internal/modules/booking/domain"
-	bookinggraphql "hauslet/internal/modules/booking/port/graphql"
+	graphql4 "hauslet/internal/modules/booking/port/graphql"
 	domain3 "hauslet/internal/modules/business/domain"
 	domain7 "hauslet/internal/modules/finance/domain"
 	graphql2 "hauslet/internal/modules/finance/port/graphql"
@@ -55,7 +55,7 @@ func (r *businessResolver) Members(ctx context.Context, obj *domain3.Business) (
 }
 
 // PaymentID is the resolver for the paymentId field.
-func (r *completeBookingPayloadResolver) PaymentID(ctx context.Context, obj *bookinggraphql.CompleteBookingPayload) (uuid.UUID, error) {
+func (r *completeBookingPayloadResolver) PaymentID(ctx context.Context, obj *graphql4.CompleteBookingPayload) (uuid.UUID, error) {
 	return uuid.Parse(obj.PaymentID)
 }
 
@@ -300,7 +300,7 @@ func (r *mutationResolver) RevokeInvitation(ctx context.Context, invitationID uu
 }
 
 // ReserveBooking is the resolver for the reserveBooking field.
-func (r *mutationResolver) ReserveBooking(ctx context.Context, input model.ReserveBookingInput) (*bookinggraphql.CompleteBookingPayload, error) {
+func (r *mutationResolver) ReserveBooking(ctx context.Context, input model.ReserveBookingInput) (*graphql4.CompleteBookingPayload, error) {
 	// Convert generated model input to booking resolver input (strings)
 	var paymentMethodID *string
 	if input.PaymentMethodID != nil {
@@ -308,7 +308,7 @@ func (r *mutationResolver) ReserveBooking(ctx context.Context, input model.Reser
 		paymentMethodID = &pmID
 	}
 
-	bookingInput := &bookinggraphql.ReserveBookingInput{
+	bookingInput := &graphql4.ReserveBookingInput{
 		ListingID:       input.ListingID.String(),
 		CheckIn:         input.CheckIn.Format(time.RFC3339),
 		CheckOut:        input.CheckOut.Format(time.RFC3339),
@@ -322,7 +322,7 @@ func (r *mutationResolver) ReserveBooking(ctx context.Context, input model.Reser
 // RequestBooking is the resolver for the requestBooking field.
 func (r *mutationResolver) RequestBooking(ctx context.Context, input model.RequestBookingInput) (*domain5.Booking, error) {
 	// Convert generated model input to booking resolver input (strings)
-	bookingInput := &bookinggraphql.RequestBookingInput{
+	bookingInput := &graphql4.RequestBookingInput{
 		ListingID:       input.ListingID.String(),
 		CheckIn:         input.CheckIn.Format(time.RFC3339),
 		CheckOut:        input.CheckOut.Format(time.RFC3339),
@@ -333,7 +333,7 @@ func (r *mutationResolver) RequestBooking(ctx context.Context, input model.Reque
 }
 
 // PayForBooking is the resolver for the payForBooking field.
-func (r *mutationResolver) PayForBooking(ctx context.Context, input model.PayForBookingInput) (*bookinggraphql.CompleteBookingPayload, error) {
+func (r *mutationResolver) PayForBooking(ctx context.Context, input model.PayForBookingInput) (*graphql4.CompleteBookingPayload, error) {
 	// Convert generated model input to booking resolver input (strings)
 	var paymentMethodID *string
 	if input.PaymentMethodID != nil {
@@ -341,7 +341,7 @@ func (r *mutationResolver) PayForBooking(ctx context.Context, input model.PayFor
 		paymentMethodID = &pmID
 	}
 
-	bookingInput := &bookinggraphql.PayForBookingInput{
+	bookingInput := &graphql4.PayForBookingInput{
 		BookingID:       input.BookingID.String(),
 		PaymentMethodID: paymentMethodID,
 	}
@@ -356,7 +356,7 @@ func (r *mutationResolver) ConfirmBooking(ctx context.Context, bookingID uuid.UU
 // CancelBooking is the resolver for the cancelBooking field.
 func (r *mutationResolver) CancelBooking(ctx context.Context, input model.CancelBookingInput) (*domain5.Booking, error) {
 	// Convert generated model input to booking resolver input (strings)
-	bookingInput := &bookinggraphql.CancelBookingInput{
+	bookingInput := &graphql4.CancelBookingInput{
 		BookingID: input.BookingID.String(),
 		Reason:    input.Reason,
 	}

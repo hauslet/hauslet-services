@@ -11,6 +11,7 @@ import (
 	pricingSchema "hauslet/internal/modules/pricing/repository/schema"
 	profileSchema "hauslet/internal/modules/profile/repository/schema"
 	propertySchema "hauslet/internal/modules/property/repository/schema"
+	reviewSchema "hauslet/internal/modules/review/repository/schema"
 	wishlistSchema "hauslet/internal/modules/wishlist/repository/schema"
 	"hauslet/internal/platform/database"
 
@@ -50,6 +51,10 @@ func RunMigrations(db *gorm.DB, log *lgr.Logger) error {
 		&financeSchema.Dispute{},
 		&financeSchema.ReconciliationReport{},
 		&financeSchema.Discrepancy{},
+		&reviewSchema.Review{},
+		&reviewSchema.ReviewResponse{},
+		&reviewSchema.ListingStats{},
+		&reviewSchema.HostStats{},
 	); err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes" // Recommended for better JSONB support
+	"gorm.io/datatypes" 
 	"gorm.io/gorm"
 )
 
