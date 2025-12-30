@@ -7,7 +7,8 @@ import (
 	calendarservice "hauslet/internal/modules/calendar/service"
 	"hauslet/internal/modules/property/domain"
 	propertyrepository "hauslet/internal/modules/property/repository"
-	listingService "hauslet/internal/modules/property/service"
+
+	propertyService "hauslet/internal/modules/property/service"
 
 	"github.com/google/uuid"
 )
@@ -19,10 +20,10 @@ const (
 
 // listingHookAdapter bundles the property service so multiple adapters can share helpers.
 type listingHookAdapter struct {
-	svc listingService.Service
+	svc propertyService.PropertyService
 }
 
-func newListingHookAdapter(svc listingService.Service) *listingHookAdapter {
+func newListingHookAdapter(svc propertyService.PropertyService) *listingHookAdapter {
 	return &listingHookAdapter{svc: svc}
 }
 
@@ -83,7 +84,7 @@ type CalendarHooksAdapter struct {
 }
 
 // NewCalendarHooksAdapter wires the property service into the calendar hooks contract.
-func NewCalendarHooksAdapter(svc listingService.Service) *CalendarHooksAdapter {
+func NewCalendarHooksAdapter(svc propertyService.PropertyService) *CalendarHooksAdapter {
 	return &CalendarHooksAdapter{
 		listingHookAdapter: newListingHookAdapter(svc),
 		timezone:           defaultListingTimezone,

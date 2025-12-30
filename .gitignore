@@ -66,8 +66,7 @@ tmp/
 hauslet-api
 hauslet-worker
 hauslet
-api
-worker
+
 
 # Compiled Object files
 *.o

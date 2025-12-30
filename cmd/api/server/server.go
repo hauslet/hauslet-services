@@ -43,8 +43,23 @@ func NewHTTPServer(
 
 	registerHealthRoutes(r, db, rds)
 
-	// Set up routes
-	setupRoutes(r, ctx, db, rds, log, cfg, mC, q, r2)
+	// Initialize application container
+	container, err := NewContainer(ctx, InfrastructureDependencies{
+		DB:          db,
+		Redis:       rds,
+		Queue:       q,
+		R2:          r2,
+		Logger:      log,
+		Config:      cfg,
+		EmailClient: mC,
+	})
+	if err != nil {
+		log.Logf("FATAL failed to initialize application container: %v", err)
+		panic(err) // Panic is appropriate here as we can't continue without the container
+	}
+
+	// Set up routes using the initialized container
+	setupRoutes(r, container, cfg)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.App.Port,

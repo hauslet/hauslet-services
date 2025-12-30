@@ -15,13 +15,13 @@ import (
 
 // HTTPHandler handles HTTP requests for property operations
 type HTTPHandler struct {
-	propertyService service.Service
+	propertyService service.PropertyService
 	ctx             context.Context
 	log             *lgr.Logger
 }
 
 // NewHTTPHandler creates a new HTTP handler for property operations
-func NewHTTPHandler(ctx context.Context, propertyService service.Service, log *lgr.Logger) *HTTPHandler {
+func NewHTTPHandler(ctx context.Context, propertyService service.PropertyService, log *lgr.Logger) *HTTPHandler {
 	return &HTTPHandler{
 		propertyService: propertyService,
 		ctx:             ctx,

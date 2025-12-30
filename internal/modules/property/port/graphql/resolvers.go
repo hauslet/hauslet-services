@@ -24,13 +24,13 @@ import (
 
 // Resolver handles property-specific GraphQL fields.
 type Resolver struct {
-	propertyService service.Service
+	propertyService service.PropertyService
 	log             *lgr.Logger
 	cdnHost         string
 	fx              xchange.XChange
 }
 
-func NewResolver(propertyService service.Service, cfg *config.StorageConfig, fx xchange.XChange, log *lgr.Logger) *Resolver {
+func NewResolver(propertyService service.PropertyService, cfg *config.StorageConfig, fx xchange.XChange, log *lgr.Logger) *Resolver {
 	return &Resolver{
 		propertyService: propertyService,
 		cdnHost:         cfg.R2.CDNHost,
@@ -125,6 +125,7 @@ func (r *Resolver) Listings(ctx context.Context, filter *model.ListingFilterInpu
 		return nil, err
 	}
 
+	r.warmListingLoaders(ctx, listings)
 	for i := range listings {
 		if len(listings[i].Media) > 0 {
 			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
@@ -228,6 +229,7 @@ func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID,
 		return nil, err
 	}
 
+	r.warmListingLoaders(ctx, listings)
 	for i := range listings {
 		if len(listings[i].Media) > 0 {
 			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
@@ -360,6 +362,7 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 		return nil, err
 	}
 
+	r.warmListingLoaders(ctx, listings)
 	for i := range listings {
 		if len(listings[i].Media) > 0 {
 			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
@@ -395,6 +398,13 @@ func (r *Resolver) SearchListings(ctx context.Context, filter *model.ListingFilt
 	}
 
 	v := viewer.FromContext(ctx)
+	if len(results) > 0 {
+		listings := make([]domain.Listing, 0, len(results))
+		for _, res := range results {
+			listings = append(listings, res.Listing)
+		}
+		r.warmListingLoaders(ctx, listings)
+	}
 	scored := make([]*model.ScoredListing, 0, len(results))
 	for _, res := range results {
 		l := res.Listing
@@ -437,6 +447,13 @@ func (r *Resolver) SimilarListings(ctx context.Context, listingID uuid.UUID, lim
 
 	// Build media URLs and sanitize for viewer
 	v := viewer.FromContext(ctx)
+	if len(results) > 0 {
+		listings := make([]domain.Listing, 0, len(results))
+		for _, res := range results {
+			listings = append(listings, res.Listing)
+		}
+		r.warmListingLoaders(ctx, listings)
+	}
 	scored := make([]*model.ScoredListing, 0, len(results))
 	for _, res := range results {
 		l := res.Listing
@@ -838,10 +855,14 @@ func (r *Resolver) ListingProperty(ctx context.Context, obj *domain.Listing) (*d
 
 // Media resolves the media field on Listing.
 func (r *Resolver) ListingMedia(ctx context.Context, obj *domain.Listing, first *int) ([]*domain.ListingMedia, error) {
-	media, err := r.propertyService.ListListingMedia(ctx, obj.ID)
-	if err != nil {
-		r.log.Logf("ERROR Failed to list media for listing %s: %v", obj.ID, err)
-		return nil, err
+	media := obj.Media
+	if media == nil {
+		var err error
+		media, err = r.propertyService.ListListingMedia(ctx, obj.ID)
+		if err != nil {
+			r.log.Logf("ERROR Failed to list media for listing %s: %v", obj.ID, err)
+			return nil, err
+		}
 	}
 
 	limit := len(media)
@@ -927,4 +948,51 @@ func (r *Resolver) OwnerProfile(ctx context.Context, obj *domain.Listing) (*prof
 	}
 
 	return nil, fmt.Errorf("profile loader unavailable")
+}
+
+func (r *Resolver) warmListingLoaders(ctx context.Context, listings []domain.Listing) {
+	if len(listings) == 0 {
+		return
+	}
+
+	l := loaders.For(ctx)
+	if l == nil {
+		return
+	}
+
+	if l.Property != nil {
+		unique := make(map[uuid.UUID]struct{}, len(listings))
+		for _, listing := range listings {
+			if listing.PropertyID != uuid.Nil {
+				unique[listing.PropertyID] = struct{}{}
+			}
+		}
+		if len(unique) > 0 {
+			ids := make([]uuid.UUID, 0, len(unique))
+			for id := range unique {
+				ids = append(ids, id)
+			}
+			if _, err := l.Property.LoadMany(ctx, ids); err != nil && r.log != nil {
+				r.log.Logf("WARN failed to preload properties for listings: %v", err)
+			}
+		}
+	}
+
+	if l.Profile != nil {
+		unique := make(map[string]struct{}, len(listings))
+		for _, listing := range listings {
+			if listing.OwnerType == domain.OwnerIndividual && listing.OwnerID != uuid.Nil {
+				unique[listing.OwnerID.String()] = struct{}{}
+			}
+		}
+		if len(unique) > 0 {
+			ids := make([]string, 0, len(unique))
+			for id := range unique {
+				ids = append(ids, id)
+			}
+			if _, err := l.Profile.LoadMany(ctx, ids); err != nil && r.log != nil {
+				r.log.Logf("WARN failed to preload profiles for listings: %v", err)
+			}
+		}
+	}
 }

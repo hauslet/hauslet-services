@@ -16,10 +16,10 @@ import (
 	profileservice "hauslet/internal/modules/profile/service"
 	propertygraphql "hauslet/internal/modules/property/port/graphql"
 	propertyservice "hauslet/internal/modules/property/service"
-	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
-	wishlistservice "hauslet/internal/modules/wishlist/service"
 	reviewgraphql "hauslet/internal/modules/review/port/graphql"
 	reviewservice "hauslet/internal/modules/review/service"
+	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
+	wishlistservice "hauslet/internal/modules/wishlist/service"
 	"hauslet/internal/platform/xchange"
 
 	"github.com/go-pkgz/lgr"
@@ -42,7 +42,7 @@ type Resolver struct {
 func NewResolver(
 	authSvc authservice.AuthService,
 	profileSvc profileservice.ProfileService,
-	propertySvc propertyservice.Service,
+	propertySvc propertyservice.PropertyService,
 	businessSvc businessservice.BusinessService,
 	paymentsSvc paymentsservice.PaymentService,
 	financeSvc financeservice.FinanceService,

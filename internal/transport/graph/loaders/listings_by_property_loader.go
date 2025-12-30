@@ -12,12 +12,12 @@ import (
 
 // ListingsByPropertyLoader batches listing fetches by property ID for a single request.
 type ListingsByPropertyLoader struct {
-	svc   propertyservice.Service
+	svc   propertyservice.PropertyService
 	mu    sync.Mutex
 	cache map[uuid.UUID][]domain.Listing
 }
 
-func NewListingsByPropertyLoader(svc propertyservice.Service) *ListingsByPropertyLoader {
+func NewListingsByPropertyLoader(svc propertyservice.PropertyService) *ListingsByPropertyLoader {
 	return &ListingsByPropertyLoader{
 		svc:   svc,
 		cache: make(map[uuid.UUID][]domain.Listing),

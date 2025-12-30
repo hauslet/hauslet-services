@@ -19,7 +19,7 @@ type Loaders struct {
 }
 
 // Middleware attaches loaders to the request context for GraphQL handlers.
-func Middleware(profileSvc profileservice.ProfileService, propertySvc propertyservice.Service) func(http.Handler) http.Handler {
+func Middleware(profileSvc profileservice.ProfileService, propertySvc propertyservice.PropertyService) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), loadersKey{}, &Loaders{

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	pricingservice "hauslet/internal/modules/pricing/service"
 	"hauslet/internal/modules/property/domain"
-	listingService "hauslet/internal/modules/property/service"
+	propertyService "hauslet/internal/modules/property/service"
 
 	"github.com/google/uuid"
 )
@@ -16,7 +16,7 @@ type PricingHooksAdapter struct {
 }
 
 // NewPricingHooksAdapter wires property data into the pricing service contract.
-func NewPricingHooksAdapter(svc listingService.Service) *PricingHooksAdapter {
+func NewPricingHooksAdapter(svc propertyService.PropertyService) *PricingHooksAdapter {
 	return &PricingHooksAdapter{
 		listingHookAdapter: newListingHookAdapter(svc),
 	}

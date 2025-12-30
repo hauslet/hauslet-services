@@ -17,9 +17,9 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// Service aggregates property and listing operations.
+// PropertyService aggregates property and listing operations.
 // This intentionally does not split property vs listing at the service layer.
-type Service interface {
+type PropertyService interface {
 	// Property lifecycle
 	CreateProperty(ctx context.Context, p domain.Property) (*domain.Property, error)
 	UpdateProperty(ctx context.Context, p domain.Property) (*domain.Property, error)

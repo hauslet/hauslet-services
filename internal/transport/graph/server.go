@@ -31,7 +31,7 @@ import (
 func SetupGraphQL(r chi.Router,
 	authService service.AuthService,
 	profileService profileservice.ProfileService,
-	propertyService propertyservice.Service,
+	propertyService propertyservice.PropertyService,
 	businessService businessservice.BusinessService,
 	paymentsService paymentsservice.PaymentService,
 	financeService financeservice.FinanceService,

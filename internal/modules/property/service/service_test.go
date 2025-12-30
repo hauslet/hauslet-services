@@ -24,7 +24,7 @@ func anyArgs(n int) []driver.Value {
 	return args
 }
 
-func newMockService(t *testing.T) (service.Service, sqlmock.Sqlmock, func()) {
+func newMockService(t *testing.T) (service.PropertyService, sqlmock.Sqlmock, func()) {
 	t.Helper()
 
 	sqlDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
