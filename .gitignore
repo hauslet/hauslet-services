@@ -8,7 +8,8 @@ config/overrides/
 .cache/
 .gomodcache/
 .gocache
-
+AGENTS.md
+CLAUDE.md
 
 # Binary outputs
 /bin/
@@ -88,4 +89,4 @@ terraform.rc
 debug
 __debug_bin
 
-CLAUDE.md
+CLAUDE.mdAGENTS.md
