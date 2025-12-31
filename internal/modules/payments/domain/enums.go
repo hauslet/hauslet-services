@@ -1,6 +1,9 @@
 package domain
 
-import "hauslet/internal/platform/payment"
+import (
+	"hauslet/internal/platform/payment"
+	"strings"
+)
 
 // PaymentStatus represents the state of a payment
 type PaymentStatus string
@@ -43,12 +46,46 @@ const (
 type Market string
 
 const (
-	MarketGhana       Market = "GH"
-	MarketKenya       Market = "KE"
-	MarketNigeria     Market = "NG"
-	MarketSouthAfrica Market = "ZA"
-	MarketOther       Market = "OTHER"
+	MarketGhana       Market = "ghana"
+	MarketKenya       Market = "kenya"
+	MarketNigeria     Market = "nigeria"
+	MarketSouthAfrica Market = "south_africa"
+	MarketOther       Market = "other"
 )
+
+// NormalizeMarket maps known market aliases to canonical values.
+func NormalizeMarket(market Market) Market {
+	switch market {
+	case MarketGhana, MarketKenya, MarketNigeria, MarketSouthAfrica, MarketOther:
+		return market
+	}
+
+	normalized := strings.ToLower(strings.TrimSpace(string(market)))
+	switch normalized {
+	case "ghana", "gh":
+		return MarketGhana
+	case "kenya", "ke":
+		return MarketKenya
+	case "nigeria", "ng":
+		return MarketNigeria
+	case "south_africa", "south africa", "south-africa", "southafrica", "za":
+		return MarketSouthAfrica
+	case "other":
+		return MarketOther
+	default:
+		return market
+	}
+}
+
+// IsValid reports whether the market is recognized.
+func (m Market) IsValid() bool {
+	switch NormalizeMarket(m) {
+	case MarketGhana, MarketKenya, MarketNigeria, MarketSouthAfrica, MarketOther:
+		return true
+	default:
+		return false
+	}
+}
 
 // ResourceType represents the target entity for a payment
 type ResourceType string
@@ -77,6 +114,7 @@ func (rt ResourceType) IsValid() bool {
 
 // GetMarketCurrencies returns supported currencies for a market
 func GetMarketCurrencies(market Market) []payment.Currency {
+	market = NormalizeMarket(market)
 	switch market {
 	case MarketGhana:
 		return []payment.Currency{payment.GHS}

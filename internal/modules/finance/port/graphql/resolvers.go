@@ -133,7 +133,7 @@ func (r *Resolver) WalletLedger(
 
 	entries, err := r.financeService.GetWalletHistory(ctx, wid, l, o)
 	if err != nil {
-		r.log.Error("failed to get wallet ledger: %v", err)
+		r.log.Error("failed to get wallet ledger", "error", err)
 		return nil, err
 	}
 
@@ -171,7 +171,7 @@ func (r *Resolver) MyEarnings(ctx context.Context) (*EarningsSummary, error) {
 	// Get host's available wallet
 	wallets, err := r.financeService.ListUserWallets(ctx, userID)
 	if err != nil {
-		r.log.Error("failed to get wallets for user %s: %v", userID, err)
+		r.log.Error("failed to get wallets for user %s", "userID", userID, "error", err)
 		return nil, err
 	}
 

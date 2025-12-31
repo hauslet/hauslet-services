@@ -45,23 +45,23 @@ func TestGetMarketCurrencies(t *testing.T) {
 			shouldContain:    []payment.Currency{payment.GHS},
 		},
 		{
-			name:   "Kenya",
-			market: MarketKenya,
+			name:          "Kenya",
+			market:        MarketKenya,
 			shouldContain: []payment.Currency{"KES", payment.USD},
 		},
 		{
-			name:   "Nigeria",
-			market: MarketNigeria,
+			name:          "Nigeria",
+			market:        MarketNigeria,
 			shouldContain: []payment.Currency{payment.NGN, payment.USD},
 		},
 		{
-			name:   "South Africa",
-			market: MarketSouthAfrica,
+			name:          "South Africa",
+			market:        MarketSouthAfrica,
 			shouldContain: []payment.Currency{"ZAR", payment.USD},
 		},
 		{
-			name:   "Other",
-			market: MarketOther,
+			name:          "Other",
+			market:        MarketOther,
 			shouldContain: []payment.Currency{payment.USD},
 		},
 	}
@@ -260,15 +260,43 @@ func TestMarket_AllMarkets(t *testing.T) {
 	}
 
 	expectedValues := []string{
-		"GH",
-		"KE",
-		"NG",
-		"ZA",
-		"OTHER",
+		"ghana",
+		"kenya",
+		"nigeria",
+		"south_africa",
+		"other",
 	}
 
 	for i, market := range markets {
 		assert.Equal(t, expectedValues[i], string(market))
+	}
+}
+
+func TestNormalizeMarket(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    Market
+		expected Market
+	}{
+		{"canonical Ghana", MarketGhana, MarketGhana},
+		{"lowercase Ghana", Market("ghana"), MarketGhana},
+		{"canonical Kenya", MarketKenya, MarketKenya},
+		{"lowercase Kenya", Market("kenya"), MarketKenya},
+		{"canonical Nigeria", MarketNigeria, MarketNigeria},
+		{"lowercase Nigeria", Market("nigeria"), MarketNigeria},
+		{"canonical South Africa", MarketSouthAfrica, MarketSouthAfrica},
+		{"underscore South Africa", Market("south_africa"), MarketSouthAfrica},
+		{"space South Africa", Market("south africa"), MarketSouthAfrica},
+		{"dash South Africa", Market("south-africa"), MarketSouthAfrica},
+		{"short South Africa", Market("za"), MarketSouthAfrica},
+		{"other", Market("other"), MarketOther},
+		{"unknown", Market("unknown"), Market("unknown")},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, NormalizeMarket(tt.input))
+		})
 	}
 }
 
