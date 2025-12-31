@@ -139,11 +139,14 @@ input CreatePaymentMethodInput {
   isDefault: Boolean
 }
 
-input CreatePayoutDetailInput {
-  businessId: UUID!
+input AddPayoutDetailInput {
+  businessId: UUID
   bankCode: String!
   accountNumber: String!
   accountName: String!
+  currency: String!
+  market: Market!
+  setAsDefault: Boolean
 }
 
 input CreatePayoutInput {
@@ -193,7 +196,7 @@ extend type Mutation {
   deletePaymentMethod(id: UUID!): Boolean!
 
   # Payout mutations
-  createPayoutDetail(input: CreatePayoutDetailInput!): PayoutDetail!
+  createPayoutDetail(input: AddPayoutDetailInput!): PayoutDetail!
   deactivatePayoutDetail(id: UUID!): PayoutDetail!
   createPayout(input: CreatePayoutInput!): Transaction!
 }

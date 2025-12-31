@@ -229,7 +229,7 @@ models:
     model: hauslet/internal/modules/payments/port/graphql.RefundPaymentInput
   CreatePaymentMethodInput:
     model: hauslet/internal/modules/payments/port/graphql.SavePaymentMethodInput
-  CreatePayoutDetailInput:
+  AddPayoutDetailInput:
     model: hauslet/internal/modules/payments/port/graphql.AddPayoutDetailInput
 
   # Payment Enums

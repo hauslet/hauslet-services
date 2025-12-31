@@ -80,9 +80,9 @@ type ResolverRoot interface {
 	Wallet() WalletResolver
 	Wishlist() WishlistResolver
 	WishlistItem() WishlistItemResolver
+	AddPayoutDetailInput() AddPayoutDetailInputResolver
 	CreatePaymentInput() CreatePaymentInputResolver
 	CreatePaymentMethodInput() CreatePaymentMethodInputResolver
-	CreatePayoutDetailInput() CreatePayoutDetailInputResolver
 	CreateReviewInput() CreateReviewInputResolver
 	RefundPaymentInput() RefundPaymentInputResolver
 }
@@ -1254,6 +1254,11 @@ type WishlistItemResolver interface {
 	Listing(ctx context.Context, obj *domain1.WishlistItem) (*domain6.Listing, error)
 }
 
+type AddPayoutDetailInputResolver interface {
+	BusinessID(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data *uuid.UUID) error
+
+	Currency(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data string) error
+}
 type CreatePaymentInputResolver interface {
 	BookingID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error
 	BusinessID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error
@@ -1265,11 +1270,7 @@ type CreatePaymentInputResolver interface {
 	PaymentMethodID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error
 }
 type CreatePaymentMethodInputResolver interface {
-	Provider(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data string) error
 	IsDefault(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data *bool) error
-}
-type CreatePayoutDetailInputResolver interface {
-	BusinessID(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data uuid.UUID) error
 }
 type CreateReviewInputResolver interface {
 	BookingID(ctx context.Context, obj *graphql2.CreateReviewInput, data uuid.UUID) error
@@ -6330,6 +6331,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputAddDisputeEvidenceInput,
+		ec.unmarshalInputAddPayoutDetailInput,
 		ec.unmarshalInputAmenityGroupInput,
 		ec.unmarshalInputAmenityHighlightInput,
 		ec.unmarshalInputBusinessAddressInput,
@@ -6339,7 +6341,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateListingPropertyInput,
 		ec.unmarshalInputCreatePaymentInput,
 		ec.unmarshalInputCreatePaymentMethodInput,
-		ec.unmarshalInputCreatePayoutDetailInput,
 		ec.unmarshalInputCreatePayoutInput,
 		ec.unmarshalInputCreateReviewInput,
 		ec.unmarshalInputCreateWishlistInput,
@@ -8083,11 +8084,14 @@ input CreatePaymentMethodInput {
   isDefault: Boolean
 }
 
-input CreatePayoutDetailInput {
-  businessId: UUID!
+input AddPayoutDetailInput {
+  businessId: UUID
   bankCode: String!
   accountNumber: String!
   accountName: String!
+  currency: String!
+  market: Market!
+  setAsDefault: Boolean
 }
 
 input CreatePayoutInput {
@@ -8137,7 +8141,7 @@ extend type Mutation {
   deletePaymentMethod(id: UUID!): Boolean!
 
   # Payout mutations
-  createPayoutDetail(input: CreatePayoutDetailInput!): PayoutDetail!
+  createPayoutDetail(input: AddPayoutDetailInput!): PayoutDetail!
   deactivatePayoutDetail(id: UUID!): PayoutDetail!
   createPayout(input: CreatePayoutInput!): Transaction!
 }
@@ -8926,7 +8930,7 @@ func (ec *executionContext) field_Mutation_createPayment_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_createPayoutDetail_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreatePayoutDetailInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐAddPayoutDetailInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNAddPayoutDetailInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐAddPayoutDetailInput)
 	if err != nil {
 		return nil, err
 	}
@@ -39460,6 +39464,79 @@ func (ec *executionContext) unmarshalInputAddDisputeEvidenceInput(ctx context.Co
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputAddPayoutDetailInput(ctx context.Context, obj any) (graphql1.AddPayoutDetailInput, error) {
+	var it graphql1.AddPayoutDetailInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"businessId", "bankCode", "accountNumber", "accountName", "currency", "market", "setAsDefault"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "businessId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("businessId"))
+			data, err := ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.AddPayoutDetailInput().BusinessID(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "bankCode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bankCode"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BankCode = data
+		case "accountNumber":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accountNumber"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AccountNumber = data
+		case "accountName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accountName"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AccountName = data
+		case "currency":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currency"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.AddPayoutDetailInput().Currency(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "market":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("market"))
+			data, err := ec.unmarshalNMarket2hausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐMarket(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Market = data
+		case "setAsDefault":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("setAsDefault"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SetAsDefault = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputAmenityGroupInput(ctx context.Context, obj any) (model.AmenityGroupInput, error) {
 	var it model.AmenityGroupInput
 	asMap := map[string]any{}
@@ -40196,9 +40273,7 @@ func (ec *executionContext) unmarshalInputCreatePaymentMethodInput(ctx context.C
 			if err != nil {
 				return it, err
 			}
-			if err = ec.resolvers.CreatePaymentMethodInput().Provider(ctx, &it, data); err != nil {
-				return it, err
-			}
+			it.Provider = data
 		case "isDefault":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isDefault"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -40208,56 +40283,6 @@ func (ec *executionContext) unmarshalInputCreatePaymentMethodInput(ctx context.C
 			if err = ec.resolvers.CreatePaymentMethodInput().IsDefault(ctx, &it, data); err != nil {
 				return it, err
 			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputCreatePayoutDetailInput(ctx context.Context, obj any) (graphql1.AddPayoutDetailInput, error) {
-	var it graphql1.AddPayoutDetailInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"businessId", "bankCode", "accountNumber", "accountName"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "businessId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("businessId"))
-			data, err := ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			if err = ec.resolvers.CreatePayoutDetailInput().BusinessID(ctx, &it, data); err != nil {
-				return it, err
-			}
-		case "bankCode":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bankCode"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.BankCode = data
-		case "accountNumber":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accountNumber"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.AccountNumber = data
-		case "accountName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accountName"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.AccountName = data
 		}
 	}
 
@@ -51809,6 +51834,11 @@ func (ec *executionContext) unmarshalNAddDisputeEvidenceInput2hausletᚋinternal
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNAddPayoutDetailInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐAddPayoutDetailInput(ctx context.Context, v any) (graphql1.AddPayoutDetailInput, error) {
+	res, err := ec.unmarshalInputAddPayoutDetailInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AmenityGroup) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -52377,11 +52407,6 @@ func (ec *executionContext) unmarshalNCreatePaymentInput2hausletᚋinternalᚋmo
 
 func (ec *executionContext) unmarshalNCreatePaymentMethodInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐSavePaymentMethodInput(ctx context.Context, v any) (graphql1.SavePaymentMethodInput, error) {
 	res, err := ec.unmarshalInputCreatePaymentMethodInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNCreatePayoutDetailInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐAddPayoutDetailInput(ctx context.Context, v any) (graphql1.AddPayoutDetailInput, error) {
-	res, err := ec.unmarshalInputCreatePayoutDetailInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 

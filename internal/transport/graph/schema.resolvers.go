@@ -1345,6 +1345,23 @@ func (r *wishlistItemResolver) Listing(ctx context.Context, obj *domain4.Wishlis
 	return r.WishlistResolver.WishlistItemListing(ctx, obj)
 }
 
+// BusinessID is the resolver for the businessId field.
+func (r *addPayoutDetailInputResolver) BusinessID(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data *uuid.UUID) error {
+	if data == nil {
+		obj.BusinessID = nil
+		return nil
+	}
+	value := data.String()
+	obj.BusinessID = &value
+	return nil
+}
+
+// Currency is the resolver for the currency field.
+func (r *addPayoutDetailInputResolver) Currency(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data string) error {
+	obj.Currency = payment.Currency(data)
+	return nil
+}
+
 // BookingID is the resolver for the bookingId field.
 func (r *createPaymentInputResolver) BookingID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error {
 	if data == nil {
@@ -1403,22 +1420,9 @@ func (r *createPaymentInputResolver) PaymentMethodID(ctx context.Context, obj *g
 	return nil
 }
 
-// Provider is the resolver for the provider field.
-func (r *createPaymentMethodInputResolver) Provider(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data string) error {
-	obj.Provider = data
-	return nil
-}
-
 // IsDefault is the resolver for the isDefault field.
 func (r *createPaymentMethodInputResolver) IsDefault(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data *bool) error {
 	obj.SetAsDefault = data
-	return nil
-}
-
-// BusinessID is the resolver for the businessId field.
-func (r *createPayoutDetailInputResolver) BusinessID(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data uuid.UUID) error {
-	value := data.String()
-	obj.BusinessID = &value
 	return nil
 }
 
@@ -1524,6 +1528,11 @@ func (r *Resolver) Wishlist() WishlistResolver { return &wishlistResolver{r} }
 // WishlistItem returns WishlistItemResolver implementation.
 func (r *Resolver) WishlistItem() WishlistItemResolver { return &wishlistItemResolver{r} }
 
+// AddPayoutDetailInput returns AddPayoutDetailInputResolver implementation.
+func (r *Resolver) AddPayoutDetailInput() AddPayoutDetailInputResolver {
+	return &addPayoutDetailInputResolver{r}
+}
+
 // CreatePaymentInput returns CreatePaymentInputResolver implementation.
 func (r *Resolver) CreatePaymentInput() CreatePaymentInputResolver {
 	return &createPaymentInputResolver{r}
@@ -1532,11 +1541,6 @@ func (r *Resolver) CreatePaymentInput() CreatePaymentInputResolver {
 // CreatePaymentMethodInput returns CreatePaymentMethodInputResolver implementation.
 func (r *Resolver) CreatePaymentMethodInput() CreatePaymentMethodInputResolver {
 	return &createPaymentMethodInputResolver{r}
-}
-
-// CreatePayoutDetailInput returns CreatePayoutDetailInputResolver implementation.
-func (r *Resolver) CreatePayoutDetailInput() CreatePayoutDetailInputResolver {
-	return &createPayoutDetailInputResolver{r}
 }
 
 // CreateReviewInput returns CreateReviewInputResolver implementation.
@@ -1575,8 +1579,30 @@ type travelCompanionResolver struct{ *Resolver }
 type walletResolver struct{ *Resolver }
 type wishlistResolver struct{ *Resolver }
 type wishlistItemResolver struct{ *Resolver }
+type addPayoutDetailInputResolver struct{ *Resolver }
 type createPaymentInputResolver struct{ *Resolver }
 type createPaymentMethodInputResolver struct{ *Resolver }
-type createPayoutDetailInputResolver struct{ *Resolver }
 type createReviewInputResolver struct{ *Resolver }
 type refundPaymentInputResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *createPaymentMethodInputResolver) Provider(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data string) error {
+	obj.Provider = data
+	return nil
+}
+func (r *createPayoutDetailInputResolver) BusinessID(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data uuid.UUID) error {
+	value := data.String()
+	obj.BusinessID = &value
+	return nil
+}
+func (r *Resolver) CreatePayoutDetailInput() CreatePayoutDetailInputResolver {
+	return &createPayoutDetailInputResolver{r}
+}
+type createPayoutDetailInputResolver struct{ *Resolver }
+*/

@@ -97,7 +97,7 @@ func (r *Resolver) FinanceTransactionHistory(
 
 	transactions, err := r.financeService.GetTransactionHistory(ctx, domain.ResourceType(resourceType), rid)
 	if err != nil {
-		r.log.Error("failed to get transaction history: %v", err)
+		r.log.Error("failed to get transaction history", "error", err)
 		return nil, err
 	}
 
