@@ -96,7 +96,8 @@ type Transaction {
 
 type PayoutDetail {
   id: UUID!
-  businessId: UUID!
+  userId: UUID
+  businessId: UUID
   recipientCode: String!
   bankCode: String!
   bankName: String!

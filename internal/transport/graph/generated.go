@@ -594,6 +594,7 @@ type ComplexityRoot struct {
 		IsActive      func(childComplexity int) int
 		RecipientCode func(childComplexity int) int
 		UpdatedAt     func(childComplexity int) int
+		UserID        func(childComplexity int) int
 	}
 
 	PriceBreakdownSnapshot struct {
@@ -4019,6 +4020,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PayoutDetail.UpdatedAt(childComplexity), true
+	case "PayoutDetail.userId":
+		if e.complexity.PayoutDetail.UserID == nil {
+			break
+		}
+
+		return e.complexity.PayoutDetail.UserID(childComplexity), true
 
 	case "PriceBreakdownSnapshot.baseTotal":
 		if e.complexity.PriceBreakdownSnapshot.BaseTotal == nil {
@@ -8041,7 +8048,8 @@ type Transaction {
 
 type PayoutDetail {
   id: UUID!
-  businessId: UUID!
+  userId: UUID
+  businessId: UUID
   recipientCode: String!
   bankCode: String!
   bankName: String!
@@ -22093,6 +22101,8 @@ func (ec *executionContext) fieldContext_Mutation_createPayoutDetail(ctx context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_PayoutDetail_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_PayoutDetail_userId(ctx, field)
 			case "businessId":
 				return ec.fieldContext_PayoutDetail_businessId(ctx, field)
 			case "recipientCode":
@@ -22156,6 +22166,8 @@ func (ec *executionContext) fieldContext_Mutation_deactivatePayoutDetail(ctx con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_PayoutDetail_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_PayoutDetail_userId(ctx, field)
 			case "businessId":
 				return ec.fieldContext_PayoutDetail_businessId(ctx, field)
 			case "recipientCode":
@@ -24841,6 +24853,35 @@ func (ec *executionContext) fieldContext_PayoutDetail_id(_ context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _PayoutDetail_userId(ctx context.Context, field graphql.CollectedField, obj *domain5.PayoutDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PayoutDetail_userId,
+		func(ctx context.Context) (any, error) {
+			return obj.UserID, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PayoutDetail_userId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PayoutDetail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PayoutDetail_businessId(ctx context.Context, field graphql.CollectedField, obj *domain5.PayoutDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -24851,9 +24892,9 @@ func (ec *executionContext) _PayoutDetail_businessId(ctx context.Context, field 
 			return obj.BusinessID, nil
 		},
 		nil,
-		ec.marshalNUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
 		true,
-		true,
+		false,
 	)
 }
 
@@ -30669,6 +30710,8 @@ func (ec *executionContext) fieldContext_Query_payoutDetail(ctx context.Context,
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_PayoutDetail_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_PayoutDetail_userId(ctx, field)
 			case "businessId":
 				return ec.fieldContext_PayoutDetail_businessId(ctx, field)
 			case "recipientCode":
@@ -30732,6 +30775,8 @@ func (ec *executionContext) fieldContext_Query_payoutDetails(ctx context.Context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_PayoutDetail_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_PayoutDetail_userId(ctx, field)
 			case "businessId":
 				return ec.fieldContext_PayoutDetail_businessId(ctx, field)
 			case "recipientCode":
@@ -47142,11 +47187,10 @@ func (ec *executionContext) _PayoutDetail(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "userId":
+			out.Values[i] = ec._PayoutDetail_userId(ctx, field, obj)
 		case "businessId":
 			out.Values[i] = ec._PayoutDetail_businessId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "recipientCode":
 			out.Values[i] = ec._PayoutDetail_recipientCode(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -54518,21 +54562,6 @@ func (ec *executionContext) unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(c
 
 func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, sel ast.SelectionSet, v uuid.UUID) graphql.Marshaler {
 	return ec._UUID(ctx, sel, &v)
-}
-
-func (ec *executionContext) unmarshalNUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (*uuid.UUID, error) {
-	res, err := ec.unmarshalInputUUID(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, sel ast.SelectionSet, v *uuid.UUID) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._UUID(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNUpdateBusinessInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateBusinessInput(ctx context.Context, v any) (model.UpdateBusinessInput, error) {

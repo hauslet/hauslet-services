@@ -57,7 +57,7 @@ func (r *Resolver) ReconciliationReports(
 
 	reports, err := r.financeService.ListReconciliationReports(ctx, l, o)
 	if err != nil {
-		r.log.Error("failed to list reconciliation reports: %v", err)
+		r.log.Error("failed to list reconciliation reports","error", err)
 		return nil, err
 	}
 
@@ -75,7 +75,7 @@ func (r *Resolver) LatestReconciliation(ctx context.Context) (*domain.Reconcilia
 		if err == domain.ErrReconciliationNotFound {
 			return nil, nil
 		}
-		r.log.Error("failed to get latest reconciliation: %v", err)
+		r.log.Error("failed to get latest reconciliation","error", err)
 		return nil, err
 	}
 

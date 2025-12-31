@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"hauslet/internal/modules/payments/domain"
 	"hauslet/internal/modules/payments/repository/schema"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 )
@@ -34,9 +36,9 @@ func (s *PaymentServiceImpl) AddPayoutDetail(ctx context.Context, input domain.C
 	}
 
 	// Verify account name matches
-	if accountName != input.AccountName {
-		s.log.Warn("account name mismatch: expected=%s, got=%s", input.AccountName, accountName)
-		// Allow it but log warning
+	if !nameMatches(input.AccountName, accountName) {
+		s.log.Warn("account name mismatch", "expected", input.AccountName, "actual", accountName)
+		return nil, domain.ErrAccountNameMismatch
 	}
 
 	// Create recipient with provider
@@ -189,4 +191,128 @@ func (s *PaymentServiceImpl) VerifyBankAccount(ctx context.Context, market domai
 	s.log.Info(" bank account verified", "name", accountName)
 
 	return accountName, nil
+}
+func nameMatches(inputName, bankName string) bool {
+	inputTokens := normalizeNameTokens(inputName)
+	bankTokens := normalizeNameTokens(bankName)
+
+	if len(inputTokens) == 0 || len(bankTokens) == 0 {
+		return false
+	}
+
+	// 1. Calculate Intersection (allowing for small typos)
+	matches := 0
+	for _, inToken := range inputTokens {
+		for _, bankToken := range bankTokens {
+			// Check for exact match OR small typo (Levenshtein)
+			if inToken == bankToken || isFuzzyMatch(inToken, bankToken) {
+				matches++
+				break
+			}
+		}
+	}
+
+	// 2. Calculate Jaccard Similarity
+	// Union = (len(input) + len(bank)) - matches
+	union := float64(len(inputTokens) + len(bankTokens) - matches)
+	if union == 0 {
+		return false
+	}
+
+	score := float64(matches) / union
+
+	// 3. Threshold
+	// 0.6 is a common "good enough" baseline.
+	// "John Doe" vs "John A. Doe" -> 2 matches / 3 union = 0.66 (Pass)
+	// "John" vs "John Smith"      -> 1 match   / 2 union = 0.50 (Fail)
+	return score >= 0.65
+}
+
+// Simple helper to allow "Ltd" == "Limited" or small typos
+func isFuzzyMatch(s1, s2 string) bool {
+	// Handle common abbreviations explicitly if needed
+	if isAbbreviation(s1, s2) {
+		return true
+	}
+
+	// Allow small edit distance (Levenshtein) for typos
+	// e.g. "Jon" vs "John"
+	if abs(len(s1)-len(s2)) > 2 {
+		return false
+	}
+	return levenshtein(s1, s2) <= 1
+}
+
+func isAbbreviation(s1, s2 string) bool {
+	// Map of common abbreviations
+	abbr := map[string]string{
+		"ltd": "limited", "inc": "incorporated", "co": "company",
+		"corp": "corporation",
+	}
+	if val, ok := abbr[s1]; ok && val == s2 {
+		return true
+	}
+	if val, ok := abbr[s2]; ok && val == s1 {
+		return true
+	}
+	return false
+}
+
+func normalizeNameTokens(name string) []string {
+	name = strings.ToLower(name)
+	return strings.FieldsFunc(name, func(r rune) bool {
+		return !(unicode.IsLetter(r) || unicode.IsNumber(r))
+	})
+}
+
+// Basic Levenshtein implementation
+func levenshtein(s1, s2 string) int {
+	r1, r2 := []rune(s1), []rune(s2)
+	n, m := len(r1), len(r2)
+	if n == 0 {
+		return m
+	}
+	if m == 0 {
+		return n
+	}
+
+	// Create matrix
+	d := make([][]int, n+1)
+	for i := range d {
+		d[i] = make([]int, m+1)
+	}
+
+	for i := 0; i <= n; i++ {
+		d[i][0] = i
+	}
+	for j := 0; j <= m; j++ {
+		d[0][j] = j
+	}
+
+	for i := 1; i <= n; i++ {
+		for j := 1; j <= m; j++ {
+			cost := 1
+			if r1[i-1] == r2[j-1] {
+				cost = 0
+			}
+
+			minVal := d[i-1][j] + 1 // deletion
+			if ins := d[i][j-1] + 1; ins < minVal {
+				minVal = ins
+			} // insertion
+			if sub := d[i-1][j-1] + cost; sub < minVal {
+				minVal = sub
+			} // substitution
+
+			d[i][j] = minVal
+		}
+	}
+	return d[n][m]
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
