@@ -55,6 +55,31 @@ func (s *PaymentServiceImpl) AddPayoutDetail(ctx context.Context, input domain.C
 		return nil, fmt.Errorf("failed to create recipient: %w", err)
 	}
 
+	// Resolve bank name from provider list
+	country := string(domain.NormalizeMarket(input.Market))
+	if country == string(domain.MarketOther) {
+		country = ""
+	}
+
+	cacheKey := bankListCacheKey(input.Currency, country)
+	bankNames, ok := s.getCachedBankNames(ctx, cacheKey)
+	if !ok {
+		banks, err := s.paymentClient.ListBanks(ctx, input.Currency, country)
+		if err != nil {
+			s.log.Error("failed to fetch bank list", "error", err)
+			return nil, fmt.Errorf("failed to fetch bank list: %w", err)
+		}
+		bankNames = buildBankNameCache(banks)
+		s.setCachedBankNames(ctx, cacheKey, bankNames)
+	}
+
+	normalizedBankCode := normalizeBankCode(input.BankCode)
+	bankName, ok := bankNames[normalizedBankCode]
+	if !ok || bankName == "" {
+		s.log.Warn("bank code not recognized", "bank_code", input.BankCode, "country", country)
+		return nil, domain.ErrInvalidBankDetails
+	}
+
 	// Create payout detail
 	now := time.Now()
 	pd := &domain.PayoutDetail{
@@ -62,7 +87,7 @@ func (s *PaymentServiceImpl) AddPayoutDetail(ctx context.Context, input domain.C
 		UserID:        input.UserID,
 		BusinessID:    input.BusinessID,
 		BankCode:      input.BankCode,
-		BankName:      "", // TODO: Get bank name from bank code
+		BankName:      bankName,
 		AccountNumber: input.AccountNumber,
 		AccountName:   accountName,
 		Currency:      input.Currency,

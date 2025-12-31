@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	"hauslet/config"
 	"hauslet/internal/modules/finance/domain"
 	financeSchema "hauslet/internal/modules/finance/repository/schema"
-	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -15,7 +17,12 @@ import (
 // QueuePayout creates a pending payout record for later processing
 func (s *PayoutServiceImpl) QueuePayout(ctx context.Context, bookingID, hostID uuid.UUID, totalAmount int64, currency string) error {
 	if s.log != nil {
-		s.log.Info(" queueing payout for booking=%s host=%s amount=%d %s", bookingID, hostID, totalAmount, currency)
+		s.log.Info("queueing payout",
+			"booking_id", bookingID,
+			"host_id", hostID,
+			"amount", totalAmount,
+			"currency", currency,
+		)
 	}
 
 	// Validate amount
@@ -31,7 +38,9 @@ func (s *PayoutServiceImpl) QueuePayout(ctx context.Context, bookingID, hostID u
 	existingEntry, _ := s.ledgerRepo.GetByReference(ctx, reference+":debit")
 	if existingEntry != nil {
 		if s.log != nil {
-			s.log.Warn("payout already queued for booking=%s", bookingID)
+			s.log.Warn("payout already queued",
+				"booking_id", bookingID,
+			)
 		}
 		return domain.ErrDuplicateTransaction
 	}
@@ -39,7 +48,9 @@ func (s *PayoutServiceImpl) QueuePayout(ctx context.Context, bookingID, hostID u
 	// Note: Actual payout processing happens in ProcessDuePayouts cron job
 	// This just validates and marks the booking as ready for payout
 	if s.log != nil {
-		s.log.Info(" payout queued successfully for booking=%s", bookingID)
+		s.log.Info("payout queued successfully",
+			"booking_id", bookingID,
+		)
 	}
 
 	return nil
@@ -49,7 +60,9 @@ func (s *PayoutServiceImpl) QueuePayout(ctx context.Context, bookingID, hostID u
 // This should be called by a cron job (e.g., every hour)
 func (s *PayoutServiceImpl) ProcessDuePayouts(ctx context.Context) error {
 	if s.log != nil {
-		s.log.Info(" [AUDIT] payout_batch_started time=%s", time.Now().Format(time.RFC3339))
+		s.log.Info("[AUDIT] payout_batch_started",
+			"time", time.Now().Format(time.RFC3339),
+		)
 	}
 
 	// Check if booking querier is configured
@@ -73,15 +86,19 @@ func (s *PayoutServiceImpl) ProcessDuePayouts(ctx context.Context) error {
 	}
 
 	if s.log != nil {
-		s.log.Info(" [AUDIT] payout_config escrow_release_event=%s escrow_release_hours=%d",
-			escrowReleaseEvent, payoutWindowHours)
+		s.log.Info("[AUDIT] payout_config",
+			"escrow_release_event", escrowReleaseEvent,
+			"escrow_release_hours", payoutWindowHours,
+		)
 	}
 
 	// Convert to string only when passing to the query
 	bookings, err := s.bookingQuerier.FindBookingsReadyForPayout(ctx, escrowReleaseEvent.String(), payoutWindowHours, 100)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to query bookings ready for payout: %v", err)
+			s.log.Error("failed to query bookings ready for payout",
+				"error", err,
+			)
 		}
 		return fmt.Errorf("failed to query bookings: %w", err)
 	}
@@ -90,7 +107,9 @@ func (s *PayoutServiceImpl) ProcessDuePayouts(ctx context.Context) error {
 	failureCount := 0
 
 	if s.log != nil {
-		s.log.Info(" [AUDIT] found %d bookings ready for payout", len(bookings))
+		s.log.Info("[AUDIT] found bookings ready for payout",
+			"count", len(bookings),
+		)
 	}
 
 	// Process each booking
@@ -104,8 +123,11 @@ func (s *PayoutServiceImpl) ProcessDuePayouts(ctx context.Context) error {
 		)
 		if err != nil {
 			if s.log != nil {
-				s.log.Error("[AUDIT] payout_failed booking_id=%s reason=escrow_wallet_not_found error=%v",
-					booking.ID, err)
+				s.log.Error("[AUDIT] payout_failed",
+					"booking_id", booking.ID,
+					"reason", "escrow_wallet_not_found",
+					"error", err,
+				)
 			}
 			failureCount++
 			continue
@@ -122,22 +144,33 @@ func (s *PayoutServiceImpl) ProcessDuePayouts(ctx context.Context) error {
 		)
 		if err != nil {
 			if s.log != nil {
-				s.log.Error("[AUDIT] payout_failed booking_id=%s host_id=%s error=%v",
-					booking.ID, booking.HostID, err)
+				s.log.Error("[AUDIT] payout_failed",
+					"booking_id", booking.ID,
+					"host_id", booking.HostID,
+					"error", err,
+				)
 			}
 			failureCount++
 		} else {
 			if s.log != nil {
-				s.log.Info(" [AUDIT] payout_success booking_id=%s host_id=%s amount=%d currency=%s",
-					booking.ID, booking.HostID, booking.TotalAmount, booking.Currency)
+				s.log.Info("[AUDIT] payout_success",
+					"booking_id", booking.ID,
+					"host_id", booking.HostID,
+					"amount", booking.TotalAmount,
+					"currency", booking.Currency,
+				)
 			}
 			successCount++
 		}
 	}
 
 	if s.log != nil {
-		s.log.Info(" [AUDIT] payout_batch_completed time=%s total=%d success=%d failed=%d",
-			time.Now().Format(time.RFC3339), len(bookings), successCount, failureCount)
+		s.log.Info("[AUDIT] payout_batch_completed",
+			"time", time.Now().Format(time.RFC3339),
+			"total", len(bookings),
+			"success", successCount,
+			"failed", failureCount,
+		)
 	}
 
 	return nil
@@ -153,8 +186,12 @@ func (s *PayoutServiceImpl) processSinglePayout(
 	currency string,
 ) error {
 	if s.log != nil {
-		s.log.Info(" [AUDIT] payout_processing_started booking_id=%s host_id=%s amount=%d currency=%s",
-			bookingID, hostID, totalAmount, currency)
+		s.log.Info("[AUDIT] payout_processing_started",
+			"booking_id", bookingID,
+			"host_id", hostID,
+			"amount", totalAmount,
+			"currency", currency,
+		)
 	}
 
 	// Use database transaction to ensure atomicity
@@ -168,8 +205,13 @@ func (s *PayoutServiceImpl) processSinglePayout(
 		hostPayout := totalAmount - commission
 
 		if s.log != nil {
-			s.log.Info(" [AUDIT] payout_breakdown booking_id=%s total=%d commission=%d host_payout=%d commission_rate=%.2f%%",
-				bookingID, totalAmount, commission, hostPayout, s.platformConfig.Fees.HostCommissionPercent*100)
+			s.log.Info("[AUDIT] payout_breakdown",
+				"booking_id", bookingID,
+				"total", totalAmount,
+				"commission", commission,
+				"host_payout", hostPayout,
+				"commission_rate", s.platformConfig.Fees.HostCommissionPercent*100,
+			)
 		}
 
 		// Step 2: Get platform fee wallet
@@ -192,7 +234,10 @@ func (s *PayoutServiceImpl) processSinglePayout(
 		}
 
 		if s.log != nil {
-			s.log.Info(" commission recorded: tx=%s amount=%d", commissionTx.ID, commission)
+			s.log.Info("commission recorded",
+				"transaction_id", commissionTx.ID,
+				"amount", commission,
+			)
 		}
 
 		// Step 4: Get or create host available wallet
@@ -231,17 +276,53 @@ func (s *PayoutServiceImpl) processSinglePayout(
 		}
 
 		if s.log != nil {
-			s.log.Info(" payout recorded: tx=%s amount=%d", payoutTx.ID, hostPayout)
+			s.log.Info("payout recorded",
+				"transaction_id", payoutTx.ID,
+				"amount", hostPayout,
+			)
 		}
 
 		// Step 6: Create disbursement record for actual bank transfer
+		defaultProvider := "paystack"
+		switch strings.ToUpper(currency) {
+		case "USD", "GHS":
+			defaultProvider = "stripe"
+		}
+
+		provider := strings.ToLower(strings.TrimSpace(s.platformConfig.Payouts.DisbursementProvider))
+		if provider == "" {
+			provider = defaultProvider
+		} else {
+			switch provider {
+			case "paystack", "stripe":
+				if provider != defaultProvider {
+					if s.log != nil {
+						s.log.Warn("disbursement provider does not match currency; using default",
+							"provider", provider,
+							"currency", currency,
+							"default_provider", defaultProvider,
+						)
+					}
+					provider = defaultProvider
+				}
+			default:
+				if s.log != nil {
+					s.log.Warn("invalid disbursement provider; using default",
+						"provider", provider,
+						"default_provider", defaultProvider,
+					)
+				}
+				provider = defaultProvider
+			}
+		}
+
 		disbursement := &financeSchema.Disbursement{
 			ID:            uuid.New(),
 			WalletID:      hostWallet.ID,
 			TransactionID: payoutTx.ID,
 			Amount:        hostPayout,
 			Currency:      currency,
-			Provider:      "paystack", // TODO: Make configurable
+			Provider:      provider,
 			Status:        string(domain.DisbursementStatusPending),
 			Attempts:      0,
 			CreatedAt:     time.Now(),
@@ -253,14 +334,18 @@ func (s *PayoutServiceImpl) processSinglePayout(
 		}
 
 		if s.log != nil {
-			s.log.Info(" disbursement created: id=%s", disbursement.ID)
+			s.log.Info("disbursement created",
+				"disbursement_id", disbursement.ID,
+			)
 		}
 
 		// Step 7: Initiate transfer via payment provider
 		if err := s.initiateDisbursement(ctx, disbursement); err != nil {
 			// Don't fail the whole transaction - we'll retry later
 			if s.log != nil {
-				s.log.Warn("failed to initiate disbursement (will retry): %v", err)
+				s.log.Warn("failed to initiate disbursement (will retry)",
+					"error", err,
+				)
 			}
 			// Set next retry time
 			nextRetry := time.Now().Add(s.calculateRetryDelay(0))
@@ -276,7 +361,9 @@ func (s *PayoutServiceImpl) processSinglePayout(
 			if err := s.bookingHooks.MarkAsSettled(ctx, bookingID); err != nil {
 				// Log but don't fail - booking status update is not critical
 				if s.log != nil {
-					s.log.Warn("failed to mark booking as settled: %v", err)
+					s.log.Warn("failed to mark booking as settled",
+						"error", err,
+					)
 				}
 			}
 		}

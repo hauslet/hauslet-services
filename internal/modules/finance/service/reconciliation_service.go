@@ -39,13 +39,18 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 	result := &domain.ReconciliationResult{}
 
 	// Run validation checks
-	s.log.Info(" starting reconciliation: report_id=%s", report.ID)
+	s.log.Info("starting reconciliation",
+		"report_id", report.ID,
+	)
 
 	// 1. Validate ledger balance (debit = credit)
-	s.log.Info(" reconciliation: validating ledger balance")
+	s.log.Info("reconciliation: validating ledger balance")
 	ledgerDiscrepancies, err := s.ValidateLedgerBalance(ctx)
 	if err != nil {
-		s.log.Error("reconciliation failed during ledger validation: %v", err)
+		s.log.Error("reconciliation failed during ledger validation",
+			"report_id", report.ID,
+			"error", err,
+		)
 		return s.failReconciliation(ctx, report, err)
 	}
 	for _, d := range ledgerDiscrepancies {
@@ -54,10 +59,13 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 	}
 
 	// 2. Validate wallet balances
-	s.log.Info(" reconciliation: validating wallet balances")
+	s.log.Info("reconciliation: validating wallet balances")
 	walletDiscrepancies, err := s.ValidateWalletBalance(ctx)
 	if err != nil {
-		s.log.Error("reconciliation failed during wallet validation: %v", err)
+		s.log.Error("reconciliation failed during wallet validation",
+			"report_id", report.ID,
+			"error", err,
+		)
 		return s.failReconciliation(ctx, report, err)
 	}
 	for _, d := range walletDiscrepancies {
@@ -73,13 +81,17 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 	s.log.Warn("reconciliation: provider reconciliation not yet implemented")
 
 	// Save all discrepancies
-	s.log.Info(" reconciliation: found %d discrepancies", len(result.Discrepancies))
+	s.log.Info("reconciliation: found discrepancies",
+		"count", len(result.Discrepancies),
+	)
 	for _, discrepancy := range result.Discrepancies {
 		discrepancy.ID = uuid.New()
 		discrepancy.CreatedAt = time.Now()
 		discrepancySchema := domain.MapDiscrepancyToSchema(&discrepancy)
 		if err := s.reconciliationRepo.CreateDiscrepancy(ctx, discrepancySchema); err != nil {
-			s.log.Error("failed to save discrepancy: %v", err)
+			s.log.Error("failed to save discrepancy",
+				"error", err,
+			)
 			// Continue saving other discrepancies
 		}
 	}
@@ -98,11 +110,17 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 	// Update report
 	reportSchema = domain.MapReconciliationReportToSchema(report)
 	if err := s.reconciliationRepo.UpdateReport(ctx, reportSchema); err != nil {
-		s.log.Error("failed to update reconciliation report: %v", err)
+		s.log.Error("failed to update reconciliation report",
+			"report_id", report.ID,
+			"error", err,
+		)
 		return nil, fmt.Errorf("failed to update reconciliation report: %w", err)
 	}
 
-	s.log.Info(" reconciliation completed: report_id=%s discrepancies=%d", report.ID, len(result.Discrepancies))
+	s.log.Info("reconciliation completed",
+		"report_id", report.ID,
+		"discrepancies", len(result.Discrepancies),
+	)
 
 	// TODO: Send alert email to admins if discrepancies found
 	// This will require:
@@ -161,7 +179,9 @@ func (s *FinanceServiceImpl) ValidateLedgerBalance(ctx context.Context) ([]domai
 		})
 	}
 
-	s.log.Info(" ledger validation: found %d imbalanced transactions", len(discrepancies))
+	s.log.Info("ledger validation: found imbalanced transactions",
+		"count", len(discrepancies),
+	)
 
 	return discrepancies, nil
 }
@@ -229,7 +249,9 @@ func (s *FinanceServiceImpl) ValidateWalletBalance(ctx context.Context) ([]domai
 		})
 	}
 
-	s.log.Info(" wallet validation: found %d wallet mismatches", len(discrepancies))
+	s.log.Info("wallet validation: found wallet mismatches",
+		"count", len(discrepancies),
+	)
 
 	return discrepancies, nil
 }
@@ -316,7 +338,10 @@ func (s *FinanceServiceImpl) failReconciliation(ctx context.Context, report *dom
 
 	reportSchema := domain.MapReconciliationReportToSchema(report)
 	if updateErr := s.reconciliationRepo.UpdateReport(ctx, reportSchema); updateErr != nil {
-		s.log.Error("failed to update failed reconciliation report: %v", updateErr)
+		s.log.Error("failed to update failed reconciliation report",
+			"report_id", report.ID,
+			"error", updateErr,
+		)
 	}
 
 	return report, err

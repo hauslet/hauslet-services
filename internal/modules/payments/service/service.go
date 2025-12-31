@@ -4,6 +4,7 @@ import (
 	"hauslet/internal/modules/payments/notification"
 	"hauslet/internal/modules/payments/repository"
 	"hauslet/internal/platform/payment"
+	"hauslet/internal/platform/redis"
 	"log/slog"
 )
 
@@ -12,6 +13,7 @@ type PaymentServiceImpl struct {
 	repo            repository.Repository
 	paymentClient   *payment.Client
 	notificationSvc *notification.NotificationService
+	cache           redis.RedisClient
 	log             *slog.Logger
 }
 
@@ -20,12 +22,14 @@ func NewPaymentService(
 	repo repository.Repository,
 	paymentClient *payment.Client,
 	notificationSvc *notification.NotificationService,
+	cache redis.RedisClient,
 	log *slog.Logger,
 ) PaymentService {
 	return &PaymentServiceImpl{
 		repo:            repo,
 		paymentClient:   paymentClient,
 		notificationSvc: notificationSvc,
+		cache:           cache,
 		log:             log,
 	}
 }

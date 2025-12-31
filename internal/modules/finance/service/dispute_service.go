@@ -99,8 +99,13 @@ func (s *FinanceServiceImpl) FileDispute(
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	s.log.Info(" dispute filed: dispute_id=%s booking_id=%s filed_by=%s reason=%s amount=%d",
-		dispute.ID, bookingID, filedBy, reason, amount)
+	s.log.Info("dispute filed",
+		"dispute_id", dispute.ID,
+		"booking_id", bookingID,
+		"filed_by", filedBy,
+		"reason", reason,
+		"amount", amount,
+	)
 
 	return dispute, nil
 }
@@ -129,7 +134,10 @@ func (s *FinanceServiceImpl) InvestigateDispute(ctx context.Context, disputeID, 
 		return fmt.Errorf("failed to update dispute: %w", err)
 	}
 
-	s.log.Info(" dispute investigating: dispute_id=%s admin_id=%s", disputeID, adminID)
+	s.log.Info("dispute investigating",
+		"dispute_id", disputeID,
+		"admin_id", adminID,
+	)
 
 	return nil
 }
@@ -211,8 +219,12 @@ func (s *FinanceServiceImpl) ResolveDispute(
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	s.log.Info(" dispute resolved: dispute_id=%s outcome=%s refund_amount=%d admin_id=%s",
-		disputeID, outcome, refundAmount, adminID)
+	s.log.Info("dispute resolved",
+		"dispute_id", disputeID,
+		"outcome", outcome,
+		"refund_amount", refundAmount,
+		"admin_id", adminID,
+	)
 
 	return nil
 }
@@ -264,7 +276,10 @@ func (s *FinanceServiceImpl) CancelDispute(ctx context.Context, disputeID, cance
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	s.log.Info(" dispute cancelled: dispute_id=%s cancelled_by=%s", disputeID, cancelledByID)
+	s.log.Info("dispute cancelled",
+		"dispute_id", disputeID,
+		"cancelled_by", cancelledByID,
+	)
 
 	return nil
 }
@@ -304,7 +319,11 @@ func (s *FinanceServiceImpl) AddEvidence(
 		return fmt.Errorf("failed to update dispute: %w", err)
 	}
 
-	s.log.Info(" evidence added: dispute_id=%s type=%s uploaded_by=%s", disputeID, evidenceType, userID)
+	s.log.Info("evidence added",
+		"dispute_id", disputeID,
+		"type", evidenceType,
+		"uploaded_by", userID,
+	)
 
 	return nil
 }

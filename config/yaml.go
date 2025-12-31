@@ -92,6 +92,7 @@ func (e EscrowReleaseEvent) IsValid() bool {
 type PlatformPayoutConfig struct {
 	EscrowReleaseHours   int                `yaml:"escrow_release_hours"`
 	EscrowReleaseEvent   EscrowReleaseEvent `yaml:"escrow_release_event"`
+	DisbursementProvider string             `yaml:"disbursement_provider"`
 	BatchIntervalMinutes int                `yaml:"batch_interval_minutes"`
 	MaxRetryAttempts     int                `yaml:"max_retry_attempts"`
 	RetryBackoffMinutes  int                `yaml:"retry_backoff_minutes"`
@@ -285,6 +286,9 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 	}
 	if src.Payouts.EscrowReleaseEvent.IsValid() {
 		dst.Payouts.EscrowReleaseEvent = src.Payouts.EscrowReleaseEvent
+	}
+	if src.Payouts.DisbursementProvider != "" {
+		dst.Payouts.DisbursementProvider = src.Payouts.DisbursementProvider
 	}
 	if src.Payouts.BatchIntervalMinutes != 0 {
 		dst.Payouts.BatchIntervalMinutes = src.Payouts.BatchIntervalMinutes

@@ -43,6 +43,10 @@ type PayoutClient interface {
 	// VerifyTransfer checks the status of a payout transaction
 	// Used to confirm transfer completion or failure
 	VerifyTransfer(ctx context.Context, reference string) (*PayoutResponse, error)
+
+	// ListBanks returns supported banks for the given currency/country.
+	// Country is provider-specific (e.g., "nigeria").
+	ListBanks(ctx context.Context, currency Currency, country string) ([]Bank, error)
 }
 
 // WebhookHandler processes and validates provider webhook events

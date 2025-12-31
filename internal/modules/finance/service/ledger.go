@@ -35,7 +35,10 @@ func (s *FinanceServiceImpl) RecordCharge(
 		return nil, fmt.Errorf("failed to check idempotency: %w", err)
 	}
 	if existing != nil {
-		s.log.Warn("duplicate charge detected: booking=%s, payment=%s", bookingID, paymentID)
+		s.log.Warn("duplicate charge detected",
+			"booking_id", bookingID,
+			"payment_id", paymentID,
+		)
 		return nil, domain.ErrDuplicateTransaction
 	}
 
@@ -98,8 +101,14 @@ func (s *FinanceServiceImpl) RecordCharge(
 			return fmt.Errorf("failed to update wallet balance: %w", err)
 		}
 
-		s.log.Info(" [AUDIT] wallet_balance_updated wallet_id=%s old_balance=%d new_balance=%d delta=%d currency=%s reason=charge",
-			escrowWallet.ID, oldBalance, newBalance, amount, currency)
+		s.log.Info("[AUDIT] wallet_balance_updated",
+			"wallet_id", escrowWallet.ID,
+			"old_balance", oldBalance,
+			"new_balance", newBalance,
+			"delta", amount,
+			"currency", currency,
+			"reason", "charge",
+		)
 
 		// Mark transaction as completed
 		transaction.MarkCompleted()
@@ -111,13 +120,24 @@ func (s *FinanceServiceImpl) RecordCharge(
 	})
 
 	if err != nil {
-		s.log.Error("[AUDIT] charge_failed booking_id=%s payment_id=%s amount=%d currency=%s error=%v",
-			bookingID, paymentID, amount, currency, err)
+		s.log.Error("[AUDIT] charge_failed",
+			"booking_id", bookingID,
+			"payment_id", paymentID,
+			"amount", amount,
+			"currency", currency,
+			"error", err,
+		)
 		return nil, err
 	}
 
-	s.log.Info(" [AUDIT] charge_completed transaction_id=%s booking_id=%s payment_id=%s amount=%d currency=%s escrow_wallet=%s",
-		transaction.ID, bookingID, paymentID, amount, currency, escrowWallet.ID)
+	s.log.Info("[AUDIT] charge_completed",
+		"transaction_id", transaction.ID,
+		"booking_id", bookingID,
+		"payment_id", paymentID,
+		"amount", amount,
+		"currency", currency,
+		"escrow_wallet", escrowWallet.ID,
+	)
 	return transaction, nil
 }
 
@@ -141,7 +161,10 @@ func (s *FinanceServiceImpl) RecordRefund(
 		return nil, fmt.Errorf("failed to check idempotency: %w", err)
 	}
 	if existing != nil {
-		s.log.Warn("duplicate refund detected: booking=%s, payment=%s", bookingID, paymentID)
+		s.log.Warn("duplicate refund detected",
+			"booking_id", bookingID,
+			"payment_id", paymentID,
+		)
 		return nil, domain.ErrDuplicateTransaction
 	}
 
@@ -160,8 +183,14 @@ func (s *FinanceServiceImpl) RecordRefund(
 
 	// Check if escrow has sufficient balance
 	if escrowWallet.Balance < amount {
-		s.log.Warn("[AUDIT] insufficient_balance wallet_id=%s balance=%d required=%d currency=%s operation=refund booking_id=%s",
-			escrowWallet.ID, escrowWallet.Balance, amount, currency, bookingID)
+		s.log.Warn("[AUDIT] insufficient_balance",
+			"wallet_id", escrowWallet.ID,
+			"balance", escrowWallet.Balance,
+			"required", amount,
+			"currency", currency,
+			"operation", "refund",
+			"booking_id", bookingID,
+		)
 		return nil, domain.ErrInsufficientBalance
 	}
 
@@ -224,16 +253,28 @@ func (s *FinanceServiceImpl) RecordRefund(
 		if err := walletRepo.UpdateBalance(ctx, escrowWallet.ID, escrowNewBalance); err != nil {
 			return fmt.Errorf("failed to update escrow balance: %w", err)
 		}
-		s.log.Info(" [AUDIT] wallet_balance_updated wallet_id=%s old_balance=%d new_balance=%d delta=-%d currency=%s reason=refund",
-			escrowWallet.ID, escrowOldBalance, escrowNewBalance, amount, currency)
+		s.log.Info("[AUDIT] wallet_balance_updated",
+			"wallet_id", escrowWallet.ID,
+			"old_balance", escrowOldBalance,
+			"new_balance", escrowNewBalance,
+			"delta", -amount,
+			"currency", currency,
+			"reason", "refund",
+		)
 
 		refundOldBalance := refundPool.Balance
 		refundNewBalance := refundPool.Balance + amount
 		if err := walletRepo.UpdateBalance(ctx, refundPool.ID, refundNewBalance); err != nil {
 			return fmt.Errorf("failed to update refund pool balance: %w", err)
 		}
-		s.log.Info(" [AUDIT] wallet_balance_updated wallet_id=%s old_balance=%d new_balance=%d delta=%d currency=%s reason=refund_pool",
-			refundPool.ID, refundOldBalance, refundNewBalance, amount, currency)
+		s.log.Info("[AUDIT] wallet_balance_updated",
+			"wallet_id", refundPool.ID,
+			"old_balance", refundOldBalance,
+			"new_balance", refundNewBalance,
+			"delta", amount,
+			"currency", currency,
+			"reason", "refund_pool",
+		)
 
 		// Mark transaction as completed
 		transaction.MarkCompleted()
@@ -245,13 +286,25 @@ func (s *FinanceServiceImpl) RecordRefund(
 	})
 
 	if err != nil {
-		s.log.Error("[AUDIT] refund_failed booking_id=%s payment_id=%s amount=%d currency=%s error=%v",
-			bookingID, paymentID, amount, currency, err)
+		s.log.Error("[AUDIT] refund_failed",
+			"booking_id", bookingID,
+			"payment_id", paymentID,
+			"amount", amount,
+			"currency", currency,
+			"error", err,
+		)
 		return nil, err
 	}
 
-	s.log.Info(" [AUDIT] refund_completed transaction_id=%s booking_id=%s payment_id=%s amount=%d currency=%s escrow_wallet=%s refund_pool=%s",
-		transaction.ID, bookingID, paymentID, amount, currency, escrowWallet.ID, refundPool.ID)
+	s.log.Info("[AUDIT] refund_completed",
+		"transaction_id", transaction.ID,
+		"booking_id", bookingID,
+		"payment_id", paymentID,
+		"amount", amount,
+		"currency", currency,
+		"escrow_wallet", escrowWallet.ID,
+		"refund_pool", refundPool.ID,
+	)
 	return transaction, nil
 }
 
@@ -284,8 +337,14 @@ func (s *FinanceServiceImpl) RecordCommission(
 
 	// Check if escrow has sufficient balance
 	if escrowWallet.Balance < amount {
-		s.log.Warn("[AUDIT] insufficient_balance wallet_id=%s balance=%d required=%d currency=%s operation=commission booking_id=%s",
-			escrowWallet.ID, escrowWallet.Balance, amount, currency, bookingID)
+		s.log.Warn("[AUDIT] insufficient_balance",
+			"wallet_id", escrowWallet.ID,
+			"balance", escrowWallet.Balance,
+			"required", amount,
+			"currency", currency,
+			"operation", "commission",
+			"booking_id", bookingID,
+		)
 		return nil, domain.ErrInsufficientBalance
 	}
 
@@ -359,13 +418,22 @@ func (s *FinanceServiceImpl) RecordCommission(
 	})
 
 	if err != nil {
-		s.log.Error("[AUDIT] commission_failed booking_id=%s amount=%d currency=%s error=%v",
-			bookingID, amount, currency, err)
+		s.log.Error("[AUDIT] commission_failed",
+			"booking_id", bookingID,
+			"amount", amount,
+			"currency", currency,
+			"error", err,
+		)
 		return nil, err
 	}
 
-	s.log.Info(" [AUDIT] commission_completed transaction_id=%s booking_id=%s amount=%d currency=%s platform_fee_wallet=%s",
-		transaction.ID, bookingID, amount, currency, feeWallet.ID)
+	s.log.Info("[AUDIT] commission_completed",
+		"transaction_id", transaction.ID,
+		"booking_id", bookingID,
+		"amount", amount,
+		"currency", currency,
+		"platform_fee_wallet", feeWallet.ID,
+	)
 	return transaction, nil
 }
 
@@ -397,8 +465,15 @@ func (s *FinanceServiceImpl) RecordPayout(
 
 	// Check if escrow has sufficient balance
 	if escrowWallet.Balance < amount {
-		s.log.Warn("[AUDIT] insufficient_balance wallet_id=%s balance=%d required=%d currency=%s operation=payout booking_id=%s host_id=%s",
-			escrowWallet.ID, escrowWallet.Balance, amount, currency, bookingID, hostID)
+		s.log.Warn("[AUDIT] insufficient_balance",
+			"wallet_id", escrowWallet.ID,
+			"balance", escrowWallet.Balance,
+			"required", amount,
+			"currency", currency,
+			"operation", "payout",
+			"booking_id", bookingID,
+			"host_id", hostID,
+		)
 		return nil, domain.ErrInsufficientBalance
 	}
 
@@ -472,13 +547,24 @@ func (s *FinanceServiceImpl) RecordPayout(
 	})
 
 	if err != nil {
-		s.log.Error("[AUDIT] payout_failed booking_id=%s host_id=%s amount=%d currency=%s error=%v",
-			bookingID, hostID, amount, currency, err)
+		s.log.Error("[AUDIT] payout_failed",
+			"booking_id", bookingID,
+			"host_id", hostID,
+			"amount", amount,
+			"currency", currency,
+			"error", err,
+		)
 		return nil, err
 	}
 
-	s.log.Info(" [AUDIT] payout_completed transaction_id=%s booking_id=%s host_id=%s amount=%d currency=%s host_wallet=%s",
-		transaction.ID, bookingID, hostID, amount, currency, hostWallet.ID)
+	s.log.Info("[AUDIT] payout_completed",
+		"transaction_id", transaction.ID,
+		"booking_id", bookingID,
+		"host_id", hostID,
+		"amount", amount,
+		"currency", currency,
+		"host_wallet", hostWallet.ID,
+	)
 	return transaction, nil
 }
 

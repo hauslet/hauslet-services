@@ -304,6 +304,7 @@ func (c *Container) initPayments() error {
 		paymentsRepo,
 		c.PaymentClient,
 		paymentsNotificationSvc,
+		*c.Redis,
 		c.Logger,
 	)
 

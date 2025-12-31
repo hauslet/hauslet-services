@@ -219,6 +219,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				paymentsRepo,
 				paymentClient,
 				paymentsNotification,
+				infra.Cache,
 				log,
 			)
 
@@ -297,6 +298,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			paymentsRepo,
 			paymentClient,
 			paymentsNotification,
+			infra.Cache,
 			log,
 		)
 
