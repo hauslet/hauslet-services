@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"hauslet/internal/modules/profile/domain"
@@ -9,7 +10,6 @@ import (
 	"hauslet/internal/modules/profile/repository"
 	"hauslet/internal/platform/storage"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -65,7 +65,7 @@ type ProfileServiceImpl struct {
 	storage             *storage.R2Storage
 	moderationHooks     ModerationHooks
 	notificationService *notification.NotificationService
-	log                 *lgr.Logger
+	log                 *slog.Logger
 }
 
 // NewProfileService creates a new profile service.
@@ -73,7 +73,7 @@ func NewProfileService(repo repository.ProfileRepository,
 	storage *storage.R2Storage,
 	moderationHooks ModerationHooks,
 	notificationService *notification.NotificationService,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) ProfileService {
 	return &ProfileServiceImpl{
 		repo:                repo,

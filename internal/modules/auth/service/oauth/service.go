@@ -2,6 +2,8 @@ package oauth
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"hauslet/config"
@@ -11,8 +13,22 @@ import (
 	"github.com/go-pkgz/auth"
 	"github.com/go-pkgz/auth/avatar"
 	"github.com/go-pkgz/auth/token"
-	"github.com/go-pkgz/lgr"
 )
+
+// slogAdapter wraps *slog.Logger to implement go-pkgz/auth/logger.L interface.
+type slogAdapter struct {
+	logger *slog.Logger
+}
+
+// Logf implements the logger.L interface required by go-pkgz/auth.
+func (a *slogAdapter) Logf(format string, args ...interface{}) {
+	a.logger.Info(fmt.Sprintf(format, args...))
+}
+
+// newSlogAdapter creates a logger adapter from *slog.Logger.
+func newSlogAdapter(logger *slog.Logger) *slogAdapter {
+	return &slogAdapter{logger: logger}
+}
 
 // RequestMetadata carries optional request context for session enrichment.
 type RequestMetadata struct {
@@ -55,7 +71,7 @@ type ProfileHookFunc func(ctx context.Context, userID, email, name string, birth
 type Dependencies struct {
 	Config               *config.AuthConfig
 	Repository           repository.AuthRepository
-	Log                  *lgr.Logger
+	Log                  *slog.Logger
 	MetadataFetcher      MetadataFetcher
 	LinkStateValidator   LinkStateValidator
 	AuthenticatePassword PasswordAuthenticator
@@ -71,7 +87,7 @@ func NewService(deps Dependencies) *auth.Service {
 	claims := newClaimsEnricher(deps)
 
 	options := auth.Opts{
-		Logger: deps.Log,
+		Logger: newSlogAdapter(deps.Log),
 		SecretReader: token.SecretFunc(func(id string) (string, error) {
 			return deps.Config.JWTSecret, nil
 		}),
@@ -95,9 +111,9 @@ func NewService(deps Dependencies) *auth.Service {
 	setupDirectProvider(service, deps)
 
 	if deps.Config.DisableXSRF {
-		deps.Log.Logf("WARN XSRF protection is DISABLED - only use in development")
+		deps.Log.Warn("XSRF protection is DISABLED - only use in development")
 	} else {
-		deps.Log.Logf("INFO XSRF protection is ENABLED")
+		deps.Log.Info(" XSRF protection is ENABLED")
 	}
 
 	return service

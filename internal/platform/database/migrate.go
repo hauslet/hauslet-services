@@ -2,20 +2,20 @@ package database
 
 import (
 	"fmt"
+	"log/slog"
 
-	"github.com/go-pkgz/lgr"
 	"gorm.io/gorm"
 )
 
 // RunMigrations runs all database migrations
 // This should be called once during application startup
-func RunMigrations(db *gorm.DB, log *lgr.Logger, models ...interface{}) error {
+func RunMigrations(db *gorm.DB, log *slog.Logger, models ...interface{}) error {
 	// Step 1: Setup PostgreSQL extensions (if needed)
 	// Note: These may require superuser privileges
 	// In production, these should ideally be run manually by a DBA
 	if err := setupExtensions(db); err != nil {
 		// Extensions are optional - just log and continue
-		log.Logf("INFO: Skipping extensions setup (may require superuser): %v", err)
+		log.Info(": Skipping extensions setup (may require superuser): %v", err)
 	}
 
 	// Step 2: Auto-migrate all models

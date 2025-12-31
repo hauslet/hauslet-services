@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"path/filepath"
 	"strings"
@@ -18,19 +19,18 @@ import (
 	"hauslet/internal/transport/graph/viewer"
 	localization "hauslet/internal/transport/middleware/localization"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
 // Resolver handles property-specific GraphQL fields.
 type Resolver struct {
 	propertyService service.PropertyService
-	log             *lgr.Logger
+	log             *slog.Logger
 	cdnHost         string
 	fx              xchange.XChange
 }
 
-func NewResolver(propertyService service.PropertyService, cfg *config.StorageConfig, fx xchange.XChange, log *lgr.Logger) *Resolver {
+func NewResolver(propertyService service.PropertyService, cfg *config.StorageConfig, fx xchange.XChange, log *slog.Logger) *Resolver {
 	return &Resolver{
 		propertyService: propertyService,
 		cdnHost:         cfg.R2.CDNHost,
@@ -47,7 +47,7 @@ func NewResolver(propertyService service.PropertyService, cfg *config.StorageCon
 func (r *Resolver) ListingByPublicId(ctx context.Context, publicId string) (*domain.Listing, error) {
 	listing, err := r.propertyService.GetListingByPublicID(ctx, publicId, false)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get listing by public ID %s: %v", publicId, err)
+		r.log.Error("Failed to get listing by public ID %s: %v", publicId, err)
 		return nil, err
 	}
 	if listing != nil && len(listing.Media) > 0 {
@@ -72,7 +72,7 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 
 	listing, err := r.propertyService.GetListingByID(ctx, id, false)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get listing by ID %s: %v", id, err)
+		r.log.Error("Failed to get listing by ID %s: %v", id, err)
 		return nil, err
 	}
 	if listing != nil && len(listing.Media) > 0 {
@@ -86,7 +86,7 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 func (r *Resolver) ListingBySlug(ctx context.Context, slug string) (*domain.Listing, error) {
 	listing, err := r.propertyService.GetListingBySlug(ctx, slug, false)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get listing by slug %s: %v", slug, err)
+		r.log.Error("Failed to get listing by slug %s: %v", slug, err)
 		return nil, err
 	}
 	if listing != nil && len(listing.Media) > 0 {
@@ -121,7 +121,7 @@ func (r *Resolver) Listings(ctx context.Context, filter *model.ListingFilterInpu
 
 	listings, total, err := r.propertyService.ListListings(ctx, serviceFilter, servicePage)
 	if err != nil {
-		r.log.Logf("ERROR Failed to list listings: %v", err)
+		r.log.Error("Failed to list listings: %v", err)
 		return nil, err
 	}
 
@@ -148,13 +148,13 @@ func (r *Resolver) ListingsByProperty(ctx context.Context, propertyID uuid.UUID,
 func (r *Resolver) MyListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to access myListings")
+		r.log.Warn("Unauthenticated attempt to access myListings")
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	ownerID, err := uuid.Parse(v.UserID)
 	if err != nil {
-		r.log.Logf("ERROR Invalid user ID in myListings: %s", v.UserID)
+		r.log.Error("Invalid user ID in myListings: %s", v.UserID)
 		return nil, fmt.Errorf("invalid user ID")
 	}
 
@@ -170,19 +170,19 @@ func (r *Resolver) MyListings(ctx context.Context, filter *model.ListingFilterIn
 func (r *Resolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain.ListingCompleteness, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to get listing completeness for %s", listingID)
+		r.log.Warn("Unauthenticated attempt to get listing completeness for %s", listingID)
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	requesterID, err := uuid.Parse(v.UserID)
 	if err != nil {
-		r.log.Logf("ERROR Invalid user ID in listingCompleteness: %s", v.UserID)
+		r.log.Error("Invalid user ID in listingCompleteness: %s", v.UserID)
 		return nil, fmt.Errorf("invalid user ID")
 	}
 
 	completeness, err := r.propertyService.GetListingCompleteness(ctx, listingID, requesterID)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get listing completeness for %s: %v", listingID, err)
+		r.log.Error("Failed to get listing completeness for %s: %v", listingID, err)
 		return nil, err
 	}
 
@@ -193,7 +193,7 @@ func (r *Resolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID)
 func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID,
 	filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
 	if businessID == uuid.Nil {
-		r.log.Logf("WARN BusinessListings called with nil businessID")
+		r.log.Warn("BusinessListings called with nil businessID")
 		return nil, fmt.Errorf("businessID is required")
 	}
 
@@ -225,7 +225,7 @@ func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID,
 
 	listings, total, err := r.propertyService.ListListings(ctx, serviceFilter, servicePage)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get business listings for %s: %v", businessID, err)
+		r.log.Error("Failed to get business listings for %s: %v", businessID, err)
 		return nil, err
 	}
 
@@ -261,7 +261,7 @@ func (r *Resolver) localizeListing(ctx context.Context, listing *domain.Listing)
 
 	rate, err := r.fx.GetExchangeRate(source, target)
 	if err != nil {
-		r.log.Logf("WARN failed to convert listing=%s from=%s to=%s: %v", listing.ID, source, target, err)
+		r.log.Warn("failed to convert listing=%s from=%s to=%s: %v", listing.ID, source, target, err)
 		return
 	}
 
@@ -321,13 +321,13 @@ func (r *Resolver) localizeListing(ctx context.Context, listing *domain.Listing)
 func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to access myIndividualListings")
+		r.log.Warn("Unauthenticated attempt to access myIndividualListings")
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	userID, err := uuid.Parse(v.UserID)
 	if err != nil {
-		r.log.Logf("ERROR Invalid user ID in myIndividualListings: %s", v.UserID)
+		r.log.Error("Invalid user ID in myIndividualListings: %s", v.UserID)
 		return nil, fmt.Errorf("invalid user ID")
 	}
 
@@ -358,7 +358,7 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 
 	listings, total, err := r.propertyService.ListListings(ctx, serviceFilter, servicePage)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get individual listings for user %s: %v", v.UserID, err)
+		r.log.Error("Failed to get individual listings for user %s: %v", v.UserID, err)
 		return nil, err
 	}
 
@@ -375,7 +375,7 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 
 // ListingsNearPoint finds listings near a geographic point.
 func (r *Resolver) ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error) {
-	r.log.Logf("WARN listingsNearPoint not supported")
+	r.log.Warn("listingsNearPoint not supported")
 	return nil, fmt.Errorf("listingsNearPoint not supported")
 }
 
@@ -393,7 +393,7 @@ func (r *Resolver) SearchListings(ctx context.Context, filter *model.ListingFilt
 
 	results, err := r.propertyService.SearchListings(ctx, serviceFilter, searchLimit)
 	if err != nil {
-		r.log.Logf("ERROR failed to search listings: %v", err)
+		r.log.Error("failed to search listings: %v", err)
 		return nil, err
 	}
 
@@ -441,7 +441,7 @@ func (r *Resolver) SimilarListings(ctx context.Context, listingID uuid.UUID, lim
 	// Call service method
 	results, err := r.propertyService.FindSimilarListings(ctx, listingID, searchLimit, minSim)
 	if err != nil {
-		r.log.Logf("ERROR failed to find similar listings for %s: %v", listingID, err)
+		r.log.Error("failed to find similar listings for %s: %v", listingID, err)
 		return nil, err
 	}
 
@@ -483,18 +483,18 @@ func (r *Resolver) SimilarListings(ctx context.Context, listingID uuid.UUID, lim
 func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingInput) (*domain.Listing, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to create listing")
+		r.log.Warn("Unauthenticated attempt to create listing")
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	userID, err := uuid.Parse(v.UserID)
 	if err != nil {
-		r.log.Logf("ERROR Invalid user ID in createListing: %s", v.UserID)
+		r.log.Error("Invalid user ID in createListing: %s", v.UserID)
 		return nil, fmt.Errorf("invalid user ID")
 	}
 
 	if input.Property == nil {
-		r.log.Logf("WARN CreateListing called without property payload by user %s", v.UserID)
+		r.log.Warn("CreateListing called without property payload by user %s", v.UserID)
 		return nil, fmt.Errorf("property payload is required")
 	}
 
@@ -503,15 +503,15 @@ func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingI
 	if input.OwnerType == domain.OwnerBusiness {
 		// For business listings, businessID must be provided
 		if input.BusinessID == nil {
-			r.log.Logf("WARN CreateListing called with business ownerType but no businessID by user %s", v.UserID)
+			r.log.Warn("CreateListing called with business ownerType but no businessID by user %s", v.UserID)
 			return nil, fmt.Errorf("businessID is required when ownerType is business")
 		}
 		ownerID = *input.BusinessID
-		r.log.Logf("INFO Creating business listing for business %s by user %s", ownerID, v.UserID)
+		r.log.Info(" Creating business listing for business %s by user %s", ownerID, v.UserID)
 	} else {
 		// For individual listings, use userID
 		ownerID = userID
-		r.log.Logf("INFO Creating individual listing for user %s", v.UserID)
+		r.log.Info(" Creating individual listing for user %s", v.UserID)
 	}
 
 	// Map inputs to domain models
@@ -520,11 +520,11 @@ func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingI
 
 	createdProperty, createdListing, err := r.propertyService.CreatePropertyWithListing(ctx, *property, listing)
 	if err != nil {
-		r.log.Logf("ERROR Failed to create property with listing for user %s: %v", v.UserID, err)
+		r.log.Error("Failed to create property with listing for user %s: %v", v.UserID, err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO Property %s and listing %s created successfully by user %s", createdProperty.ID, createdListing.ID, v.UserID)
+	r.log.Info(" Property %s and listing %s created successfully by user %s", createdProperty.ID, createdListing.ID, v.UserID)
 	return sanitizeListingForViewer(ctx, createdListing, v), nil
 }
 
@@ -532,13 +532,13 @@ func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingI
 func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.UpdateListingInput) (*domain.Listing, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to update listing %s", id)
+		r.log.Warn("Unauthenticated attempt to update listing %s", id)
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	requesterID, err := uuid.Parse(v.UserID)
 	if err != nil {
-		r.log.Logf("ERROR Invalid user ID in updateListing: %s", v.UserID)
+		r.log.Error("Invalid user ID in updateListing: %s", v.UserID)
 		return nil, fmt.Errorf("invalid user ID")
 	}
 
@@ -546,11 +546,11 @@ func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.
 	listingUpdates := mapListingUpdateInput(&input)
 	updated, err := r.propertyService.UpdateListingWithProperty(ctx, id, listingUpdates, propUpdates, requesterID, v.Role)
 	if err != nil {
-		r.log.Logf("ERROR Failed to update listing %s: %v", id, err)
+		r.log.Error("Failed to update listing %s: %v", id, err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO Listing %s updated successfully by user %s", id, v.UserID)
+	r.log.Info(" Listing %s updated successfully by user %s", id, v.UserID)
 	return sanitizeListingForViewer(ctx, updated, v), nil
 }
 
@@ -558,18 +558,18 @@ func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.
 func (r *Resolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to delete listing %s", id)
+		r.log.Warn("Unauthenticated attempt to delete listing %s", id)
 		return false, fmt.Errorf("unauthenticated")
 	}
 
 	existing, err := r.propertyService.GetListingByID(ctx, id, false)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get listing %s for deletion: %v", id, err)
+		r.log.Error("Failed to get listing %s for deletion: %v", id, err)
 		return false, err
 	}
 
 	if existing.OwnerType != domain.OwnerBusiness && existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
-		r.log.Logf("WARN User %s attempted to delete listing %s owned by %s", v.UserID, id, existing.OwnerID)
+		r.log.Warn("User %s attempted to delete listing %s owned by %s", v.UserID, id, existing.OwnerID)
 		return false, fmt.Errorf("forbidden: not the owner")
 	}
 
@@ -579,11 +579,11 @@ func (r *Resolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) 
 	}
 
 	if err := r.propertyService.DeleteListing(ctx, id, isHard); err != nil {
-		r.log.Logf("ERROR Failed to delete listing %s: %v", id, err)
+		r.log.Error("Failed to delete listing %s: %v", id, err)
 		return false, err
 	}
 
-	r.log.Logf("INFO Listing %s deleted (hard: %v) by user %s", id, isHard, v.UserID)
+	r.log.Info(" Listing %s deleted (hard: %v) by user %s", id, isHard, v.UserID)
 	return true, nil
 }
 
@@ -591,32 +591,32 @@ func (r *Resolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) 
 func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to publish listing %s", id)
+		r.log.Warn("Unauthenticated attempt to publish listing %s", id)
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	existing, err := r.propertyService.GetListingByID(ctx, id, false)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get listing %s for publishing: %v", id, err)
+		r.log.Error("Failed to get listing %s for publishing: %v", id, err)
 		return nil, err
 	}
 
 	if existing.OwnerType != domain.OwnerBusiness && existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
-		r.log.Logf("WARN User %s attempted to publish listing %s owned by %s", v.UserID, id, existing.OwnerID)
+		r.log.Warn("User %s attempted to publish listing %s owned by %s", v.UserID, id, existing.OwnerID)
 		return nil, fmt.Errorf("forbidden: not the owner")
 	}
 
 	if err := r.propertyService.PublishListingRequest(ctx, id); err != nil {
-		r.log.Logf("ERROR Failed to publish listing %s: %v", id, err)
+		r.log.Error("Failed to publish listing %s: %v", id, err)
 		return nil, err
 	}
 	updatedListing, err := r.propertyService.GetListingByID(ctx, id, false)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get listing %s for publishing: %v", id, err)
+		r.log.Error("Failed to get listing %s for publishing: %v", id, err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO Listing %s published request successful by user %s", id, v.UserID)
+	r.log.Info(" Listing %s published request successful by user %s", id, v.UserID)
 	return sanitizeListingForViewer(ctx, updatedListing, v), nil
 }
 
@@ -624,22 +624,22 @@ func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Li
 func (r *Resolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to unpublish listing %s", id)
+		r.log.Warn("Unauthenticated attempt to unpublish listing %s", id)
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	existing, err := r.propertyService.GetListingByID(ctx, id, false)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get listing %s for unpublishing: %v", id, err)
+		r.log.Error("Failed to get listing %s for unpublishing: %v", id, err)
 		return nil, err
 	}
 
 	if existing.OwnerType != domain.OwnerBusiness && existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
-		r.log.Logf("WARN User %s attempted to unpublish listing %s owned by %s", v.UserID, id, existing.OwnerID)
+		r.log.Warn("User %s attempted to unpublish listing %s owned by %s", v.UserID, id, existing.OwnerID)
 		return nil, fmt.Errorf("forbidden: not the owner")
 	}
 
-	r.log.Logf("WARN UnpublishListing not supported")
+	r.log.Warn("UnpublishListing not supported")
 	return nil, fmt.Errorf("unpublish listing not supported")
 }
 
@@ -662,7 +662,7 @@ func (r *Resolver) propertyForListing(ctx context.Context, listing *domain.Listi
 
 	property, err := r.propertyService.GetPropertyByID(ctx, listing.PropertyID)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property %s: %v", listing.PropertyID, err)
+		r.log.Error("Failed to get property %s: %v", listing.PropertyID, err)
 		return nil, err
 	}
 	return sanitizePropertyForViewer(property, v), nil
@@ -672,7 +672,7 @@ func (r *Resolver) propertyForListing(ctx context.Context, listing *domain.Listi
 func (r *Resolver) ListingAddress(ctx context.Context, obj *domain.Listing) (string, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return "", err
 	}
 	return property.Address, nil
@@ -681,7 +681,7 @@ func (r *Resolver) ListingAddress(ctx context.Context, obj *domain.Listing) (str
 func (r *Resolver) ListingState(ctx context.Context, obj *domain.Listing) (string, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return "", err
 	}
 	return property.State, nil
@@ -690,7 +690,7 @@ func (r *Resolver) ListingState(ctx context.Context, obj *domain.Listing) (strin
 func (r *Resolver) ListingPostalCode(ctx context.Context, obj *domain.Listing) (string, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return "", err
 	}
 	return property.PostalCode, nil
@@ -699,7 +699,7 @@ func (r *Resolver) ListingPostalCode(ctx context.Context, obj *domain.Listing) (
 func (r *Resolver) ListingCountry(ctx context.Context, obj *domain.Listing) (domain.CountryCode, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return "", err
 	}
 	return property.Country, nil
@@ -708,7 +708,7 @@ func (r *Resolver) ListingCountry(ctx context.Context, obj *domain.Listing) (dom
 func (r *Resolver) ListingLocation(ctx context.Context, obj *domain.Listing) (*domain.Location, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return nil, err
 	}
 	return property.Location, nil
@@ -717,7 +717,7 @@ func (r *Resolver) ListingLocation(ctx context.Context, obj *domain.Listing) (*d
 func (r *Resolver) ListingPropertyClass(ctx context.Context, obj *domain.Listing) (domain.PropertyClass, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return "", err
 	}
 	return property.PropertyClass, nil
@@ -726,7 +726,7 @@ func (r *Resolver) ListingPropertyClass(ctx context.Context, obj *domain.Listing
 func (r *Resolver) ListingPropertyType(ctx context.Context, obj *domain.Listing) (domain.PropertyType, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return "", err
 	}
 	return property.PropertyType, nil
@@ -735,7 +735,7 @@ func (r *Resolver) ListingPropertyType(ctx context.Context, obj *domain.Listing)
 func (r *Resolver) ListingFurnishingType(ctx context.Context, obj *domain.Listing) (domain.FurnishingType, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return "", err
 	}
 	return property.FurnishingType, nil
@@ -744,7 +744,7 @@ func (r *Resolver) ListingFurnishingType(ctx context.Context, obj *domain.Listin
 func (r *Resolver) ListingPropertyCondition(ctx context.Context, obj *domain.Listing) (domain.PropertyCondition, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return "", err
 	}
 	return property.PropertyCondition, nil
@@ -753,7 +753,7 @@ func (r *Resolver) ListingPropertyCondition(ctx context.Context, obj *domain.Lis
 func (r *Resolver) ListingBedrooms(ctx context.Context, obj *domain.Listing) (*int, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return nil, err
 	}
 	return property.Bedrooms, nil
@@ -762,7 +762,7 @@ func (r *Resolver) ListingBedrooms(ctx context.Context, obj *domain.Listing) (*i
 func (r *Resolver) ListingBathrooms(ctx context.Context, obj *domain.Listing) (*int, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return nil, err
 	}
 	return property.Bathrooms, nil
@@ -771,7 +771,7 @@ func (r *Resolver) ListingBathrooms(ctx context.Context, obj *domain.Listing) (*
 func (r *Resolver) ListingToilets(ctx context.Context, obj *domain.Listing) (*int, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return nil, err
 	}
 	return property.Toilets, nil
@@ -780,7 +780,7 @@ func (r *Resolver) ListingToilets(ctx context.Context, obj *domain.Listing) (*in
 func (r *Resolver) ListingHalfBathrooms(ctx context.Context, obj *domain.Listing) (*int, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return nil, err
 	}
 	return property.HalfBathrooms, nil
@@ -789,7 +789,7 @@ func (r *Resolver) ListingHalfBathrooms(ctx context.Context, obj *domain.Listing
 func (r *Resolver) ListingFloors(ctx context.Context, obj *domain.Listing) (*int, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return nil, err
 	}
 	return property.Floors, nil
@@ -798,7 +798,7 @@ func (r *Resolver) ListingFloors(ctx context.Context, obj *domain.Listing) (*int
 func (r *Resolver) ListingUnits(ctx context.Context, obj *domain.Listing) (int, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return 0, err
 	}
 	return property.Units, nil
@@ -807,7 +807,7 @@ func (r *Resolver) ListingUnits(ctx context.Context, obj *domain.Listing) (int, 
 func (r *Resolver) ListingSquareMeters(ctx context.Context, obj *domain.Listing) (float64, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return 0, err
 	}
 	return property.SquareMeters, nil
@@ -816,7 +816,7 @@ func (r *Resolver) ListingSquareMeters(ctx context.Context, obj *domain.Listing)
 func (r *Resolver) ListingFloorArea(ctx context.Context, obj *domain.Listing) (*float64, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return nil, err
 	}
 	return property.FloorArea, nil
@@ -825,7 +825,7 @@ func (r *Resolver) ListingFloorArea(ctx context.Context, obj *domain.Listing) (*
 func (r *Resolver) ListingAmenities(ctx context.Context, obj *domain.Listing) ([]domain.AmenityGroup, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return nil, err
 	}
 	return property.Amenities, nil
@@ -834,7 +834,7 @@ func (r *Resolver) ListingAmenities(ctx context.Context, obj *domain.Listing) ([
 func (r *Resolver) ListingFeaturesCommercial(ctx context.Context, obj *domain.Listing) ([]domain.AmenityGroup, error) {
 	property, err := r.propertyForListing(ctx, obj)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get property for listing %s: %v", obj.ID, err)
+		r.log.Error("Failed to get property for listing %s: %v", obj.ID, err)
 		return nil, err
 	}
 	return property.FeaturesCommercial, nil
@@ -860,7 +860,7 @@ func (r *Resolver) ListingMedia(ctx context.Context, obj *domain.Listing, first 
 		var err error
 		media, err = r.propertyService.ListListingMedia(ctx, obj.ID)
 		if err != nil {
-			r.log.Logf("ERROR Failed to list media for listing %s: %v", obj.ID, err)
+			r.log.Error("Failed to list media for listing %s: %v", obj.ID, err)
 			return nil, err
 		}
 	}
@@ -941,7 +941,7 @@ func (r *Resolver) OwnerProfile(ctx context.Context, obj *domain.Listing) (*prof
 	if l := loaders.For(ctx); l != nil && l.Profile != nil {
 		profile, err := l.Profile.Load(ctx, obj.OwnerID.String())
 		if err != nil {
-			r.log.Logf("ERROR Failed to load profile for owner %s: %v", obj.OwnerID, err)
+			r.log.Error("Failed to load profile for owner %s: %v", obj.OwnerID, err)
 			return nil, err
 		}
 		return profile, nil
@@ -973,7 +973,7 @@ func (r *Resolver) warmListingLoaders(ctx context.Context, listings []domain.Lis
 				ids = append(ids, id)
 			}
 			if _, err := l.Property.LoadMany(ctx, ids); err != nil && r.log != nil {
-				r.log.Logf("WARN failed to preload properties for listings: %v", err)
+				r.log.Warn("failed to preload properties for listings: %v", err)
 			}
 		}
 	}
@@ -991,7 +991,7 @@ func (r *Resolver) warmListingLoaders(ctx context.Context, listings []domain.Lis
 				ids = append(ids, id)
 			}
 			if _, err := l.Profile.LoadMany(ctx, ids); err != nil && r.log != nil {
-				r.log.Logf("WARN failed to preload profiles for listings: %v", err)
+				r.log.Warn("failed to preload profiles for listings: %v", err)
 			}
 		}
 	}

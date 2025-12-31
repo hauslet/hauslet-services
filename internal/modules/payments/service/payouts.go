@@ -12,11 +12,11 @@ import (
 
 // ProcessPayout processes a payout to a recipient
 func (s *PaymentServiceImpl) ProcessPayout(ctx context.Context, input domain.ProcessPayoutInput) (*domain.Transaction, error) {
-	s.log.Logf("INFO processing payout: detail=%s, amount=%d", input.PayoutDetailID, input.Amount)
+	s.log.Info(" processing payout", "detail", input.PayoutDetailID, "amount", input.Amount)
 
 	// Validate input
 	if err := input.Validate(); err != nil {
-		s.log.Logf("ERROR payout validation failed: %v", err)
+		s.log.Error("payout validation failed", "error", err)
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 
@@ -28,8 +28,7 @@ func (s *PaymentServiceImpl) ProcessPayout(ctx context.Context, input domain.Pro
 
 	// Verify payout detail can receive payouts
 	if !pd.CanReceivePayouts() {
-		s.log.Logf("WARN payout detail %s cannot receive payouts: verified=%t, active=%t",
-			input.PayoutDetailID, pd.IsVerified, pd.IsActive)
+		s.log.Warn("payout detail cannot receive payouts", "id", input.PayoutDetailID, "verified", pd.IsVerified, "active", pd.IsActive)
 		return nil, domain.ErrBankAccountNotVerified
 	}
 
@@ -39,29 +38,29 @@ func (s *PaymentServiceImpl) ProcessPayout(ctx context.Context, input domain.Pro
 
 	// Create transaction record
 	tx := &domain.Transaction{
-		ID:         txID,
-		BookingID:  input.BookingID,
-		BusinessID: input.BusinessID,
-		Type:       domain.TransactionTypePayout,
-		Reference:  reference,
-		Amount:     input.Amount,
-		Currency:   input.Currency,
-		Status:     domain.TransactionStatusPending,
-		Provider:   pd.Provider,
+		ID:          txID,
+		BookingID:   input.BookingID,
+		BusinessID:  input.BusinessID,
+		Type:        domain.TransactionTypePayout,
+		Reference:   reference,
+		Amount:      input.Amount,
+		Currency:    input.Currency,
+		Status:      domain.TransactionStatusPending,
+		Provider:    pd.Provider,
 		Description: input.Description,
-		Metadata:   input.Metadata,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		Metadata:    input.Metadata,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	// Save transaction first
 	if err := s.repo.CreateTransaction(ctx, domain.MapTransactionToSchema(tx)); err != nil {
-		s.log.Logf("ERROR failed to create transaction record: %v", err)
+		s.log.Error("failed to create transaction record", "error", err)
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
 
 	// Process payout with provider
-	s.log.Logf("INFO initiating payout with provider: ref=%s", reference)
+	s.log.Info(" initiating payout with provider", "ref", reference)
 	payoutResp, err := s.paymentClient.Transfer(ctx, payment.PayoutRequest{
 		Amount:        input.Amount,
 		Currency:      input.Currency,
@@ -72,13 +71,13 @@ func (s *PaymentServiceImpl) ProcessPayout(ctx context.Context, input domain.Pro
 	})
 
 	if err != nil {
-		s.log.Logf("ERROR payout failed: %v", err)
+		s.log.Error("payout failed", "error", err)
 		// Update transaction status to failed
 		tx.Status = domain.TransactionStatusFailed
 		errMsg := err.Error()
 		tx.ErrorMessage = &errMsg
 		if updateErr := s.repo.UpdateTransaction(ctx, domain.MapTransactionToSchema(tx)); updateErr != nil {
-			s.log.Logf("WARN failed to update transaction status: %v", updateErr)
+			s.log.Warn("failed to update transaction status", "error", updateErr)
 		}
 		return nil, fmt.Errorf("payout failed: %w", err)
 	}
@@ -102,12 +101,11 @@ func (s *PaymentServiceImpl) ProcessPayout(ctx context.Context, input domain.Pro
 
 	// Update transaction
 	if err := s.repo.UpdateTransaction(ctx, domain.MapTransactionToSchema(tx)); err != nil {
-		s.log.Logf("WARN failed to update transaction: %v", err)
+		s.log.Warn("failed to update transaction", "error", err)
 		// Non-critical
 	}
 
-	s.log.Logf("INFO payout processed: id=%s, status=%s", tx.ID, tx.Status)
-
+	s.log.Info(" payout processed", "id", tx.ID, "status", tx.Status)
 	// Send notification
 	if tx.Status == domain.TransactionStatusSucceeded {
 		s.notificationSvc.SendPayoutNotification(tx, pd)

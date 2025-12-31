@@ -17,7 +17,7 @@ import (
 func (r *Resolver) Review(ctx context.Context, id string) (*domain.Review, error) {
 	reviewID, err := uuid.Parse(id)
 	if err != nil {
-		r.log.Logf("ERROR invalid review ID %s: %v", id, err)
+		r.log.Error("invalid review ID %s: %v", id, err)
 		return nil, fmt.Errorf("invalid review ID")
 	}
 
@@ -31,7 +31,7 @@ func (r *Resolver) Review(ctx context.Context, id string) (*domain.Review, error
 		if err == domain.ErrReviewNotFound {
 			return nil, nil
 		}
-		r.log.Logf("ERROR failed to get review %s: %v", id, err)
+		r.log.Error("failed to get review %s: %v", id, err)
 		return nil, err
 	}
 
@@ -42,7 +42,7 @@ func (r *Resolver) Review(ctx context.Context, id string) (*domain.Review, error
 func (r *Resolver) ReviewForBooking(ctx context.Context, bookingID string) (*domain.Review, error) {
 	bid, err := uuid.Parse(bookingID)
 	if err != nil {
-		r.log.Logf("ERROR invalid booking ID %s: %v", bookingID, err)
+		r.log.Error("invalid booking ID %s: %v", bookingID, err)
 		return nil, fmt.Errorf("invalid booking ID")
 	}
 
@@ -56,7 +56,7 @@ func (r *Resolver) ReviewForBooking(ctx context.Context, bookingID string) (*dom
 		if err == domain.ErrReviewNotFound {
 			return nil, nil
 		}
-		r.log.Logf("ERROR failed to get review for booking %s: %v", bookingID, err)
+		r.log.Error("failed to get review for booking %s: %v", bookingID, err)
 		return nil, err
 	}
 
@@ -72,7 +72,7 @@ func (r *Resolver) Reviews(
 ) ([]*domain.Review, error) {
 	tid, err := uuid.Parse(targetID)
 	if err != nil {
-		r.log.Logf("ERROR invalid target ID %s: %v", targetID, err)
+		r.log.Error("invalid target ID %s: %v", targetID, err)
 		return nil, fmt.Errorf("invalid target ID")
 	}
 
@@ -106,7 +106,7 @@ func (r *Resolver) Reviews(
 
 	reviews, _, err := r.reviewService.ListReviewsForTarget(ctx, targetType, tid, svcFilter)
 	if err != nil {
-		r.log.Logf("ERROR failed to list reviews for %s %s: %v", targetType, targetID, err)
+		r.log.Error("failed to list reviews for %s %s: %v", targetType, targetID, err)
 		return nil, err
 	}
 
@@ -117,7 +117,7 @@ func (r *Resolver) Reviews(
 func (r *Resolver) UserReviews(ctx context.Context, userID string, limit, offset *int) ([]*domain.Review, error) {
 	uid, err := uuid.Parse(userID)
 	if err != nil {
-		r.log.Logf("ERROR invalid user ID %s: %v", userID, err)
+		r.log.Error("invalid user ID %s: %v", userID, err)
 		return nil, fmt.Errorf("invalid user ID")
 	}
 
@@ -133,7 +133,7 @@ func (r *Resolver) UserReviews(ctx context.Context, userID string, limit, offset
 
 	reviews, err := r.reviewService.ListUserReviews(ctx, uid, l, o)
 	if err != nil {
-		r.log.Logf("ERROR failed to list reviews for user %s: %v", userID, err)
+		r.log.Error("failed to list reviews for user %s: %v", userID, err)
 		return nil, err
 	}
 
@@ -146,20 +146,20 @@ func (r *Resolver) UserReviews(ctx context.Context, userID string, limit, offset
 
 // CreateReviewInput represents the input for creating a review
 type CreateReviewInput struct {
-	BookingID      string
-	TargetType     domain.ReviewTargetType
-	TargetID       string
-	Rating         int
-	Title          string
-	Body           string
-	Cleanliness    *int
-	Accuracy       *int
-	Communication  *int
-	Location       *int
-	Checkin        *int
-	Value          *int
-	Language       *string
-	CountryCode    *string
+	BookingID     string
+	TargetType    domain.ReviewTargetType
+	TargetID      string
+	Rating        int
+	Title         string
+	Body          string
+	Cleanliness   *int
+	Accuracy      *int
+	Communication *int
+	Location      *int
+	Checkin       *int
+	Value         *int
+	Language      *string
+	CountryCode   *string
 }
 
 // CreateReview creates a new review
@@ -171,13 +171,13 @@ func (r *Resolver) CreateReview(ctx context.Context, input CreateReviewInput) (*
 
 	bookingID, err := uuid.Parse(input.BookingID)
 	if err != nil {
-		r.log.Logf("ERROR invalid booking ID %s: %v", input.BookingID, err)
+		r.log.Error("invalid booking ID %s: %v", input.BookingID, err)
 		return nil, fmt.Errorf("invalid booking ID")
 	}
 
 	targetID, err := uuid.Parse(input.TargetID)
 	if err != nil {
-		r.log.Logf("ERROR invalid target ID %s: %v", input.TargetID, err)
+		r.log.Error("invalid target ID %s: %v", input.TargetID, err)
 		return nil, fmt.Errorf("invalid target ID")
 	}
 
@@ -214,11 +214,11 @@ func (r *Resolver) CreateReview(ctx context.Context, input CreateReviewInput) (*
 
 	review, err := r.reviewService.CreateReview(ctx, svcInput)
 	if err != nil {
-		r.log.Logf("ERROR failed to create review: %v", err)
+		r.log.Error("failed to create review: %v", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO review created: id=%s booking_id=%s reviewer_id=%s", review.ID, bookingID, userID)
+	r.log.Info(" review created: id=%s booking_id=%s reviewer_id=%s", review.ID, bookingID, userID)
 
 	return review, nil
 }
@@ -245,7 +245,7 @@ func (r *Resolver) UpdateReview(ctx context.Context, reviewID string, input Upda
 
 	rid, err := uuid.Parse(reviewID)
 	if err != nil {
-		r.log.Logf("ERROR invalid review ID %s: %v", reviewID, err)
+		r.log.Error("invalid review ID %s: %v", reviewID, err)
 		return nil, fmt.Errorf("invalid review ID")
 	}
 
@@ -271,11 +271,11 @@ func (r *Resolver) UpdateReview(ctx context.Context, reviewID string, input Upda
 
 	review, err := r.reviewService.UpdateReview(ctx, rid, userID, svcInput)
 	if err != nil {
-		r.log.Logf("ERROR failed to update review %s: %v", reviewID, err)
+		r.log.Error("failed to update review %s: %v", reviewID, err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO review updated: id=%s user_id=%s", review.ID, userID)
+	r.log.Info(" review updated: id=%s user_id=%s", review.ID, userID)
 
 	return review, nil
 }
@@ -289,16 +289,16 @@ func (r *Resolver) DeleteReview(ctx context.Context, reviewID string) (bool, err
 
 	rid, err := uuid.Parse(reviewID)
 	if err != nil {
-		r.log.Logf("ERROR invalid review ID %s: %v", reviewID, err)
+		r.log.Error("invalid review ID %s: %v", reviewID, err)
 		return false, fmt.Errorf("invalid review ID")
 	}
 
 	if err := r.reviewService.DeleteReview(ctx, rid, userID); err != nil {
-		r.log.Logf("ERROR failed to delete review %s: %v", reviewID, err)
+		r.log.Error("failed to delete review %s: %v", reviewID, err)
 		return false, err
 	}
 
-	r.log.Logf("INFO review deleted: id=%s user_id=%s", reviewID, userID)
+	r.log.Info(" review deleted: id=%s user_id=%s", reviewID, userID)
 
 	return true, nil
 }
@@ -316,23 +316,23 @@ func (r *Resolver) PublishReview(ctx context.Context, reviewID string) (*domain.
 
 	rid, err := uuid.Parse(reviewID)
 	if err != nil {
-		r.log.Logf("ERROR invalid review ID %s: %v", reviewID, err)
+		r.log.Error("invalid review ID %s: %v", reviewID, err)
 		return nil, fmt.Errorf("invalid review ID")
 	}
 
 	if err := r.reviewService.PublishReview(ctx, rid, adminID); err != nil {
-		r.log.Logf("ERROR failed to publish review %s: %v", reviewID, err)
+		r.log.Error("failed to publish review %s: %v", reviewID, err)
 		return nil, err
 	}
 
 	// Get updated review
 	review, err := r.reviewService.GetReview(ctx, rid, adminID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get review after publication: %v", err)
+		r.log.Error("failed to get review after publication: %v", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO review published: id=%s admin_id=%s", reviewID, adminID)
+	r.log.Info(" review published: id=%s admin_id=%s", reviewID, adminID)
 
 	return review, nil
 }
@@ -350,23 +350,23 @@ func (r *Resolver) HideReview(ctx context.Context, reviewID string, reason domai
 
 	rid, err := uuid.Parse(reviewID)
 	if err != nil {
-		r.log.Logf("ERROR invalid review ID %s: %v", reviewID, err)
+		r.log.Error("invalid review ID %s: %v", reviewID, err)
 		return nil, fmt.Errorf("invalid review ID")
 	}
 
 	if err := r.reviewService.HideReview(ctx, rid, adminID, reason); err != nil {
-		r.log.Logf("ERROR failed to hide review %s: %v", reviewID, err)
+		r.log.Error("failed to hide review %s: %v", reviewID, err)
 		return nil, err
 	}
 
 	// Get updated review
 	review, err := r.reviewService.GetReview(ctx, rid, adminID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get review after hiding: %v", err)
+		r.log.Error("failed to get review after hiding: %v", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO review hidden: id=%s reason=%s admin_id=%s", reviewID, reason, adminID)
+	r.log.Info(" review hidden: id=%s reason=%s admin_id=%s", reviewID, reason, adminID)
 
 	return review, nil
 }
@@ -384,23 +384,23 @@ func (r *Resolver) UnhideReview(ctx context.Context, reviewID string) (*domain.R
 
 	rid, err := uuid.Parse(reviewID)
 	if err != nil {
-		r.log.Logf("ERROR invalid review ID %s: %v", reviewID, err)
+		r.log.Error("invalid review ID %s: %v", reviewID, err)
 		return nil, fmt.Errorf("invalid review ID")
 	}
 
 	if err := r.reviewService.UnhideReview(ctx, rid, adminID); err != nil {
-		r.log.Logf("ERROR failed to unhide review %s: %v", reviewID, err)
+		r.log.Error("failed to unhide review %s: %v", reviewID, err)
 		return nil, err
 	}
 
 	// Get updated review
 	review, err := r.reviewService.GetReview(ctx, rid, adminID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get review after unhiding: %v", err)
+		r.log.Error("failed to get review after unhiding: %v", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO review unhidden: id=%s admin_id=%s", reviewID, adminID)
+	r.log.Info(" review unhidden: id=%s admin_id=%s", reviewID, adminID)
 
 	return review, nil
 }
@@ -414,16 +414,16 @@ func (r *Resolver) ReportReview(ctx context.Context, reviewID string, reason str
 
 	rid, err := uuid.Parse(reviewID)
 	if err != nil {
-		r.log.Logf("ERROR invalid review ID %s: %v", reviewID, err)
+		r.log.Error("invalid review ID %s: %v", reviewID, err)
 		return false, fmt.Errorf("invalid review ID")
 	}
 
 	if err := r.reviewService.ReportReview(ctx, rid, userID, reason); err != nil {
-		r.log.Logf("ERROR failed to report review %s: %v", reviewID, err)
+		r.log.Error("failed to report review %s: %v", reviewID, err)
 		return false, err
 	}
 
-	r.log.Logf("INFO review reported: id=%s reporter_id=%s reason=%s", reviewID, userID, reason)
+	r.log.Info(" review reported: id=%s reporter_id=%s reason=%s", reviewID, userID, reason)
 
 	return true, nil
 }

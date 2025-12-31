@@ -17,7 +17,7 @@ import (
 func (r *Resolver) Dispute(ctx context.Context, id string) (*domain.Dispute, error) {
 	disputeID, err := uuid.Parse(id)
 	if err != nil {
-		r.log.Logf("ERROR invalid dispute ID %s: %v", id, err)
+		r.log.Error("invalid dispute ID %s: %v", id, err)
 		return nil, fmt.Errorf("invalid dispute ID")
 	}
 
@@ -26,7 +26,7 @@ func (r *Resolver) Dispute(ctx context.Context, id string) (*domain.Dispute, err
 		if err == domain.ErrDisputeNotFound {
 			return nil, nil
 		}
-		r.log.Logf("ERROR failed to get dispute %s: %v", id, err)
+		r.log.Error("failed to get dispute %s: %v", id, err)
 		return nil, err
 	}
 
@@ -42,7 +42,7 @@ func (r *Resolver) Dispute(ctx context.Context, id string) (*domain.Dispute, err
 	}
 
 	if !isAdminRole(v.Role) && userID != dispute.FiledByID {
-		r.log.Logf("WARN unauthorized access to dispute %s by user %s", id, userID)
+		r.log.Warn("unauthorized access to dispute %s by user %s", id, userID)
 		return nil, fmt.Errorf("unauthorized")
 	}
 
@@ -53,7 +53,7 @@ func (r *Resolver) Dispute(ctx context.Context, id string) (*domain.Dispute, err
 func (r *Resolver) DisputeByBooking(ctx context.Context, bookingID string) (*domain.Dispute, error) {
 	bid, err := uuid.Parse(bookingID)
 	if err != nil {
-		r.log.Logf("ERROR invalid booking ID %s: %v", bookingID, err)
+		r.log.Error("invalid booking ID %s: %v", bookingID, err)
 		return nil, fmt.Errorf("invalid booking ID")
 	}
 
@@ -62,7 +62,7 @@ func (r *Resolver) DisputeByBooking(ctx context.Context, bookingID string) (*dom
 		if err == domain.ErrDisputeNotFound {
 			return nil, nil
 		}
-		r.log.Logf("ERROR failed to get dispute for booking %s: %v", bookingID, err)
+		r.log.Error("failed to get dispute for booking %s: %v", bookingID, err)
 		return nil, err
 	}
 
@@ -78,7 +78,7 @@ func (r *Resolver) DisputeByBooking(ctx context.Context, bookingID string) (*dom
 	}
 
 	if !isAdminRole(v.Role) && userID != dispute.FiledByID {
-		r.log.Logf("WARN unauthorized access to dispute for booking %s by user %s", bookingID, userID)
+		r.log.Warn("unauthorized access to dispute for booking %s by user %s", bookingID, userID)
 		return nil, fmt.Errorf("unauthorized")
 	}
 
@@ -107,7 +107,7 @@ func (r *Resolver) Disputes(
 
 	disputes, err := r.financeService.ListDisputes(ctx, status, l, o)
 	if err != nil {
-		r.log.Logf("ERROR failed to list disputes: %v", err)
+		r.log.Error("failed to list disputes: %v", err)
 		return nil, err
 	}
 
@@ -133,7 +133,7 @@ func (r *Resolver) MyDisputes(ctx context.Context, limit, offset *int) ([]*domai
 
 	disputes, err := r.financeService.ListUserDisputes(ctx, userID, l, o)
 	if err != nil {
-		r.log.Logf("ERROR failed to list disputes for user %s: %v", userID, err)
+		r.log.Error("failed to list disputes for user %s: %v", userID, err)
 		return nil, err
 	}
 
@@ -162,7 +162,7 @@ func (r *Resolver) FileDispute(ctx context.Context, input FileDisputeInput) (*do
 
 	bookingID, err := uuid.Parse(input.BookingID)
 	if err != nil {
-		r.log.Logf("ERROR invalid booking ID %s: %v", input.BookingID, err)
+		r.log.Error("invalid booking ID %s: %v", input.BookingID, err)
 		return nil, fmt.Errorf("invalid booking ID")
 	}
 
@@ -177,11 +177,11 @@ func (r *Resolver) FileDispute(ctx context.Context, input FileDisputeInput) (*do
 		input.Currency,
 	)
 	if err != nil {
-		r.log.Logf("ERROR failed to file dispute: %v", err)
+		r.log.Error("failed to file dispute: %v", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO dispute filed: id=%s booking_id=%s user_id=%s", dispute.ID, bookingID, userID)
+	r.log.Info(" dispute filed: id=%s booking_id=%s user_id=%s", dispute.ID, bookingID, userID)
 
 	return dispute, nil
 }
@@ -199,19 +199,19 @@ func (r *Resolver) InvestigateDispute(ctx context.Context, disputeID string) (*d
 
 	did, err := uuid.Parse(disputeID)
 	if err != nil {
-		r.log.Logf("ERROR invalid dispute ID %s: %v", disputeID, err)
+		r.log.Error("invalid dispute ID %s: %v", disputeID, err)
 		return nil, fmt.Errorf("invalid dispute ID")
 	}
 
 	if err := r.financeService.InvestigateDispute(ctx, did, adminID); err != nil {
-		r.log.Logf("ERROR failed to investigate dispute %s: %v", disputeID, err)
+		r.log.Error("failed to investigate dispute %s: %v", disputeID, err)
 		return nil, err
 	}
 
 	// Return updated dispute
 	dispute, err := r.financeService.GetDispute(ctx, did)
 	if err != nil {
-		r.log.Logf("ERROR failed to get dispute after investigation: %v", err)
+		r.log.Error("failed to get dispute after investigation: %v", err)
 		return nil, err
 	}
 
@@ -240,7 +240,7 @@ func (r *Resolver) ResolveDispute(ctx context.Context, input ResolveDisputeInput
 
 	did, err := uuid.Parse(input.DisputeID)
 	if err != nil {
-		r.log.Logf("ERROR invalid dispute ID %s: %v", input.DisputeID, err)
+		r.log.Error("invalid dispute ID %s: %v", input.DisputeID, err)
 		return nil, fmt.Errorf("invalid dispute ID")
 	}
 
@@ -253,18 +253,18 @@ func (r *Resolver) ResolveDispute(ctx context.Context, input ResolveDisputeInput
 		input.Reason,
 		input.Notes,
 	); err != nil {
-		r.log.Logf("ERROR failed to resolve dispute %s: %v", input.DisputeID, err)
+		r.log.Error("failed to resolve dispute %s: %v", input.DisputeID, err)
 		return nil, err
 	}
 
 	// Return updated dispute
 	dispute, err := r.financeService.GetDispute(ctx, did)
 	if err != nil {
-		r.log.Logf("ERROR failed to get dispute after resolution: %v", err)
+		r.log.Error("failed to get dispute after resolution: %v", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO dispute resolved: id=%s outcome=%s admin_id=%s", dispute.ID, input.Outcome, adminID)
+	r.log.Info(" dispute resolved: id=%s outcome=%s admin_id=%s", dispute.ID, input.Outcome, adminID)
 
 	return dispute, nil
 }
@@ -278,37 +278,37 @@ func (r *Resolver) CancelDispute(ctx context.Context, disputeID string) (*domain
 
 	did, err := uuid.Parse(disputeID)
 	if err != nil {
-		r.log.Logf("ERROR invalid dispute ID %s: %v", disputeID, err)
+		r.log.Error("invalid dispute ID %s: %v", disputeID, err)
 		return nil, fmt.Errorf("invalid dispute ID")
 	}
 
 	// Get dispute to check ownership
 	dispute, err := r.financeService.GetDispute(ctx, did)
 	if err != nil {
-		r.log.Logf("ERROR failed to get dispute %s: %v", disputeID, err)
+		r.log.Error("failed to get dispute %s: %v", disputeID, err)
 		return nil, err
 	}
 
 	// Only the person who filed the dispute can cancel it (unless admin)
 	v := viewer.FromContext(ctx)
 	if !isAdminRole(v.Role) && dispute.FiledByID != userID {
-		r.log.Logf("WARN unauthorized cancellation attempt for dispute %s by user %s", disputeID, userID)
+		r.log.Warn("unauthorized cancellation attempt for dispute %s by user %s", disputeID, userID)
 		return nil, fmt.Errorf("unauthorized: only the disputing party can cancel")
 	}
 
 	if err := r.financeService.CancelDispute(ctx, did, userID); err != nil {
-		r.log.Logf("ERROR failed to cancel dispute %s: %v", disputeID, err)
+		r.log.Error("failed to cancel dispute %s: %v", disputeID, err)
 		return nil, err
 	}
 
 	// Return updated dispute
 	dispute, err = r.financeService.GetDispute(ctx, did)
 	if err != nil {
-		r.log.Logf("ERROR failed to get dispute after cancellation: %v", err)
+		r.log.Error("failed to get dispute after cancellation: %v", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO dispute cancelled: id=%s user_id=%s", dispute.ID, userID)
+	r.log.Info(" dispute cancelled: id=%s user_id=%s", dispute.ID, userID)
 
 	return dispute, nil
 }
@@ -330,7 +330,7 @@ func (r *Resolver) AddDisputeEvidence(ctx context.Context, input AddDisputeEvide
 
 	did, err := uuid.Parse(input.DisputeID)
 	if err != nil {
-		r.log.Logf("ERROR invalid dispute ID %s: %v", input.DisputeID, err)
+		r.log.Error("invalid dispute ID %s: %v", input.DisputeID, err)
 		return nil, fmt.Errorf("invalid dispute ID")
 	}
 
@@ -343,18 +343,18 @@ func (r *Resolver) AddDisputeEvidence(ctx context.Context, input AddDisputeEvide
 		input.URL,
 		input.Description,
 	); err != nil {
-		r.log.Logf("ERROR failed to add evidence to dispute %s: %v", input.DisputeID, err)
+		r.log.Error("failed to add evidence to dispute %s: %v", input.DisputeID, err)
 		return nil, err
 	}
 
 	// Return updated dispute
 	dispute, err := r.financeService.GetDispute(ctx, did)
 	if err != nil {
-		r.log.Logf("ERROR failed to get dispute after adding evidence: %v", err)
+		r.log.Error("failed to get dispute after adding evidence: %v", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO evidence added to dispute: id=%s type=%s user_id=%s", dispute.ID, input.Type, userID)
+	r.log.Info(" evidence added to dispute: id=%s type=%s user_id=%s", dispute.ID, input.Type, userID)
 
 	return dispute, nil
 }

@@ -7,6 +7,7 @@ import (
 	"hauslet/internal/modules/auth/domain"
 	authmiddleware "hauslet/internal/modules/auth/middleware"
 	"hauslet/internal/modules/auth/service"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -16,18 +17,17 @@ import (
 	"github.com/go-chi/chi/v5"
 	authmw "github.com/go-pkgz/auth/middleware"
 	"github.com/go-pkgz/auth/token"
-	"github.com/go-pkgz/lgr"
 )
 
 // HTTPHandler handles HTTP requests for authentication
 type HTTPHandler struct {
 	authService service.AuthService
 	ctx         context.Context
-	log         *lgr.Logger
+	log         *slog.Logger
 }
 
 // NewHTTPHandler creates a new HTTP handler for auth
-func NewHTTPHandler(ctx context.Context, authService service.AuthService, log *lgr.Logger) *HTTPHandler {
+func NewHTTPHandler(ctx context.Context, authService service.AuthService, log *slog.Logger) *HTTPHandler {
 	return &HTTPHandler{
 		authService: authService,
 		ctx:         ctx,

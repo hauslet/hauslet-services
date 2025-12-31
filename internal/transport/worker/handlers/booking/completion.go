@@ -4,22 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"hauslet/internal/modules/booking/service"
 	bookingJob "hauslet/internal/queue/jobs/booking"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // BookingCompletionHandler marks active bookings as completed when eligible.
 type BookingCompletionHandler struct {
 	bookingSvc service.BookingService
-	log        *lgr.Logger
+	log        *slog.Logger
 	subject    string
 }
 
 // NewBookingCompletionHandler constructs a completion handler.
-func NewBookingCompletionHandler(bookingSvc service.BookingService, log *lgr.Logger, subject string) *BookingCompletionHandler {
+func NewBookingCompletionHandler(bookingSvc service.BookingService, log *slog.Logger, subject string) *BookingCompletionHandler {
 	return &BookingCompletionHandler{
 		bookingSvc: bookingSvc,
 		log:        log,
@@ -44,7 +43,7 @@ func (h *BookingCompletionHandler) Handle(ctx context.Context, data []byte) erro
 		return fmt.Errorf("invalid booking completion job: %w", err)
 	}
 
-	h.log.Logf("INFO processing booking completion check")
+	h.log.Info("processing booking completion check")
 
 	// Complete eligible bookings
 	err := h.bookingSvc.CompleteBookings(ctx)
@@ -52,7 +51,7 @@ func (h *BookingCompletionHandler) Handle(ctx context.Context, data []byte) erro
 		return fmt.Errorf("failed to complete bookings: %w", err)
 	}
 
-	h.log.Logf("INFO booking completion check finished successfully")
+	h.log.Info("booking completion check finished successfully")
 
 	return nil
 }

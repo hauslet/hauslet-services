@@ -22,7 +22,7 @@ func (s *BookingServiceImpl) RequestBooking(
 	specialRequests *string,
 ) (*domain.Booking, error) {
 	if s.log != nil {
-		s.log.Logf("INFO creating booking request listing=%s guest=%s", listingID, guestID)
+		s.log.Info(" creating booking request listing=%s guest=%s", listingID, guestID)
 	}
 
 	// Get listing constraints
@@ -68,14 +68,14 @@ func (s *BookingServiceImpl) PayForBooking(
 	paymentMethodID *uuid.UUID,
 ) (*domain.Booking, *PaymentResult, error) {
 	if s.log != nil {
-		s.log.Logf("INFO processing payment for booking=%s user=%s", bookingID, actorID)
+		s.log.Info(" processing payment for booking=%s user=%s", bookingID, actorID)
 	}
 
 	// Get booking
 	schemaBooking, err := s.repo.GetBookingByID(ctx, bookingID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get booking %s: %v", bookingID, err)
+			s.log.Error("failed to get booking %s: %v", bookingID, err)
 		}
 		return nil, nil, fmt.Errorf("failed to get booking: %w", err)
 	}
@@ -89,7 +89,7 @@ func (s *BookingServiceImpl) PayForBooking(
 	// Verify ownership
 	if booking.GuestID != actorID {
 		if s.log != nil {
-			s.log.Logf("WARN unauthorized payment attempt for booking=%s by user=%s", bookingID, actorID)
+			s.log.Warn("unauthorized payment attempt for booking=%s by user=%s", bookingID, actorID)
 		}
 		return nil, nil, domain.ErrUnauthorized
 	}
@@ -97,7 +97,7 @@ func (s *BookingServiceImpl) PayForBooking(
 	// Verify booking can be paid
 	if !booking.CanBePaid() {
 		if s.log != nil {
-			s.log.Logf("WARN booking %s cannot be paid (status=%s)", bookingID, booking.Status)
+			s.log.Warn("booking %s cannot be paid (status=%s)", bookingID, booking.Status)
 		}
 		return nil, nil, domain.ErrCannotBePaid
 	}
@@ -105,7 +105,7 @@ func (s *BookingServiceImpl) PayForBooking(
 	// Check if hold expired
 	if booking.HoldExpiresAt != nil && time.Now().After(*booking.HoldExpiresAt) {
 		if s.log != nil {
-			s.log.Logf("WARN booking %s hold expired at %s", bookingID, booking.HoldExpiresAt)
+			s.log.Warn("booking %s hold expired at %s", bookingID, booking.HoldExpiresAt)
 		}
 		return nil, nil, domain.ErrBookingExpired
 	}
@@ -131,12 +131,12 @@ func (s *BookingServiceImpl) PayForBooking(
 
 		if updateErr := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); updateErr != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR failed to update booking status after payment failure: %v", updateErr)
+				s.log.Error("failed to update booking status after payment failure: %v", updateErr)
 			}
 		}
 
 		if s.log != nil {
-			s.log.Logf("ERROR payment initiation failed for booking=%s: %v", bookingID, err)
+			s.log.Error("payment initiation failed for booking=%s: %v", bookingID, err)
 		}
 		s.notifyPaymentFailed(ctx, booking)
 		return booking, nil, fmt.Errorf("payment initiation failed: %w", err)
@@ -151,19 +151,19 @@ func (s *BookingServiceImpl) PayForBooking(
 	switch paymentResult.Status {
 	case "succeeded":
 		if s.log != nil {
-			s.log.Logf("INFO payment succeeded immediately for booking=%s, confirming booking", bookingID)
+			s.log.Info(" payment succeeded immediately for booking=%s, confirming booking", bookingID)
 		}
 
 		ownerID, err := s.listingHooks.GetListingOwner(ctx, booking.ListingID)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR failed to get listing owner: %v", err)
+				s.log.Error("failed to get listing owner: %v", err)
 			}
 			ownerID = uuid.Nil
 		}
 
 		if _, err := s.confirmBookingAfterPayment(ctx, booking, ownerID, paymentResult.PaymentID); err != nil && s.log != nil {
-			s.log.Logf("WARN failed to finalize booking=%s after payment: %v", booking.ID, err)
+			s.log.Warn("failed to finalize booking=%s after payment: %v", booking.ID, err)
 		}
 	case "failed":
 		booking.Status = domain.BookingStatusPaymentFailed
@@ -174,7 +174,7 @@ func (s *BookingServiceImpl) PayForBooking(
 	// Save updated booking
 	if err := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to update booking: %v", err)
+			s.log.Error("failed to update booking: %v", err)
 		}
 		return nil, nil, fmt.Errorf("failed to update booking: %w", err)
 	}
@@ -184,7 +184,7 @@ func (s *BookingServiceImpl) PayForBooking(
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO booking %s payment processed (payment=%s, status=%s)",
+		s.log.Info(" booking %s payment processed (payment=%s, status=%s)",
 			bookingID, paymentResult.PaymentID, paymentResult.Status)
 	}
 

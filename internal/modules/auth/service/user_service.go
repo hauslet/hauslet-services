@@ -102,7 +102,7 @@ func (s *AuthServiceImpl) enrichUserAvatar(ctx context.Context, user *domain.Use
 
 	avatar, err := s.profileHooks.GetProfileAvatarURL(ctx, user.ID.String())
 	if err != nil {
-		s.log.Logf("WARN Auth: failed to fetch avatar for user %s: %v", user.ID, err)
+		s.log.Warn("Auth: failed to fetch avatar for user", "user_id", user.ID, "error", err)
 		return
 	}
 	if avatar != nil {

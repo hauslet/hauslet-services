@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	cloudtasks "cloud.google.com/go/cloudtasks/apiv2"
 	cloudtaskspb "cloud.google.com/go/cloudtasks/apiv2/cloudtaskspb"
-	"github.com/go-pkgz/lgr"
 	"google.golang.org/protobuf/types/known/durationpb"
 )
 
@@ -24,12 +24,12 @@ type Config struct {
 type Client struct {
 	client *cloudtasks.Client
 	cfg    Config
-	log    *lgr.Logger
+	log    *slog.Logger
 	routes map[string]QueueRoute
 }
 
 // New initializes a Cloud Tasks client with queue routing config.
-func New(ctx context.Context, cfg Config, queueNames map[string]string, log *lgr.Logger) (*Client, error) {
+func New(ctx context.Context, cfg Config, queueNames map[string]string, log *slog.Logger) (*Client, error) {
 	if cfg.ProjectID == "" || cfg.Location == "" || cfg.WorkerBaseURL == "" {
 		return nil, fmt.Errorf("cloud tasks config incomplete")
 	}
@@ -111,7 +111,7 @@ func (c *Client) Publish(ctx context.Context, queueName string, payload any) err
 
 	if _, err := c.client.CreateTask(ctx, req); err != nil {
 		if c.log != nil {
-			c.log.Logf("ERROR failed to publish task to %s: %v", queueName, err)
+			c.log.Error("failed to publish task to %s: %v", queueName, err)
 		}
 		return fmt.Errorf("publish: %w", err)
 	}

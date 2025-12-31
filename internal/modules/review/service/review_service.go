@@ -87,7 +87,7 @@ func (s *ReviewServiceImpl) CreateReview(ctx context.Context, input CreateReview
 		return nil, fmt.Errorf("failed to create review: %w", err)
 	}
 
-	s.log.Logf("[INFO] created review %s for booking %s by reviewer %s", review.ID, input.BookingID, input.ReviewerID)
+	s.log.Info("created review", "review_id", review.ID, "booking_id", input.BookingID, "reviewer_id", input.ReviewerID)
 
 	// 9. Enqueue AI moderation for review text
 	if s.moderationSvc != nil {
@@ -97,7 +97,7 @@ func (s *ReviewServiceImpl) CreateReview(ctx context.Context, input CreateReview
 			Payload:     review.Body,
 		})
 		if err != nil {
-			s.log.Logf("[WARN] failed to enqueue moderation for review %s: %v", review.ID, err)
+			s.log.Warn("failed to enqueue moderation for review", "review_id", review.ID, "error", err)
 			// Don't fail the review creation if moderation fails
 		}
 	}
@@ -105,7 +105,7 @@ func (s *ReviewServiceImpl) CreateReview(ctx context.Context, input CreateReview
 	// 10. Check for counterparty review (triggers auto-publish if both exist)
 	// Note: This is also handled by repository AfterCreate hook
 	if err := s.OnReviewCreated(ctx, review.ID); err != nil {
-		s.log.Logf("[WARN] failed to process review creation hook for %s: %v", review.ID, err)
+		s.log.Warn("failed to process review creation hook", "review_id", review.ID, "error", err)
 	}
 
 	return review, nil
@@ -202,10 +202,10 @@ func (s *ReviewServiceImpl) UpdateReview(ctx context.Context, reviewID, actorID 
 			Payload:     review.Body,
 		})
 		if err != nil {
-			s.log.Logf("[WARN] failed to re-enqueue moderation for updated review %s: %v", reviewID, err)
+			s.log.Warn("failed to re-enqueue moderation for updated review", "review_id", reviewID, "error", err)
 			// Don't fail the update if moderation enqueueing fails
 		} else {
-			s.log.Logf("[INFO] re-enqueued moderation for updated review %s (content changed)", reviewID)
+			s.log.Info("re-enqueued moderation for updated review (content changed)", "review_id", reviewID)
 		}
 	}
 
@@ -215,7 +215,7 @@ func (s *ReviewServiceImpl) UpdateReview(ctx context.Context, reviewID, actorID 
 		return nil, fmt.Errorf("failed to update review: %w", err)
 	}
 
-	s.log.Logf("[INFO] updated review %s", reviewID)
+	s.log.Info("updated review", "review_id", reviewID)
 
 	return review, nil
 }
@@ -244,7 +244,7 @@ func (s *ReviewServiceImpl) DeleteReview(ctx context.Context, reviewID, actorID 
 		return fmt.Errorf("failed to delete review: %w", err)
 	}
 
-	s.log.Logf("[INFO] deleted review %s", reviewID)
+	s.log.Info("deleted review", "review_id", reviewID)
 
 	return nil
 }
@@ -346,20 +346,20 @@ func (s *ReviewServiceImpl) PublishReview(ctx context.Context, reviewID, adminID
 		return fmt.Errorf("failed to publish review: %w", err)
 	}
 
-	s.log.Logf("[INFO] admin %s published review %s", adminID, reviewID)
+	s.log.Info("admin published review", "admin_id", adminID, "review_id", reviewID)
 
 	// 6. Update booking review timestamp
 	if s.bookingHooks != nil {
 		reviewerType := s.determineReviewerType(ctx, review)
 		if err := s.bookingHooks.OnReviewPublished(ctx, review.BookingID, review.ReviewerID, reviewerType); err != nil {
-			s.log.Logf("[WARN] failed to update booking review timestamp for review %s: %v", reviewID, err)
+			s.log.Warn("failed to update booking review timestamp for review", "review_id", reviewID, "error", err)
 			// Don't fail the publication
 		}
 	}
 
 	// 7. Trigger stats recalculation
 	if err := s.RecalculateListingStats(ctx, review.TargetID); err != nil {
-		s.log.Logf("[WARN] failed to recalculate stats after publishing review %s: %v", reviewID, err)
+		s.log.Warn("failed to recalculate stats after publishing review", "review_id", reviewID, "error", err)
 	}
 
 	return nil
@@ -372,7 +372,7 @@ func (s *ReviewServiceImpl) PublishExpiredStandoffs(ctx context.Context, olderTh
 		return 0, fmt.Errorf("failed to publish expired standoffs: %w", err)
 	}
 
-	s.log.Logf("[INFO] published %d expired standoff reviews", count)
+	s.log.Info("published expired standoff reviews", "count", count)
 
 	// TODO: Update booking review timestamps for published standoffs
 	// This requires fetching all published reviews and calling bookingHooks.OnReviewPublished
@@ -404,7 +404,7 @@ func (s *ReviewServiceImpl) ReportReview(ctx context.Context, reviewID, reporter
 		return fmt.Errorf("failed to report review: %w", err)
 	}
 
-	s.log.Logf("[INFO] review %s reported by user %s: %s", reviewID, reporterID, reason)
+	s.log.Info("review reported", "review_id", reviewID, "reporter_id", reporterID, "reason", reason)
 
 	// TODO: Send notification to admins
 	// Requires: AdminQuerier interface with GetAdminEmails() method
@@ -445,12 +445,12 @@ func (s *ReviewServiceImpl) HideReview(ctx context.Context, reviewID, adminID uu
 		return fmt.Errorf("failed to hide review: %w", err)
 	}
 
-	s.log.Logf("[INFO] admin %s hid review %s (reason: %s)", adminID, reviewID, reason)
+	s.log.Info("admin hid review", "admin_id", adminID, "review_id", reviewID, "reason", reason)
 
 	// 5. Notify reviewer
 	reviewerName, reviewerEmail, err := s.userQuerier.GetUserContact(ctx, review.ReviewerID)
 	if err != nil {
-		s.log.Logf("[WARN] failed to get reviewer contact for review %s: %v", reviewID, err)
+		s.log.Warn("failed to get reviewer contact for review", "review_id", reviewID, "error", err)
 	} else if reviewerEmail != "" {
 		reviewerContact := notification.ContactInfo{
 			ID:    review.ReviewerID,
@@ -462,7 +462,7 @@ func (s *ReviewServiceImpl) HideReview(ctx context.Context, reviewID, adminID uu
 
 	// 6. Recalculate stats (hidden review affects averages)
 	if err := s.RecalculateListingStats(ctx, review.TargetID); err != nil {
-		s.log.Logf("[WARN] failed to recalculate stats after hiding review %s: %v", reviewID, err)
+		s.log.Warn("failed to recalculate stats after hiding review", "review_id", reviewID, "error", err)
 	}
 
 	return nil
@@ -497,11 +497,11 @@ func (s *ReviewServiceImpl) UnhideReview(ctx context.Context, reviewID, adminID 
 		return fmt.Errorf("failed to unhide review: %w", err)
 	}
 
-	s.log.Logf("[INFO] admin %s restored review %s", adminID, reviewID)
+	s.log.Info("admin restored review", "admin_id", adminID, "review_id", reviewID)
 
 	// 5. Recalculate stats
 	if err := s.RecalculateListingStats(ctx, review.TargetID); err != nil {
-		s.log.Logf("[WARN] failed to recalculate stats after unhiding review %s: %v", reviewID, err)
+		s.log.Warn("failed to recalculate stats after unhiding review", "review_id", reviewID, "error", err)
 	}
 
 	return nil
@@ -538,20 +538,20 @@ func (s *ReviewServiceImpl) OnReviewCreated(ctx context.Context, reviewID uuid.U
 			// Update for current review
 			reviewerType := s.determineReviewerType(ctx, review)
 			if err := s.bookingHooks.OnReviewPublished(ctx, review.BookingID, review.ReviewerID, reviewerType); err != nil {
-				s.log.Logf("[WARN] failed to update booking timestamp for review %s: %v", reviewID, err)
+				s.log.Warn("failed to update booking timestamp for review", "review_id", reviewID, "error", err)
 			}
 
 			// Update for counterparty review
 			counterpartyReview := domain.MapReviewFromSchema(counterparty)
 			counterpartyType := s.determineReviewerType(ctx, counterpartyReview)
 			if err := s.bookingHooks.OnReviewPublished(ctx, counterpartyReview.BookingID, counterpartyReview.ReviewerID, counterpartyType); err != nil {
-				s.log.Logf("[WARN] failed to update booking timestamp for counterparty review %s: %v", counterpartyReview.ID, err)
+				s.log.Warn("failed to update booking timestamp for counterparty review", "review_id", counterpartyReview.ID, "error",	 err)
 			}
 		}
 
 		// Recalculate stats
 		if err := s.RecalculateListingStats(ctx, review.TargetID); err != nil {
-			s.log.Logf("[WARN] failed to recalculate stats for review %s: %v", reviewID, err)
+			s.log.Warn("failed to recalculate stats for review", "review_id", reviewID, "error", err)
 		}
 	}
 

@@ -2,18 +2,18 @@ package service
 
 import (
 	"context"
+	"log/slog"
 
 	"hauslet/internal/modules/business/notification"
 	"hauslet/internal/modules/business/repository"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
 // BusinessServiceImpl implements BusinessService
 type BusinessServiceImpl struct {
 	repo     repository.BusinessRepository
-	log      *lgr.Logger
+	log      *slog.Logger
 	notifier *notification.NotificationService
 	profile  ProfileProvider
 }
@@ -24,7 +24,7 @@ type ProfileProvider interface {
 }
 
 // NewBusinessService creates a new business service
-func NewBusinessService(repo repository.BusinessRepository, notifier *notification.NotificationService, profile ProfileProvider, log *lgr.Logger) BusinessService {
+func NewBusinessService(repo repository.BusinessRepository, notifier *notification.NotificationService, profile ProfileProvider, log *slog.Logger) BusinessService {
 	return &BusinessServiceImpl{
 		repo:     repo,
 		notifier: notifier,
@@ -41,7 +41,7 @@ func (s *BusinessServiceImpl) getProfileName(ctx context.Context, userID uuid.UU
 	name, err := s.profile.GetProfileName(ctx, userID.String())
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN Failed to fetch profile name for user %s: %v", userID, err)
+			s.log.Warn("Failed to fetch profile name for user", "user_id", userID, "error", err)
 		}
 		return ""
 	}

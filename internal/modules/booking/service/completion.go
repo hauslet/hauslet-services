@@ -12,7 +12,7 @@ import (
 // This should be called by a cron job (e.g., every hour)
 func (s *BookingServiceImpl) CompleteBookings(ctx context.Context) error {
 	if s.log != nil {
-		s.log.Logf("INFO [AUDIT] booking_completion_batch_started time=%s", time.Now().Format(time.RFC3339))
+		s.log.Info("[AUDIT] booking_completion_batch_started", "time", time.Now().Format(time.RFC3339))
 	}
 
 	// Get escrow release config
@@ -28,15 +28,14 @@ func (s *BookingServiceImpl) CompleteBookings(ctx context.Context) error {
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO [AUDIT] completion_config escrow_release_event=%s escrow_release_hours=%d",
-			escrowReleaseEvent, escrowReleaseHours)
+		s.log.Info("[AUDIT] completion_config", "escrow_release_event", escrowReleaseEvent, "escrow_release_hours", escrowReleaseHours)
 	}
 
 	// Convert to string only when passing to the query
 	bookings, err := s.repo.FindBookingsReadyForCompletion(ctx, escrowReleaseEvent.String(), escrowReleaseHours, 100)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to query bookings ready for completion: %v", err)
+			s.log.Error("failed to query bookings ready for completion", "error", err)
 		}
 		return fmt.Errorf("failed to query bookings: %w", err)
 	}
@@ -45,7 +44,7 @@ func (s *BookingServiceImpl) CompleteBookings(ctx context.Context) error {
 	failureCount := 0
 
 	if s.log != nil {
-		s.log.Logf("INFO [AUDIT] found %d bookings ready for completion", len(bookings))
+		s.log.Info("[AUDIT] found bookings ready for completion", "count", len(bookings))
 	}
 
 	// Process each booking
@@ -53,22 +52,19 @@ func (s *BookingServiceImpl) CompleteBookings(ctx context.Context) error {
 		err := s.completeSingleBooking(ctx, booking)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR [AUDIT] completion_failed booking_id=%s error=%v",
-					booking.ID, err)
+				s.log.Error("[AUDIT] completion_failed", "booking_id", booking.ID, "error", err)
 			}
 			failureCount++
 		} else {
 			if s.log != nil {
-				s.log.Logf("INFO [AUDIT] completion_success booking_id=%s",
-					booking.ID)
+				s.log.Info(" [AUDIT] completion_success", "booking_id", booking.ID)
 			}
 			successCount++
 		}
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO [AUDIT] booking_completion_batch_completed time=%s total=%d success=%d failed=%d",
-			time.Now().Format(time.RFC3339), len(bookings), successCount, failureCount)
+		s.log.Info("[AUDIT] booking_completion_batch_completed", "time", time.Now().Format(time.RFC3339), "total", len(bookings), "success", successCount, "failed", failureCount)
 	}
 
 	return nil
@@ -77,8 +73,7 @@ func (s *BookingServiceImpl) CompleteBookings(ctx context.Context) error {
 // completeSingleBooking marks a single booking as completed
 func (s *BookingServiceImpl) completeSingleBooking(ctx context.Context, booking *schema.Booking) error {
 	if s.log != nil {
-		s.log.Logf("INFO [AUDIT] completing_booking booking_id=%s listing_id=%s",
-			booking.ID, booking.ListingID)
+		s.log.Info("[AUDIT] completing_booking", "booking_id", booking.ID, "listing_id", booking.ListingID)
 	}
 
 	// Update booking status to completed
@@ -96,9 +91,10 @@ func (s *BookingServiceImpl) completeSingleBooking(ctx context.Context, booking 
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO booking marked as completed: booking_id=%s", booking.ID)
+		s.log.Info("[AUDIT] booking marked as completed", "booking_id", booking.ID)
 	}
 
+	// TODO: Add post-completion actions here
 	// In the future, additional post-completion actions would be added here
 	// Like sending reviews requests, updating host stats, etc. Emmanuel I.
 
@@ -110,13 +106,13 @@ func (s *BookingServiceImpl) completeSingleBooking(ctx context.Context, booking 
 		if err != nil {
 			// Log but don't fail - finance hook is not critical for booking status
 			if s.log != nil {
-				s.log.Logf("WARN failed to get listing owner for finance hook: %v", err)
+				s.log.Warn("failed to get listing owner for finance hook", "error", err)
 			}
 		} else {
 			if err := s.financeHooks.OnBookingCompleted(ctx, booking.ID, hostID); err != nil {
 				// Log but don't fail - finance hook failure shouldn't prevent booking completion
 				if s.log != nil {
-					s.log.Logf("WARN finance hook failed for booking_id=%s: %v", booking.ID, err)
+					s.log.Warn("finance hook failed for booking", "booking_id", booking.ID, "error", err)
 				}
 			}
 		}
@@ -126,7 +122,7 @@ func (s *BookingServiceImpl) completeSingleBooking(ctx context.Context, booking 
 	if s.reviewHooks != nil && booking.ReviewInviteSentAt == nil {
 		if err := s.reviewHooks.SendReviewInvites(ctx, booking.ID); err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN failed to send review invites for booking_id=%s: %v", booking.ID, err)
+				s.log.Warn("failed to send review invites for booking", "booking_id", booking.ID, "error", err)
 			}
 		} else {
 			now := time.Now()
@@ -134,7 +130,7 @@ func (s *BookingServiceImpl) completeSingleBooking(ctx context.Context, booking 
 			booking.UpdatedAt = now
 			if err := s.repo.UpdateBooking(ctx, booking); err != nil {
 				if s.log != nil {
-					s.log.Logf("WARN failed to update review invite timestamp for booking_id=%s: %v", booking.ID, err)
+					s.log.Warn("failed to update review invite timestamp for booking", "booking_id", booking.ID, "error", err)
 				}
 			}
 		}

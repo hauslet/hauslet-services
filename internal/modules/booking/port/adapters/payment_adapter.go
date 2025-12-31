@@ -6,19 +6,19 @@ import (
 	paymentdomain "hauslet/internal/modules/payments/domain"
 	paymentsservice "hauslet/internal/modules/payments/service"
 	"hauslet/internal/platform/payment"
+	"log/slog"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
 // PaymentServiceAdapter adapts the payment service for booking's PaymentGateway interface.
 type PaymentServiceAdapter struct {
 	paymentSvc paymentsservice.PaymentService
-	log        *lgr.Logger
+	log        *slog.Logger
 }
 
 // NewPaymentServiceAdapter creates a new payment service adapter.
-func NewPaymentServiceAdapter(svc paymentsservice.PaymentService, log *lgr.Logger) service.PaymentGateway {
+func NewPaymentServiceAdapter(svc paymentsservice.PaymentService, log *slog.Logger) service.PaymentGateway {
 	return &PaymentServiceAdapter{
 		paymentSvc: svc,
 		log:        log,
@@ -31,7 +31,7 @@ func (a *PaymentServiceAdapter) InitiatePayment(
 	input service.PaymentInput,
 ) (*service.PaymentResult, error) {
 	if a.log != nil {
-		a.log.Logf("INFO initiating payment for booking=%s amount=%d %s",
+		a.log.Info(" initiating payment for booking=%s amount=%d %s",
 			input.BookingID, input.Amount, input.Currency)
 	}
 
@@ -53,13 +53,13 @@ func (a *PaymentServiceAdapter) InitiatePayment(
 	payment, err := a.paymentSvc.CreatePayment(ctx, paymentInput)
 	if err != nil {
 		if a.log != nil {
-			a.log.Logf("ERROR payment creation failed: %v", err)
+			a.log.Error("payment creation failed: %v", err)
 		}
 		return nil, err
 	}
 
 	if a.log != nil {
-		a.log.Logf("INFO payment created: id=%s status=%s", payment.ID, payment.Status)
+		a.log.Info(" payment created: id=%s status=%s", payment.ID, payment.Status)
 	}
 
 	// Map to booking's PaymentResult
@@ -83,13 +83,13 @@ func (a *PaymentServiceAdapter) VerifyPayment(
 	paymentID uuid.UUID,
 ) (*service.PaymentStatus, error) {
 	if a.log != nil {
-		a.log.Logf("INFO verifying payment: id=%s", paymentID)
+		a.log.Info(" verifying payment: id=%s", paymentID)
 	}
 
 	payment, err := a.paymentSvc.GetPayment(ctx, paymentID)
 	if err != nil {
 		if a.log != nil {
-			a.log.Logf("ERROR failed to get payment %s: %v", paymentID, err)
+			a.log.Error("failed to get payment %s: %v", paymentID, err)
 		}
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func (a *PaymentServiceAdapter) RefundPayment(
 	input service.RefundPaymentInput,
 ) (*service.RefundResult, error) {
 	if a.log != nil {
-		a.log.Logf("INFO processing refund for payment=%s", input.PaymentID)
+		a.log.Info(" processing refund for payment=%s", input.PaymentID)
 	}
 
 	// Map to payment domain input
@@ -122,13 +122,13 @@ func (a *PaymentServiceAdapter) RefundPayment(
 	refundedPayment, err := a.paymentSvc.RefundPayment(ctx, refundInput)
 	if err != nil {
 		if a.log != nil {
-			a.log.Logf("ERROR refund failed: %v", err)
+			a.log.Error("refund failed: %v", err)
 		}
 		return nil, err
 	}
 
 	if a.log != nil {
-		a.log.Logf("INFO refund processed: payment=%s refunded_amount=%d",
+		a.log.Info(" refund processed: payment=%s refunded_amount=%d",
 			refundedPayment.ID, refundedPayment.RefundedAmount)
 	}
 
@@ -155,7 +155,7 @@ func (a *PaymentServiceAdapter) GetDefaultPaymentMethodID(ctx context.Context, u
 	method, err := a.paymentSvc.GetDefaultPaymentMethod(ctx, userID)
 	if err != nil {
 		if a.log != nil {
-			a.log.Logf("ERROR failed to get default payment method for user=%s: %v", userID, err)
+			a.log.Error("failed to get default payment method for user=%s: %v", userID, err)
 		}
 		return nil, err
 	}

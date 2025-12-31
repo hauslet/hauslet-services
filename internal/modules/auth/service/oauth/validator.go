@@ -2,15 +2,15 @@ package oauth
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"hauslet/internal/modules/auth/repository"
 
 	"github.com/go-pkgz/auth/token"
-	"github.com/go-pkgz/lgr"
 )
 
-func NewValidator(repo repository.AuthRepository, log *lgr.Logger) token.ValidatorFunc {
+func NewValidator(repo repository.AuthRepository, log *slog.Logger) token.ValidatorFunc {
 	return func(_ string, claims token.Claims) bool {
 		ctx := context.Background()
 		if claims.User == nil || claims.User.ID == "" {
@@ -25,22 +25,22 @@ func NewValidator(repo repository.AuthRepository, log *lgr.Logger) token.Validat
 			if idx := strings.Index(userID, "_"); idx > 0 {
 				userID = userID[idx+1:]
 			}
-			log.Logf("DEBUG Validator using fallback user ID from token: %s", userID)
+			log.Debug("Validator using fallback user ID from token", "userID", userID)
 		}
 
 		sessionID := claims.User.StrAttr("sid")
 		if sessionID == "" {
-			log.Logf("WARN Token rejected - missing session ID for user %s", userID)
+			log.Warn("Token rejected - missing session ID for user", "userID", userID)
 			return false
 		}
 
 		session, err := repo.GetSessionByID(ctx, sessionID)
 		if err != nil {
-			log.Logf("ERROR Session validation failed (Redis unavailable): %v - rejecting token", err)
+			log.Error("Session validation failed (Redis unavailable) - rejecting token", "error", err)
 			return false
 		}
 		if session == nil {
-			log.Logf("INFO Token rejected - session %s revoked for user %s", sessionID, userID)
+			log.Info(" Token rejected - session %s revoked for user %s", sessionID, userID)
 			return false
 		}
 

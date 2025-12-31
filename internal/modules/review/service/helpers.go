@@ -10,7 +10,7 @@ import (
 func (s *ReviewServiceImpl) determineReviewerType(ctx context.Context, review *domain.Review) string {
 	guestID, hostID, err := s.bookingQuerier.GetBookingParties(ctx, review.BookingID)
 	if err != nil {
-		s.log.Logf("[WARN] failed to get booking parties for review %s: %v", review.ID, err)
+		s.log.Warn("failed to get booking parties for review", "review_id", review.ID, "error", err)
 		return "unknown"
 	}
 

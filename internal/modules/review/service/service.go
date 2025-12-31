@@ -3,10 +3,9 @@ package service
 import (
 	"hauslet/internal/modules/review/notification"
 	"hauslet/internal/modules/review/repository"
+	"log/slog"
 
 	moderationservice "hauslet/internal/modules/moderation/service"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // ReviewServiceImpl implements ReviewService interface
@@ -26,7 +25,7 @@ type ReviewServiceImpl struct {
 	moderationSvc  moderationservice.ModerationService
 
 	// Logger
-	log *lgr.Logger
+	log *slog.Logger
 }
 
 // NewReviewService creates a new review service instance
@@ -39,7 +38,7 @@ func NewReviewService(
 	bookingHooks BookingHooks,
 	userQuerier UserQuerier,
 	moderationSvc moderationservice.ModerationService,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) ReviewService {
 	return &ReviewServiceImpl{
 		reviewRepo:      reviewRepo,

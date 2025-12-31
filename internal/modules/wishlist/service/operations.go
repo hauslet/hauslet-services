@@ -12,28 +12,28 @@ import (
 // ImportItems copies specific items from a source wishlist to a target wishlist.
 func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID uuid.UUID, userID uuid.UUID, sourceWishlistID uuid.UUID, listingIDs []uuid.UUID) (imported int, skipped int, err error) {
 	if s.log != nil {
-		s.log.Logf("INFO importing items from source=%s to target=%s by user=%s", sourceWishlistID, targetWishlistID, userID)
+		s.log.Info(" importing items from source=%s to target=%s by user=%s", sourceWishlistID, targetWishlistID, userID)
 	}
 
 	// Verify target wishlist exists and user owns it
 	targetWishlist, err := s.repo.GetWishlistByID(ctx, targetWishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get target wishlist id=%s for import: %v", targetWishlistID, err)
+			s.log.Error("failed to get target wishlist id=%s for import: %v", targetWishlistID, err)
 		}
 		return 0, 0, fmt.Errorf("failed to get target wishlist: %w", err)
 	}
 
 	if targetWishlist == nil {
 		if s.log != nil {
-			s.log.Logf("WARN target wishlist not found id=%s", targetWishlistID)
+			s.log.Warn("target wishlist not found id=%s", targetWishlistID)
 		}
 		return 0, 0, fmt.Errorf("target wishlist not found")
 	}
 
 	if targetWishlist.UserID != userID {
 		if s.log != nil {
-			s.log.Logf("WARN unauthorized import attempt on wishlist=%s by user=%s (owner=%s)", targetWishlistID, userID, targetWishlist.UserID)
+			s.log.Warn("unauthorized import attempt on wishlist=%s by user=%s (owner=%s)", targetWishlistID, userID, targetWishlist.UserID)
 		}
 		return 0, 0, fmt.Errorf("access denied: only owner can import items")
 	}
@@ -42,14 +42,14 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 	sourceWishlist, err := s.repo.GetWishlistByID(ctx, sourceWishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get source wishlist id=%s: %v", sourceWishlistID, err)
+			s.log.Error("failed to get source wishlist id=%s: %v", sourceWishlistID, err)
 		}
 		return 0, 0, fmt.Errorf("failed to get source wishlist: %w", err)
 	}
 
 	if sourceWishlist == nil {
 		if s.log != nil {
-			s.log.Logf("WARN source wishlist not found id=%s", sourceWishlistID)
+			s.log.Warn("source wishlist not found id=%s", sourceWishlistID)
 		}
 		return 0, 0, fmt.Errorf("source wishlist not found")
 	}
@@ -58,7 +58,7 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 	sourceDomain := domain.MapWishlistFromSchemaToEntity(sourceWishlist)
 	if !sourceDomain.IsAccessibleBy(userID) {
 		if s.log != nil {
-			s.log.Logf("WARN access denied to source wishlist=%s by user=%s (private)", sourceWishlistID, userID)
+			s.log.Warn("access denied to source wishlist=%s by user=%s (private)", sourceWishlistID, userID)
 		}
 		return 0, 0, fmt.Errorf("access denied: source wishlist is private")
 	}
@@ -70,7 +70,7 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 		schemaItems, err := s.repo.GetWishlistItems(ctx, sourceWishlistID, 0, 0)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR failed to get source items from wishlist=%s: %v", sourceWishlistID, err)
+				s.log.Error("failed to get source items from wishlist=%s: %v", sourceWishlistID, err)
 			}
 			return 0, 0, fmt.Errorf("failed to get source items: %w", err)
 		}
@@ -83,7 +83,7 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 			exists, err := s.repo.IsListingInWishlist(ctx, sourceWishlistID, listingID)
 			if err != nil {
 				if s.log != nil {
-					s.log.Logf("ERROR failed to check listing=%s in wishlist=%s: %v", listingID, sourceWishlistID, err)
+					s.log.Error("failed to check listing=%s in wishlist=%s: %v", listingID, sourceWishlistID, err)
 				}
 				return 0, 0, fmt.Errorf("failed to check listing: %w", err)
 			}
@@ -98,7 +98,7 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 
 	if len(sourceItems) == 0 {
 		if s.log != nil {
-			s.log.Logf("INFO no items to import from source=%s to target=%s", sourceWishlistID, targetWishlistID)
+			s.log.Info(" no items to import from source=%s to target=%s", sourceWishlistID, targetWishlistID)
 		}
 		return 0, 0, nil
 	}
@@ -107,7 +107,7 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 	beforeCount, err := s.repo.CountItems(ctx, targetWishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to count items before import: %v", err)
+			s.log.Error("failed to count items before import: %v", err)
 		}
 		return 0, 0, fmt.Errorf("failed to count items before import: %w", err)
 	}
@@ -122,7 +122,7 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 	// Perform bulk insert (duplicates are skipped via ON CONFLICT DO NOTHING)
 	if err := s.repo.CopyItemsBulk(ctx, bulkItems); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to bulk import items to wishlist=%s: %v", targetWishlistID, err)
+			s.log.Error("failed to bulk import items to wishlist=%s: %v", targetWishlistID, err)
 		}
 		return 0, 0, fmt.Errorf("failed to import items: %w", err)
 	}
@@ -131,7 +131,7 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 	afterCount, err := s.repo.CountItems(ctx, targetWishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to count items after import: %v", err)
+			s.log.Error("failed to count items after import: %v", err)
 		}
 		return 0, 0, fmt.Errorf("failed to count items after import: %w", err)
 	}
@@ -143,7 +143,7 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 	s.invalidateWishlistItemsCache(ctx, targetWishlistID)
 
 	if s.log != nil {
-		s.log.Logf("INFO imported %d items (skipped %d duplicates) from source=%s to target=%s", imported, skipped, sourceWishlistID, targetWishlistID)
+		s.log.Info(" imported %d items (skipped %d duplicates) from source=%s to target=%s", imported, skipped, sourceWishlistID, targetWishlistID)
 	}
 
 	return imported, skipped, nil
@@ -152,21 +152,21 @@ func (s *WishlistServiceImpl) ImportItems(ctx context.Context, targetWishlistID 
 // CloneWishlist creates a new wishlist for targetUserID and copies all items from sourceWishlistID.
 func (s *WishlistServiceImpl) CloneWishlist(ctx context.Context, sourceWishlistID uuid.UUID, targetUserID uuid.UUID, newName string) (*domain.Wishlist, error) {
 	if s.log != nil {
-		s.log.Logf("INFO cloning wishlist source=%s for user=%s", sourceWishlistID, targetUserID)
+		s.log.Info(" cloning wishlist source=%s for user=%s", sourceWishlistID, targetUserID)
 	}
 
 	// Fetch source wishlist
 	sourceWishlist, err := s.repo.GetWishlistByID(ctx, sourceWishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get source wishlist id=%s for clone: %v", sourceWishlistID, err)
+			s.log.Error("failed to get source wishlist id=%s for clone: %v", sourceWishlistID, err)
 		}
 		return nil, fmt.Errorf("failed to get source wishlist: %w", err)
 	}
 
 	if sourceWishlist == nil {
 		if s.log != nil {
-			s.log.Logf("WARN source wishlist not found for clone id=%s", sourceWishlistID)
+			s.log.Warn("source wishlist not found for clone id=%s", sourceWishlistID)
 		}
 		return nil, fmt.Errorf("source wishlist not found")
 	}
@@ -175,7 +175,7 @@ func (s *WishlistServiceImpl) CloneWishlist(ctx context.Context, sourceWishlistI
 	sourceDomain := domain.MapWishlistFromSchemaToEntity(sourceWishlist)
 	if !sourceDomain.IsAccessibleBy(targetUserID) {
 		if s.log != nil {
-			s.log.Logf("WARN access denied to clone wishlist=%s by user=%s (private)", sourceWishlistID, targetUserID)
+			s.log.Warn("access denied to clone wishlist=%s by user=%s (private)", sourceWishlistID, targetUserID)
 		}
 		return nil, fmt.Errorf("access denied: source wishlist is private")
 	}
@@ -195,7 +195,7 @@ func (s *WishlistServiceImpl) CloneWishlist(ctx context.Context, sourceWishlistI
 
 	if err := s.repo.CreateWishlist(ctx, newWishlist); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to create cloned wishlist for user=%s: %v", targetUserID, err)
+			s.log.Error("failed to create cloned wishlist for user=%s: %v", targetUserID, err)
 		}
 		return nil, fmt.Errorf("failed to create cloned wishlist: %w", err)
 	}
@@ -204,7 +204,7 @@ func (s *WishlistServiceImpl) CloneWishlist(ctx context.Context, sourceWishlistI
 	sourceItems, err := s.repo.GetWishlistItems(ctx, sourceWishlistID, 0, 0)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get items from source wishlist=%s for clone: %v", sourceWishlistID, err)
+			s.log.Error("failed to get items from source wishlist=%s for clone: %v", sourceWishlistID, err)
 		}
 		return nil, fmt.Errorf("failed to get source items: %w", err)
 	}
@@ -214,12 +214,12 @@ func (s *WishlistServiceImpl) CloneWishlist(ctx context.Context, sourceWishlistI
 		bulkItems := domain.MapItemsForImport(sourceItems, newWishlist.ID)
 		if err := s.repo.CopyItemsBulk(ctx, bulkItems); err != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR failed to copy items to cloned wishlist=%s: %v", newWishlist.ID, err)
+				s.log.Error("failed to copy items to cloned wishlist=%s: %v", newWishlist.ID, err)
 			}
 			return nil, fmt.Errorf("failed to copy items: %w", err)
 		}
 		if s.log != nil {
-			s.log.Logf("INFO copied %d items to cloned wishlist=%s", len(sourceItems), newWishlist.ID)
+			s.log.Info(" copied %d items to cloned wishlist=%s", len(sourceItems), newWishlist.ID)
 		}
 	}
 
@@ -227,7 +227,7 @@ func (s *WishlistServiceImpl) CloneWishlist(ctx context.Context, sourceWishlistI
 	clonedWishlist, err := s.repo.GetWishlistByID(ctx, newWishlist.ID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to fetch cloned wishlist id=%s: %v", newWishlist.ID, err)
+			s.log.Error("failed to fetch cloned wishlist id=%s: %v", newWishlist.ID, err)
 		}
 		return nil, fmt.Errorf("failed to fetch cloned wishlist: %w", err)
 	}
@@ -239,7 +239,7 @@ func (s *WishlistServiceImpl) CloneWishlist(ctx context.Context, sourceWishlistI
 	s.invalidateUserWishlistsCache(ctx, targetUserID)
 
 	if s.log != nil {
-		s.log.Logf("INFO cloned wishlist source=%s to new=%s for user=%s", sourceWishlistID, newWishlist.ID, targetUserID)
+		s.log.Info(" cloned wishlist source=%s to new=%s for user=%s", sourceWishlistID, newWishlist.ID, targetUserID)
 	}
 
 	return wishlist, nil
@@ -248,28 +248,28 @@ func (s *WishlistServiceImpl) CloneWishlist(ctx context.Context, sourceWishlistI
 // MergeWishlist copies items from sourceWishlistID into an existing targetWishlistID.
 func (s *WishlistServiceImpl) MergeWishlist(ctx context.Context, sourceWishlistID uuid.UUID, targetWishlistID uuid.UUID, userID uuid.UUID) (int, error) {
 	if s.log != nil {
-		s.log.Logf("INFO merging wishlist source=%s into target=%s by user=%s", sourceWishlistID, targetWishlistID, userID)
+		s.log.Info(" merging wishlist source=%s into target=%s by user=%s", sourceWishlistID, targetWishlistID, userID)
 	}
 
 	// Verify target wishlist exists and user owns it
 	targetWishlist, err := s.repo.GetWishlistByID(ctx, targetWishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get target wishlist id=%s for merge: %v", targetWishlistID, err)
+			s.log.Error("failed to get target wishlist id=%s for merge: %v", targetWishlistID, err)
 		}
 		return 0, fmt.Errorf("failed to get target wishlist: %w", err)
 	}
 
 	if targetWishlist == nil {
 		if s.log != nil {
-			s.log.Logf("WARN target wishlist not found for merge id=%s", targetWishlistID)
+			s.log.Warn("target wishlist not found for merge id=%s", targetWishlistID)
 		}
 		return 0, fmt.Errorf("target wishlist not found")
 	}
 
 	if targetWishlist.UserID != userID {
 		if s.log != nil {
-			s.log.Logf("WARN unauthorized merge attempt on wishlist=%s by user=%s (owner=%s)", targetWishlistID, userID, targetWishlist.UserID)
+			s.log.Warn("unauthorized merge attempt on wishlist=%s by user=%s (owner=%s)", targetWishlistID, userID, targetWishlist.UserID)
 		}
 		return 0, fmt.Errorf("access denied: only owner can merge into wishlist")
 	}
@@ -278,14 +278,14 @@ func (s *WishlistServiceImpl) MergeWishlist(ctx context.Context, sourceWishlistI
 	sourceWishlist, err := s.repo.GetWishlistByID(ctx, sourceWishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get source wishlist id=%s for merge: %v", sourceWishlistID, err)
+			s.log.Error("failed to get source wishlist id=%s for merge: %v", sourceWishlistID, err)
 		}
 		return 0, fmt.Errorf("failed to get source wishlist: %w", err)
 	}
 
 	if sourceWishlist == nil {
 		if s.log != nil {
-			s.log.Logf("WARN source wishlist not found for merge id=%s", sourceWishlistID)
+			s.log.Warn("source wishlist not found for merge id=%s", sourceWishlistID)
 		}
 		return 0, fmt.Errorf("source wishlist not found")
 	}
@@ -294,7 +294,7 @@ func (s *WishlistServiceImpl) MergeWishlist(ctx context.Context, sourceWishlistI
 	sourceDomain := domain.MapWishlistFromSchemaToEntity(sourceWishlist)
 	if !sourceDomain.IsAccessibleBy(userID) {
 		if s.log != nil {
-			s.log.Logf("WARN access denied to merge from wishlist=%s by user=%s (private)", sourceWishlistID, userID)
+			s.log.Warn("access denied to merge from wishlist=%s by user=%s (private)", sourceWishlistID, userID)
 		}
 		return 0, fmt.Errorf("access denied: source wishlist is private")
 	}
@@ -302,7 +302,7 @@ func (s *WishlistServiceImpl) MergeWishlist(ctx context.Context, sourceWishlistI
 	// Prevent merging a wishlist into itself
 	if sourceWishlistID == targetWishlistID {
 		if s.log != nil {
-			s.log.Logf("WARN attempt to merge wishlist into itself id=%s", sourceWishlistID)
+			s.log.Warn("attempt to merge wishlist into itself id=%s", sourceWishlistID)
 		}
 		return 0, fmt.Errorf("cannot merge a wishlist into itself")
 	}
@@ -311,7 +311,7 @@ func (s *WishlistServiceImpl) MergeWishlist(ctx context.Context, sourceWishlistI
 	beforeCount, err := s.repo.CountItems(ctx, targetWishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to count items before merge: %v", err)
+			s.log.Error("failed to count items before merge: %v", err)
 		}
 		return 0, fmt.Errorf("failed to count items before merge: %w", err)
 	}
@@ -320,14 +320,14 @@ func (s *WishlistServiceImpl) MergeWishlist(ctx context.Context, sourceWishlistI
 	sourceItems, err := s.repo.GetWishlistItems(ctx, sourceWishlistID, 0, 0)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get items from source wishlist=%s for merge: %v", sourceWishlistID, err)
+			s.log.Error("failed to get items from source wishlist=%s for merge: %v", sourceWishlistID, err)
 		}
 		return 0, fmt.Errorf("failed to get source items: %w", err)
 	}
 
 	if len(sourceItems) == 0 {
 		if s.log != nil {
-			s.log.Logf("INFO no items to merge from source=%s", sourceWishlistID)
+			s.log.Info(" no items to merge from source=%s", sourceWishlistID)
 		}
 		return 0, nil // Nothing to merge
 	}
@@ -338,7 +338,7 @@ func (s *WishlistServiceImpl) MergeWishlist(ctx context.Context, sourceWishlistI
 	// Perform bulk insert (duplicates are skipped)
 	if err := s.repo.CopyItemsBulk(ctx, bulkItems); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to bulk merge items to wishlist=%s: %v", targetWishlistID, err)
+			s.log.Error("failed to bulk merge items to wishlist=%s: %v", targetWishlistID, err)
 		}
 		return 0, fmt.Errorf("failed to merge items: %w", err)
 	}
@@ -347,7 +347,7 @@ func (s *WishlistServiceImpl) MergeWishlist(ctx context.Context, sourceWishlistI
 	afterCount, err := s.repo.CountItems(ctx, targetWishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to count items after merge: %v", err)
+			s.log.Error("failed to count items after merge: %v", err)
 		}
 		return 0, fmt.Errorf("failed to count items after merge: %w", err)
 	}
@@ -358,7 +358,7 @@ func (s *WishlistServiceImpl) MergeWishlist(ctx context.Context, sourceWishlistI
 	s.invalidateWishlistItemsCache(ctx, targetWishlistID)
 
 	if s.log != nil {
-		s.log.Logf("INFO merged %d items from source=%s to target=%s (skipped %d duplicates)", mergedCount, sourceWishlistID, targetWishlistID, len(sourceItems)-mergedCount)
+		s.log.Info(" merged %d items from source=%s to target=%s (skipped %d duplicates)", mergedCount, sourceWishlistID, targetWishlistID, len(sourceItems)-mergedCount)
 	}
 
 	return mergedCount, nil

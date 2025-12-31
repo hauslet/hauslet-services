@@ -14,7 +14,7 @@ import (
 // initiateDisbursement calls payment provider to initiate bank transfer
 func (s *PayoutServiceImpl) initiateDisbursement(ctx context.Context, disbursement *financeSchema.Disbursement) error {
 	if s.log != nil {
-		s.log.Logf("INFO initiating disbursement: id=%s amount=%d", disbursement.ID, disbursement.Amount)
+		s.log.Info(" initiating disbursement: id=%s amount=%d", disbursement.ID, disbursement.Amount)
 	}
 
 	// Get wallet to find host ID
@@ -28,7 +28,7 @@ func (s *PayoutServiceImpl) initiateDisbursement(ctx context.Context, disburseme
 	if err != nil {
 		errMsg := fmt.Sprintf("host has no payout details configured: %v", err)
 		if s.log != nil {
-			s.log.Logf("ERROR %s", errMsg)
+			s.log.Error("%s", errMsg)
 		}
 		// Update disbursement status to failed
 		disbursement.FailureReason = &errMsg
@@ -45,7 +45,7 @@ func (s *PayoutServiceImpl) initiateDisbursement(ctx context.Context, disburseme
 	if !payoutDetail.IsVerified {
 		errMsg := "host payout details not verified"
 		if s.log != nil {
-			s.log.Logf("ERROR %s for host=%s", errMsg, walletSchema.OwnerID)
+			s.log.Error("%s for host=%s", errMsg, walletSchema.OwnerID)
 		}
 		disbursement.FailureReason = &errMsg
 		disbursement.Status = string(domain.DisbursementStatusFailed)
@@ -138,7 +138,7 @@ func (s *PayoutServiceImpl) initiateTransferWithRecipient(
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO transfer initiated: disbursement=%s transfer_code=%s status=%s",
+		s.log.Info(" transfer initiated: disbursement=%s transfer_code=%s status=%s",
 			disbursement.ID, transferCode, resp.Status)
 	}
 
@@ -148,7 +148,7 @@ func (s *PayoutServiceImpl) initiateTransferWithRecipient(
 // RetryFailedDisbursements retries all failed disbursements that are due for retry
 func (s *PayoutServiceImpl) RetryFailedDisbursements(ctx context.Context) error {
 	if s.log != nil {
-		s.log.Logf("INFO retrying failed disbursements")
+		s.log.Info(" retrying failed disbursements")
 	}
 
 	// Get all pending retries
@@ -158,13 +158,13 @@ func (s *PayoutServiceImpl) RetryFailedDisbursements(ctx context.Context) error 
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO found %d disbursements to retry", len(pendingRetries))
+		s.log.Info(" found %d disbursements to retry", len(pendingRetries))
 	}
 
 	for _, d := range pendingRetries {
 		if err := s.retryDisbursement(ctx, d); err != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR failed to retry disbursement %s: %v", d.ID, err)
+				s.log.Error("failed to retry disbursement %s: %v", d.ID, err)
 			}
 			// Continue with other retries
 			continue
@@ -177,7 +177,7 @@ func (s *PayoutServiceImpl) RetryFailedDisbursements(ctx context.Context) error 
 // retryDisbursement retries a single failed disbursement
 func (s *PayoutServiceImpl) retryDisbursement(ctx context.Context, disbursement *financeSchema.Disbursement) error {
 	if s.log != nil {
-		s.log.Logf("INFO retrying disbursement: id=%s attempt=%d", disbursement.ID, disbursement.Attempts+1)
+		s.log.Info(" retrying disbursement: id=%s attempt=%d", disbursement.ID, disbursement.Attempts+1)
 	}
 
 	// Increment attempts
@@ -191,13 +191,13 @@ func (s *PayoutServiceImpl) retryDisbursement(ctx context.Context, disbursement 
 	// Try to initiate transfer again
 	if err := s.initiateDisbursement(ctx, disbursement); err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN retry failed for disbursement %s (attempt %d): %v", disbursement.ID, nextAttempt, err)
+			s.log.Warn("retry failed for disbursement %s (attempt %d): %v", disbursement.ID, nextAttempt, err)
 		}
 		return err
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO retry successful for disbursement %s", disbursement.ID)
+		s.log.Info(" retry successful for disbursement %s", disbursement.ID)
 	}
 
 	return nil
@@ -235,14 +235,14 @@ func (s *PayoutServiceImpl) UpdateDisbursementStatus(ctx context.Context, disbur
 		if response != nil {
 			responseMsg = *response
 		}
-		s.log.Logf("INFO [AUDIT] disbursement_status_update disbursement_id=%s old_status=%s new_status=%s amount=%d currency=%s attempts=%d provider=%s response=%q",
+		s.log.Info(" [AUDIT] disbursement_status_update disbursement_id=%s old_status=%s new_status=%s amount=%d currency=%s attempts=%d provider=%s response=%q",
 			disbursementID, disbursement.Status, status, disbursement.Amount, disbursement.Currency, disbursement.Attempts, disbursement.Provider, responseMsg)
 	}
 
 	// Update status
 	if err := s.disbursementRepo.UpdateStatus(ctx, disbursementID, string(status), response); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR [AUDIT] disbursement_status_update_failed disbursement_id=%s status=%s error=%v", disbursementID, status, err)
+			s.log.Error("[AUDIT] disbursement_status_update_failed disbursement_id=%s status=%s error=%v", disbursementID, status, err)
 		}
 		return fmt.Errorf("failed to update disbursement status: %w", err)
 	}
@@ -253,7 +253,7 @@ func (s *PayoutServiceImpl) UpdateDisbursementStatus(ctx context.Context, disbur
 		wallet, err := s.walletRepo.GetByID(ctx, disbursement.WalletID)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN failed to get wallet for notification: %v", err)
+				s.log.Warn("failed to get wallet for notification: %v", err)
 			}
 			return nil // Don't fail the status update if notification fails
 		}
@@ -262,7 +262,7 @@ func (s *PayoutServiceImpl) UpdateDisbursementStatus(ctx context.Context, disbur
 		hostName, hostEmail, err := s.profileAdapter.GetProfileData(ctx, wallet.OwnerID)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN failed to get host profile for notification: %v", err)
+				s.log.Warn("failed to get host profile for notification: %v", err)
 			}
 			return nil // Don't fail the status update if notification fails
 		}
@@ -270,7 +270,7 @@ func (s *PayoutServiceImpl) UpdateDisbursementStatus(ctx context.Context, disbur
 		// Skip notification if no email available
 		if hostEmail == "" {
 			if s.log != nil {
-				s.log.Logf("WARN host has no email configured, skipping notification for disbursement %s", disbursementID)
+				s.log.Warn("host has no email configured, skipping notification for disbursement %s", disbursementID)
 			}
 			return nil
 		}

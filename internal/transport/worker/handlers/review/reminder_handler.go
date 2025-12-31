@@ -3,6 +3,7 @@ package review
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	bookingRepo "hauslet/internal/modules/booking/repository"
@@ -11,8 +12,6 @@ import (
 	reviewRepo "hauslet/internal/modules/review/repository"
 	reviewService "hauslet/internal/modules/review/service"
 	reviewJobs "hauslet/internal/queue/jobs/review"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // ReminderHandler handles sending review reminders
@@ -22,7 +21,7 @@ type ReminderHandler struct {
 	bookingQuerier  reviewService.BookingQuerier
 	userQuerier     reviewService.UserQuerier
 	notificationSvc *reviewNotification.NotificationService
-	log             *lgr.Logger
+	log             *slog.Logger
 	subject         string
 }
 
@@ -33,7 +32,7 @@ func NewReminderHandler(
 	bookingQuerier reviewService.BookingQuerier,
 	userQuerier reviewService.UserQuerier,
 	notificationSvc *reviewNotification.NotificationService,
-	log *lgr.Logger,
+	log *slog.Logger,
 	subject string,
 ) *ReminderHandler {
 	return &ReminderHandler{
@@ -61,14 +60,14 @@ func (h *ReminderHandler) Subject() string {
 func (h *ReminderHandler) Handle(ctx context.Context, data []byte) error {
 	var job reviewJobs.SendReviewRemindersJob
 	if err := json.Unmarshal(data, &job); err != nil {
-		h.log.Logf("ERROR failed to unmarshal SendReviewRemindersJob: %v", err)
+		h.log.Error("failed to unmarshal SendReviewRemindersJob", "error", err)
 		return err
 	}
 
 	thresholdDays := job.GetThresholdDays()
 	reviewWindowDays := 14 // Standard Airbnb review window
 
-	h.log.Logf("INFO sending review reminders for bookings %d days from deadline", thresholdDays)
+	h.log.Info("sending review reminders for bookings", "days_from_deadline", thresholdDays)
 
 	// Calculate the target date range
 	// If thresholdDays=3 and window=14, we want bookings completed 11 days ago (14-3=11)
@@ -79,17 +78,17 @@ func (h *ReminderHandler) Handle(ctx context.Context, data []byte) error {
 	startTime := targetDate.Add(-30 * time.Minute)
 	endTime := targetDate.Add(30 * time.Minute)
 
-	h.log.Logf("INFO finding completed bookings between %s and %s", startTime, endTime)
+	h.log.Info("finding completed bookings between", "start", startTime, "end", endTime)
 
 	// Get completed bookings in the date range
 	// This is a simplified implementation - in production, you'd want a dedicated repository method
 	bookings, err := h.findCompletedBookingsInRange(ctx, startTime, endTime)
 	if err != nil {
-		h.log.Logf("ERROR failed to find completed bookings: %v", err)
+		h.log.Error("failed to find completed bookings", "error", err)
 		return err
 	}
 
-	h.log.Logf("INFO found %d completed bookings to check for reminders", len(bookings))
+	h.log.Info("found completed bookings to check for reminders", "count", len(bookings))
 
 	guestRemindersSent := 0
 	hostRemindersSent := 0
@@ -99,7 +98,7 @@ func (h *ReminderHandler) Handle(ctx context.Context, data []byte) error {
 		// Check if guest needs reminder
 		if booking.GuestReviewedAt == nil {
 			if err := h.sendGuestReminder(ctx, booking, thresholdDays); err != nil {
-				h.log.Logf("WARN failed to send guest reminder for booking %s: %v", booking.ID, err)
+				h.log.Warn("failed to send guest reminder for booking", "booking_id", booking.ID, "error", err)
 			} else {
 				guestRemindersSent++
 			}
@@ -108,15 +107,14 @@ func (h *ReminderHandler) Handle(ctx context.Context, data []byte) error {
 		// Check if host needs reminder
 		if booking.HostReviewedAt == nil {
 			if err := h.sendHostReminder(ctx, booking, thresholdDays); err != nil {
-				h.log.Logf("WARN failed to send host reminder for booking %s: %v", booking.ID, err)
+				h.log.Warn("failed to send host reminder for booking", "booking_id", booking.ID, "error", err)
 			} else {
 				hostRemindersSent++
 			}
 		}
 	}
 
-	h.log.Logf("INFO review reminder job completed: %d guest reminders, %d host reminders sent",
-		guestRemindersSent, hostRemindersSent)
+	h.log.Info("review reminder job completed", "guest_reminders_sent", guestRemindersSent, "host_reminders_sent", hostRemindersSent)
 
 	return nil
 }
@@ -138,7 +136,7 @@ func (h *ReminderHandler) sendGuestReminder(ctx context.Context, booking *bookin
 	}
 
 	if guestEmail == "" {
-		h.log.Logf("WARN guest %s has no email, skipping reminder", booking.GuestID)
+		h.log.Warn("guest has no email, skipping reminder", "guest_id", booking.GuestID)
 		return nil
 	}
 
@@ -173,7 +171,7 @@ func (h *ReminderHandler) sendHostReminder(ctx context.Context, booking *booking
 	}
 
 	if hostEmail == "" {
-		h.log.Logf("WARN host %s has no email, skipping reminder", hostID)
+		h.log.Warn("host has no email, skipping reminder", "host_id", hostID)
 		return nil
 	}
 

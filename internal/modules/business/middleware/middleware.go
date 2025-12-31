@@ -2,8 +2,7 @@ package middleware
 
 import (
 	"hauslet/internal/modules/business/service"
-
-	"github.com/go-pkgz/lgr"
+	"log/slog"
 )
 
 // Middleware holds all business middleware components
@@ -14,7 +13,7 @@ type Middleware struct {
 }
 
 // NewMiddleware creates a new middleware instance with all components
-func NewMiddleware(businessService service.BusinessService, log *lgr.Logger) *Middleware {
+func NewMiddleware(businessService service.BusinessService, log *slog.Logger) *Middleware {
 	return &Middleware{
 		Auth:     NewBusinessAuthMiddleware(businessService, log),
 		GraphQL:  NewGraphQLAuthHelper(businessService),

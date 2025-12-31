@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 
 	businessservice "hauslet/internal/modules/business/service"
 	"hauslet/internal/modules/property/domain"
@@ -12,7 +13,6 @@ import (
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 	"golang.org/x/sync/singleflight"
 )
@@ -85,7 +85,7 @@ type ServiceImpl struct {
 	profiles            ProfileProvider
 	cache               redis.RedisClient
 	embedding           *aiembeddings.Client
-	log                 *lgr.Logger
+	log                 *slog.Logger
 	embeddingGroup      singleflight.Group
 	businessAuthorizer  BusinessAuthorizer
 	businessService     businessservice.BusinessService
@@ -101,7 +101,7 @@ func NewPropertyService(repo repository.Repository,
 	moderationHooks ModerationHooks,
 	cache redis.RedisClient,
 	embedding *aiembeddings.Client,
-	log *lgr.Logger,
+	log *slog.Logger,
 	businessAuthorizer BusinessAuthorizer,
 	businessService businessservice.BusinessService,
 ) *ServiceImpl {

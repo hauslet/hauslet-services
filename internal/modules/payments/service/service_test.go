@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,12 +15,12 @@ import (
 
 // createTestService creates a service instance for testing
 func createTestService(repo *mocks.MockRepository) *PaymentServiceImpl {
-	logger := lgr.New(lgr.Msec)
+
 	return &PaymentServiceImpl{
 		repo:            repo,
 		paymentClient:   nil, // Not needed for these tests
 		notificationSvc: nil, // Not needed for these tests
-		log:             logger,
+		log:             nil,
 	}
 }
 

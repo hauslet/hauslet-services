@@ -14,11 +14,11 @@ func (s *ProfileServiceImpl) ensureProfile(ctx context.Context, userID string) (
 
 	p, err := s.repo.GetProfileByUserID(ctx, userID)
 	if err != nil {
-		s.log.Logf("[ERROR] failed to fetch profile for user %s: %v", userID, err)
+		s.log.Error("failed to fetch profile", "user_id", userID, "error", err)
 		return nil, err
 	}
 	if p == nil {
-		s.log.Logf("[WARN] profile not found for user %s", userID)
+		s.log.Warn("profile not found", "user_id", userID)
 		return nil, domain.ErrProfileNotFound
 	}
 

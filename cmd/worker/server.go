@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync/atomic"
@@ -10,11 +11,9 @@ import (
 	"hauslet/config"
 	platformQueue "hauslet/internal/platform/queue"
 	"hauslet/internal/queue"
-
-	"github.com/go-pkgz/lgr"
 )
 
-func startWorkerServer(cfg *config.GlobalConfig, registry *queue.Registry, log *lgr.Logger, ready *atomic.Bool) *http.Server {
+func startWorkerServer(cfg *config.GlobalConfig, registry *queue.Registry, log *slog.Logger, ready *atomic.Bool) *http.Server {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
@@ -57,7 +56,7 @@ func startWorkerServer(cfg *config.GlobalConfig, registry *queue.Registry, log *
 			}
 
 			if err := registry.Handle(r.Context(), route.Name, body); err != nil {
-				log.Logf("ERROR task failed queue=%s: %v", route.Name, err)
+				log.Error("task failed", "queue", route.Name, "error", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
@@ -76,7 +75,7 @@ func startWorkerServer(cfg *config.GlobalConfig, registry *queue.Registry, log *
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Logf("ERROR worker server failed: %v", err)
+			log.Error("worker server failed", "error", err)
 		}
 	}()
 

@@ -55,10 +55,10 @@ import (
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
 	"hauslet/internal/platform/xchange"
+	"log/slog"
 
 	authhttp "hauslet/internal/modules/auth/port/http"
 
-	"github.com/go-pkgz/lgr"
 	"gorm.io/gorm"
 )
 
@@ -68,7 +68,7 @@ type InfrastructureDependencies struct {
 	Redis       *redis.RedisClient
 	Queue       *queue.Client
 	R2          *storage.R2Storage
-	Logger      *lgr.Logger
+	Logger      *slog.Logger
 	Config      *config.GlobalConfig
 	EmailClient *email.Client
 }
@@ -80,7 +80,7 @@ type Container struct {
 	Redis  *redis.RedisClient
 	Queue  *queue.Client
 	R2     *storage.R2Storage
-	Logger *lgr.Logger
+	Logger *slog.Logger
 	Config *config.GlobalConfig
 
 	// Platform Services
@@ -207,7 +207,7 @@ func (c *Container) initPlatformServices(ctx context.Context) error {
 
 	// Initialize AI embeddings client (optional - log warning if fails)
 	if provider, err := aiembeddings.NewGeminiProvider(ctx, c.Config.Services.Gemini); err != nil {
-		c.Logger.Logf("WARN failed to initialize embedding client: %v", err)
+		c.Logger.Warn("failed to initialize embedding client: %v", err)
 		c.EmbeddingAI = nil
 	} else {
 		c.EmbeddingAI = aiembeddings.New(provider)

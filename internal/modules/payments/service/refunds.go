@@ -8,14 +8,14 @@ import (
 
 	"github.com/google/uuid"
 )
-   
+
 // RefundPayment processes a refund for a payment
 func (s *PaymentServiceImpl) RefundPayment(ctx context.Context, input domain.RefundPaymentInput) (*domain.Payment, error) {
-	s.log.Logf("INFO processing refund for payment=%s", input.PaymentID)
+	s.log.Info("processing refund for payment", "payment_id", input.PaymentID)
 
 	// Validate input
 	if err := input.Validate(); err != nil {
-		s.log.Logf("ERROR refund validation failed: %v", err)
+		s.log.Error("refund validation failed", "error", err)
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 
@@ -27,8 +27,7 @@ func (s *PaymentServiceImpl) RefundPayment(ctx context.Context, input domain.Ref
 
 	// Check if payment can be refunded
 	if !pmt.CanRefund() {
-		s.log.Logf("WARN payment %s cannot be refunded: status=%s, refunded=%d/%d",
-			input.PaymentID, pmt.Status, pmt.RefundedAmount, pmt.Amount)
+		s.log.Warn("payment cannot be refunded", "payment_id", input.PaymentID, "status", pmt.Status, "refunded", pmt.RefundedAmount, "amount", pmt.Amount)
 		return nil, domain.ErrCannotRefundPayment
 	}
 
@@ -41,7 +40,7 @@ func (s *PaymentServiceImpl) RefundPayment(ctx context.Context, input domain.Ref
 		}
 	}
 
-	s.log.Logf("INFO initiating refund: payment=%s, amount=%d", pmt.ID, refundAmount)
+	s.log.Info(" initiating refund", "payment", pmt.ID, "amount", refundAmount)
 
 	// Process refund with provider
 	refundResp, err := s.paymentClient.Refund(
@@ -52,7 +51,7 @@ func (s *PaymentServiceImpl) RefundPayment(ctx context.Context, input domain.Ref
 		input.Reason,
 	)
 	if err != nil {
-		s.log.Logf("ERROR refund failed for payment=%s: %v", pmt.ID, err)
+		s.log.Error("refund failed", "payment_id", pmt.ID, "error", err)
 		return nil, fmt.Errorf("refund failed: %w", err)
 	}
 
@@ -67,24 +66,24 @@ func (s *PaymentServiceImpl) RefundPayment(ctx context.Context, input domain.Ref
 
 	// Save updated payment
 	if err := s.repo.UpdatePayment(ctx, domain.MapPaymentToSchema(pmt)); err != nil {
-		s.log.Logf("ERROR failed to update payment after refund: %v", err)
+		s.log.Error("failed to update payment after refund", "error", err)
 		return nil, fmt.Errorf("failed to update payment: %w", err)
 	}
 
 	// Create refund transaction record
 	tx := &domain.Transaction{
-		ID:         uuid.New(),
-		PaymentID:  &pmt.ID,
-		BookingID:  pmt.BookingID,
-		BusinessID: pmt.BusinessID,
-		Type:       domain.TransactionTypeRefund,
-		Reference:  fmt.Sprintf("RFD-%s-%s", pmt.Reference, uuid.New().String()[:8]),
-		Amount:     refundAmount,
-		Currency:   pmt.Currency,
-		Status:     domain.TransactionStatus(refundResp.Status),
-		Provider:   pmt.Provider,
+		ID:           uuid.New(),
+		PaymentID:    &pmt.ID,
+		BookingID:    pmt.BookingID,
+		BusinessID:   pmt.BusinessID,
+		Type:         domain.TransactionTypeRefund,
+		Reference:    fmt.Sprintf("RFD-%s-%s", pmt.Reference, uuid.New().String()[:8]),
+		Amount:       refundAmount,
+		Currency:     pmt.Currency,
+		Status:       domain.TransactionStatus(refundResp.Status),
+		Provider:     pmt.Provider,
 		ProviderTxID: &refundResp.RefundID,
-		Description: fmt.Sprintf("Refund: %s", input.Reason),
+		Description:  fmt.Sprintf("Refund: %s", input.Reason),
 		Metadata: map[string]string{
 			"refunded_by":     input.RefundedBy.String(),
 			"refund_reason":   input.Reason,
@@ -96,11 +95,11 @@ func (s *PaymentServiceImpl) RefundPayment(ctx context.Context, input domain.Ref
 	}
 
 	if err := s.repo.CreateTransaction(ctx, domain.MapTransactionToSchema(tx)); err != nil {
-		s.log.Logf("WARN failed to create refund transaction: %v", err)
+		s.log.Warn("failed to create refund transaction", "error", err)
 		// Non-critical
 	}
 
-	s.log.Logf("INFO refund processed successfully: payment=%s, refund_amount=%d", pmt.ID, refundAmount)
+	s.log.Info(" refund processed successfully", "payment", pmt.ID, "refund_amount", refundAmount)
 
 	// Send refund notification
 	s.notificationSvc.SendRefundNotification(pmt, refundAmount)

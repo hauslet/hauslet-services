@@ -10,8 +10,8 @@ import (
 	propertyschema "hauslet/internal/modules/property/repository/schema"
 	"hauslet/internal/modules/review/notification"
 	reviewservice "hauslet/internal/modules/review/service"
+	"log/slog"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -26,7 +26,7 @@ type ReviewBookingHooksAdapter struct {
 	userQuerier      reviewservice.UserQuerier
 	notificationSvc  *notification.NotificationService
 	reviewWindowDays int
-	log              *lgr.Logger
+	log              *slog.Logger
 }
 
 // NewReviewBookingHooksAdapter creates a new adapter for booking completion hooks.
@@ -37,7 +37,7 @@ func NewReviewBookingHooksAdapter(
 	userQuerier reviewservice.UserQuerier,
 	notificationSvc *notification.NotificationService,
 	reviewWindowDays int,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *ReviewBookingHooksAdapter {
 	return &ReviewBookingHooksAdapter{
 		bookingRepo:      bookingRepo,
@@ -93,12 +93,12 @@ func (a *ReviewBookingHooksAdapter) SendReviewInvites(ctx context.Context, booki
 		a.notificationSvc.SendReviewInviteToGuest(ctx, booking.ID, guestContact, listingTitle, days)
 		guestSent = true
 	} else if a.log != nil {
-		a.log.Logf("WARN guest email missing for booking %s; review invite skipped", booking.ID)
+		a.log.Warn("guest email missing for booking %s; review invite skipped", booking.ID)
 	}
 
 	hostContact, err := a.resolveHostContact(ctx, listing)
 	if err != nil && a.log != nil {
-		a.log.Logf("WARN failed to resolve host contact for booking %s: %v", booking.ID, err)
+		a.log.Warn("failed to resolve host contact for booking %s: %v", booking.ID, err)
 	}
 
 	hostSent := false
@@ -106,7 +106,7 @@ func (a *ReviewBookingHooksAdapter) SendReviewInvites(ctx context.Context, booki
 		a.notificationSvc.SendReviewInviteToHost(ctx, booking.ID, hostContact, booking.GuestName, days)
 		hostSent = true
 	} else if a.log != nil {
-		a.log.Logf("WARN host email missing for booking %s; review invite skipped", booking.ID)
+		a.log.Warn("host email missing for booking %s; review invite skipped", booking.ID)
 	}
 
 	if !guestSent && !hostSent {

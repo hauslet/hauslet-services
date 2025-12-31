@@ -30,7 +30,7 @@ func (h *HTTPHandler) UploadListingMedia(w http.ResponseWriter, r *http.Request)
 	listingIDStr := chi.URLParam(r, "id")
 	listingID, err := uuid.Parse(listingIDStr)
 	if err != nil {
-		h.log.Logf("ERROR Invalid listing ID: %v", err)
+		h.log.Error("Invalid listing ID: %v", err)
 		h.sendError(w, "Invalid listing ID", http.StatusBadRequest, "id")
 		return
 	}
@@ -38,7 +38,7 @@ func (h *HTTPHandler) UploadListingMedia(w http.ResponseWriter, r *http.Request)
 	// Extract user ID from JWT token
 	userID, err := h.extractUserID(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to extract user ID: %v", err)
+		h.log.Error("Failed to extract user ID: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -59,14 +59,14 @@ func (h *HTTPHandler) UploadListingMedia(w http.ResponseWriter, r *http.Request)
 	// Decode request body
 	var req domain.UploadMediaRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode upload request: %v", err)
+		h.log.Error("Failed to decode upload request: %v", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
-		h.log.Logf("WARN Upload validation failed: %v", err)
+		h.log.Warn("Upload validation failed: %v", err)
 		if valErr, ok := err.(*domain.ValidationError); ok {
 			h.sendError(w, valErr.Message, http.StatusBadRequest, valErr.Field)
 			return
@@ -81,12 +81,12 @@ func (h *HTTPHandler) UploadListingMedia(w http.ResponseWriter, r *http.Request)
 	// Call service to upload media
 	results, err := h.propertyService.UploadListingMedia(r.Context(), listingID, mediaInput)
 	if err != nil {
-		h.log.Logf("ERROR Failed to upload media for listing %s: %v", listingID, err)
+		h.log.Error("Failed to upload media for listing %s: %v", listingID, err)
 		h.sendError(w, "Failed to generate upload URLs", http.StatusInternalServerError, "")
 		return
 	}
 
-	h.log.Logf("INFO Generated upload URLs for %d media items for listing %s", len(results), listingID)
+	h.log.Info(" Generated upload URLs for %d media items for listing %s", len(results), listingID)
 
 	// Send response
 	response := domain.UploadMediaResponse{
@@ -119,7 +119,7 @@ func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request)
 	listingIDStr := chi.URLParam(r, "id")
 	listingID, err := uuid.Parse(listingIDStr)
 	if err != nil {
-		h.log.Logf("ERROR Invalid listing ID: %v", err)
+		h.log.Error("Invalid listing ID: %v", err)
 		h.sendError(w, "Invalid listing ID", http.StatusBadRequest, "id")
 		return
 	}
@@ -128,7 +128,7 @@ func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request)
 	mediaIDStr := chi.URLParam(r, "mediaId")
 	mediaID, err := uuid.Parse(mediaIDStr)
 	if err != nil {
-		h.log.Logf("ERROR Invalid media ID: %v", err)
+		h.log.Error("Invalid media ID: %v", err)
 		h.sendError(w, "Invalid media ID", http.StatusBadRequest, "mediaId")
 		return
 	}
@@ -136,7 +136,7 @@ func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request)
 	// Extract user ID from JWT token
 	userID, err := h.extractUserID(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to extract user ID: %v", err)
+		h.log.Error("Failed to extract user ID: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -157,14 +157,14 @@ func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request)
 	// Decode request body
 	var req domain.UpdateMediaRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode update request: %v", err)
+		h.log.Error("Failed to decode update request: %v", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
-		h.log.Logf("WARN Update validation failed: %v", err)
+		h.log.Warn("Update validation failed: %v", err)
 		if valErr, ok := err.(*domain.ValidationError); ok {
 			h.sendError(w, valErr.Message, http.StatusBadRequest, valErr.Field)
 			return
@@ -178,7 +178,7 @@ func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request)
 
 	// Call service to update media
 	if err := h.propertyService.UpdateListingMedia(r.Context(), listingID, mediaID, updates); err != nil {
-		h.log.Logf("ERROR Failed to update media %s for listing %s: %v", mediaID, listingID, err)
+		h.log.Error("Failed to update media %s for listing %s: %v", mediaID, listingID, err)
 
 		if err == domain.ErrMediaNotFound {
 			h.sendError(w, "Media not found", http.StatusNotFound, "")
@@ -188,7 +188,7 @@ func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	h.log.Logf("INFO Updated media %s for listing %s", mediaID, listingID)
+	h.log.Info(" Updated media %s for listing %s", mediaID, listingID)
 
 	// Send success response
 	response := domain.SuccessResponse{
@@ -219,7 +219,7 @@ func (h *HTTPHandler) DeleteListingMedia(w http.ResponseWriter, r *http.Request)
 	listingIDStr := chi.URLParam(r, "id")
 	listingID, err := uuid.Parse(listingIDStr)
 	if err != nil {
-		h.log.Logf("ERROR Invalid listing ID: %v", err)
+		h.log.Error("Invalid listing ID: %v", err)
 		h.sendError(w, "Invalid listing ID", http.StatusBadRequest, "id")
 		return
 	}
@@ -227,7 +227,7 @@ func (h *HTTPHandler) DeleteListingMedia(w http.ResponseWriter, r *http.Request)
 	// Extract user ID from JWT token
 	userID, err := h.extractUserID(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to extract user ID: %v", err)
+		h.log.Error("Failed to extract user ID: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -248,14 +248,14 @@ func (h *HTTPHandler) DeleteListingMedia(w http.ResponseWriter, r *http.Request)
 	// Decode request body
 	var req domain.DeleteMediaRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode delete request: %v", err)
+		h.log.Error("Failed to decode delete request: %v", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
-		h.log.Logf("WARN Delete validation failed: %v", err)
+		h.log.Warn("Delete validation failed: %v", err)
 		if valErr, ok := err.(*domain.ValidationError); ok {
 			h.sendError(w, valErr.Message, http.StatusBadRequest, valErr.Field)
 			return
@@ -269,7 +269,7 @@ func (h *HTTPHandler) DeleteListingMedia(w http.ResponseWriter, r *http.Request)
 
 	// Call service to delete media
 	if err := h.propertyService.DeleteListingMedia(r.Context(), listingID, mediaInput); err != nil {
-		h.log.Logf("ERROR Failed to delete media for listing %s: %v", listingID, err)
+		h.log.Error("Failed to delete media for listing %s: %v", listingID, err)
 
 		if err == domain.ErrMediaNotFound {
 			h.sendError(w, "One or more media items not found", http.StatusNotFound, "")
@@ -279,7 +279,7 @@ func (h *HTTPHandler) DeleteListingMedia(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	h.log.Logf("INFO Deleted %d media items for listing %s", len(req.Media), listingID)
+	h.log.Info(" Deleted %d media items for listing %s", len(req.Media), listingID)
 
 	// Send success response
 	response := domain.SuccessResponse{
@@ -310,7 +310,7 @@ func (h *HTTPHandler) FinalizeListingMedia(w http.ResponseWriter, r *http.Reques
 	listingIDStr := chi.URLParam(r, "id")
 	listingID, err := uuid.Parse(listingIDStr)
 	if err != nil {
-		h.log.Logf("ERROR Invalid listing ID: %v", err)
+		h.log.Error("Invalid listing ID: %v", err)
 		h.sendError(w, "Invalid listing ID", http.StatusBadRequest, "id")
 		return
 	}
@@ -318,7 +318,7 @@ func (h *HTTPHandler) FinalizeListingMedia(w http.ResponseWriter, r *http.Reques
 	// Extract user ID from JWT token
 	userID, err := h.extractUserID(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to extract user ID: %v", err)
+		h.log.Error("Failed to extract user ID: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -339,14 +339,14 @@ func (h *HTTPHandler) FinalizeListingMedia(w http.ResponseWriter, r *http.Reques
 	// Decode request body
 	var req domain.FinalizeMediaRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode finalize request: %v", err)
+		h.log.Error("Failed to decode finalize request: %v", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
-		h.log.Logf("WARN Finalize validation failed: %v", err)
+		h.log.Warn("Finalize validation failed: %v", err)
 		if valErr, ok := err.(*domain.ValidationError); ok {
 			h.sendError(w, valErr.Message, http.StatusBadRequest, valErr.Field)
 			return
@@ -363,7 +363,7 @@ func (h *HTTPHandler) FinalizeListingMedia(w http.ResponseWriter, r *http.Reques
 
 	// Call service to finalize media
 	if err := h.propertyService.FinalizeListingMedia(r.Context(), finalizeData); err != nil {
-		h.log.Logf("ERROR Failed to finalize media for listing %s: %v", listingID, err)
+		h.log.Error("Failed to finalize media for listing %s: %v", listingID, err)
 
 		if err == domain.ErrMediaNotFound {
 			h.sendError(w, "One or more media items not found", http.StatusNotFound, "")
@@ -373,7 +373,7 @@ func (h *HTTPHandler) FinalizeListingMedia(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	h.log.Logf("INFO Finalized %d media items for listing %s", len(req.MediaKeys), listingID)
+	h.log.Info(" Finalized %d media items for listing %s", len(req.MediaKeys), listingID)
 
 	// Send success response
 	response := domain.SuccessResponse{

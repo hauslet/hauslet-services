@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -12,18 +13,17 @@ import (
 	"hauslet/internal/platform/redis"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-pkgz/lgr"
 )
 
 // HTTPHandler exposes calendar-specific endpoints for hosts.
 type HTTPHandler struct {
 	ctx             context.Context
 	calendarService calendarservice.CalendarService
-	log             *lgr.Logger
+	log             *slog.Logger
 }
 
 // NewHTTPHandler constructs a calendar HTTP handler.
-func NewHTTPHandler(ctx context.Context, svc calendarservice.CalendarService, log *lgr.Logger) *HTTPHandler {
+func NewHTTPHandler(ctx context.Context, svc calendarservice.CalendarService, log *slog.Logger) *HTTPHandler {
 	return &HTTPHandler{
 		ctx:             ctx,
 		calendarService: svc,

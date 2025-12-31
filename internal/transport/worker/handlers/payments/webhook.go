@@ -4,19 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	paymentshttp "hauslet/internal/modules/payments/port/http"
 	"hauslet/internal/platform/payment"
 	paymentJob "hauslet/internal/queue/jobs/payments"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // PaymentWebhookHandler processes queued payment webhooks.
 type PaymentWebhookHandler struct {
 	paymentClient  *payment.Client
 	webhookHandler *paymentshttp.WebhookHandler
-	log            *lgr.Logger
+	log            *slog.Logger
 	subject        string
 }
 
@@ -24,7 +23,7 @@ type PaymentWebhookHandler struct {
 func NewPaymentWebhookHandler(
 	paymentClient *payment.Client,
 	webhookHandler *paymentshttp.WebhookHandler,
-	log *lgr.Logger,
+	log *slog.Logger,
 	subject string,
 ) *PaymentWebhookHandler {
 	return &PaymentWebhookHandler{
@@ -64,6 +63,6 @@ func (h *PaymentWebhookHandler) Handle(ctx context.Context, data []byte) error {
 		event.Reference = job.Reference
 	}
 
-	h.log.Logf("INFO processing payment webhook job: type=%s ref=%s", event.Type, event.Reference)
+	h.log.Info("processing payment webhook job", "type", event.Type, "ref", event.Reference)
 	return h.webhookHandler.ProcessEvent(ctx, event)
 }

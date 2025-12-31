@@ -7,8 +7,8 @@ import (
 	"hauslet/internal/modules/finance/repository"
 	paymentsRepository "hauslet/internal/modules/payments/repository"
 	"hauslet/internal/platform/payment"
+	"log/slog"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -23,7 +23,7 @@ type FinanceServiceImpl struct {
 	reconciliationRepo  repository.ReconciliationRepository
 	bookingPartyQuerier BookingPartyQuerier
 	db                  *gorm.DB
-	log                 *lgr.Logger
+	log                 *slog.Logger
 }
 
 // NewFinanceService creates a new finance service
@@ -36,7 +36,7 @@ func NewFinanceService(
 	reconciliationRepo repository.ReconciliationRepository,
 	bookingPartyQuerier BookingPartyQuerier,
 	db *gorm.DB,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) FinanceService {
 	return &FinanceServiceImpl{
 		walletRepo:          walletRepo,
@@ -84,7 +84,7 @@ type PayoutServiceImpl struct {
 	profileAdapter   ProfileAdapter
 	platformConfig   config.PlatformYAMLConfig
 	db               *gorm.DB
-	log              *lgr.Logger
+	log              *slog.Logger
 }
 
 // NewPayoutService creates a new payout service
@@ -101,7 +101,7 @@ func NewPayoutService(
 	profileAdapter ProfileAdapter,
 	platformConfig config.PlatformYAMLConfig,
 	db *gorm.DB,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) PayoutService {
 	return &PayoutServiceImpl{
 		walletRepo:       walletRepo,

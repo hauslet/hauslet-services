@@ -39,13 +39,13 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 	result := &domain.ReconciliationResult{}
 
 	// Run validation checks
-	s.log.Logf("INFO starting reconciliation: report_id=%s", report.ID)
+	s.log.Info(" starting reconciliation: report_id=%s", report.ID)
 
 	// 1. Validate ledger balance (debit = credit)
-	s.log.Logf("INFO reconciliation: validating ledger balance")
+	s.log.Info(" reconciliation: validating ledger balance")
 	ledgerDiscrepancies, err := s.ValidateLedgerBalance(ctx)
 	if err != nil {
-		s.log.Logf("ERROR reconciliation failed during ledger validation: %v", err)
+		s.log.Error("reconciliation failed during ledger validation: %v", err)
 		return s.failReconciliation(ctx, report, err)
 	}
 	for _, d := range ledgerDiscrepancies {
@@ -54,10 +54,10 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 	}
 
 	// 2. Validate wallet balances
-	s.log.Logf("INFO reconciliation: validating wallet balances")
+	s.log.Info(" reconciliation: validating wallet balances")
 	walletDiscrepancies, err := s.ValidateWalletBalance(ctx)
 	if err != nil {
-		s.log.Logf("ERROR reconciliation failed during wallet validation: %v", err)
+		s.log.Error("reconciliation failed during wallet validation: %v", err)
 		return s.failReconciliation(ctx, report, err)
 	}
 	for _, d := range walletDiscrepancies {
@@ -70,16 +70,16 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 	// - Fetching settlement reports from Paystack API (implement in internal/platform/payment)
 	// - Matching our disbursements to Paystack transfers
 	// - Detecting missing or duplicate transactions
-	s.log.Logf("WARN reconciliation: provider reconciliation not yet implemented")
+	s.log.Warn("reconciliation: provider reconciliation not yet implemented")
 
 	// Save all discrepancies
-	s.log.Logf("INFO reconciliation: found %d discrepancies", len(result.Discrepancies))
+	s.log.Info(" reconciliation: found %d discrepancies", len(result.Discrepancies))
 	for _, discrepancy := range result.Discrepancies {
 		discrepancy.ID = uuid.New()
 		discrepancy.CreatedAt = time.Now()
 		discrepancySchema := domain.MapDiscrepancyToSchema(&discrepancy)
 		if err := s.reconciliationRepo.CreateDiscrepancy(ctx, discrepancySchema); err != nil {
-			s.log.Logf("ERROR failed to save discrepancy: %v", err)
+			s.log.Error("failed to save discrepancy: %v", err)
 			// Continue saving other discrepancies
 		}
 	}
@@ -98,18 +98,18 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 	// Update report
 	reportSchema = domain.MapReconciliationReportToSchema(report)
 	if err := s.reconciliationRepo.UpdateReport(ctx, reportSchema); err != nil {
-		s.log.Logf("ERROR failed to update reconciliation report: %v", err)
+		s.log.Error("failed to update reconciliation report: %v", err)
 		return nil, fmt.Errorf("failed to update reconciliation report: %w", err)
 	}
 
-	s.log.Logf("INFO reconciliation completed: report_id=%s discrepancies=%d", report.ID, len(result.Discrepancies))
+	s.log.Info(" reconciliation completed: report_id=%s discrepancies=%d", report.ID, len(result.Discrepancies))
 
 	// TODO: Send alert email to admins if discrepancies found
 	// This will require:
 	// - Admin module that exposes GetAdminEmails() via adapter
 	// - Email notification service integration
 	if result.HasIssues() {
-		s.log.Logf("WARN reconciliation found issues - admin notification needed")
+		s.log.Warn("reconciliation found issues - admin notification needed")
 		// TODO: s.notifyAdmins(ctx, report)
 	}
 
@@ -161,7 +161,7 @@ func (s *FinanceServiceImpl) ValidateLedgerBalance(ctx context.Context) ([]domai
 		})
 	}
 
-	s.log.Logf("INFO ledger validation: found %d imbalanced transactions", len(discrepancies))
+	s.log.Info(" ledger validation: found %d imbalanced transactions", len(discrepancies))
 
 	return discrepancies, nil
 }
@@ -172,10 +172,10 @@ func (s *FinanceServiceImpl) ValidateWalletBalance(ctx context.Context) ([]domai
 
 	// Get all active wallets
 	type WalletBalance struct {
-		WalletID       uuid.UUID
-		ActualBalance  int64
-		LedgerBalance  int64
-		Currency       string
+		WalletID      uuid.UUID
+		ActualBalance int64
+		LedgerBalance int64
+		Currency      string
 	}
 
 	var mismatches []WalletBalance
@@ -229,7 +229,7 @@ func (s *FinanceServiceImpl) ValidateWalletBalance(ctx context.Context) ([]domai
 		})
 	}
 
-	s.log.Logf("INFO wallet validation: found %d wallet mismatches", len(discrepancies))
+	s.log.Info(" wallet validation: found %d wallet mismatches", len(discrepancies))
 
 	return discrepancies, nil
 }
@@ -316,7 +316,7 @@ func (s *FinanceServiceImpl) failReconciliation(ctx context.Context, report *dom
 
 	reportSchema := domain.MapReconciliationReportToSchema(report)
 	if updateErr := s.reconciliationRepo.UpdateReport(ctx, reportSchema); updateErr != nil {
-		s.log.Logf("ERROR failed to update failed reconciliation report: %v", updateErr)
+		s.log.Error("failed to update failed reconciliation report: %v", updateErr)
 	}
 
 	return report, err

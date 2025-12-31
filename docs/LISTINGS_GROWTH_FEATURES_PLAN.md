@@ -356,7 +356,7 @@ listing-promotion ─> analytics (impression/click tracking)
       validator      *LeadValidator
       spamDetector   *SpamDetector
       db             *gorm.DB
-      log            *lgr.Logger
+      log            *slog.Logger 
   }
 
   // CreateLead implementation:
@@ -784,7 +784,7 @@ listing-promotion ─> analytics (impression/click tracking)
   ```go
   type DailyAggregationJob struct {
       aggregationService analytics.AggregationService
-      log                *lgr.Logger
+      log                *slog.Logger 
   }
 
   func (j *DailyAggregationJob) Run(ctx context.Context) error {
@@ -842,7 +842,7 @@ func (s *EventIngestionService) TrackEvent(ctx context.Context, event *domain.Li
     // If event has promotion_id, also track in promotion analytics
     if event.PromotionID != nil {
         if err := s.promotionAnalytics.TrackImpression(ctx, *event.PromotionID); err != nil {
-            s.log.Logf("WARN failed to track promotion impression: %v", err)
+            s.log.Warn("failed to track promotion impression: %v", err)
             // Don't fail the event ingestion
         }
     }

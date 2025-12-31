@@ -21,13 +21,12 @@ import (
 	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
 	"hauslet/internal/platform/xchange"
-
-	"github.com/go-pkgz/lgr"
+	"log/slog"
 )
 
 // Resolver wires domain-specific resolvers into gqlgen.
 type Resolver struct {
-	log              *lgr.Logger
+	log              *slog.Logger
 	AuthResolver     *authgraphql.Resolver
 	ProfileResolver  *profilegraphql.Resolver
 	PropertyResolver *propertygraphql.Resolver
@@ -52,7 +51,7 @@ func NewResolver(
 	reviewSvc reviewservice.ReviewService,
 	fxClient xchange.XChange,
 	appCfg *cfg.GlobalConfig,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *Resolver {
 	return &Resolver{
 		log:              log,

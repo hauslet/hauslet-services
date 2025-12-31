@@ -3,24 +3,23 @@ package review
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 
 	reviewService "hauslet/internal/modules/review/service"
 	reviewJobs "hauslet/internal/queue/jobs/review"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // StatsRecalculationHandler handles async stats recalculation
 type StatsRecalculationHandler struct {
 	reviewSvc reviewService.ReviewService
-	log       *lgr.Logger
+	log       *slog.Logger
 	subject   string
 }
 
 // NewStatsRecalculationHandler creates a new handler for stats recalculation
 func NewStatsRecalculationHandler(
 	reviewSvc reviewService.ReviewService,
-	log *lgr.Logger,
+	log *slog.Logger,
 	subject string,
 ) *StatsRecalculationHandler {
 	return &StatsRecalculationHandler{
@@ -44,12 +43,11 @@ func (h *StatsRecalculationHandler) Subject() string {
 func (h *StatsRecalculationHandler) Handle(ctx context.Context, data []byte) error {
 	var job reviewJobs.RecalculateStatsJob
 	if err := json.Unmarshal(data, &job); err != nil {
-		h.log.Logf("ERROR failed to unmarshal RecalculateStatsJob: %v", err)
+		h.log.Error("failed to unmarshal RecalculateStatsJob", "error", err)
 		return err
 	}
 
-	h.log.Logf("INFO recalculating %s stats for target %s", job.TargetType, job.TargetID)
-
+	h.log.Info("recalculating stats", "target_type", job.TargetType, "target_id", job.TargetID)
 	var err error
 	switch job.TargetType {
 	case "listing":
@@ -57,15 +55,15 @@ func (h *StatsRecalculationHandler) Handle(ctx context.Context, data []byte) err
 	case "host":
 		err = h.reviewSvc.RecalculateHostStats(ctx, job.TargetID)
 	default:
-		h.log.Logf("WARN unknown target type: %s", job.TargetType)
+		h.log.Warn("unknown target type", "target_type", job.TargetType)
 		return nil // Don't retry for invalid target types
 	}
 
 	if err != nil {
-		h.log.Logf("ERROR failed to recalculate %s stats for %s: %v", job.TargetType, job.TargetID, err)
+		h.log.Error("failed to recalculate stats", "target_type", job.TargetType, "target_id", job.TargetID, "error", err)
 		return err
 	}
 
-	h.log.Logf("INFO successfully recalculated %s stats for %s", job.TargetType, job.TargetID)
+	h.log.Info("successfully recalculated stats", "target_type", job.TargetType, "target_id", job.TargetID)
 	return nil
 }

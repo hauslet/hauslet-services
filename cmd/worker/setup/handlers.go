@@ -2,6 +2,7 @@ package setup
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -48,12 +49,10 @@ import (
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
 	paymentHandler "hauslet/internal/transport/worker/handlers/payments"
 	reviewHandler "hauslet/internal/transport/worker/handlers/review"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // RegisterHandlers builds and registers all queue handlers based on config.
-func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.Logger) *queue.Registry {
+func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog.Logger) *queue.Registry {
 	registry := queue.NewRegistry()
 	qCfg := cfg.YAML.Queue.Subjects
 
@@ -500,24 +499,24 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.
 	return registry
 }
 
-// REMOVED: Ticker functions (StartPeriodicCleanup, StartBookingExpiryCheck,
+// Ticker functions (StartPeriodicCleanup, StartBookingExpiryCheck,
 // StartPayoutProcessing, StartDisbursementRetry) - replaced by Cloud Scheduler.
 // See deploy/terraform/cloudscheduler.tf for the new scheduler configuration.
 
 // HandleShutdown manages graceful shutdown on signals.
-func HandleShutdown(log *lgr.Logger, srv *http.Server) {
+func HandleShutdown(log *slog.Logger, srv *http.Server) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	<-stop
-	log.Logf("WARN Shutdown signal received")
+	log.Warn("Shutdown signal received")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
 	defer cancel()
 
 	if srv != nil {
 		if err := srv.Shutdown(shutdownCtx); err != nil {
-			log.Logf("ERROR worker server shutdown error: %v", err)
+			log.Error("worker server shutdown error", "error", err)
 		}
 	}
 }

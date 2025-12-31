@@ -8,7 +8,7 @@ import (
 
 // CreateDefaultProfile satisfies the Auth module's interface
 func (s *ProfileServiceImpl) CreateDefaultProfile(ctx context.Context, userID string, name string, birthDate *time.Time) error {
-	s.log.Logf("[INFO] creating default profile for user %s (name: %s)", userID, name)
+	s.log.Info("creating default profile for user", "user_id", userID, "name", name)
 
 	_, err := s.CreateProfile(ctx, domain.Profile{
 		UserID:              userID,
@@ -17,7 +17,7 @@ func (s *ProfileServiceImpl) CreateDefaultProfile(ctx context.Context, userID st
 		CommunityCommitment: false,
 	})
 	if err != nil {
-		s.log.Logf("[ERROR] failed to create default profile for user %s: %v", userID, err)
+		s.log.Error("failed to create default profile", "user_id", userID, "error", err)
 	}
 	return err
 }

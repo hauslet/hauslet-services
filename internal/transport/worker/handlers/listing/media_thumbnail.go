@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -15,7 +16,6 @@ import (
 	listingJob "hauslet/internal/queue/jobs/listing"
 
 	"github.com/disintegration/imaging"
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -23,7 +23,7 @@ import (
 type ListingMediaThumbnailHandler struct {
 	repo    repository.Repository
 	storage *storage.R2Storage
-	log     *lgr.Logger
+	log     *slog.Logger
 	subject string
 }
 
@@ -31,7 +31,7 @@ type ListingMediaThumbnailHandler struct {
 func NewListingMediaThumbnailHandler(
 	repo repository.Repository,
 	storage *storage.R2Storage,
-	log *lgr.Logger,
+	log *slog.Logger,
 	subject string,
 ) *ListingMediaThumbnailHandler {
 	return &ListingMediaThumbnailHandler{
@@ -62,10 +62,9 @@ func (h *ListingMediaThumbnailHandler) Handle(ctx context.Context, data []byte) 
 		return fmt.Errorf("invalid thumbnail job: %w", err)
 	}
 
-	h.log.Logf(
-		"INFO listing thumbnail job started listing=%s media_keys=%d",
-		job.ListingID,
-		len(job.MediaKeys),
+	h.log.Info("listing thumbnail job started",
+		"listing", job.ListingID,
+		"media_keys", len(job.MediaKeys),
 	)
 
 	media, err := h.repo.ListListingMedia(ctx, job.ListingID)
@@ -88,14 +87,14 @@ func (h *ListingMediaThumbnailHandler) Handle(ctx context.Context, data []byte) 
 		}
 
 		if m.Type != schema.MediaTypeImage {
-			h.log.Logf("INFO skipping non-image media %s (%s)", key, m.Type)
+			h.log.Info("skipping non-image media %s (%s)", key, m.Type)
 			continue
 		}
 
-		h.log.Logf(
-			"INFO processing media thumbnail listing=%s media=%s",
-			job.ListingID,
-			m.Key,
+		h.log.Info(
+			"processing media thumbnail",
+			"listing", job.ListingID,
+			"media", m.Key,
 		)
 
 		if err := h.processThumbnail(ctx, job.ListingID, m); err != nil {
@@ -103,10 +102,7 @@ func (h *ListingMediaThumbnailHandler) Handle(ctx context.Context, data []byte) 
 		}
 	}
 
-	h.log.Logf(
-		"INFO listing thumbnail job completed listing=%s",
-		job.ListingID,
-	)
+	h.log.Info("listing thumbnail job completed", "listing", job.ListingID)
 
 	return nil
 }
@@ -118,7 +114,7 @@ func (h *ListingMediaThumbnailHandler) processThumbnail(
 ) error {
 	// Avoid regeneration if thumbnails already exist
 	if len(media.Thumbnails) > 0 {
-		h.log.Logf("INFO thumbnails already present for %s, skipping", media.Key)
+		h.log.Info("thumbnails already present, skipping", "media", media.Key)
 		return nil
 	}
 
@@ -200,11 +196,7 @@ func (h *ListingMediaThumbnailHandler) processThumbnail(
 		)] = thumb
 	}
 
-	h.log.Logf(
-		"INFO thumbnails generated media=%s count=%d",
-		media.Key,
-		len(thumbs),
-	)
+	h.log.Info("thumbnails generated media=%s count=%d", media.Key, len(thumbs))
 
 	return h.repo.UpdateListingMedia(ctx, listingID, media.ID, map[string]any{
 		"thumbnails": thumbs,

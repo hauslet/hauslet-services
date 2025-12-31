@@ -22,7 +22,7 @@ func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims (set by auth middleware)
 	userInfo, err := token.GetUserInfo(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user info: %v", err)
+		h.log.Error("Failed to get user info: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -35,13 +35,13 @@ func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Get user from database
 	user, err := h.authService.GetUser(r.Context(), userID)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user %s: %v", userID, err)
+		h.log.Error("Failed to get user %s: %v", userID, err)
 		h.sendError(w, "Failed to retrieve user profile", http.StatusInternalServerError, "")
 		return
 	}
 
 	if user == nil {
-		h.log.Logf("WARN User not found: %s", userID)
+		h.log.Warn("User not found: %s", userID)
 		h.sendError(w, "User not found", http.StatusNotFound, "")
 		return
 	}
@@ -75,7 +75,7 @@ func (h *HTTPHandler) UpdateCurrentUser(w http.ResponseWriter, r *http.Request) 
 	// Extract user from JWT claims
 	userInfo, err := token.GetUserInfo(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user info: %v", err)
+		h.log.Error("Failed to get user info: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -88,14 +88,14 @@ func (h *HTTPHandler) UpdateCurrentUser(w http.ResponseWriter, r *http.Request) 
 	// Decode request body
 	var req domain.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode update request: %v", err)
+		h.log.Error("Failed to decode update request: %v", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
 
 	// Validate request using domain validation
 	if err := req.Validate(); err != nil {
-		h.log.Logf("WARN Update validation failed: %v", err)
+		h.log.Warn("Update validation failed: %v", err)
 
 		// Check if it's a validation error with a field
 		if valErr, ok := err.(*domain.ValidationError); ok {
@@ -110,7 +110,7 @@ func (h *HTTPHandler) UpdateCurrentUser(w http.ResponseWriter, r *http.Request) 
 	// Get current user
 	user, err := h.authService.GetUser(r.Context(), userID)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user %s: %v", userID, err)
+		h.log.Error("Failed to get user %s: %v", userID, err)
 		h.sendError(w, "Failed to retrieve user", http.StatusInternalServerError, "")
 		return
 	}
@@ -140,12 +140,12 @@ func (h *HTTPHandler) UpdateCurrentUser(w http.ResponseWriter, r *http.Request) 
 
 	// Save updated user
 	if err := h.authService.UpdateUser(r.Context(), user); err != nil {
-		h.log.Logf("ERROR Failed to update user %s: %v", userID, err)
+		h.log.Error("Failed to update user %s: %v", userID, err)
 		h.sendError(w, "Failed to update user profile", http.StatusInternalServerError, "")
 		return
 	}
 
-	h.log.Logf("INFO User profile updated: %s", userID)
+	h.log.Info(" User profile updated: %s", userID)
 
 	// Return updated user
 	response := domain.UserResponse{
@@ -176,7 +176,7 @@ func (h *HTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims
 	userInfo, err := token.GetUserInfo(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user info: %v", err)
+		h.log.Error("Failed to get user info: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -189,14 +189,14 @@ func (h *HTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	// Decode request body
 	var req domain.ChangePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode password change request: %v", err)
+		h.log.Error("Failed to decode password change request: %v", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
 
 	// Validate request using domain validation
 	if err := req.Validate(); err != nil {
-		h.log.Logf("WARN Password change validation failed: %v", err)
+		h.log.Warn("Password change validation failed: %v", err)
 
 		// Check if it's a validation error with a field
 		if valErr, ok := err.(*domain.ValidationError); ok {
@@ -210,7 +210,7 @@ func (h *HTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	// Change password
 	if err := h.authService.ChangePassword(r.Context(), userID, req.OldPassword, req.NewPassword); err != nil {
-		h.log.Logf("ERROR Failed to change password for user %s: %v", userID, err)
+		h.log.Error("Failed to change password for user %s: %v", userID, err)
 
 		// Check for specific errors
 		switch err.Error() {
@@ -226,7 +226,7 @@ func (h *HTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.log.Logf("INFO Password changed for user: %s", userID)
+	h.log.Info(" Password changed for user: %s", userID)
 
 	// Return success
 	response := map[string]string{
@@ -250,7 +250,7 @@ func (h *HTTPHandler) GetUserIdentities(w http.ResponseWriter, r *http.Request) 
 	// Extract user from JWT claims
 	userInfo, err := token.GetUserInfo(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user info: %v", err)
+		h.log.Error("Failed to get user info: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -263,7 +263,7 @@ func (h *HTTPHandler) GetUserIdentities(w http.ResponseWriter, r *http.Request) 
 	// Get identities
 	identities, err := h.authService.ListUserIdentities(r.Context(), userID)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get identities for user %s: %v", userID, err)
+		h.log.Error("Failed to get identities for user %s: %v", userID, err)
 		h.sendError(w, "Failed to retrieve identities", http.StatusInternalServerError, "")
 		return
 	}
@@ -298,7 +298,7 @@ func (h *HTTPHandler) UnlinkIdentity(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims
 	_, err := token.GetUserInfo(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user info: %v", err)
+		h.log.Error("Failed to get user info: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -312,7 +312,7 @@ func (h *HTTPHandler) UnlinkIdentity(w http.ResponseWriter, r *http.Request) {
 
 	// Unlink identity
 	if err := h.authService.UnlinkIdentity(r.Context(), identityID); err != nil {
-		h.log.Logf("ERROR Failed to unlink identity %s: %v", identityID, err)
+		h.log.Error("Failed to unlink identity %s: %v", identityID, err)
 
 		if err.Error() == "cannot unlink the last identity: user must have at least one login method" {
 			h.sendError(w, "Cannot remove last authentication method", http.StatusBadRequest, "")
@@ -323,7 +323,7 @@ func (h *HTTPHandler) UnlinkIdentity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.log.Logf("INFO Identity unlinked: %s", identityID)
+	h.log.Info(" Identity unlinked: %s", identityID)
 
 	response := map[string]string{
 		"message": "Identity unlinked successfully",

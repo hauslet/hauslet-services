@@ -49,7 +49,7 @@ func (s *FinanceServiceImpl) GetOrCreateWallet(
 		return nil, fmt.Errorf("failed to create wallet: %w", err)
 	}
 
-	s.log.Logf("INFO [AUDIT] wallet_created wallet_id=%s type=%s owner_type=%s owner_id=%s currency=%s balance=%d status=%s",
+	s.log.Info(" [AUDIT] wallet_created wallet_id=%s type=%s owner_type=%s owner_id=%s currency=%s balance=%d status=%s",
 		wallet.ID, walletType, ownerType, ownerID, currency, wallet.Balance, wallet.Status)
 
 	return wallet, nil
@@ -94,7 +94,7 @@ func (s *FinanceServiceImpl) FreezeWallet(ctx context.Context, walletID uuid.UUI
 		return fmt.Errorf("failed to freeze wallet: %w", err)
 	}
 
-	s.log.Logf("WARN [AUDIT] wallet_frozen wallet_id=%s owner_type=%s owner_id=%s balance=%d currency=%s reason=%q",
+	s.log.Warn("[AUDIT] wallet_frozen wallet_id=%s owner_type=%s owner_id=%s balance=%d currency=%s reason=%q",
 		walletID, wallet.OwnerType, wallet.OwnerID, wallet.Balance, wallet.Currency, reason)
 	return nil
 }
@@ -114,7 +114,7 @@ func (s *FinanceServiceImpl) UnfreezeWallet(ctx context.Context, walletID uuid.U
 		return fmt.Errorf("failed to unfreeze wallet: %w", err)
 	}
 
-	s.log.Logf("INFO [AUDIT] wallet_unfrozen wallet_id=%s owner_type=%s owner_id=%s balance=%d currency=%s",
+	s.log.Info(" [AUDIT] wallet_unfrozen wallet_id=%s owner_type=%s owner_id=%s balance=%d currency=%s",
 		walletID, wallet.OwnerType, wallet.OwnerID, wallet.Balance, wallet.Currency)
 	return nil
 }

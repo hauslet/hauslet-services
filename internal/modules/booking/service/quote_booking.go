@@ -18,7 +18,7 @@ func (s *BookingServiceImpl) QuoteBooking(
 	guestCount int,
 ) (*domain.BookingQuote, error) {
 	if s.log != nil {
-		s.log.Logf("INFO quoting booking listing=%s checkIn=%s checkOut=%s guests=%d",
+		s.log.Info(" quoting booking listing=%s checkIn=%s checkOut=%s guests=%d",
 			listingID, checkIn.Format("2006-01-02"), checkOut.Format("2006-01-02"), guestCount)
 	}
 
@@ -90,7 +90,7 @@ func (s *BookingServiceImpl) QuoteBooking(
 		if err != nil {
 			// Fallback to base price if pricing calculation fails
 			if s.log != nil {
-				s.log.Logf("WARN pricing calculation failed for quote: %v", err)
+				s.log.Warn("pricing calculation failed for quote: %v", err)
 			}
 			baseRate, baseCurrency, baseErr := s.pricing.GetBasePrice(ctx, listingID)
 			if baseErr == nil {
@@ -108,7 +108,7 @@ func (s *BookingServiceImpl) QuoteBooking(
 	quote.Available = true
 
 	if s.log != nil {
-		s.log.Logf("INFO quote generated: listing=%s available=%t instant=%t total=%.2f %s",
+		s.log.Info(" quote generated: listing=%s available=%t instant=%t total=%.2f %s",
 			listingID, quote.Available, quote.InstantBooking, quote.TotalPrice, quote.Currency)
 	}
 

@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 
@@ -14,18 +15,17 @@ import (
 
 	"hauslet/internal/transport/graph/viewer"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
 // Resolver handles profile-specific GraphQL fields.
 type Resolver struct {
 	profileService profileservice.ProfileService
-	log            *lgr.Logger
+	log            *slog.Logger
 	cdnHost        string
 }
 
-func NewResolver(profileService profileservice.ProfileService, cfg *config.StorageConfig, log *lgr.Logger) *Resolver {
+func NewResolver(profileService profileservice.ProfileService, cfg *config.StorageConfig, log *slog.Logger) *Resolver {
 	return &Resolver{profileService: profileService, cdnHost: cfg.R2.CDNHost, log: log}
 }
 
@@ -33,18 +33,18 @@ func NewResolver(profileService profileservice.ProfileService, cfg *config.Stora
 func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain.Profile, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to update profile")
+		r.log.Warn("Unauthenticated attempt to update profile")
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	// Load current profile for the authenticated user
 	profile, err := r.profileService.GetProfileByUserID(ctx, v.UserID)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get profile for user %s: %v", v.UserID, err)
+		r.log.Error("Failed to get profile for user %s: %v", v.UserID, err)
 		return nil, err
 	}
 	if profile == nil {
-		r.log.Logf("WARN Profile not found for user %s", v.UserID)
+		r.log.Warn("Profile not found for user %s", v.UserID)
 		return nil, fmt.Errorf("profile not found")
 	}
 
@@ -53,18 +53,18 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 
 	// If no updates, return current profile
 	if len(updates) == 0 {
-		r.log.Logf("INFO No updates provided for user %s", v.UserID)
+		r.log.Info(" No updates provided for user %s", v.UserID)
 		return sanitizeProfileForViewer(profile, v), nil
 	}
 
 	// Apply updates
 	updated, err := r.profileService.PatchProfile(ctx, profile.ID.String(), updates)
 	if err != nil {
-		r.log.Logf("ERROR Failed to patch profile for user %s: %v", v.UserID, err)
+		r.log.Error("Failed to patch profile for user %s: %v", v.UserID, err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO Profile updated successfully for user %s", v.UserID)
+	r.log.Info(" Profile updated successfully for user %s", v.UserID)
 
 	// Convert photo key back to URL for response
 	if updated.PhotoURL != nil && *updated.PhotoURL != "" {
@@ -79,7 +79,7 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 func (r *Resolver) Profile(ctx context.Context, id uuid.UUID) (*domain.Profile, error) {
 	p, err := r.profileService.GetProfileByID(ctx, id.String())
 	if err != nil {
-		r.log.Logf("ERROR Failed to get profile by ID %s: %v", id, err)
+		r.log.Error("Failed to get profile by ID %s: %v", id, err)
 		return nil, err
 	}
 	if p != nil && p.PhotoURL != nil && *p.PhotoURL != "" {
@@ -99,7 +99,7 @@ func (r *Resolver) ProfileByUserID(ctx context.Context, userID string) (*domain.
 
 	p, err := r.profileService.GetProfileByUserID(ctx, userID)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get profile by user ID %s: %v", userID, err)
+		r.log.Error("Failed to get profile by user ID %s: %v", userID, err)
 		return nil, err
 	}
 	if p != nil && p.PhotoURL != nil && *p.PhotoURL != "" {
@@ -122,7 +122,7 @@ func (r *Resolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*do
 
 	profiles, err := r.profileService.ListProfiles(ctx, l, o)
 	if err != nil {
-		r.log.Logf("ERROR Failed to list profiles: %v", err)
+		r.log.Error("Failed to list profiles: %v", err)
 		return nil, err
 	}
 	return sanitizeProfilesForViewer(profiles, viewer.FromContext(ctx)), nil
@@ -141,7 +141,7 @@ func (r *Resolver) SearchProfiles(ctx context.Context, query string, limit *int,
 
 	profiles, err := r.profileService.SearchProfiles(ctx, query, l, o)
 	if err != nil {
-		r.log.Logf("ERROR Failed to search profiles with query '%s': %v", query, err)
+		r.log.Error("Failed to search profiles with query '%s': %v", query, err)
 		return nil, err
 	}
 	return sanitizeProfilesForViewer(profiles, viewer.FromContext(ctx)), nil
@@ -151,13 +151,13 @@ func (r *Resolver) SearchProfiles(ctx context.Context, query string, limit *int,
 func (r *Resolver) MyProfile(ctx context.Context) (*domain.Profile, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Logf("WARN Unauthenticated attempt to access myProfile")
+		r.log.Warn("Unauthenticated attempt to access myProfile")
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	profile, err := r.profileService.GetProfileByUserID(ctx, v.UserID)
 	if err != nil {
-		r.log.Logf("ERROR Failed to get profile for user %s: %v", v.UserID, err)
+		r.log.Error("Failed to get profile for user %s: %v", v.UserID, err)
 		return nil, err
 	}
 	if profile != nil && profile.PhotoURL != nil && *profile.PhotoURL != "" {
@@ -186,7 +186,7 @@ func (r *Resolver) keyToURL(key string) string {
 func (r *Resolver) UploadProfilePhoto(ctx context.Context, userID string, fileName string) (*domain.UploadResult, error) {
 	uploadResult, err := r.profileService.UploadProfilePhoto(ctx, userID, fileName)
 	if err != nil {
-		r.log.Logf("ERROR Failed to upload profile photo for user %s: %v", userID, err)
+		r.log.Error("Failed to upload profile photo for user %s: %v", userID, err)
 		return nil, err
 	}
 	return uploadResult, nil
@@ -195,7 +195,7 @@ func (r *Resolver) UploadProfilePhoto(ctx context.Context, userID string, fileNa
 func (r *Resolver) UploadTravelCompanionPhoto(ctx context.Context, companionID uuid.UUID, userID string, fileName string) (*domain.UploadResult, error) {
 	uploadResult, err := r.profileService.UploadTravelCompanionPhoto(ctx, companionID, userID, fileName)
 	if err != nil {
-		r.log.Logf("ERROR Failed to upload travel companion photo for user %s: %v", userID, err)
+		r.log.Error("Failed to upload travel companion photo for user %s: %v", userID, err)
 		return nil, err
 	}
 	return uploadResult, nil
@@ -212,7 +212,7 @@ func (r *Resolver) AddTravelCompanion(ctx context.Context, userID string, input 
 	}
 
 	if err := r.profileService.AddTravelCompanion(ctx, userID, companion); err != nil {
-		r.log.Logf("ERROR Failed to add travel companion for user %s: %v", userID, err)
+		r.log.Error("Failed to add travel companion for user %s: %v", userID, err)
 		return false, err
 	}
 	return true, nil
@@ -233,7 +233,7 @@ func (r *Resolver) UpdateTravelCompanion(ctx context.Context, userID string, com
 	}
 
 	if err := r.profileService.UpdateTravelCompanion(ctx, userID, companion); err != nil {
-		r.log.Logf("ERROR Failed to update travel companion %s for user %s: %v", companionID, userID, err)
+		r.log.Error("Failed to update travel companion %s for user %s: %v", companionID, userID, err)
 		return false, err
 	}
 	return true, nil
@@ -241,7 +241,7 @@ func (r *Resolver) UpdateTravelCompanion(ctx context.Context, userID string, com
 
 func (r *Resolver) DeleteTravelCompanion(ctx context.Context, userID string, companionID string) (bool, error) {
 	if err := r.profileService.DeleteTravelCompanion(ctx, userID, companionID); err != nil {
-		r.log.Logf("ERROR Failed to delete travel companion %s for user %s: %v", companionID, userID, err)
+		r.log.Error("Failed to delete travel companion %s for user %s: %v", companionID, userID, err)
 		return false, err
 	}
 	return true, nil
@@ -249,7 +249,7 @@ func (r *Resolver) DeleteTravelCompanion(ctx context.Context, userID string, com
 
 func (r *Resolver) DeleteProfile(ctx context.Context, userID string) (bool, error) {
 	if err := r.profileService.DeleteProfile(ctx, userID); err != nil {
-		r.log.Logf("ERROR Failed to delete profile for user %s: %v", userID, err)
+		r.log.Error("Failed to delete profile for user %s: %v", userID, err)
 		return false, err
 	}
 	return true, nil

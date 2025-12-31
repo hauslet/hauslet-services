@@ -13,7 +13,7 @@ import (
 
 func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID, reason *string) (*domain.Booking, error) {
 	if s.log != nil {
-		s.log.Logf("INFO cancelling booking=%s actor=%s", bookingID, actorID)
+		s.log.Info("cancelling booking", "booking_id", bookingID.String(), "actor_id", actorID.String())
 	}
 
 	booking, ownerID, err := s.getBookingWithOwner(ctx, bookingID, actorID)
@@ -33,7 +33,7 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 	constraints, err := s.listingHooks.GetListingConstraints(ctx, booking.ListingID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to get listing constraints: %v", err)
+			s.log.Warn("failed to get listing constraints", "error", err)
 		}
 		// Continue with cancellation even if we can't get constraints
 	}
@@ -65,15 +65,19 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 		refundBreakdown, err = s.pricing.CalculateRefund(ctx, refundInput)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN failed to calculate refund: %v", err)
+				s.log.Warn("failed to calculate refund", "error", err)
 			}
 		} else {
 			// Convert refund amount to minor units
 			refundAmount = int64(refundBreakdown.NetRefund * float64(currencyMinorUnit))
 
 			if s.log != nil {
-				s.log.Logf("INFO refund calculated: booking=%s, amount=%.2f %s, policy=%s, cancelled_by=%s",
-					bookingID, refundBreakdown.NetRefund, booking.Currency, refundBreakdown.AppliedPolicy, cancelledBy)
+				s.log.Info("refund calculated",
+					"booking_id", bookingID.String(),
+					"amount", refundBreakdown.NetRefund,
+					"currency", booking.Currency,
+					"policy", refundBreakdown.AppliedPolicy,
+					"cancelled_by", cancelledBy)
 			}
 		}
 	}
@@ -105,27 +109,25 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 
 			if err := s.refundQueue.Publish(ctx, s.refundSubject, job); err != nil {
 				if s.log != nil {
-					s.log.Logf("WARN failed to queue refund job for booking=%s: %v", bookingID, err)
+					s.log.Warn("failed to queue refund job", "booking_id", bookingID.String(), "error", err)
 				}
 			} else {
 				refundQueued = true
 				if s.log != nil {
-					s.log.Logf("INFO refund job queued: booking=%s payment=%s amount=%d",
-						bookingID, *booking.LastPaymentID, refundAmount)
+					s.log.Info("refund job queued", "booking_id", bookingID.String(), "payment_id", booking.LastPaymentID.String(), "amount", refundAmount)
 				}
 			}
 		}
 
 		if !refundQueued {
 			if s.log != nil {
-				s.log.Logf("INFO initiating refund: booking=%s, payment=%s, amount=%d",
-					bookingID, *booking.LastPaymentID, refundAmount)
+				s.log.Info("initiating refund", "booking_id", bookingID.String(), "payment_id", booking.LastPaymentID.String(), "amount", refundAmount)
 			}
 
 			refundResult, err := s.payment.RefundPayment(ctx, refundInput)
 			if err != nil {
 				if s.log != nil {
-					s.log.Logf("ERROR failed to process refund: %v", err)
+					s.log.Error("failed to process refund", "error", err)
 				}
 				// Don't fail the cancellation if refund fails - log and continue
 				// The refund can be processed manually or retried later
@@ -137,8 +139,7 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 					refundProcessedAt = &refundResult.ProcessedAt
 				}
 				if s.log != nil {
-					s.log.Logf("INFO refund initiated successfully: booking=%s, refund_id=%s",
-						bookingID, refundResult.RefundID)
+					s.log.Info("refund initiated successfully", "booking_id", bookingID.String(), "refund_id", refundResult.RefundID)
 				}
 			}
 		}
@@ -150,7 +151,7 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 	}
 	if booking.CleaningEventID != nil {
 		if err := s.calendar.CancelEvent(ctx, *booking.CleaningEventID, ownerID); err != nil && s.log != nil {
-			s.log.Logf("WARN failed to cancel cleaning buffer event for booking=%s: %v", booking.ID, err)
+			s.log.Warn("failed to cancel cleaning buffer event for booking", "booking_id", booking.ID, "error", err)
 		}
 	}
 
@@ -185,8 +186,7 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO booking cancelled successfully: booking=%s, refund_amount=%d, cancelled_by=%s",
-			bookingID, refundAmount, cancelledBy)
+		s.log.Info("booking cancelled successfully", "booking_id", bookingID.String(), "refund_amount", refundAmount, "cancelled_by", cancelledBy)
 	}
 
 	return booking, nil

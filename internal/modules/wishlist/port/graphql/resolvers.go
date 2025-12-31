@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	propertydomain "hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/wishlist/domain"
@@ -11,17 +12,16 @@ import (
 	"hauslet/internal/transport/graph/model"
 	"hauslet/internal/transport/graph/viewer"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
 // Resolver handles wishlist-specific GraphQL fields.
 type Resolver struct {
 	wishlistService service.WishlistService
-	log             *lgr.Logger
+	log             *slog.Logger
 }
 
-func NewResolver(wishlistService service.WishlistService, log *lgr.Logger) *Resolver {
+func NewResolver(wishlistService service.WishlistService, log *slog.Logger) *Resolver {
 	return &Resolver{wishlistService: wishlistService, log: log}
 }
 
@@ -34,7 +34,7 @@ func (r *Resolver) Wishlist(ctx context.Context, id uuid.UUID) (*domain.Wishlist
 	viewerID := r.optionalViewerID(ctx)
 	wishlist, err := r.wishlistService.GetWishlist(ctx, id, viewerID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get wishlist id=%s: %v", id, err)
+		r.log.Error("failed to get wishlist id=%s: %v", id, err)
 		return nil, err
 	}
 	return wishlist, nil
@@ -50,7 +50,7 @@ func (r *Resolver) MyWishlists(ctx context.Context, limit *int, offset *int) ([]
 	l, o := r.normalizePagination(limit, offset)
 	wishlists, err := r.wishlistService.ListUserWishlists(ctx, userID, l, o)
 	if err != nil {
-		r.log.Logf("ERROR failed to list wishlists for user=%s: %v", userID, err)
+		r.log.Error("failed to list wishlists for user=%s: %v", userID, err)
 		return nil, err
 	}
 	return wishlists, nil
@@ -63,7 +63,7 @@ func (r *Resolver) WishlistItems(ctx context.Context, wishlistID uuid.UUID, limi
 
 	items, err := r.wishlistService.GetItems(ctx, wishlistID, viewerID, l, o)
 	if err != nil {
-		r.log.Logf("ERROR failed to list items for wishlist=%s: %v", wishlistID, err)
+		r.log.Error("failed to list items for wishlist=%s: %v", wishlistID, err)
 		return nil, err
 	}
 	return items, nil
@@ -78,7 +78,7 @@ func (r *Resolver) IsListingInWishlist(ctx context.Context, wishlistID uuid.UUID
 
 	exists, err := r.wishlistService.IsListed(ctx, wishlistID, listingID)
 	if err != nil {
-		r.log.Logf("ERROR failed to check listing=%s in wishlist=%s: %v", listingID, wishlistID, err)
+		r.log.Error("failed to check listing=%s in wishlist=%s: %v", listingID, wishlistID, err)
 		return false, err
 	}
 	return exists, nil
@@ -102,7 +102,7 @@ func (r *Resolver) CreateWishlist(ctx context.Context, input model.CreateWishlis
 
 	wishlist, err := r.wishlistService.CreateWishlist(ctx, userID, input.Name, input.Description, isPrivate)
 	if err != nil {
-		r.log.Logf("ERROR failed to create wishlist for user=%s: %v", userID, err)
+		r.log.Error("failed to create wishlist for user=%s: %v", userID, err)
 		return nil, err
 	}
 	return wishlist, nil
@@ -117,7 +117,7 @@ func (r *Resolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input model
 
 	wishlist, err := r.wishlistService.UpdateWishlist(ctx, id, userID, input.Name, input.Description, input.IsPrivate)
 	if err != nil {
-		r.log.Logf("ERROR failed to update wishlist id=%s by user=%s: %v", id, userID, err)
+		r.log.Error("failed to update wishlist id=%s by user=%s: %v", id, userID, err)
 		return nil, err
 	}
 	return wishlist, nil
@@ -131,7 +131,7 @@ func (r *Resolver) DeleteWishlist(ctx context.Context, id uuid.UUID) (bool, erro
 	}
 
 	if err := r.wishlistService.DeleteWishlist(ctx, id, userID); err != nil {
-		r.log.Logf("ERROR failed to delete wishlist id=%s by user=%s: %v", id, userID, err)
+		r.log.Error("failed to delete wishlist id=%s by user=%s: %v", id, userID, err)
 		return false, err
 	}
 	return true, nil
@@ -151,7 +151,7 @@ func (r *Resolver) AddWishlistItem(ctx context.Context, wishlistID uuid.UUID, li
 
 	item, err := r.wishlistService.AddItem(ctx, wishlistID, userID, listingID, src)
 	if err != nil {
-		r.log.Logf("ERROR failed to add listing=%s to wishlist=%s by user=%s: %v", listingID, wishlistID, userID, err)
+		r.log.Error("failed to add listing=%s to wishlist=%s by user=%s: %v", listingID, wishlistID, userID, err)
 		return nil, err
 	}
 	return item, nil
@@ -165,7 +165,7 @@ func (r *Resolver) RemoveWishlistItem(ctx context.Context, wishlistID uuid.UUID,
 	}
 
 	if err := r.wishlistService.RemoveItem(ctx, wishlistID, userID, listingID); err != nil {
-		r.log.Logf("ERROR failed to remove listing=%s from wishlist=%s by user=%s: %v", listingID, wishlistID, userID, err)
+		r.log.Error("failed to remove listing=%s from wishlist=%s by user=%s: %v", listingID, wishlistID, userID, err)
 		return false, err
 	}
 	return true, nil
@@ -185,7 +185,7 @@ func (r *Resolver) ImportWishlist(ctx context.Context, sourceWishlistID uuid.UUI
 
 	wishlist, err := r.wishlistService.CloneWishlist(ctx, sourceWishlistID, userID, name)
 	if err != nil {
-		r.log.Logf("ERROR failed to import wishlist source=%s for user=%s: %v", sourceWishlistID, userID, err)
+		r.log.Error("failed to import wishlist source=%s for user=%s: %v", sourceWishlistID, userID, err)
 		return nil, err
 	}
 	return wishlist, nil
@@ -209,7 +209,7 @@ func (r *Resolver) WishlistItemCount(ctx context.Context, obj *domain.Wishlist) 
 
 	count, err := r.wishlistService.CountItems(ctx, obj.ID)
 	if err != nil {
-		r.log.Logf("ERROR failed to count items for wishlist=%s: %v", obj.ID, err)
+		r.log.Error("failed to count items for wishlist=%s: %v", obj.ID, err)
 		return 0, err
 	}
 	return int(count), nil
@@ -223,7 +223,7 @@ func (r *Resolver) WishlistItemListing(ctx context.Context, obj *domain.Wishlist
 	if l := loaders.For(ctx); l != nil && l.Listing != nil {
 		listing, err := l.Listing.LoadWithMedia(ctx, obj.ListingID)
 		if err != nil {
-			r.log.Logf("ERROR failed to load listing=%s for wishlist item=%s: %v", obj.ListingID, obj.ID, err)
+			r.log.Error("failed to load listing=%s for wishlist item=%s: %v", obj.ListingID, obj.ID, err)
 			return nil, err
 		}
 		return listing, nil
@@ -255,7 +255,7 @@ func (r *Resolver) optionalViewerID(ctx context.Context) uuid.UUID {
 	id, err := uuid.Parse(v.UserID)
 	if err != nil {
 		if r.log != nil {
-			r.log.Logf("WARN invalid viewer user ID %q: %v", v.UserID, err)
+			r.log.Warn("invalid viewer user ID %q: %v", v.UserID, err)
 		}
 		return uuid.Nil
 	}
@@ -271,7 +271,7 @@ func (r *Resolver) requireViewerID(ctx context.Context) (uuid.UUID, error) {
 	id, err := uuid.Parse(v.UserID)
 	if err != nil {
 		if r.log != nil {
-			r.log.Logf("ERROR invalid viewer user ID %q: %v", v.UserID, err)
+			r.log.Error("invalid viewer user ID %q: %v", v.UserID, err)
 		}
 		return uuid.Nil, fmt.Errorf("invalid user id")
 	}

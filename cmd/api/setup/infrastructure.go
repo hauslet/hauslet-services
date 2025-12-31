@@ -2,16 +2,15 @@ package setup
 
 import (
 	"context"
+	"log/slog"
 
 	"hauslet/config"
 	"hauslet/internal/platform/database"
 	"hauslet/internal/platform/email"
-	"hauslet/internal/platform/logger"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
 
-	"github.com/go-pkgz/lgr"
 	"gorm.io/gorm"
 )
 
@@ -45,21 +44,13 @@ func (i *Infrastructure) CloseCache() {
 	}
 }
 
-// SetupLogger initializes the logger based on environment.
-func SetupLogger(env string) *lgr.Logger {
-	if env != "development" {
-		return logger.NewProduction()
-	}
-	return logger.New()
-}
-
 // InitInfrastructure establishes DB, storage, email, and cache clients.
-func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *lgr.Logger) (*Infrastructure, error) {
+func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *slog.Logger) (*Infrastructure, error) {
 	db, err := database.NewPostgresWithContext(ctx, &cfg.Storage.DB, cfg.App.Env)
 	if err != nil {
 		return nil, err
 	}
-	log.Logf("INFO ✅ Database connected successfully")
+	log.Info(" ✅ Database connected successfully")
 
 	if err := redis.InitRedis(&cfg.Storage.Redis, ctx); err != nil {
 		database.Close(db)
@@ -75,7 +66,7 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *lgr.
 		redis.CloseRedis()
 		return nil, err
 	}
-	log.Logf("INFO ✅ Redis connected successfully")
+	log.Info(" ✅ Redis connected successfully")
 
 	storageClient, err := storage.NewR2S3Client(cfg.Storage.R2)
 	if err != nil {
@@ -84,10 +75,10 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *lgr.
 		return nil, err
 	}
 	r2Storage := storage.NewR2Storage(storageClient, &cfg.Storage.R2)
-	log.Logf("INFO ✅ Cloudflare R2 storage client initialized")
+	log.Info(" ✅ Cloudflare R2 storage client initialized")
 
 	emailClient := InitializeEmailClient(cfg, log)
-	log.Logf("INFO ✅ Email client initialized")
+	log.Info(" ✅ Email client initialized")
 
 	return &Infrastructure{
 		DB:      db,

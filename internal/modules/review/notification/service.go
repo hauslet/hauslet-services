@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -22,7 +22,7 @@ type NotificationService struct {
 	queueClient  *queue.Client
 	queueSubject string
 	baseURL      string
-	log          *lgr.Logger
+	log          *slog.Logger
 }
 
 // ContactInfo represents user contact details for notifications
@@ -38,7 +38,7 @@ func NewNotificationService(
 	queueClient *queue.Client,
 	queueSubject string,
 	baseURL string,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *NotificationService {
 	return &NotificationService{
 		mailClient:   mailClient,
@@ -169,13 +169,13 @@ func (s *NotificationService) SendReviewInviteToGuest(ctx context.Context, booki
 	preview := fmt.Sprintf("Share your experience at %s", listingTitle)
 
 	data := map[string]any{
-		"Subject":         subject,
-		"Preview":         preview,
-		"Year":            time.Now().Year(),
-		"GuestName":       s.fallbackName(guest.Name),
-		"ListingTitle":    listingTitle,
+		"Subject":          subject,
+		"Preview":          preview,
+		"Year":             time.Now().Year(),
+		"GuestName":        s.fallbackName(guest.Name),
+		"ListingTitle":     listingTitle,
 		"ReviewWindowDays": reviewWindowDays,
-		"ReviewURL":       s.createReviewURL(bookingID),
+		"ReviewURL":        s.createReviewURL(bookingID),
 	}
 
 	s.renderAndSend(ctx, "review_invite_guest.html", guest.Email, subject, data, "send review invite guest email")
@@ -191,13 +191,13 @@ func (s *NotificationService) SendReviewInviteToHost(ctx context.Context, bookin
 	preview := fmt.Sprintf("Review your experience with %s", guestName)
 
 	data := map[string]any{
-		"Subject":         subject,
-		"Preview":         preview,
-		"Year":            time.Now().Year(),
-		"HostName":        s.fallbackName(host.Name),
-		"GuestName":       guestName,
+		"Subject":          subject,
+		"Preview":          preview,
+		"Year":             time.Now().Year(),
+		"HostName":         s.fallbackName(host.Name),
+		"GuestName":        guestName,
 		"ReviewWindowDays": reviewWindowDays,
-		"ReviewURL":       s.createReviewURL(bookingID),
+		"ReviewURL":        s.createReviewURL(bookingID),
 	}
 
 	s.renderAndSend(ctx, "review_invite_host.html", host.Email, subject, data, "send review invite host email")
@@ -319,7 +319,7 @@ func (s *NotificationService) formatModerationReason(reason string) string {
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Logf("[WARN] %s: %v", label, err)
+			s.log.Warn(label, "error", err)
 		}
 	}()
 }
@@ -335,7 +335,7 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("[WARN] failed to publish review email job to %s: %v", s.queueSubject, err)
+			s.log.Warn("failed to publish review email job", "subject", s.queueSubject, "error", err)
 		}
 		return err
 	}
@@ -347,7 +347,7 @@ func (s *NotificationService) renderAndSend(ctx context.Context, templateName, t
 	htmlBody, err := s.mailClient.RenderTemplate(reviewtemplates.FS, templateName, data)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("[ERROR] failed to render %s: %v", templateName, err)
+			s.log.Error("failed to render template", "template", templateName, "error", err)
 		}
 		return
 	}

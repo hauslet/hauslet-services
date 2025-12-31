@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/service"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/go-pkgz/auth/token"
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -17,11 +17,11 @@ import (
 type HTTPHandler struct {
 	propertyService service.PropertyService
 	ctx             context.Context
-	log             *lgr.Logger
+	log             *slog.Logger
 }
 
 // NewHTTPHandler creates a new HTTP handler for property operations
-func NewHTTPHandler(ctx context.Context, propertyService service.PropertyService, log *lgr.Logger) *HTTPHandler {
+func NewHTTPHandler(ctx context.Context, propertyService service.PropertyService, log *slog.Logger) *HTTPHandler {
 	return &HTTPHandler{
 		propertyService: propertyService,
 		ctx:             ctx,

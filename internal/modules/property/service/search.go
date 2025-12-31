@@ -19,7 +19,7 @@ const (
 	maxSearchLimit     = 50
 	searchCacheTTL     = 24 * time.Hour
 
-	searchCacheVersion     = "v1"
+	searchCacheVersion      = "v1"
 	embeddingRequestTimeout = 1500 * time.Millisecond
 	// semanticScoreCutoff drops low-quality matches when >0; distance scores above this value are ignored.
 	semanticScoreCutoff = 0.0
@@ -61,7 +61,7 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter ListingFilter, 
 
 	if s.embedding == nil {
 		if s.log != nil {
-			s.log.Logf("WARN embedding client not configured, falling back to filtered search")
+			s.log.Warn("embedding client not configured, falling back to filtered search")
 		}
 		return s.searchWithFiltersOnly(ctx, repoFilter, limit)
 	}
@@ -69,7 +69,7 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter ListingFilter, 
 	embedding, err := s.getOrCreateQueryEmbedding(ctx, normalized)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN semantic embedding unavailable, falling back to filtered search: %v", err)
+			s.log.Warn("semantic embedding unavailable, falling back to filtered search: %v", err)
 		}
 		return s.searchWithFiltersOnly(ctx, repoFilter, limit)
 	}
@@ -128,7 +128,7 @@ func (s *ServiceImpl) getOrCreateQueryEmbedding(ctx context.Context, normalizedQ
 	if ok, err := s.getCachedValue(ctx, cacheKey, &cached); err == nil && ok {
 		return cached, nil
 	} else if err != nil {
-		s.log.Logf("WARN search embedding cache read failed: %v", err)
+		s.log.Warn("search embedding cache read failed: %v", err)
 	}
 
 	value, err, _ := s.embeddingGroup.Do(cacheKey, func() (any, error) {
@@ -136,7 +136,7 @@ func (s *ServiceImpl) getOrCreateQueryEmbedding(ctx context.Context, normalizedQ
 		if ok, err := s.getCachedValue(ctx, cacheKey, &innerCached); err == nil && ok {
 			return innerCached, nil
 		} else if err != nil && s.log != nil {
-			s.log.Logf("WARN search embedding cache read failed: %v", err)
+			s.log.Warn("search embedding cache read failed: %v", err)
 		}
 
 		embedCtx, cancel := context.WithTimeout(ctx, embeddingRequestTimeout)

@@ -41,7 +41,7 @@ func (s *BookingServiceImpl) ConfirmBooking(ctx context.Context, bookingID uuid.
 	approvedBooking := booking
 	paymentResult, err := s.tryAutoCharge(ctx, booking, ownerID)
 	if err != nil && s.log != nil {
-		s.log.Logf("WARN auto-charge attempt failed for booking=%s: %v", booking.ID, err)
+		s.log.Warn("auto-charge attempt failed for booking=%s: %v", booking.ID, err)
 	}
 
 	if paymentResult != nil && paymentResult.Status == "succeeded" {
@@ -66,7 +66,7 @@ func (s *BookingServiceImpl) getUserContact(ctx context.Context, userID uuid.UUI
 	contact, err := s.profiles.GetUserContact(ctx, userID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to fetch user contact user=%s: %v", userID, err)
+			s.log.Warn("failed to fetch user contact user=%s: %v", userID, err)
 		}
 		return nil
 	}
@@ -174,7 +174,7 @@ func (s *BookingServiceImpl) tryAutoCharge(ctx context.Context, booking *domain.
 		booking.Status = domain.BookingStatusPaymentFailed
 		booking.UpdatedAt = time.Now()
 		if updateErr := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); updateErr != nil && s.log != nil {
-			s.log.Logf("ERROR failed to update booking status after auto-charge failure: %v", updateErr)
+			s.log.Error("failed to update booking status after auto-charge failure: %v", updateErr)
 		}
 		return nil, err
 	}
@@ -220,13 +220,13 @@ func (s *BookingServiceImpl) confirmBookingAfterPayment(ctx context.Context, boo
 		event, err := s.calendar.GetEvent(ctx, booking.CalendarEventID, ownerID)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN failed to get calendar event %s: %v", booking.CalendarEventID, err)
+				s.log.Warn("failed to get calendar event %s: %v", booking.CalendarEventID, err)
 			}
 		} else if event != nil {
 			event.Status = calendardomain.EventStatusConfirmed
 			if _, err := s.calendar.UpdateEvent(ctx, event, ownerID); err != nil {
 				if s.log != nil {
-					s.log.Logf("WARN failed to update calendar event status: %v", err)
+					s.log.Warn("failed to update calendar event status: %v", err)
 				}
 			}
 		}

@@ -5,9 +5,9 @@ import (
 	"hauslet/internal/modules/calendar/domain"
 	"hauslet/internal/modules/calendar/repository"
 	"hauslet/internal/platform/redis"
+	"log/slog"
 	"time"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -97,14 +97,14 @@ type CalendarServiceImpl struct {
 	repo         repository.CalendarRepository
 	cache        redis.RedisClient
 	listingHooks ListingHooks
-	log          *lgr.Logger
+	log          *slog.Logger
 }
 
 func NewCalendarService(
 	repo repository.CalendarRepository,
 	cache redis.RedisClient,
 	listingHooks ListingHooks,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) CalendarService {
 	return &CalendarServiceImpl{
 		repo:         repo,

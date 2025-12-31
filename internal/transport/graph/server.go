@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -27,7 +28,6 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-pkgz/lgr"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -46,7 +46,7 @@ func SetupGraphQL(r chi.Router,
 	fxClient xchange.XChange,
 	redisClient *redis.RedisClient,
 	cfg *config.GlobalConfig,
-	log *lgr.Logger) {
+	log *slog.Logger) {
 
 	srv := handler.New(
 		NewExecutableSchema(Config{
@@ -109,7 +109,7 @@ func SetupGraphQL(r chi.Router,
 				Window:   time.Minute,
 			}, *redisClient)
 			r.Use(rateLimitMiddleware)
-			log.Logf("[INFO] GraphQL rate limiting enabled: 60 req/min")
+			log.Info("GraphQL rate limiting enabled: 60 req/min")
 		}
 
 		// The Query Endpoint
@@ -118,6 +118,6 @@ func SetupGraphQL(r chi.Router,
 
 	if cfg.App.Env != "production" {
 		r.Handle("/playground", playground.Handler("Hauslet GraphQL", "/query"))
-		log.Logf("[INFO] GraphQL Playground available at /playground")
+		log.Info("GraphQL Playground available at /playground")
 	}
 }

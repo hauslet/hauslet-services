@@ -13,12 +13,12 @@ import (
 	"hauslet/internal/platform/redis"
 	paymentJob "hauslet/internal/queue/jobs/payments"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -51,7 +51,7 @@ type WebhookHandler struct {
 	payoutHooks    PayoutHooks
 	queueClient    *platformQueue.Client
 	queueSubject   string
-	log            *lgr.Logger
+	log            *slog.Logger
 }
 
 // NewWebhookHandler creates a new webhook handler
@@ -63,7 +63,7 @@ func NewWebhookHandler(
 	payoutHooks PayoutHooks,
 	queueClient *platformQueue.Client,
 	queueSubject string,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *WebhookHandler {
 	return &WebhookHandler{
 		paymentService: paymentService,
@@ -101,12 +101,12 @@ func (h *WebhookHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient r
 
 // HandlePaystackWebhook processes Paystack webhook events
 func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Request) {
-	h.log.Logf("INFO received Paystack webhook")
+	h.log.Info(" received Paystack webhook")
 
 	// Read request body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		h.log.Logf("ERROR failed to read webhook body: %v", err)
+		h.log.Error("failed to read webhook body: %v", err)
 		http.Error(w, "Failed to read request", http.StatusBadRequest)
 		return
 	}
@@ -115,14 +115,14 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 	// Verify webhook signature
 	signature := r.Header.Get("X-Paystack-Signature")
 	if signature == "" {
-		h.log.Logf("WARN webhook received without signature")
+		h.log.Warn("webhook received without signature")
 		http.Error(w, "Missing signature", http.StatusUnauthorized)
 		return
 	}
 
 	valid, err := h.paymentClient.VerifyWebhookSignature("paystack", signature, body)
 	if err != nil || !valid {
-		h.log.Logf("ERROR webhook signature verification failed: %v", err)
+		h.log.Error("webhook signature verification failed: %v", err)
 		http.Error(w, "Invalid signature", http.StatusUnauthorized)
 		return
 	}
@@ -136,7 +136,7 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &envelope); err != nil {
-		h.log.Logf("ERROR failed to parse webhook envelope: %v", err)
+		h.log.Error("failed to parse webhook envelope: %v", err)
 		http.Error(w, "Invalid webhook data", http.StatusBadRequest)
 		return
 	}
@@ -148,7 +148,7 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 	}
 
 	if eventType == "" || reference == "" {
-		h.log.Logf("ERROR webhook missing event or reference: event=%s ref=%s", eventType, reference)
+		h.log.Error("webhook missing event or reference: event=%s ref=%s", eventType, reference)
 		http.Error(w, "Invalid webhook data", http.StatusBadRequest)
 		return
 	}
@@ -156,11 +156,11 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 	if isPaymentEvent(eventType) {
 		if _, err := h.paymentService.GetPaymentByReference(r.Context(), reference); err != nil {
 			if errors.Is(err, paymentdomain.ErrPaymentNotFound) {
-				h.log.Logf("WARN webhook reference not found: event=%s ref=%s", eventType, reference)
+				h.log.Warn("webhook reference not found: event=%s ref=%s", eventType, reference)
 				http.Error(w, "Unknown reference", http.StatusNotFound)
 				return
 			}
-			h.log.Logf("ERROR webhook reference lookup failed: %v", err)
+			h.log.Error("webhook reference lookup failed: %v", err)
 			http.Error(w, "Failed to validate reference", http.StatusInternalServerError)
 			return
 		}
@@ -179,7 +179,7 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 		defer cancel()
 
 		if err := h.queueClient.Publish(pubCtx, h.queueSubject, job); err != nil {
-			h.log.Logf("WARN failed to publish payment webhook job: %v", err)
+			h.log.Warn("failed to publish payment webhook job: %v", err)
 			if !h.queueClient.AllowFallback() {
 				http.Error(w, "Queue unavailable", http.StatusServiceUnavailable)
 				return
@@ -196,7 +196,7 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 	// Parse webhook event for synchronous fallback
 	event, err := h.paymentClient.ParseWebhookEvent("paystack", body)
 	if err != nil {
-		h.log.Logf("ERROR failed to parse webhook event: %v", err)
+		h.log.Error("failed to parse webhook event: %v", err)
 		http.Error(w, "Invalid webhook data", http.StatusBadRequest)
 		return
 	}
@@ -205,11 +205,11 @@ func (h *WebhookHandler) HandlePaystackWebhook(w http.ResponseWriter, r *http.Re
 		event.Reference = reference
 	}
 
-	h.log.Logf("INFO processing webhook event: type=%s, ref=%s", event.Type, event.Reference)
+	h.log.Info(" processing webhook event: type=%s, ref=%s", event.Type, event.Reference)
 
 	// Handle different event types
 	if err := h.ProcessEvent(r.Context(), event); err != nil {
-		h.log.Logf("ERROR failed to process webhook event: %v", err)
+		h.log.Error("failed to process webhook event: %v", err)
 		http.Error(w, "Failed to process event", http.StatusInternalServerError)
 		return
 	}
@@ -242,7 +242,7 @@ func (h *WebhookHandler) ProcessEvent(ctx context.Context, event *payment.Unifie
 		return h.handleRefundFailed(ctx, event)
 	default:
 		if h.log != nil {
-			h.log.Logf("INFO unhandled webhook event type: %s", event.Type)
+			h.log.Info(" unhandled webhook event type: %s", event.Type)
 		}
 		return nil
 	}
@@ -254,7 +254,7 @@ func isPaymentEvent(eventType string) bool {
 
 // handleChargeSuccess handles successful payment webhook
 func (h *WebhookHandler) handleChargeSuccess(ctx context.Context, event *payment.UnifiedEvent) error {
-	h.log.Logf("INFO handling charge.success for ref=%s", event.Reference)
+	h.log.Info(" handling charge.success for ref=%s", event.Reference)
 
 	// Verify payment status
 	pmt, err := h.paymentService.VerifyPayment(ctx, event.Reference)
@@ -262,11 +262,11 @@ func (h *WebhookHandler) handleChargeSuccess(ctx context.Context, event *payment
 		return fmt.Errorf("failed to verify payment: %w", err)
 	}
 
-	h.log.Logf("INFO payment verified: id=%s, status=%s", pmt.ID, pmt.Status)
+	h.log.Info(" payment verified: id=%s, status=%s", pmt.ID, pmt.Status)
 
 	// Extract and save authorization code from webhook for card tokenization
 	if err := h.extractAndSaveAuthorization(ctx, event.RawData, pmt); err != nil {
-		h.log.Logf("WARN failed to extract authorization code: %v", err)
+		h.log.Warn("failed to extract authorization code: %v", err)
 		// Don't fail the webhook - payment already succeeded
 		// Authorization saving is optional for future one-click payments
 	}
@@ -275,10 +275,10 @@ func (h *WebhookHandler) handleChargeSuccess(ctx context.Context, event *payment
 	if pmt.BookingID != nil {
 		// Finance records transaction FIRST (idempotent)
 		if h.financeHooks != nil {
-			h.log.Logf("INFO recording charge in finance: booking=%s, amount=%d", *pmt.BookingID, pmt.Amount)
+			h.log.Info(" recording charge in finance: booking=%s, amount=%d", *pmt.BookingID, pmt.Amount)
 
 			if err := h.financeHooks.OnPaymentSucceeded(ctx, *pmt.BookingID, pmt.ID, pmt.Amount, string(pmt.Currency)); err != nil {
-				h.log.Logf("ERROR failed to record charge in finance: %v", err)
+				h.log.Error("failed to record charge in finance: %v", err)
 				// Continue - don't fail webhook, but alert admin
 				// Finance ledger can be corrected manually
 			}
@@ -286,10 +286,10 @@ func (h *WebhookHandler) handleChargeSuccess(ctx context.Context, event *payment
 
 		// Then update booking status
 		if h.bookingHooks != nil {
-			h.log.Logf("INFO notifying booking module of payment success: booking=%s", *pmt.BookingID)
+			h.log.Info(" notifying booking module of payment success: booking=%s", *pmt.BookingID)
 
 			if err := h.bookingHooks.OnPaymentSucceeded(ctx, *pmt.BookingID, pmt); err != nil {
-				h.log.Logf("ERROR failed to notify booking of payment success: %v", err)
+				h.log.Error("failed to notify booking of payment success: %v", err)
 				// Don't fail the webhook - payment already succeeded
 				// The booking can be confirmed manually or via retry
 			}
@@ -332,17 +332,17 @@ func (h *WebhookHandler) extractAndSaveAuthorization(ctx context.Context, rawDat
 
 	// Only save if authorization is reusable and we have the code
 	if !auth.Reusable || auth.AuthorizationCode == "" {
-		h.log.Logf("INFO authorization not reusable or empty, skipping save")
+		h.log.Info(" authorization not reusable or empty, skipping save")
 		return nil
 	}
 
-	h.log.Logf("INFO extracting reusable authorization: code=%s, last4=%s, brand=%s, bank=%s, customer=%s",
+	h.log.Info(" extracting reusable authorization: code=%s, last4=%s, brand=%s, bank=%s, customer=%s",
 		auth.AuthorizationCode, auth.Last4, auth.Brand, auth.Bank, customer.CustomerCode)
 
 	// Parse expiry month and year
 	expMonth, expYear, err := parseExpiry(auth.ExpMonth, auth.ExpYear)
 	if err != nil {
-		h.log.Logf("WARN failed to parse expiry dates: %v", err)
+		h.log.Warn("failed to parse expiry dates: %v", err)
 		// Continue without expiry - it's optional metadata
 	}
 
@@ -375,7 +375,7 @@ func (h *WebhookHandler) extractAndSaveAuthorization(ctx context.Context, rawDat
 	if savedPM.Last4Digits != nil && savedPM.Brand != nil {
 		cardDisplay = fmt.Sprintf("%s ending in %s", *savedPM.Brand, *savedPM.Last4Digits)
 	}
-	h.log.Logf("INFO payment method saved successfully: id=%s, user=%s, card=%s",
+	h.log.Info(" payment method saved successfully: id=%s, user=%s, card=%s",
 		savedPM.ID, savedPM.UserID, cardDisplay)
 
 	return nil
@@ -405,25 +405,25 @@ func parseExpiry(monthStr, yearStr string) (*int, *int, error) {
 
 // handleChargeFailed handles failed payment webhook
 func (h *WebhookHandler) handleChargeFailed(ctx context.Context, event *payment.UnifiedEvent) error {
-	h.log.Logf("WARN handling charge.failed for ref=%s", event.Reference)
+	h.log.Warn("handling charge.failed for ref=%s", event.Reference)
 
 	// Get the payment by reference
 	pmt, err := h.paymentService.GetPaymentByReference(ctx, event.Reference)
 	if err != nil {
-		h.log.Logf("ERROR failed to get payment by reference: %v", err)
+		h.log.Error("failed to get payment by reference: %v", err)
 		return fmt.Errorf("failed to get payment: %w", err)
 	}
 
-	h.log.Logf("WARN payment failed: id=%s, ref=%s", pmt.ID, event.Reference)
+	h.log.Warn("payment failed: id=%s, ref=%s", pmt.ID, event.Reference)
 
 	// If payment is for a booking, notify booking module
 	if pmt.BookingID != nil && h.bookingHooks != nil {
-		h.log.Logf("INFO notifying booking module of payment failure: booking=%s", *pmt.BookingID)
+		h.log.Info(" notifying booking module of payment failure: booking=%s", *pmt.BookingID)
 
 		reason := fmt.Sprintf("Payment charge failed (status: %s)", event.Status)
 
 		if err := h.bookingHooks.OnPaymentFailed(ctx, *pmt.BookingID, pmt, reason); err != nil {
-			h.log.Logf("ERROR failed to notify booking of payment failure: %v", err)
+			h.log.Error("failed to notify booking of payment failure: %v", err)
 			// Don't fail the webhook - just log the error
 		}
 	}
@@ -433,7 +433,7 @@ func (h *WebhookHandler) handleChargeFailed(ctx context.Context, event *payment.
 
 // handleTransferSuccess handles successful payout webhook
 func (h *WebhookHandler) handleTransferSuccess(ctx context.Context, event *payment.UnifiedEvent) error {
-	h.log.Logf("INFO handling transfer.success for ref=%s", event.Reference)
+	h.log.Info(" handling transfer.success for ref=%s", event.Reference)
 
 	// The reference in the event is the disbursement ID (set when initiating transfer)
 	// Notify the payout service to update disbursement status
@@ -443,18 +443,18 @@ func (h *WebhookHandler) handleTransferSuccess(ctx context.Context, event *payme
 			transferCode = event.ProviderTxID
 		}
 
-		h.log.Logf("INFO notifying payout service of transfer success: ref=%s", transferCode)
+		h.log.Info(" notifying payout service of transfer success: ref=%s", transferCode)
 
 		if err := h.payoutHooks.OnTransferSuccess(ctx, transferCode); err != nil {
-			h.log.Logf("ERROR failed to update disbursement status: %v", err)
+			h.log.Error("failed to update disbursement status: %v", err)
 			// Don't fail webhook - transfer already succeeded
 			// Can be updated manually or via reconciliation
 			return nil
 		}
 
-		h.log.Logf("INFO disbursement marked as completed: ref=%s", transferCode)
+		h.log.Info(" disbursement marked as completed: ref=%s", transferCode)
 	} else {
-		h.log.Logf("WARN payout hooks not configured, transfer success not processed")
+		h.log.Warn("payout hooks not configured, transfer success not processed")
 	}
 
 	return nil
@@ -462,7 +462,7 @@ func (h *WebhookHandler) handleTransferSuccess(ctx context.Context, event *payme
 
 // handleTransferFailed handles failed payout webhook
 func (h *WebhookHandler) handleTransferFailed(ctx context.Context, event *payment.UnifiedEvent) error {
-	h.log.Logf("WARN handling transfer.failed for ref=%s", event.Reference)
+	h.log.Warn("handling transfer.failed for ref=%s", event.Reference)
 
 	// Notify the payout service to mark disbursement as failed and schedule retry
 	if h.payoutHooks != nil {
@@ -477,17 +477,17 @@ func (h *WebhookHandler) handleTransferFailed(ctx context.Context, event *paymen
 			reason = fmt.Sprintf("Transfer failed: %s", event.Status)
 		}
 
-		h.log.Logf("WARN notifying payout service of transfer failure: ref=%s, reason=%s", transferCode, reason)
+		h.log.Warn("notifying payout service of transfer failure: ref=%s, reason=%s", transferCode, reason)
 
 		if err := h.payoutHooks.OnTransferFailed(ctx, transferCode, reason); err != nil {
-			h.log.Logf("ERROR failed to update disbursement failure status: %v", err)
+			h.log.Error("failed to update disbursement failure status: %v", err)
 			// Don't fail webhook - we still want to acknowledge receipt
 			return nil
 		}
 
-		h.log.Logf("INFO disbursement marked as failed with retry scheduled: ref=%s", transferCode)
+		h.log.Info(" disbursement marked as failed with retry scheduled: ref=%s", transferCode)
 	} else {
-		h.log.Logf("WARN payout hooks not configured, transfer failure not processed")
+		h.log.Warn("payout hooks not configured, transfer failure not processed")
 	}
 
 	return nil
@@ -495,7 +495,7 @@ func (h *WebhookHandler) handleTransferFailed(ctx context.Context, event *paymen
 
 // handleRefundProcessed handles successful refund webhook
 func (h *WebhookHandler) handleRefundProcessed(ctx context.Context, event *payment.UnifiedEvent) error {
-	h.log.Logf("INFO handling refund.processed for ref=%s", event.Reference)
+	h.log.Info(" handling refund.processed for ref=%s", event.Reference)
 
 	// Get the payment by reference
 	pmt, err := h.paymentService.GetPaymentByReference(ctx, event.Reference)
@@ -510,17 +510,17 @@ func (h *WebhookHandler) handleRefundProcessed(ctx context.Context, event *payme
 		return fmt.Errorf("failed to verify payment after refund: %w", err)
 	}
 
-	h.log.Logf("INFO refund processed: payment_id=%s, refunded_amount=%d, status=%s",
+	h.log.Info(" refund processed: payment_id=%s, refunded_amount=%d, status=%s",
 		pmt.ID, verifiedPmt.RefundedAmount, verifiedPmt.Status)
 
 	// If refund is for a booking, record in finance ledger FIRST, then notify booking
 	if verifiedPmt.BookingID != nil {
 		// Finance records refund FIRST (idempotent)
 		if h.financeHooks != nil {
-			h.log.Logf("INFO recording refund in finance: booking=%s, amount=%d", *verifiedPmt.BookingID, verifiedPmt.RefundedAmount)
+			h.log.Info(" recording refund in finance: booking=%s, amount=%d", *verifiedPmt.BookingID, verifiedPmt.RefundedAmount)
 
 			if err := h.financeHooks.OnRefundProcessed(ctx, *verifiedPmt.BookingID, verifiedPmt.ID, verifiedPmt.RefundedAmount, string(verifiedPmt.Currency)); err != nil {
-				h.log.Logf("ERROR failed to record refund in finance: %v", err)
+				h.log.Error("failed to record refund in finance: %v", err)
 				// Continue - don't fail webhook, but alert admin
 				// Finance ledger can be corrected manually
 			}
@@ -528,10 +528,10 @@ func (h *WebhookHandler) handleRefundProcessed(ctx context.Context, event *payme
 
 		// Then update booking status
 		if h.bookingHooks != nil {
-			h.log.Logf("INFO notifying booking module of refund: booking=%s", *verifiedPmt.BookingID)
+			h.log.Info(" notifying booking module of refund: booking=%s", *verifiedPmt.BookingID)
 
 			if err := h.bookingHooks.OnPaymentRefunded(ctx, *verifiedPmt.BookingID, verifiedPmt); err != nil {
-				h.log.Logf("ERROR failed to notify booking of refund: %v", err)
+				h.log.Error("failed to notify booking of refund: %v", err)
 				// Don't fail the webhook - just log the error
 			}
 		}
@@ -542,7 +542,7 @@ func (h *WebhookHandler) handleRefundProcessed(ctx context.Context, event *payme
 
 // handleRefundFailed handles failed refund webhook
 func (h *WebhookHandler) handleRefundFailed(ctx context.Context, event *payment.UnifiedEvent) error {
-	h.log.Logf("WARN handling refund.failed for ref=%s", event.Reference)
+	h.log.Warn("handling refund.failed for ref=%s", event.Reference)
 
 	// Get the payment by reference
 	pmt, err := h.paymentService.GetPaymentByReference(ctx, event.Reference)
@@ -551,7 +551,7 @@ func (h *WebhookHandler) handleRefundFailed(ctx context.Context, event *payment.
 	}
 
 	// Log the failure with payment details
-	h.log.Logf("WARN refund failed: payment_id=%s, ref=%s, provider_tx=%s",
+	h.log.Warn("refund failed: payment_id=%s, ref=%s, provider_tx=%s",
 		pmt.ID, event.Reference, event.ProviderTxID)
 
 	// TODO: Create a failed transaction record and notify business/admin

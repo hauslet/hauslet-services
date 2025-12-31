@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -11,8 +12,6 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // NotificationService handles booking-module notifications.
@@ -21,7 +20,7 @@ type NotificationService struct {
 	queueClient  *queue.Client
 	queueSubject string
 	baseURL      string
-	log          *lgr.Logger
+	log          *slog.Logger
 }
 
 // NewNotificationService wires the dependencies needed for booking notifications.
@@ -30,7 +29,7 @@ func NewNotificationService(
 	queueClient *queue.Client,
 	queueSubject string,
 	baseURL string,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *NotificationService {
 	return &NotificationService{
 		mailClient:   mailClient,
@@ -236,7 +235,7 @@ func (s *NotificationService) SendHostBookingCancelled(ctx context.Context, book
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Logf("[WARN] %s: %v", label, err)
+			s.log.Warn("send email async error", "label", label, "error", err)
 		}
 	}()
 }
@@ -252,7 +251,7 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("[WARN] failed to publish booking email job to %s: %v", s.queueSubject, err)
+			s.log.Warn("failed to publish booking email job", "queue_subject", s.queueSubject, "error", err)
 		}
 		return err
 	}
@@ -264,7 +263,7 @@ func (s *NotificationService) renderAndSend(ctx context.Context, templateName, t
 	htmlBody, err := s.mailClient.RenderTemplate(bookingtemplates.FS, templateName, data)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("[ERROR] failed to render %s: %v", templateName, err)
+			s.log.Error("failed to render template", "template", templateName, "error", err)
 		}
 		return
 	}

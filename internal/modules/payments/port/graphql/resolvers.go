@@ -7,19 +7,19 @@ import (
 	"hauslet/internal/modules/payments/service"
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/transport/graph/viewer"
+	"log/slog"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
 // Resolver handles GraphQL queries and mutations for payments
 type Resolver struct {
 	paymentService service.PaymentService
-	log            *lgr.Logger
+	log            *slog.Logger
 }
 
 // NewResolver creates a new GraphQL resolver
-func NewResolver(paymentService service.PaymentService, log *lgr.Logger) *Resolver {
+func NewResolver(paymentService service.PaymentService, log *slog.Logger) *Resolver {
 	return &Resolver{
 		paymentService: paymentService,
 		log:            log,
@@ -34,19 +34,19 @@ func NewResolver(paymentService service.PaymentService, log *lgr.Logger) *Resolv
 func (r *Resolver) Payment(ctx context.Context, id string) (*domain.Payment, error) {
 	paymentID, err := uuid.Parse(id)
 	if err != nil {
-		r.log.Logf("ERROR invalid payment ID %s: %v", id, err)
+		r.log.Error("invalid payment ID", "id", id, "error", err)
 		return nil, fmt.Errorf("invalid payment ID")
 	}
 
 	payment, err := r.paymentService.GetPayment(ctx, paymentID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get payment %s: %v", id, err)
+		r.log.Error("failed to get payment", "id", id, "error", err)
 		return nil, err
 	}
 
 	// Authorization: User must own the payment or be an admin
 	if err := requireOwnershipOrAdmin(ctx, payment.PayerID); err != nil {
-		r.log.Logf("WARN unauthorized access to payment %s", id)
+		r.log.Warn("unauthorized access to payment", "id", id)
 		return nil, err
 	}
 
@@ -57,13 +57,13 @@ func (r *Resolver) Payment(ctx context.Context, id string) (*domain.Payment, err
 func (r *Resolver) PaymentByReference(ctx context.Context, reference string) (*domain.Payment, error) {
 	payment, err := r.paymentService.GetPaymentByReference(ctx, reference)
 	if err != nil {
-		r.log.Logf("ERROR failed to get payment by reference %s: %v", reference, err)
+		r.log.Error("failed to get payment by reference", "reference", reference, "error", err)
 		return nil, err
 	}
 
 	// Authorization: User must own the payment or be an admin
 	if err := requireOwnershipOrAdmin(ctx, payment.PayerID); err != nil {
-		r.log.Logf("WARN unauthorized access to payment ref %s", reference)
+		r.log.Warn("unauthorized access to payment ref", "reference", reference)
 		return nil, err
 	}
 
@@ -90,7 +90,7 @@ func (r *Resolver) MyPayments(ctx context.Context, limit *int, offset *int) ([]d
 
 	payments, err := r.paymentService.ListPaymentsByPayer(ctx, userID, l, o)
 	if err != nil {
-		r.log.Logf("ERROR failed to list payments for user %s: %v", userID, err)
+		r.log.Error("failed to list payments for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 
@@ -106,7 +106,7 @@ func (r *Resolver) MyPaymentMethods(ctx context.Context) ([]domain.PaymentMethod
 
 	methods, err := r.paymentService.ListPaymentMethods(ctx, userID)
 	if err != nil {
-		r.log.Logf("ERROR failed to list payment methods for user %s: %v", userID, err)
+		r.log.Error("failed to list payment methods for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 
@@ -122,7 +122,7 @@ func (r *Resolver) MyPayoutDetails(ctx context.Context) ([]domain.PayoutDetail, 
 
 	details, err := r.paymentService.ListPayoutDetails(ctx, &userID, nil)
 	if err != nil {
-		r.log.Logf("ERROR failed to list payout details for user %s: %v", userID, err)
+		r.log.Error("failed to list payout details for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 
@@ -133,13 +133,13 @@ func (r *Resolver) MyPayoutDetails(ctx context.Context) ([]domain.PayoutDetail, 
 func (r *Resolver) Transaction(ctx context.Context, id string) (*domain.Transaction, error) {
 	txID, err := uuid.Parse(id)
 	if err != nil {
-		r.log.Logf("ERROR invalid transaction ID %s: %v", id, err)
+		r.log.Error("invalid transaction ID", "id", id, "error", err)
 		return nil, fmt.Errorf("invalid transaction ID")
 	}
 
 	tx, err := r.paymentService.GetTransaction(ctx, txID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get transaction %s: %v", id, err)
+		r.log.Error("failed to get transaction", "id", id, "error", err)
 		return nil, err
 	}
 
@@ -148,7 +148,7 @@ func (r *Resolver) Transaction(ctx context.Context, id string) (*domain.Transact
 		payment, err := r.paymentService.GetPayment(ctx, *tx.PaymentID)
 		if err == nil {
 			if err := requireOwnershipOrAdmin(ctx, payment.PayerID); err != nil {
-				r.log.Logf("WARN unauthorized access to transaction %s", id)
+				r.log.Warn("unauthorized access to transaction", "id", id)
 				return nil, err
 			}
 		}
@@ -156,7 +156,7 @@ func (r *Resolver) Transaction(ctx context.Context, id string) (*domain.Transact
 		// For payout transactions without payment, require admin
 		v := viewer.FromContext(ctx)
 		if v == nil || !isAdminRole(v.Role) {
-			r.log.Logf("WARN unauthorized access to payout transaction %s", id)
+			r.log.Warn("unauthorized access to payout transaction", "id", id)
 			return nil, ErrAdminRequired
 		}
 	}
@@ -173,7 +173,7 @@ func (r *Resolver) Transaction(ctx context.Context, id string) (*domain.Transact
 func (r *Resolver) CreatePayment(ctx context.Context, input *CreatePaymentInput) (*domain.Payment, error) {
 	// Authorization: Admin or Root only
 	if err := requireAdmin(ctx); err != nil {
-		r.log.Logf("WARN unauthorized CreatePayment attempt")
+		r.log.Warn("unauthorized CreatePayment attempt")
 		return nil, err
 	}
 
@@ -224,7 +224,7 @@ func (r *Resolver) CreatePayment(ctx context.Context, input *CreatePaymentInput)
 
 	payment, err := r.paymentService.CreatePayment(ctx, domainInput)
 	if err != nil {
-		r.log.Logf("ERROR failed to create payment: %v", err)
+		r.log.Error("failed to create payment", "error", err)
 		return nil, err
 	}
 
@@ -236,13 +236,13 @@ func (r *Resolver) CreatePayment(ctx context.Context, input *CreatePaymentInput)
 func (r *Resolver) VerifyPayment(ctx context.Context, reference string) (*domain.Payment, error) {
 	// Authorization: Admin or Root only
 	if err := requireAdmin(ctx); err != nil {
-		r.log.Logf("WARN unauthorized VerifyPayment attempt for ref %s", reference)
+		r.log.Warn("unauthorized VerifyPayment attempt", "reference", reference)
 		return nil, err
 	}
 
 	payment, err := r.paymentService.VerifyPayment(ctx, reference)
 	if err != nil {
-		r.log.Logf("ERROR failed to verify payment %s: %v", reference, err)
+		r.log.Error("failed to verify payment", "reference", reference, "error", err)
 		return nil, err
 	}
 
@@ -254,7 +254,7 @@ func (r *Resolver) VerifyPayment(ctx context.Context, reference string) (*domain
 func (r *Resolver) RefundPayment(ctx context.Context, input *RefundPaymentInput) (*domain.Payment, error) {
 	// Authorization: Support, Admin, or Root only
 	if err := requireSupport(ctx); err != nil {
-		r.log.Logf("WARN unauthorized RefundPayment attempt")
+		r.log.Warn("unauthorized RefundPayment attempt")
 		return nil, err
 	}
 
@@ -280,7 +280,7 @@ func (r *Resolver) RefundPayment(ctx context.Context, input *RefundPaymentInput)
 
 	payment, err := r.paymentService.RefundPayment(ctx, domainInput)
 	if err != nil {
-		r.log.Logf("ERROR failed to refund payment: %v", err)
+		r.log.Error("failed to refund payment", "error", err)
 		return nil, err
 	}
 
@@ -308,7 +308,7 @@ func (r *Resolver) SavePaymentMethod(ctx context.Context, input *SavePaymentMeth
 
 	method, err := r.paymentService.SavePaymentMethod(ctx, domainInput)
 	if err != nil {
-		r.log.Logf("ERROR failed to save payment method: %v", err)
+		r.log.Error("failed to save payment method", "error", err)
 		return nil, err
 	}
 
@@ -328,7 +328,7 @@ func (r *Resolver) RemovePaymentMethod(ctx context.Context, methodID string) (bo
 	}
 
 	if err := r.paymentService.RemovePaymentMethod(ctx, id, userID); err != nil {
-		r.log.Logf("ERROR failed to remove payment method: %v", err)
+		r.log.Error("failed to remove payment method", "error", err)
 		return false, err
 	}
 
@@ -362,7 +362,7 @@ func (r *Resolver) AddPayoutDetail(ctx context.Context, input *AddPayoutDetailIn
 
 	detail, err := r.paymentService.AddPayoutDetail(ctx, domainInput)
 	if err != nil {
-		r.log.Logf("ERROR failed to add payout detail: %v", err)
+		r.log.Error("failed to add payout detail", "error", err)
 		return nil, err
 	}
 
@@ -373,7 +373,7 @@ func (r *Resolver) AddPayoutDetail(ctx context.Context, input *AddPayoutDetailIn
 func (r *Resolver) VerifyBankAccount(ctx context.Context, market domain.Market, bankCode string, accountNumber string) (string, error) {
 	accountName, err := r.paymentService.VerifyBankAccount(ctx, market, bankCode, accountNumber)
 	if err != nil {
-		r.log.Logf("ERROR failed to verify bank account: %v", err)
+		r.log.Error("failed to verify bank account", "error", err)
 		return "", err
 	}
 
@@ -393,14 +393,14 @@ func (r *Resolver) SetDefaultPaymentMethod(ctx context.Context, methodID string)
 	}
 
 	if err := r.paymentService.SetDefaultPaymentMethod(ctx, id, userID); err != nil {
-		r.log.Logf("ERROR failed to set default payment method: %v", err)
+		r.log.Error("failed to set default payment method", "error", err)
 		return nil, err
 	}
 
 	// Fetch and return the updated payment method
 	method, err := r.paymentService.GetPaymentMethod(ctx, id, userID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get payment method after update: %v", err)
+		r.log.Error("failed to get payment method after update", "error", err)
 		return nil, err
 	}
 
@@ -421,7 +421,7 @@ func (r *Resolver) GetPaymentMethod(ctx context.Context, id string) (*domain.Pay
 
 	method, err := r.paymentService.GetPaymentMethod(ctx, methodID, userID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get payment method: %v", err)
+		r.log.Error("failed to get payment method", "error", err)
 		return nil, err
 	}
 
@@ -443,7 +443,7 @@ func (r *Resolver) DeactivatePayoutDetail(ctx context.Context, detailID string) 
 	// First get the detail to verify ownership
 	detail, err := r.paymentService.GetPayoutDetail(ctx, id)
 	if err != nil {
-		r.log.Logf("ERROR failed to get payout detail: %v", err)
+		r.log.Error("failed to get payout detail", "error", err)
 		return nil, err
 	}
 
@@ -454,7 +454,7 @@ func (r *Resolver) DeactivatePayoutDetail(ctx context.Context, detailID string) 
 
 	// Remove the payout detail
 	if err := r.paymentService.RemovePayoutDetail(ctx, id); err != nil {
-		r.log.Logf("ERROR failed to remove payout detail: %v", err)
+		r.log.Error("failed to remove payout detail", "error", err)
 		return nil, err
 	}
 
@@ -472,7 +472,7 @@ func (r *Resolver) GetPayoutDetail(ctx context.Context, id string) (*domain.Payo
 
 	detail, err := r.paymentService.GetPayoutDetail(ctx, detailID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get payout detail: %v", err)
+		r.log.Error("failed to get payout detail", "error", err)
 		return nil, err
 	}
 
@@ -529,7 +529,7 @@ func (r *Resolver) ListPayments(ctx context.Context, bookingID, businessID, paye
 
 		payments, err := r.paymentService.ListPaymentsByPayer(ctx, pID, l, o)
 		if err != nil {
-			r.log.Logf("ERROR failed to list payments: %v", err)
+			r.log.Error("failed to list payments", "error", err)
 			return nil, err
 		}
 
@@ -555,7 +555,7 @@ func (r *Resolver) ListPayments(ctx context.Context, bookingID, businessID, paye
 
 		payments, err := r.paymentService.ListPaymentsByBooking(ctx, bID)
 		if err != nil {
-			r.log.Logf("ERROR failed to list payments: %v", err)
+			r.log.Error("failed to list payments", "error", err)
 			return nil, err
 		}
 
@@ -593,7 +593,7 @@ func (r *Resolver) ListTransactions(ctx context.Context, paymentID *string, txTy
 
 		transactions, err := r.paymentService.ListTransactionsByPayment(ctx, pID)
 		if err != nil {
-			r.log.Logf("ERROR failed to list transactions: %v", err)
+			r.log.Error("failed to list transactions", "error", err)
 			return nil, err
 		}
 
@@ -661,7 +661,7 @@ func (r *Resolver) CreatePayout(ctx context.Context, input *CreatePayoutInput) (
 
 	transaction, err := r.paymentService.ProcessPayout(ctx, domainInput)
 	if err != nil {
-		r.log.Logf("ERROR failed to create payout: %v", err)
+		r.log.Error("failed to create payout", "error", err)
 		return nil, err
 	}
 

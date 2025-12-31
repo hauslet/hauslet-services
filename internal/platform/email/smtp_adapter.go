@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/go-pkgz/email"
-	"github.com/go-pkgz/lgr"
 )
 
 type SMTPAdapter struct {
@@ -13,12 +12,11 @@ type SMTPAdapter struct {
 }
 
 // NewSMTPAdapter creates a sender that uses standard SMTP
-func NewSMTPAdapter(host string, log *lgr.Logger, port int, user, pass, from string) *SMTPAdapter {
+func NewSMTPAdapter(host string, port int, user, pass, from string) *SMTPAdapter {
 	opts := []email.Option{
 		email.Auth(user, pass),
 		email.Port(port),
 		email.ContentType("text/html"),
-		email.Log(log),
 	}
 
 	// Use STARTTLS on submission ports (e.g., 587); fall back to implicit TLS on 465.

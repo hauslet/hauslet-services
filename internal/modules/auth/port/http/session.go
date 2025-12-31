@@ -21,7 +21,7 @@ func (h *HTTPHandler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims
 	userInfo, err := token.GetUserInfo(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user info: %v", err)
+		h.log.Error("Failed to get user info: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -34,7 +34,7 @@ func (h *HTTPHandler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
 	// Get sessions
 	sessions, err := h.authService.GetUserSessions(r.Context(), userID)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get sessions for user %s: %v", userID, err)
+		h.log.Error("Failed to get sessions for user %s: %v", userID, err)
 		h.sendError(w, "Failed to retrieve sessions", http.StatusInternalServerError, "")
 		return
 	}
@@ -71,7 +71,7 @@ func (h *HTTPHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims
 	_, err := token.GetUserInfo(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user info: %v", err)
+		h.log.Error("Failed to get user info: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -85,12 +85,12 @@ func (h *HTTPHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
 
 	// Revoke session
 	if err := h.authService.RevokeSession(r.Context(), sessionID); err != nil {
-		h.log.Logf("ERROR Failed to revoke session %s: %v", sessionID, err)
+		h.log.Error("Failed to revoke session %s: %v", sessionID, err)
 		h.sendError(w, "Failed to revoke session", http.StatusInternalServerError, "")
 		return
 	}
 
-	h.log.Logf("INFO Session revoked: %s", sessionID)
+	h.log.Info(" Session revoked: %s", sessionID)
 
 	response := map[string]string{
 		"message": "Session revoked successfully",
@@ -113,7 +113,7 @@ func (h *HTTPHandler) RevokeAllSessions(w http.ResponseWriter, r *http.Request) 
 	// Extract user from JWT claims
 	userInfo, err := token.GetUserInfo(r)
 	if err != nil {
-		h.log.Logf("ERROR Failed to get user info: %v", err)
+		h.log.Error("Failed to get user info: %v", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -125,12 +125,12 @@ func (h *HTTPHandler) RevokeAllSessions(w http.ResponseWriter, r *http.Request) 
 
 	// Revoke all sessions
 	if err := h.authService.RevokeAllUserSessions(r.Context(), userID); err != nil {
-		h.log.Logf("ERROR Failed to revoke all sessions for user %s: %v", userID, err)
+		h.log.Error("Failed to revoke all sessions for user %s: %v", userID, err)
 		h.sendError(w, "Failed to revoke sessions", http.StatusInternalServerError, "")
 		return
 	}
 
-	h.log.Logf("INFO All sessions revoked for user: %s", userID)
+	h.log.Info(" All sessions revoked for user: %s", userID)
 
 	response := map[string]string{
 		"message": "All sessions revoked successfully",

@@ -5,21 +5,20 @@ import (
 	"encoding/json"
 	financeService "hauslet/internal/modules/finance/service"
 	financeJobs "hauslet/internal/queue/jobs/finance"
-
-	"github.com/go-pkgz/lgr"
+	"log/slog"
 )
 
 // ReconciliationHandler handles daily financial reconciliation
 type ReconciliationHandler struct {
 	financeSvc financeService.FinanceService
-	log        *lgr.Logger
+	log        *slog.Logger
 	subject    string
 }
 
 // NewReconciliationHandler creates a new handler for financial reconciliation
 func NewReconciliationHandler(
 	financeSvc financeService.FinanceService,
-	log *lgr.Logger,
+	log *slog.Logger,
 	subject string,
 ) *ReconciliationHandler {
 	return &ReconciliationHandler{
@@ -43,29 +42,27 @@ func (h *ReconciliationHandler) Subject() string {
 func (h *ReconciliationHandler) Handle(ctx context.Context, data []byte) error {
 	var job financeJobs.ReconciliationJob
 	if err := json.Unmarshal(data, &job); err != nil {
-		h.log.Logf("ERROR failed to unmarshal ReconciliationJob: %v", err)
+		h.log.Error("failed to unmarshal ReconciliationJob", "error", err)
 		return err
 	}
 
 	reconciliationTime := job.GetReconciliationTime()
 	if h.log != nil {
-		h.log.Logf("INFO starting daily financial reconciliation at %s", reconciliationTime)
+		h.log.Info("starting daily financial reconciliation", "time", reconciliationTime)
 	}
 
 	// Run full reconciliation
 	report, err := h.financeSvc.RunReconciliation(ctx)
 	if err != nil {
-		h.log.Logf("ERROR reconciliation job failed: %v", err)
+		h.log.Error("reconciliation job failed", "error", err)
 		return err
 	}
 
 	if h.log != nil {
-		h.log.Logf("INFO reconciliation completed: report_id=%s discrepancies=%d",
-			report.ID, report.DiscrepanciesFound)
+		h.log.Info("reconciliation completed", "report_id", report.ID, "discrepancies", report.DiscrepanciesFound)
 
 		if report.DiscrepanciesFound > 0 {
-			h.log.Logf("WARN reconciliation found %d discrepancies - admin review required",
-				report.DiscrepanciesFound)
+			h.log.Warn("reconciliation found discrepancies - admin review required", "count", report.DiscrepanciesFound)
 		}
 	}
 

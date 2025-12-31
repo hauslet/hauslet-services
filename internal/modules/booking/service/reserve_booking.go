@@ -24,7 +24,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 	specialRequests *string,
 ) (*domain.Booking, *PaymentResult, error) {
 	if s.log != nil {
-		s.log.Logf("INFO reserving instant booking listing=%s guest=%s", listingID, guestID)
+		s.log.Info(" reserving instant booking listing=%s guest=%s", listingID, guestID)
 	}
 
 	// Get guest info
@@ -74,7 +74,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 	if hoursUntilCheckIn < 6 {
 		// For very close bookings, instant is required but we're already in instant flow
 		if s.log != nil {
-			s.log.Logf("INFO booking very close to check-in (%.1fh), instant required", hoursUntilCheckIn)
+			s.log.Info(" booking very close to check-in (%.1fh), instant required", hoursUntilCheckIn)
 		}
 	}
 
@@ -105,7 +105,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 		priceBreakdown, err := s.pricing.CalculatePrice(ctx, listingID, checkIn, checkOut, guestCount)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN pricing calculation failed: %v", err)
+				s.log.Warn("pricing calculation failed: %v", err)
 			}
 			baseRate, baseCurrency, baseErr := s.pricing.GetBasePrice(ctx, listingID)
 			if baseErr == nil {
@@ -140,7 +140,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 	if err != nil {
 		if errors.Is(err, calendardomain.ErrUnauthorized) {
 			if s.log != nil {
-				s.log.Logf("WARN calendar disabled for listing=%s; cannot reserve booking", listingID)
+				s.log.Warn("calendar disabled for listing=%s; cannot reserve booking", listingID)
 			}
 			return nil, nil, fmt.Errorf("calendar disabled for listing; enable calendar to allow bookings")
 		}
@@ -153,7 +153,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 		cleaningEvent, err := s.createCleaningBufferEvent(ctx, listingID, bookingID, checkOut, bufferDuration)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR failed to create cleaning buffer event: %v", err)
+				s.log.Error("failed to create cleaning buffer event: %v", err)
 			}
 			_ = s.calendar.DeleteEvent(ctx, createdEvent.ID, ownerID)
 			return nil, nil, fmt.Errorf("failed to create cleaning buffer event: %w", err)
@@ -196,7 +196,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 	// Persist booking
 	if err := s.repo.CreateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to persist booking: %v", err)
+			s.log.Error("failed to persist booking: %v", err)
 		}
 		_ = s.calendar.DeleteEvent(ctx, createdEvent.ID, ownerID)
 		if cleaningEventID != nil {
@@ -228,7 +228,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 		booking.Status = domain.BookingStatusPaymentFailed
 		booking.UpdatedAt = time.Now()
 		if updateErr := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); updateErr != nil && s.log != nil {
-			s.log.Logf("ERROR failed to update booking after payment failure: %v", updateErr)
+			s.log.Error("failed to update booking after payment failure: %v", updateErr)
 		}
 		s.notifyPaymentFailed(ctx, booking)
 		return booking, nil, fmt.Errorf("payment initiation failed: %w", err)
@@ -243,10 +243,10 @@ func (s *BookingServiceImpl) ReserveBooking(
 	switch paymentResult.Status {
 	case "succeeded":
 		if s.log != nil {
-			s.log.Logf("INFO payment succeeded immediately for booking=%s", bookingID)
+			s.log.Info(" payment succeeded immediately for booking=%s", bookingID)
 		}
 		if _, err := s.confirmBookingAfterPayment(ctx, booking, ownerID, paymentResult.PaymentID); err != nil && s.log != nil {
-			s.log.Logf("WARN failed to confirm booking after immediate payment success: %v", err)
+			s.log.Warn("failed to confirm booking after immediate payment success: %v", err)
 		}
 	case "failed":
 		booking.Status = domain.BookingStatusPaymentFailed
@@ -258,13 +258,13 @@ func (s *BookingServiceImpl) ReserveBooking(
 	// Save updated booking
 	if err := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to update booking: %v", err)
+			s.log.Error("failed to update booking: %v", err)
 		}
 		return nil, nil, err
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO instant booking reserved: booking=%s payment=%s status=%s",
+		s.log.Info(" instant booking reserved: booking=%s payment=%s status=%s",
 			bookingID, paymentResult.PaymentID, paymentResult.Status)
 	}
 

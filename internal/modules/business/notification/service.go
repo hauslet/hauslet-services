@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"hauslet/internal/modules/business/domain"
@@ -10,8 +11,6 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // NotificationService handles business notifications
@@ -20,7 +19,7 @@ type NotificationService struct {
 	queueClient  *queue.Client
 	queueSubject string
 	baseURL      string
-	log          *lgr.Logger
+	log          *slog.Logger
 }
 
 // NewNotificationService creates a new notification service
@@ -29,7 +28,7 @@ func NewNotificationService(
 	queueClient *queue.Client,
 	queueSubject string,
 	baseURL string,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *NotificationService {
 	return &NotificationService{
 		mailClient:   mailClient,
@@ -44,7 +43,7 @@ func NewNotificationService(
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Logf("[WARN] %s: %v", label, err)
+			s.log.Warn("send email async error", "label", label, "error", err)
 		}
 	}()
 }
@@ -62,7 +61,7 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("[WARN] failed to publish business email job to %s: %v", s.queueSubject, err)
+			s.log.Warn("failed to publish business email job", "queue_subject", s.queueSubject, "error", err)
 		}
 		return err
 	}

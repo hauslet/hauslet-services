@@ -39,7 +39,7 @@ func (s *ReviewServiceImpl) RecalculateListingStats(ctx context.Context, listing
 		return fmt.Errorf("failed to recalculate listing stats: %w", err)
 	}
 
-	s.log.Logf("[INFO] recalculated stats for listing %s", listingID)
+	s.log.Info("recalculated stats for listing", "listing_id", listingID)
 
 	return nil
 }
@@ -50,7 +50,7 @@ func (s *ReviewServiceImpl) RecalculateHostStats(ctx context.Context, hostID uui
 		return fmt.Errorf("failed to recalculate host stats: %w", err)
 	}
 
-	s.log.Logf("[INFO] recalculated stats for host %s", hostID)
+	s.log.Info("recalculated stats for host", "host_id", hostID)
 
 	return nil
 }
@@ -63,6 +63,6 @@ func (s *ReviewServiceImpl) RefreshAllStats(ctx context.Context) error {
 	// For now, we'll return an error indicating it's not implemented
 	// TODO: Implement when we have a way to iterate over all listings/hosts
 
-	s.log.Logf("[WARN] RefreshAllStats not yet implemented")
+	s.log.Warn("RefreshAllStats not yet implemented")
 	return fmt.Errorf("RefreshAllStats not yet implemented")
 }

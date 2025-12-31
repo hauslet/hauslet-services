@@ -412,7 +412,7 @@ Building a comprehensive double-entry ledger system for managing all monetary fl
       transactionRepo  repository.TransactionRepository
       disbursementRepo repository.DisbursementRepository
       db               *gorm.DB // For transactions
-      log              *lgr.Logger
+      log              *slog.Logger 
   }
 
   func NewFinanceService(...) *FinanceServiceImpl
@@ -467,7 +467,7 @@ Building a comprehensive double-entry ledger system for managing all monetary fl
     // Finance records transaction FIRST
     if h.financeHooks != nil {
         if err := h.financeHooks.OnPaymentSucceeded(ctx, *pmt.BookingID, pmt.ID, pmt.Amount, pmt.Currency); err != nil {
-            h.log.Logf("ERROR failed to record charge in finance: %v", err)
+            h.log.Error("failed to record charge in finance: %v", err)
             // Continue - don't fail webhook, but alert admin
         }
     }
@@ -481,7 +481,7 @@ Building a comprehensive double-entry ledger system for managing all monetary fl
     ```go
     if h.financeHooks != nil {
         if err := h.financeHooks.OnRefundProcessed(ctx, *pmt.BookingID, pmt.ID, pmt.RefundedAmount, pmt.Currency); err != nil {
-            h.log.Logf("ERROR failed to record refund in finance: %v", err)
+            h.log.Error("failed to record refund in finance: %v", err)
         }
     }
     ```
@@ -535,7 +535,7 @@ Building a comprehensive double-entry ledger system for managing all monetary fl
       bookingHooks     BookingHooks // To update booking.settled status
       paymentClient    *payment.Client
       db               *gorm.DB
-      log              *lgr.Logger
+      log              *slog.Logger 
   }
   ```
 
@@ -575,11 +575,11 @@ Building a comprehensive double-entry ledger system for managing all monetary fl
   ```go
   type ProcessPayoutsJob struct {
       payoutService finance.PayoutService
-      log           *lgr.Logger
+      log           *slog.Logger 
   }
 
   func (j *ProcessPayoutsJob) Run(ctx context.Context) error {
-      j.log.Logf("INFO starting payout processing")
+      j.log.Info(" starting payout processing")
       return j.payoutService.ProcessDuePayouts(ctx)
   }
   ```
@@ -588,11 +588,11 @@ Building a comprehensive double-entry ledger system for managing all monetary fl
   ```go
   type RetryDisbursementsJob struct {
       payoutService finance.PayoutService
-      log           *lgr.Logger
+      log           *slog.Logger 
   }
 
   func (j *RetryDisbursementsJob) Run(ctx context.Context) error {
-      j.log.Logf("INFO retrying failed disbursements")
+      j.log.Info(" retrying failed disbursements")
       return j.payoutService.RetryFailedDisbursements(ctx)
   }
   ```
@@ -650,7 +650,7 @@ Building a comprehensive double-entry ledger system for managing all monetary fl
   type NotificationService struct {
       emailClient *email.Client
       baseURL     string
-      log         *lgr.Logger
+      log         *slog.Logger 
   }
 
   func (s *NotificationService) SendPaymentReceipt(...)

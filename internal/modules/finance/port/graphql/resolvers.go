@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"hauslet/internal/modules/finance/domain"
 	"hauslet/internal/modules/finance/service"
+	"log/slog"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -14,14 +14,14 @@ import (
 type Resolver struct {
 	financeService service.FinanceService
 	payoutService  service.PayoutService
-	log            *lgr.Logger
+	log            *slog.Logger
 }
 
 // NewResolver creates a new GraphQL resolver for finance
 func NewResolver(
 	financeService service.FinanceService,
 	payoutService service.PayoutService,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *Resolver {
 	return &Resolver{
 		financeService: financeService,
@@ -42,13 +42,13 @@ func (r *Resolver) Wallet(ctx context.Context, id string) (*domain.Wallet, error
 
 	walletID, err := uuid.Parse(id)
 	if err != nil {
-		r.log.Logf("ERROR invalid wallet ID %s: %v", id, err)
+		r.log.Error("invalid wallet ID %s: %v", id, err)
 		return nil, fmt.Errorf("invalid wallet ID")
 	}
 
 	wallet, err := r.financeService.GetWallet(ctx, walletID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get wallet %s: %v", id, err)
+		r.log.Error("failed to get wallet %s: %v", id, err)
 		return nil, err
 	}
 
@@ -63,13 +63,13 @@ func (r *Resolver) UserWallets(ctx context.Context, userID string) ([]*domain.Wa
 
 	uid, err := uuid.Parse(userID)
 	if err != nil {
-		r.log.Logf("ERROR invalid user ID %s: %v", userID, err)
+		r.log.Error("invalid user ID %s: %v", userID, err)
 		return nil, fmt.Errorf("invalid user ID")
 	}
 
 	wallets, err := r.financeService.ListUserWallets(ctx, uid)
 	if err != nil {
-		r.log.Logf("ERROR failed to list wallets for user %s: %v", userID, err)
+		r.log.Error("failed to list wallets for user %s: %v", userID, err)
 		return nil, err
 	}
 
@@ -84,7 +84,7 @@ func (r *Resolver) FinanceTransactionHistory(
 ) ([]*domain.Transaction, error) {
 	rid, err := uuid.Parse(resourceID)
 	if err != nil {
-		r.log.Logf("ERROR invalid resource ID %s: %v", resourceID, err)
+		r.log.Error("invalid resource ID %s: %v", resourceID, err)
 		return nil, fmt.Errorf("invalid resource ID")
 	}
 
@@ -97,7 +97,7 @@ func (r *Resolver) FinanceTransactionHistory(
 
 	transactions, err := r.financeService.GetTransactionHistory(ctx, domain.ResourceType(resourceType), rid)
 	if err != nil {
-		r.log.Logf("ERROR failed to get transaction history: %v", err)
+		r.log.Error("failed to get transaction history: %v", err)
 		return nil, err
 	}
 
@@ -117,7 +117,7 @@ func (r *Resolver) WalletLedger(
 
 	wid, err := uuid.Parse(walletID)
 	if err != nil {
-		r.log.Logf("ERROR invalid wallet ID %s: %v", walletID, err)
+		r.log.Error("invalid wallet ID %s: %v", walletID, err)
 		return nil, fmt.Errorf("invalid wallet ID")
 	}
 
@@ -133,7 +133,7 @@ func (r *Resolver) WalletLedger(
 
 	entries, err := r.financeService.GetWalletHistory(ctx, wid, l, o)
 	if err != nil {
-		r.log.Logf("ERROR failed to get wallet ledger: %v", err)
+		r.log.Error("failed to get wallet ledger: %v", err)
 		return nil, err
 	}
 
@@ -148,13 +148,13 @@ func (r *Resolver) Disbursement(ctx context.Context, id string) (*domain.Disburs
 
 	did, err := uuid.Parse(id)
 	if err != nil {
-		r.log.Logf("ERROR invalid disbursement ID %s: %v", id, err)
+		r.log.Error("invalid disbursement ID %s: %v", id, err)
 		return nil, fmt.Errorf("invalid disbursement ID")
 	}
 
 	disbursement, err := r.payoutService.GetDisbursement(ctx, did)
 	if err != nil {
-		r.log.Logf("ERROR failed to get disbursement %s: %v", id, err)
+		r.log.Error("failed to get disbursement %s: %v", id, err)
 		return nil, err
 	}
 
@@ -171,7 +171,7 @@ func (r *Resolver) MyEarnings(ctx context.Context) (*EarningsSummary, error) {
 	// Get host's available wallet
 	wallets, err := r.financeService.ListUserWallets(ctx, userID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get wallets for user %s: %v", userID, err)
+		r.log.Error("failed to get wallets for user %s: %v", userID, err)
 		return nil, err
 	}
 
@@ -195,10 +195,10 @@ func (r *Resolver) MyEarnings(ctx context.Context) (*EarningsSummary, error) {
 	pendingPayouts := int64(0)
 
 	return &EarningsSummary{
-		TotalEarned:    totalEarned,
+		TotalEarned:      totalEarned,
 		AvailableBalance: availableBalance,
-		PendingPayouts: pendingPayouts,
-		Currency:       currency,
+		PendingPayouts:   pendingPayouts,
+		Currency:         currency,
 	}, nil
 }
 

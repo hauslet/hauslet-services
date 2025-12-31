@@ -14,13 +14,13 @@ import (
 	reviewSchema "hauslet/internal/modules/review/repository/schema"
 	wishlistSchema "hauslet/internal/modules/wishlist/repository/schema"
 	"hauslet/internal/platform/database"
+	"log/slog"
 
-	"github.com/go-pkgz/lgr"
 	"gorm.io/gorm"
 )
 
 // RunMigrations applies the schema migrations for the API.
-func RunMigrations(db *gorm.DB, log *lgr.Logger) error {
+func RunMigrations(db *gorm.DB, log *slog.Logger) error {
 	if err := database.RunMigrations(db, log,
 		&authSchema.User{},
 		&authSchema.UserIdentity{},
@@ -58,6 +58,6 @@ func RunMigrations(db *gorm.DB, log *lgr.Logger) error {
 	); err != nil {
 		return err
 	}
-	log.Logf("INFO ✅ Database migrations completed")
+	log.Info("✅ Database migrations completed")
 	return nil
 }

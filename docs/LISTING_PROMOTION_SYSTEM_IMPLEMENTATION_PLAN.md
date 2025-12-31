@@ -585,7 +585,7 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
       usageService     UsageService
       config           *config.PromotionConfig // YAML config
       db               *gorm.DB
-      log              *lgr.Logger
+      log              *slog.Logger 
   }
 
   func NewPromotionService(...) *PromotionServiceImpl
@@ -607,7 +607,7 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
       usageRepo        repository.UsageTrackingRepository
       config           *config.PromotionConfig
       db               *gorm.DB
-      log              *lgr.Logger
+      log              *slog.Logger 
   }
 
   func NewSubscriptionService(...) *SubscriptionServiceImpl
@@ -628,7 +628,7 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
   ```go
   type UsageServiceImpl struct {
       usageRepo repository.UsageTrackingRepository
-      log       *lgr.Logger
+      log       *slog.Logger 
   }
 
   func NewUsageService(...) *UsageServiceImpl
@@ -1074,7 +1074,7 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
       subscriptionService service.SubscriptionService
       usageService        service.UsageService
       config              *config.PromotionConfig
-      log                 *lgr.Logger
+      log                 *slog.Logger 
   }
 
   func NewResolver(
@@ -1082,7 +1082,7 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
       subscriptionService service.SubscriptionService,
       usageService service.UsageService,
       config *config.PromotionConfig,
-      log *lgr.Logger,
+      log *slog.Logger ,
   ) *Resolver
 
   // Query resolvers
@@ -1115,14 +1115,14 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
         if promoID, ok := pmt.Metadata["promotion_id"]; ok {
             promotionID, _ := uuid.Parse(promoID.(string))
             if err := h.promotionHooks.OnPromotionPaymentSucceeded(ctx, promotionID, pmt.ID); err != nil {
-                h.log.Logf("ERROR failed to start promotion: %v", err)
+                h.log.Error("failed to start promotion: %v", err)
             }
         }
 
         if subID, ok := pmt.Metadata["subscription_id"]; ok {
             subscriptionID, _ := uuid.Parse(subID.(string))
             if err := h.promotionHooks.OnSubscriptionPaymentSucceeded(ctx, subscriptionID, pmt.ID); err != nil {
-                h.log.Logf("ERROR failed to activate subscription: %v", err)
+                h.log.Error("failed to activate subscription: %v", err)
             }
         }
     }
@@ -1148,7 +1148,7 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
   type PaymentHooksAdapter struct {
       promotionService    service.PromotionService
       subscriptionService service.SubscriptionService
-      log                 *lgr.Logger
+      log                 *slog.Logger 
   }
 
   func (a *PaymentHooksAdapter) OnPromotionPaymentSucceeded(ctx context.Context, promotionID, paymentID uuid.UUID) error {
@@ -1221,23 +1221,23 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
   ```go
   type ExpirePromotionsJob struct {
       promotionService promotion.PromotionService
-      log              *lgr.Logger
+      log              *slog.Logger 
   }
 
   func NewExpirePromotionsJob(
       promotionService promotion.PromotionService,
-      log *lgr.Logger,
+      log *slog.Logger ,
   ) *ExpirePromotionsJob
 
   func (j *ExpirePromotionsJob) Run(ctx context.Context) error {
-      j.log.Logf("INFO starting promotion expiry check")
+      j.log.Info(" starting promotion expiry check")
 
       if err := j.promotionService.ExpirePromotions(ctx); err != nil {
-          j.log.Logf("ERROR failed to expire promotions: %v", err)
+          j.log.Error("failed to expire promotions: %v", err)
           return err
       }
 
-      j.log.Logf("INFO promotion expiry check complete")
+      j.log.Info(" promotion expiry check complete")
       return nil
   }
   ```
@@ -1258,25 +1258,25 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
   type ProcessBillingJob struct {
       subscriptionService promotion.SubscriptionService
       paymentService      payment.PaymentService // To create charges
-      log                 *lgr.Logger
+      log                 *slog.Logger 
   }
 
   func NewProcessBillingJob(
       subscriptionService promotion.SubscriptionService,
       paymentService payment.PaymentService,
-      log *lgr.Logger,
+      log *slog.Logger ,
   ) *ProcessBillingJob
 
   func (j *ProcessBillingJob) Run(ctx context.Context) error {
-      j.log.Logf("INFO starting subscription billing")
+      j.log.Info(" starting subscription billing")
 
       // Get subscriptions due for billing
       if err := j.subscriptionService.ProcessBilling(ctx); err != nil {
-          j.log.Logf("ERROR failed to process billing: %v", err)
+          j.log.Error("failed to process billing: %v", err)
           return err
       }
 
-      j.log.Logf("INFO subscription billing complete")
+      j.log.Info(" subscription billing complete")
       return nil
   }
   ```
@@ -1294,7 +1294,7 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
           // Create payment charge via payment service
           payment, err := s.createBillingCharge(ctx, sub)
           if err != nil {
-              s.log.Logf("ERROR failed to charge subscription %s: %v", sub.ID, err)
+              s.log.Error("failed to charge subscription %s: %v", sub.ID, err)
               // Mark as past_due
               s.subscriptionRepo.UpdateStatus(ctx, sub.ID, string(SubscriptionStatusPastDue))
               continue
@@ -1305,7 +1305,7 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
           sub.NextBillingDate = &nextBilling
           s.subscriptionRepo.Update(ctx, mappers.MapSubscriptionToSchema(sub))
 
-          s.log.Logf("INFO successfully charged subscription %s, payment %s", sub.ID, payment.ID)
+          s.log.Info(" successfully charged subscription %s, payment %s", sub.ID, payment.ID)
       }
 
       return nil
@@ -1328,22 +1328,22 @@ Building a comprehensive monetization system for Sales/Rentals listings through 
   type ResetUsageJob struct {
       usageService usage.UsageService
       config       *config.PromotionConfig
-      log          *lgr.Logger
+      log          *slog.Logger 
   }
 
   func NewResetUsageJob(
       usageService usage.UsageService,
       config *config.PromotionConfig,
-      log *lgr.Logger,
+      log *slog.Logger ,
   ) *ResetUsageJob
 
   func (j *ResetUsageJob) Run(ctx context.Context) error {
-      j.log.Logf("INFO starting monthly usage reset")
+      j.log.Info(" starting monthly usage reset")
 
       // Reset usage for all active subscriptions
       // This creates new usage tracking records for the new month
 
-      j.log.Logf("INFO monthly usage reset complete")
+      j.log.Info(" monthly usage reset complete")
       return nil
   }
   ```

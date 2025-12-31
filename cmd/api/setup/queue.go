@@ -2,15 +2,14 @@ package setup
 
 import (
 	"context"
+	"log/slog"
 
 	"hauslet/config"
 	"hauslet/internal/platform/queue"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // InitQueue initializes the Cloud Tasks client.
-func InitQueue(ctx context.Context, cfg *config.GlobalConfig, log *lgr.Logger) (*queue.Client, error) {
+func InitQueue(ctx context.Context, cfg *config.GlobalConfig, log *slog.Logger) (*queue.Client, error) {
 	queueCfg := queue.Config{
 		ProjectID:           cfg.Infra.CloudTasks.ProjectID,
 		Location:            cfg.Infra.CloudTasks.Location,

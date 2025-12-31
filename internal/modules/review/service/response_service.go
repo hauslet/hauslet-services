@@ -64,12 +64,12 @@ func (s *ReviewServiceImpl) CreateResponse(ctx context.Context, reviewID, author
 		return nil, fmt.Errorf("failed to create response: %w", err)
 	}
 
-	s.log.Logf("[INFO] created response %s for review %s", response.ID, reviewID)
+	s.log.Info("created response", "response_id", response.ID, "review_id", reviewID)
 
 	// 8. Send notification to guest (reviewer)
 	guestName, guestEmail, err := s.userQuerier.GetUserContact(ctx, review.ReviewerID)
 	if err != nil {
-		s.log.Logf("[WARN] failed to get guest contact for response notification: %v", err)
+		s.log.Warn("failed to get guest contact for response notification", "error", err)
 	} else if guestEmail != "" {
 		guestContact := notification.ContactInfo{
 			ID:    review.ReviewerID,
@@ -130,7 +130,7 @@ func (s *ReviewServiceImpl) UpdateResponse(ctx context.Context, responseID, auth
 		return nil, fmt.Errorf("failed to update response: %w", err)
 	}
 
-	s.log.Logf("[INFO] updated response %s", responseID)
+	s.log.Info("updated response", "response_id", responseID)
 
 	return response, nil
 }
@@ -159,7 +159,7 @@ func (s *ReviewServiceImpl) DeleteResponse(ctx context.Context, responseID, acto
 		return fmt.Errorf("failed to delete response: %w", err)
 	}
 
-	s.log.Logf("[INFO] deleted response %s", responseID)
+	s.log.Info("deleted response", "response_id", responseID)
 
 	return nil
 }

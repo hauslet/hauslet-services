@@ -6,13 +6,14 @@ import (
 
 	"hauslet/cmd/worker/setup"
 	"hauslet/config"
+	"hauslet/internal/platform/logger"
 )
 
 func main() {
 	// 1) Config + Logger
 	cfg := config.Load()
-	log := setup.SetupLogger(cfg.App.Env)
-	log.Logf("INFO 🔧 Starting worker in %s mode", cfg.App.Env)
+	log := logger.NewLogger()
+	log.Info("🔧 Starting worker", "mode", cfg.App.Env)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -20,7 +21,7 @@ func main() {
 	// 2) Core infrastructure (DB, storage, AI, email, cache)
 	infra, err := setup.InitInfrastructure(ctx, cfg, log)
 	if err != nil {
-		log.Logf("WARN failed to initialize infrastructure: %v", err)
+		log.Warn("failed to initialize infrastructure", "error", err)
 		return
 	}
 	defer infra.CloseDB()
@@ -29,14 +30,14 @@ func main() {
 	// 3) Queue client
 	qClient, err := setup.InitQueue(ctx, cfg, log)
 	if err != nil {
-		log.Logf("WARN failed to initialize queue: %v", err)
+		log.Warn("failed to initialize queue", "error", err)
 	}
 	infra.Queue = qClient
 	defer infra.CloseQueue()
 
 	// 4) Handlers
 	registry := setup.RegisterHandlers(infra, cfg, log)
-	log.Logf("INFO ✅ Registered %d job handlers", registry.HandlerCount())
+	log.Info("✅ Registered job handlers", "count", registry.HandlerCount())
 
 	ready := atomic.Bool{}
 	workerServer := startWorkerServer(cfg, registry, log, &ready)

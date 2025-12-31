@@ -59,11 +59,11 @@ func (s *BusinessServiceImpl) AddMember(ctx context.Context, businessID, userID,
 	}
 
 	if err := s.repo.AddMember(ctx, schemaMember); err != nil {
-		s.log.Logf("ERROR Failed to add member to business %s: %v", businessID, err)
+		s.log.Error("Failed to add member to business", "business_id", businessID, "error", err)
 		return nil, fmt.Errorf("failed to add member: %w", err)
 	}
 
-	s.log.Logf("INFO Member added to business %s: user %s with role %s", businessID, userID, role)
+	s.log.Info(" Member added to business", "business_id", businessID, "user_id", userID, "role", role)
 	return member, nil
 }
 
@@ -108,11 +108,11 @@ func (s *BusinessServiceImpl) UpdateMemberRole(ctx context.Context, businessID, 
 	schemaMember.UpdatedAt = time.Now()
 
 	if err := s.repo.UpdateMember(ctx, schemaMember); err != nil {
-		s.log.Logf("ERROR Failed to update member role: %v", err)
+		s.log.Error("Failed to update member role", "error", err)
 		return nil, fmt.Errorf("failed to update member role: %w", err)
 	}
 
-	s.log.Logf("INFO Member %s role updated to %s in business %s by %s", memberID, newRole, businessID, updatedBy)
+	s.log.Info(" Member role updated", "member_id", memberID, "new_role", newRole, "business_id", businessID, "updated_by", updatedBy)
 	return domain.MapBusinessMemberFromSchema(schemaMember), nil
 }
 
@@ -151,11 +151,11 @@ func (s *BusinessServiceImpl) UpdateMemberPermissions(ctx context.Context, busin
 	schemaMember.UpdatedAt = time.Now()
 
 	if err := s.repo.UpdateMember(ctx, schemaMember); err != nil {
-		s.log.Logf("ERROR Failed to update member permissions: %v", err)
+		s.log.Error("Failed to update member permissions", "error", err)
 		return nil, fmt.Errorf("failed to update member permissions: %w", err)
 	}
 
-	s.log.Logf("INFO Member %s permissions updated in business %s by %s", memberID, businessID, updatedBy)
+	s.log.Info(" Member permissions updated", "member_id", memberID, "business_id", businessID, "updated_by", updatedBy)
 	return domain.MapBusinessMemberFromSchema(schemaMember), nil
 }
 
@@ -204,11 +204,11 @@ func (s *BusinessServiceImpl) RemoveMember(ctx context.Context, businessID, memb
 
 	// Remove member
 	if err := s.repo.RemoveMember(ctx, businessID, schemaMember.UserID); err != nil {
-		s.log.Logf("ERROR Failed to remove member: %v", err)
+		s.log.Error("Failed to remove member", "error", err)
 		return fmt.Errorf("failed to remove member: %w", err)
 	}
 
-	s.log.Logf("INFO Member %s removed from business %s by %s", memberID, businessID, removedBy)
+	s.log.Info(" Member removed", "member_id", memberID, "business_id", businessID, "removed_by", removedBy)
 	return nil
 }
 

@@ -16,7 +16,7 @@ import (
 func (r *Resolver) ReviewResponse(ctx context.Context, reviewID string) (*domain.ReviewResponse, error) {
 	rid, err := uuid.Parse(reviewID)
 	if err != nil {
-		r.log.Logf("ERROR invalid review ID %s: %v", reviewID, err)
+		r.log.Error("invalid review ID %s: %v", reviewID, err)
 		return nil, fmt.Errorf("invalid review ID")
 	}
 
@@ -25,7 +25,7 @@ func (r *Resolver) ReviewResponse(ctx context.Context, reviewID string) (*domain
 		if err == domain.ErrResponseNotFound {
 			return nil, nil
 		}
-		r.log.Logf("ERROR failed to get response for review %s: %v", reviewID, err)
+		r.log.Error("failed to get response for review %s: %v", reviewID, err)
 		return nil, err
 	}
 
@@ -45,17 +45,17 @@ func (r *Resolver) CreateResponse(ctx context.Context, reviewID string, body str
 
 	rid, err := uuid.Parse(reviewID)
 	if err != nil {
-		r.log.Logf("ERROR invalid review ID %s: %v", reviewID, err)
+		r.log.Error("invalid review ID %s: %v", reviewID, err)
 		return nil, fmt.Errorf("invalid review ID")
 	}
 
 	response, err := r.reviewService.CreateResponse(ctx, rid, userID, body)
 	if err != nil {
-		r.log.Logf("ERROR failed to create response for review %s: %v", reviewID, err)
+		r.log.Error("failed to create response for review %s: %v", reviewID, err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO review response created: id=%s review_id=%s author_id=%s", response.ID, reviewID, userID)
+	r.log.Info(" review response created: id=%s review_id=%s author_id=%s", response.ID, reviewID, userID)
 
 	return response, nil
 }
@@ -69,17 +69,17 @@ func (r *Resolver) UpdateResponse(ctx context.Context, responseID string, body s
 
 	respID, err := uuid.Parse(responseID)
 	if err != nil {
-		r.log.Logf("ERROR invalid response ID %s: %v", responseID, err)
+		r.log.Error("invalid response ID %s: %v", responseID, err)
 		return nil, fmt.Errorf("invalid response ID")
 	}
 
 	response, err := r.reviewService.UpdateResponse(ctx, respID, userID, body)
 	if err != nil {
-		r.log.Logf("ERROR failed to update response %s: %v", responseID, err)
+		r.log.Error("failed to update response %s: %v", responseID, err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO review response updated: id=%s author_id=%s", responseID, userID)
+	r.log.Info(" review response updated: id=%s author_id=%s", responseID, userID)
 
 	return response, nil
 }
@@ -93,16 +93,16 @@ func (r *Resolver) DeleteResponse(ctx context.Context, responseID string) (bool,
 
 	respID, err := uuid.Parse(responseID)
 	if err != nil {
-		r.log.Logf("ERROR invalid response ID %s: %v", responseID, err)
+		r.log.Error("invalid response ID %s: %v", responseID, err)
 		return false, fmt.Errorf("invalid response ID")
 	}
 
 	if err := r.reviewService.DeleteResponse(ctx, respID, userID); err != nil {
-		r.log.Logf("ERROR failed to delete response %s: %v", responseID, err)
+		r.log.Error("failed to delete response %s: %v", responseID, err)
 		return false, err
 	}
 
-	r.log.Logf("INFO review response deleted: id=%s author_id=%s", responseID, userID)
+	r.log.Info(" review response deleted: id=%s author_id=%s", responseID, userID)
 
 	return true, nil
 }

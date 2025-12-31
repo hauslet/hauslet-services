@@ -160,13 +160,13 @@ package analytics
 
 type WeeklyAnalyticsHandler struct {
     analyticsService *analytics.Service
-    log              *lgr.Logger
+    log              *slog.Logger 
     queueName        string
 }
 
 func NewWeeklyAnalyticsHandler(
     svc *analytics.Service,
-    log *lgr.Logger,
+    log *slog.Logger ,
     queueName string,
 ) *WeeklyAnalyticsHandler {
     return &WeeklyAnalyticsHandler{
@@ -186,7 +186,7 @@ func (h *WeeklyAnalyticsHandler) Handle(ctx context.Context, payload []byte) err
         return fmt.Errorf("unmarshal job: %w", err)
     }
 
-    h.log.Logf("INFO Processing weekly analytics report: %+v", job)
+    h.log.Info(" Processing weekly analytics report: %+v", job)
 
     // Your business logic here
     if err := h.analyticsService.GenerateWeeklyReport(ctx, job); err != nil {
@@ -207,7 +207,7 @@ type WeeklyAnalyticsJob struct {
 In `cmd/worker/setup/handlers.go`:
 
 ```go
-func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *lgr.Logger) *queue.Registry {
+func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog.Logger ) *queue.Registry {
     registry := queue.NewRegistry()
     qCfg := cfg.YAML.Queue.Subjects
 
@@ -567,7 +567,7 @@ Handler should safely handle duplicate calls:
 func (h *Handler) Handle(ctx context.Context, payload []byte) error {
     // ✅ GOOD: Check if already processed
     if h.service.AlreadyProcessed(job.ID) {
-        h.log.Logf("INFO Job %s already processed, skipping", job.ID)
+        h.log.Info(" Job %s already processed, skipping", job.ID)
         return nil
     }
 

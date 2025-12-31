@@ -13,7 +13,7 @@ import (
 
 func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.UUID, guestID uuid.UUID, checkIn, checkOut time.Time, guestCount int, specialRequests *string) (*domain.Booking, error) {
 	if s.log != nil {
-		s.log.Logf("INFO creating booking listing=%s guest=%s", listingID, guestID)
+		s.log.Info(" creating booking", "listing_id", listingID, "guest_id", guestID)
 	}
 
 	guest, err := s.resolveGuestInfo(ctx, guestID)
@@ -42,7 +42,7 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 	if cfg, cfgErr := s.calendar.GetCalendarConfig(ctx, listingID); cfgErr == nil {
 		calendarConfig = cfg
 	} else if s.log != nil {
-		s.log.Logf("WARN calendar config unavailable for listing=%s: %v", listingID, cfgErr)
+		s.log.Warn("calendar config unavailable for listing", "listing_id", listingID, "error", cfgErr)
 	}
 
 	autoAcceptBookings := false
@@ -81,7 +81,7 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		if err != nil {
 			// fallback to base price if we can
 			if s.log != nil {
-				s.log.Logf("WARN pricing calculation failed: %v", err)
+				s.log.Warn("pricing calculation failed", "error", err)
 			}
 			baseRate, baseCurrency, baseErr := s.pricing.GetBasePrice(ctx, listingID)
 			if baseErr == nil {
@@ -115,7 +115,7 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 	if err != nil {
 		if errors.Is(err, calendardomain.ErrUnauthorized) {
 			if s.log != nil {
-				s.log.Logf("WARN calendar disabled for listing=%s; cannot create booking", listingID)
+				s.log.Warn("calendar disabled for listing; cannot create booking", "listing_id", listingID)
 			}
 			return nil, fmt.Errorf("calendar disabled for listing; enable calendar to allow bookings")
 		}
@@ -127,7 +127,7 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		cleaningEvent, err := s.createCleaningBufferEvent(ctx, listingID, bookingID, checkOut, bufferDuration)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR failed to create cleaning buffer event for booking=%s: %v", bookingID, err)
+				s.log.Error("failed to create cleaning buffer event for booking", "booking_id", bookingID, "error", err)
 			}
 			_ = s.calendar.DeleteEvent(ctx, createdEvent.ID, ownerID)
 			return nil, fmt.Errorf("failed to create cleaning buffer event: %w", err)
@@ -183,7 +183,7 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 
 	if err := s.repo.CreateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to persist booking, rolling back calendar event: %v", err)
+			s.log.Error("failed to persist booking, rolling back calendar event", "error", err)
 		}
 		_ = s.calendar.DeleteEvent(ctx, createdEvent.ID, ownerID)
 		return nil, err

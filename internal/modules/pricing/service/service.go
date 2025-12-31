@@ -14,7 +14,7 @@ import (
 
 func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.UUID, checkIn, checkOut time.Time, guestCount int) (*domain.PriceBreakdown, error) {
 	if s.log != nil {
-		s.log.Logf("INFO calculating price listing=%s checkin=%s checkout=%s guests=%d", listingID, checkIn.Format("2006-01-02"), checkOut.Format("2006-01-02"), guestCount)
+		s.log.Info(" calculating price listing=%s checkin=%s checkout=%s guests=%d", listingID, checkIn.Format("2006-01-02"), checkOut.Format("2006-01-02"), guestCount)
 	}
 
 	if s.listingHooks == nil {
@@ -131,7 +131,7 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 	s.cachePriceBreakdown(ctx, breakdown)
 
 	if s.log != nil {
-		s.log.Logf("INFO calculated price total=%.2f %s nights=%d", total, listingPricing.Currency, nights)
+		s.log.Info(" calculated price total=%.2f %s nights=%d", total, listingPricing.Currency, nights)
 	}
 
 	return breakdown, nil
@@ -195,7 +195,7 @@ func (s *PricingServiceImpl) PreviewPricing(ctx context.Context, listingID uuid.
 
 func (s *PricingServiceImpl) CreateRule(ctx context.Context, rule *domain.PricingRule) (*domain.PricingRule, error) {
 	if s.log != nil {
-		s.log.Logf("INFO creating pricing rule listing=%s type=%s", rule.ListingID, rule.RuleType)
+		s.log.Info(" creating pricing rule listing=%s type=%s", rule.ListingID, rule.RuleType)
 	}
 
 	schemaRule := domain.MapRuleFromEntityToSchema(rule)

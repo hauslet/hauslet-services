@@ -13,14 +13,14 @@ import (
 // Transitions booking from awaiting_payment -> confirmed status.
 func (s *BookingServiceImpl) HandlePaymentSuccess(ctx context.Context, bookingID uuid.UUID, paymentID uuid.UUID) error {
 	if s.log != nil {
-		s.log.Logf("INFO handling payment success for booking=%s, payment=%s", bookingID, paymentID)
+		s.log.Info(" handling payment success for booking=%s, payment=%s", bookingID, paymentID)
 	}
 
 	// Get the booking
 	schemaBooking, err := s.repo.GetBookingByID(ctx, bookingID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get booking %s: %v", bookingID, err)
+			s.log.Error("failed to get booking %s: %v", bookingID, err)
 		}
 		return fmt.Errorf("failed to get booking: %w", err)
 	}
@@ -33,7 +33,7 @@ func (s *BookingServiceImpl) HandlePaymentSuccess(ctx context.Context, bookingID
 
 	if booking.IsConfirmed() {
 		if s.log != nil {
-			s.log.Logf("INFO booking %s already confirmed, skipping", bookingID)
+			s.log.Info(" booking %s already confirmed, skipping", bookingID)
 		}
 		return nil
 	}
@@ -43,7 +43,7 @@ func (s *BookingServiceImpl) HandlePaymentSuccess(ctx context.Context, bookingID
 		booking.Status != domain.BookingStatusPaymentFailed &&
 		booking.Status != domain.BookingStatusDraft {
 		if s.log != nil {
-			s.log.Logf("WARN booking %s cannot be confirmed (status=%s)", bookingID, booking.Status)
+			s.log.Warn("booking %s cannot be confirmed (status=%s)", bookingID, booking.Status)
 		}
 		return domain.ErrCannotConfirm
 	}
@@ -52,20 +52,20 @@ func (s *BookingServiceImpl) HandlePaymentSuccess(ctx context.Context, bookingID
 	ownerID, err := s.listingHooks.GetListingOwner(ctx, booking.ListingID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get listing owner: %v", err)
+			s.log.Error("failed to get listing owner: %v", err)
 		}
 		return fmt.Errorf("failed to get listing owner: %w", err)
 	}
 
 	if _, err := s.confirmBookingAfterPayment(ctx, booking, ownerID, paymentID); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to confirm booking after payment: %v", err)
+			s.log.Error("failed to confirm booking after payment: %v", err)
 		}
 		return fmt.Errorf("failed to confirm booking: %w", err)
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO booking %s confirmed successfully (payment=%s)", bookingID, paymentID)
+		s.log.Info(" booking %s confirmed successfully (payment=%s)", bookingID, paymentID)
 	}
 
 	return nil
@@ -75,14 +75,14 @@ func (s *BookingServiceImpl) HandlePaymentSuccess(ctx context.Context, bookingID
 // Logs the failure but doesn't immediately cancel - user may retry within hold window.
 func (s *BookingServiceImpl) HandlePaymentFailure(ctx context.Context, bookingID uuid.UUID, paymentID uuid.UUID, reason string) error {
 	if s.log != nil {
-		s.log.Logf("WARN payment failed for booking=%s, payment=%s, reason=%s", bookingID, paymentID, reason)
+		s.log.Warn("payment failed for booking=%s, payment=%s, reason=%s", bookingID, paymentID, reason)
 	}
 
 	// Get the booking
 	schemaBooking, err := s.repo.GetBookingByID(ctx, bookingID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get booking %s: %v", bookingID, err)
+			s.log.Error("failed to get booking %s: %v", bookingID, err)
 		}
 		return fmt.Errorf("failed to get booking: %w", err)
 	}
@@ -101,7 +101,7 @@ func (s *BookingServiceImpl) HandlePaymentFailure(ctx context.Context, bookingID
 	// Save updated booking
 	if err := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to update booking: %v", err)
+			s.log.Error("failed to update booking: %v", err)
 		}
 		return fmt.Errorf("failed to update booking: %w", err)
 	}
@@ -112,7 +112,7 @@ func (s *BookingServiceImpl) HandlePaymentFailure(ctx context.Context, bookingID
 	// where hold_expires_at has passed and no successful payment exists.
 
 	if s.log != nil {
-		s.log.Logf("INFO payment failure logged for booking=%s", bookingID)
+		s.log.Info(" payment failure logged for booking=%s", bookingID)
 	}
 
 	return nil
@@ -122,14 +122,14 @@ func (s *BookingServiceImpl) HandlePaymentFailure(ctx context.Context, bookingID
 // May update booking status or initiate cancellation flow.
 func (s *BookingServiceImpl) HandlePaymentRefund(ctx context.Context, bookingID uuid.UUID, paymentID uuid.UUID, refundedAmount int64) error {
 	if s.log != nil {
-		s.log.Logf("INFO handling payment refund for booking=%s, payment=%s, amount=%d", bookingID, paymentID, refundedAmount)
+		s.log.Info(" handling payment refund for booking=%s, payment=%s, amount=%d", bookingID, paymentID, refundedAmount)
 	}
 
 	// Get the booking
 	schemaBooking, err := s.repo.GetBookingByID(ctx, bookingID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get booking %s: %v", bookingID, err)
+			s.log.Error("failed to get booking %s: %v", bookingID, err)
 		}
 		return fmt.Errorf("failed to get booking: %w", err)
 	}
@@ -147,20 +147,20 @@ func (s *BookingServiceImpl) HandlePaymentRefund(ctx context.Context, bookingID 
 		booking.UpdatedAt = time.Now()
 
 		if s.log != nil {
-			s.log.Logf("INFO booking %s marked as disputed due to refund", bookingID)
+			s.log.Info(" booking %s marked as disputed due to refund", bookingID)
 		}
 	}
 
 	// Save updated booking
 	if err := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to update booking: %v", err)
+			s.log.Error("failed to update booking: %v", err)
 		}
 		return fmt.Errorf("failed to update booking: %w", err)
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO refund processed for booking=%s", bookingID)
+		s.log.Info(" refund processed for booking=%s", bookingID)
 	}
 
 	return nil
@@ -175,7 +175,7 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 	expiredBookings, err := s.repo.FindExpiredHolds(ctx, expiredBefore)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to find expired bookings: %v", err)
+			s.log.Error("failed to find expired bookings: %v", err)
 		}
 		return nil, fmt.Errorf("failed to find expired bookings: %w", err)
 	}
@@ -194,7 +194,7 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 		ownerID, err := s.listingHooks.GetListingOwner(ctx, booking.ListingID)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN failed to get listing owner for booking %s: %v", booking.ID, err)
+				s.log.Warn("failed to get listing owner for booking %s: %v", booking.ID, err)
 			}
 			continue
 		}
@@ -202,14 +202,14 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 		// Cancel calendar events
 		if err := s.calendar.CancelEvent(ctx, booking.CalendarEventID, ownerID); err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN failed to cancel calendar event %s: %v", booking.CalendarEventID, err)
+				s.log.Warn("failed to cancel calendar event %s: %v", booking.CalendarEventID, err)
 			}
 		}
 
 		if booking.CleaningEventID != nil {
 			if err := s.calendar.CancelEvent(ctx, *booking.CleaningEventID, ownerID); err != nil {
 				if s.log != nil {
-					s.log.Logf("WARN failed to cancel cleaning event %s: %v", *booking.CleaningEventID, err)
+					s.log.Warn("failed to cancel cleaning event %s: %v", *booking.CleaningEventID, err)
 				}
 			}
 		}
@@ -221,7 +221,7 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 		// Save updated booking
 		if err := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR failed to archive booking %s: %v", booking.ID, err)
+				s.log.Error("failed to archive booking %s: %v", booking.ID, err)
 			}
 			continue
 		}
@@ -239,14 +239,14 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 // Called by finance module after successful payout to host.
 func (s *BookingServiceImpl) MarkAsSettled(ctx context.Context, bookingID uuid.UUID) error {
 	if s.log != nil {
-		s.log.Logf("INFO marking booking %s as settled", bookingID)
+		s.log.Info(" marking booking %s as settled", bookingID)
 	}
 
 	// Get the booking
 	schemaBooking, err := s.repo.GetBookingByID(ctx, bookingID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to get booking %s: %v", bookingID, err)
+			s.log.Error("failed to get booking %s: %v", bookingID, err)
 		}
 		return fmt.Errorf("failed to get booking: %w", err)
 	}
@@ -260,7 +260,7 @@ func (s *BookingServiceImpl) MarkAsSettled(ctx context.Context, bookingID uuid.U
 	// Only mark as settled if currently completed
 	if booking.Status != domain.BookingStatusCompleted {
 		if s.log != nil {
-			s.log.Logf("WARN booking %s cannot be settled (status=%s, expected=completed)", bookingID, booking.Status)
+			s.log.Warn("booking %s cannot be settled (status=%s, expected=completed)", bookingID, booking.Status)
 		}
 		// Don't fail - just log warning (payout already succeeded)
 		return nil
@@ -273,13 +273,13 @@ func (s *BookingServiceImpl) MarkAsSettled(ctx context.Context, bookingID uuid.U
 	// Save updated booking
 	if err := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to update booking status to settled: %v", err)
+			s.log.Error("failed to update booking status to settled: %v", err)
 		}
 		return fmt.Errorf("failed to update booking: %w", err)
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO booking %s marked as settled", bookingID)
+		s.log.Info(" booking %s marked as settled", bookingID)
 	}
 
 	return nil

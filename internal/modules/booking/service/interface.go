@@ -9,9 +9,9 @@ import (
 	calendardomain "hauslet/internal/modules/calendar/domain"
 	pricingdomain "hauslet/internal/modules/pricing/domain"
 	platformQueue "hauslet/internal/platform/queue"
+	"log/slog"
 	"time"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -164,7 +164,7 @@ type BookingServiceImpl struct {
 	financeHooks   FinanceHooks
 	reviewHooks    ReviewHooks
 	platformConfig config.PlatformYAMLConfig
-	log            *lgr.Logger
+	log            *slog.Logger
 }
 
 func NewBookingService(
@@ -180,7 +180,7 @@ func NewBookingService(
 	financeHooks FinanceHooks,
 	reviewHooks ReviewHooks,
 	platformConfig config.PlatformYAMLConfig,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) BookingService {
 	return &BookingServiceImpl{
 		repo:           repo,

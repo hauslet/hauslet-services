@@ -36,11 +36,11 @@ queueSubjects := []string{cfg.YAML.Queue.Subjects["email"]}
 // Initialize the queue client
 queueClient, err := queue.New(ctx, cfg.Infra.NATS.URL, cfg.YAML.Queue.StreamName, queueSubjects)
 if err != nil {
-    log.Logf("WARN ⚠️ failed to initialize NATS queue: %v", err)
+    log.Warn("⚠️ failed to initialize NATS queue: %v", err)
     // Handle error, perhaps by using a fallback mechanism
 } else {
     defer queueClient.Close()
-    log.Logf("INFO ✅ NATS queue initialized")
+    log.Info(" ✅ NATS queue initialized")
 }
 
 

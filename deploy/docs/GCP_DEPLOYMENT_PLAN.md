@@ -403,7 +403,7 @@ func (s *Server) handleAIModerationTask(w http.ResponseWriter, r *http.Request) 
 
     // Process task (can take up to 300s)
     if err := s.aiModerationHandler.Handle(ctx, job); err != nil {
-        s.log.Logf("ERROR AI moderation failed: %v", err)
+        s.log.Error("AI moderation failed: %v", err)
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     }
@@ -433,7 +433,7 @@ func (s *Server) handleAIModerationTask(w http.ResponseWriter, r *http.Request) 
 ```go
 // Always falls back to direct send if queue fails
 if err := s.queueClient.Publish(ctx, "email.send", job); err != nil {
-    s.log.Logf("WARN queue publish failed, sending directly: %v", err)
+    s.log.Warn("queue publish failed, sending directly: %v", err)
     return s.emailService.SendDirectly(ctx, job)  // Masks queue outage!
 }
 ```
@@ -448,7 +448,7 @@ type Client struct {
     projectID string
     location  string
     client    *cloudtasks.Client
-    log       *lgr.Logger
+    log       *slog.Logger 
 
     // Environment-aware behavior
     environment string  // "development", "staging", "production"
@@ -459,7 +459,7 @@ func (c *Client) Publish(ctx context.Context, queueName string, payload interfac
 
     _, err := c.client.CreateTask(ctx, req)
     if err != nil {
-        c.log.Logf("ERROR failed to publish to queue %s: %v", queueName, err)
+        c.log.Error("failed to publish to queue %s: %v", queueName, err)
 
         // Environment-specific handling
         if c.environment == "production" {
@@ -468,7 +468,7 @@ func (c *Client) Publish(ctx context.Context, queueName string, payload interfac
         }
 
         // Allow graceful degradation in dev/staging
-        c.log.Logf("WARN queue unavailable, caller may fallback (env=%s)", c.environment)
+        c.log.Warn("queue unavailable, caller may fallback (env=%s)", c.environment)
         return err
     }
 
@@ -497,7 +497,7 @@ func (s *NotificationService) NotifyBookingConfirmed(ctx context.Context, bookin
         }
 
         // Dev/staging: Allow graceful fallback
-        s.log.Logf("WARN queue unavailable, sending email directly (dev mode)")
+        s.log.Warn("queue unavailable, sending email directly (dev mode)")
         return s.emailService.SendBookingConfirmed(ctx, booking)
     }
 

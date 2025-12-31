@@ -8,12 +8,12 @@ import (
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/go-pkgz/lgr"
 	"gorm.io/gorm"
 )
 
@@ -21,7 +21,7 @@ func NewHTTPServer(
 	ctx context.Context,
 	db *gorm.DB,
 	rds *redis.RedisClient,
-	log *lgr.Logger,
+	log *slog.Logger,
 	cfg *config.GlobalConfig,
 	mC *email.Client,
 	q *queue.Client,
@@ -54,7 +54,7 @@ func NewHTTPServer(
 		EmailClient: mC,
 	})
 	if err != nil {
-		log.Logf("FATAL failed to initialize application container: %v", err)
+		log.Error("failed to initialize application container: %v", err)
 		panic(err) // Panic is appropriate here as we can't continue without the container
 	}
 

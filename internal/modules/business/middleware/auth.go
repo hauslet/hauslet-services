@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"regexp"
 
@@ -10,20 +11,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-pkgz/auth/token"
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
 // BusinessAuthMiddleware handles business-level authorization
 type BusinessAuthMiddleware struct {
 	businessService service.BusinessService
-	log             *lgr.Logger
+	log             *slog.Logger
 }
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 // NewBusinessAuthMiddleware creates a new business authorization middleware
-func NewBusinessAuthMiddleware(businessService service.BusinessService, log *lgr.Logger) *BusinessAuthMiddleware {
+func NewBusinessAuthMiddleware(businessService service.BusinessService, log *slog.Logger) *BusinessAuthMiddleware {
 	return &BusinessAuthMiddleware{
 		businessService: businessService,
 		log:             log,
@@ -38,7 +38,7 @@ func (m *BusinessAuthMiddleware) RequireBusinessMember(next http.Handler) http.H
 
 		userInfo, err := token.GetUserInfo(r)
 		if err != nil {
-			m.log.Logf("WARN Unauthenticated request to business resource")
+			m.log.Warn("Unauthenticated request to business resource")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -50,21 +50,21 @@ func (m *BusinessAuthMiddleware) RequireBusinessMember(next http.Handler) http.H
 		// Get business ID from URL
 		businessIDStr := chi.URLParam(r, "businessID")
 		if businessIDStr == "" {
-			m.log.Logf("WARN Missing businessID in URL")
+			m.log.Warn("Missing businessID in URL")
 			http.Error(w, "Business ID required", http.StatusBadRequest)
 			return
 		}
 
 		businessID, err := uuid.Parse(businessIDStr)
 		if err != nil {
-			m.log.Logf("WARN Invalid business ID: %v", err)
+			m.log.Warn("Invalid business ID: %v", err)
 			http.Error(w, "Invalid business ID", http.StatusBadRequest)
 			return
 		}
 
 		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
-			m.log.Logf("ERROR Invalid user ID: %v", err)
+			m.log.Error("Invalid user ID: %v", err)
 			http.Error(w, "Invalid user ID", http.StatusBadRequest)
 			return
 		}
@@ -73,11 +73,11 @@ func (m *BusinessAuthMiddleware) RequireBusinessMember(next http.Handler) http.H
 		membership, err := m.businessService.GetMember(ctx, businessID, userID)
 		if err != nil {
 			if err == domain.ErrMemberNotFound {
-				m.log.Logf("WARN User %s is not a member of business %s", userID, businessID)
+				m.log.Warn("User %s is not a member of business %s", userID, businessID)
 				http.Error(w, "Forbidden: Not a business member", http.StatusForbidden)
 				return
 			}
-			m.log.Logf("ERROR Failed to get membership: %v", err)
+			m.log.Error("Failed to get membership: %v", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -85,7 +85,7 @@ func (m *BusinessAuthMiddleware) RequireBusinessMember(next http.Handler) http.H
 		// Get business
 		business, err := m.businessService.GetBusiness(ctx, businessID)
 		if err != nil {
-			m.log.Logf("ERROR Failed to get business: %v", err)
+			m.log.Error("Failed to get business: %v", err)
 			http.Error(w, "Business not found", http.StatusNotFound)
 			return
 		}
@@ -112,13 +112,13 @@ func (m *BusinessAuthMiddleware) RequireBusinessOwner(next http.Handler) http.Ha
 
 		bc, ok := GetBusinessContext(ctx)
 		if !ok {
-			m.log.Logf("ERROR Business context not found")
+			m.log.Error("Business context not found")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
 		if !bc.IsOwner {
-			m.log.Logf("WARN User is not an owner of business %s", bc.BusinessID)
+			m.log.Warn("User is not an owner of business %s", bc.BusinessID)
 			http.Error(w, "Forbidden: Owner access required", http.StatusForbidden)
 			return
 		}
@@ -134,13 +134,13 @@ func (m *BusinessAuthMiddleware) RequireBusinessAdmin(next http.Handler) http.Ha
 
 		bc, ok := GetBusinessContext(ctx)
 		if !ok {
-			m.log.Logf("ERROR Business context not found")
+			m.log.Error("Business context not found")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 
 		if !bc.IsAdmin && !bc.IsOwner {
-			m.log.Logf("WARN User is not an admin/owner of business %s", bc.BusinessID)
+			m.log.Warn("User is not an admin/owner of business %s", bc.BusinessID)
 			http.Error(w, "Forbidden: Admin access required", http.StatusForbidden)
 			return
 		}
@@ -157,7 +157,7 @@ func (m *BusinessAuthMiddleware) RequirePermission(permission string) func(http.
 
 			bc, ok := GetBusinessContext(ctx)
 			if !ok {
-				m.log.Logf("ERROR Business context not found")
+				m.log.Error("Business context not found")
 				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
@@ -170,7 +170,7 @@ func (m *BusinessAuthMiddleware) RequirePermission(permission string) func(http.
 
 			// Check specific permission
 			if bc.Permissions == nil {
-				m.log.Logf("WARN No permissions found for user in business %s", bc.BusinessID)
+				m.log.Warn("No permissions found for user in business %s", bc.BusinessID)
 				http.Error(w, "Forbidden: Insufficient permissions", http.StatusForbidden)
 				return
 			}
@@ -196,13 +196,13 @@ func (m *BusinessAuthMiddleware) RequirePermission(permission string) func(http.
 			case "CanViewFinancials":
 				hasPermission = bc.Permissions.CanViewFinancials
 			default:
-				m.log.Logf("WARN Unknown permission: %s", permission)
+				m.log.Warn("Unknown permission: %s", permission)
 				http.Error(w, "Forbidden: Invalid permission", http.StatusForbidden)
 				return
 			}
 
 			if !hasPermission {
-				m.log.Logf("WARN User lacks permission %s in business %s", permission, bc.BusinessID)
+				m.log.Warn("User lacks permission %s in business %s", permission, bc.BusinessID)
 				http.Error(w, fmt.Sprintf("Forbidden: %s permission required", permission), http.StatusForbidden)
 				return
 			}
@@ -225,7 +225,7 @@ func (m *BusinessAuthMiddleware) WithTenantSlug(next http.Handler) http.Handler 
 		}
 
 		if !slugPattern.MatchString(slug) {
-			m.log.Logf("WARN Invalid tenant slug format")
+			m.log.Warn("Invalid tenant slug format")
 			http.Error(w, "Invalid tenant slug", http.StatusBadRequest)
 			return
 		}
@@ -233,7 +233,7 @@ func (m *BusinessAuthMiddleware) WithTenantSlug(next http.Handler) http.Handler 
 		// Resolve business by slug
 		business, err := m.businessService.GetBusinessBySlug(ctx, slug)
 		if err != nil || business == nil {
-			m.log.Logf("WARN Business not found for slug %s", slug)
+			m.log.Warn("Business not found for slug %s", slug)
 			http.Error(w, "Business not found", http.StatusNotFound)
 			return
 		}
@@ -241,7 +241,7 @@ func (m *BusinessAuthMiddleware) WithTenantSlug(next http.Handler) http.Handler 
 		// Must be authenticated to use business context
 		user, err := token.GetUserInfo(r)
 		if err != nil {
-			m.log.Logf("WARN Unauthenticated request with tenant slug %s", slug)
+			m.log.Warn("Unauthenticated request with tenant slug %s", slug)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -252,7 +252,7 @@ func (m *BusinessAuthMiddleware) WithTenantSlug(next http.Handler) http.Handler 
 
 		userID, err := uuid.Parse(userIDStr)
 		if err != nil {
-			m.log.Logf("ERROR Invalid user ID: %v", err)
+			m.log.Error("Invalid user ID: %v", err)
 			http.Error(w, "Invalid user ID", http.StatusBadRequest)
 			return
 		}
@@ -261,11 +261,11 @@ func (m *BusinessAuthMiddleware) WithTenantSlug(next http.Handler) http.Handler 
 		membership, err := m.businessService.GetMember(ctx, business.ID, userID)
 		if err != nil {
 			if err == domain.ErrMemberNotFound {
-				m.log.Logf("WARN User %s is not a member of business %s (slug %s)", userID, business.ID, slug)
+				m.log.Warn("User %s is not a member of business %s (slug %s)", userID, business.ID, slug)
 				http.Error(w, "Forbidden: Not a business member", http.StatusForbidden)
 				return
 			}
-			m.log.Logf("ERROR Failed to get membership for slug %s: %v", slug, err)
+			m.log.Error("Failed to get membership for slug %s: %v", slug, err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -300,7 +300,7 @@ func (m *BusinessAuthMiddleware) LoadBusinessContext(next http.Handler) http.Han
 
 		businessID, err := uuid.Parse(businessIDStr)
 		if err != nil {
-			m.log.Logf("WARN Invalid business ID: %v", err)
+			m.log.Warn("Invalid business ID: %v", err)
 			http.Error(w, "Invalid business ID", http.StatusBadRequest)
 			return
 		}
@@ -308,7 +308,7 @@ func (m *BusinessAuthMiddleware) LoadBusinessContext(next http.Handler) http.Han
 		// Get business
 		business, err := m.businessService.GetBusiness(ctx, businessID)
 		if err != nil {
-			m.log.Logf("ERROR Failed to get business: %v", err)
+			m.log.Error("Failed to get business: %v", err)
 			http.Error(w, "Business not found", http.StatusNotFound)
 			return
 		}
