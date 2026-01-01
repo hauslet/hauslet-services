@@ -42,13 +42,13 @@ func (r *Resolver) Wallet(ctx context.Context, id string) (*domain.Wallet, error
 
 	walletID, err := uuid.Parse(id)
 	if err != nil {
-		r.log.Error("invalid wallet ID %s: %v", id, err)
+		r.log.Error("invalid wallet ID", "wallet_id", id, "error", err)
 		return nil, fmt.Errorf("invalid wallet ID")
 	}
 
 	wallet, err := r.financeService.GetWallet(ctx, walletID)
 	if err != nil {
-		r.log.Error("failed to get wallet %s: %v", id, err)
+		r.log.Error("failed to get wallet", "wallet_id", id, "error", err)
 		return nil, err
 	}
 
@@ -63,13 +63,13 @@ func (r *Resolver) UserWallets(ctx context.Context, userID string) ([]*domain.Wa
 
 	uid, err := uuid.Parse(userID)
 	if err != nil {
-		r.log.Error("invalid user ID %s: %v", userID, err)
+		r.log.Error("invalid user ID", "user_id", userID, "error", err)
 		return nil, fmt.Errorf("invalid user ID")
 	}
 
 	wallets, err := r.financeService.ListUserWallets(ctx, uid)
 	if err != nil {
-		r.log.Error("failed to list wallets for user %s: %v", userID, err)
+		r.log.Error("failed to list wallets for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 
@@ -84,7 +84,7 @@ func (r *Resolver) FinanceTransactionHistory(
 ) ([]*domain.Transaction, error) {
 	rid, err := uuid.Parse(resourceID)
 	if err != nil {
-		r.log.Error("invalid resource ID %s: %v", resourceID, err)
+		r.log.Error("invalid resource ID", "resource_id", resourceID, "error", err)
 		return nil, fmt.Errorf("invalid resource ID")
 	}
 
@@ -117,7 +117,7 @@ func (r *Resolver) WalletLedger(
 
 	wid, err := uuid.Parse(walletID)
 	if err != nil {
-		r.log.Error("invalid wallet ID %s: %v", walletID, err)
+		r.log.Error("invalid wallet ID", "wallet_id", walletID, "error", err)
 		return nil, fmt.Errorf("invalid wallet ID")
 	}
 
@@ -148,13 +148,13 @@ func (r *Resolver) Disbursement(ctx context.Context, id string) (*domain.Disburs
 
 	did, err := uuid.Parse(id)
 	if err != nil {
-		r.log.Error("invalid disbursement ID %s: %v", id, err)
+		r.log.Error("invalid disbursement ID", "disbursement_id", id, "error", err)
 		return nil, fmt.Errorf("invalid disbursement ID")
 	}
 
 	disbursement, err := r.payoutService.GetDisbursement(ctx, did)
 	if err != nil {
-		r.log.Error("failed to get disbursement %s: %v", id, err)
+		r.log.Error("failed to get disbursement", "disbursement_id", id, "error", err)
 		return nil, err
 	}
 
@@ -171,7 +171,7 @@ func (r *Resolver) MyEarnings(ctx context.Context) (*EarningsSummary, error) {
 	// Get host's available wallet
 	wallets, err := r.financeService.ListUserWallets(ctx, userID)
 	if err != nil {
-		r.log.Error("failed to get wallets for user %s", "userID", userID, "error", err)
+		r.log.Error("failed to get wallets for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 

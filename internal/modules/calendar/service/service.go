@@ -15,7 +15,7 @@ import (
 
 func (s *CalendarServiceImpl) CreateEvent(ctx context.Context, event *domain.CalendarEvent) (*domain.CalendarEvent, error) {
 	if s.log != nil {
-		s.log.Info(" creating calendar event type=%s listing=%s", event.EventType, event.ListingID)
+		s.log.Info("creating calendar event", "type", event.EventType, "listing", event.ListingID)
 	}
 
 	// Validate listing has calendar enabled
@@ -38,7 +38,7 @@ func (s *CalendarServiceImpl) CreateEvent(ctx context.Context, event *domain.Cal
 		domainConflict := domain.MapEventFromSchemaToEntity(conflict)
 		if event.ConflictsWith(domainConflict) {
 			if s.log != nil {
-				s.log.Warn("event conflicts with existing event id=%s", conflict.ID)
+				s.log.Warn("event conflicts with existing event", "conflict_id", conflict.ID)
 			}
 			return nil, domain.ErrEventConflict
 		}
@@ -48,7 +48,7 @@ func (s *CalendarServiceImpl) CreateEvent(ctx context.Context, event *domain.Cal
 	schemaEvent := domain.MapEventFromEntityToSchema(event)
 	if err := s.repo.CreateEvent(ctx, schemaEvent); err != nil {
 		if s.log != nil {
-			s.log.Error("failed to create event: %v", err)
+			s.log.Error("failed to create event", "error", err)
 		}
 		return nil, fmt.Errorf("failed to create event: %w", err)
 	}
@@ -62,7 +62,7 @@ func (s *CalendarServiceImpl) CreateEvent(ctx context.Context, event *domain.Cal
 	s.invalidateAvailabilityCache(ctx, event.ListingID)
 
 	if s.log != nil {
-		s.log.Info(" created calendar event id=%s", event.ID)
+		s.log.Info("created calendar event", "event_id", event.ID)
 	}
 
 	return event, nil
@@ -125,7 +125,7 @@ func (s *CalendarServiceImpl) UpdateEvent(ctx context.Context, event *domain.Cal
 	s.invalidateAvailabilityCache(ctx, event.ListingID)
 
 	if s.log != nil {
-		s.log.Info(" updated calendar event id=%s", event.ID)
+		s.log.Info("updated calendar event", "event_id", event.ID)
 	}
 
 	return event, nil
@@ -151,7 +151,7 @@ func (s *CalendarServiceImpl) CancelEvent(ctx context.Context, eventID uuid.UUID
 	s.invalidateAvailabilityCache(ctx, event.ListingID)
 
 	if s.log != nil {
-		s.log.Info(" cancelled event id=%s", eventID)
+		s.log.Info("cancelled event", "event_id", eventID)
 	}
 
 	return nil
@@ -173,7 +173,7 @@ func (s *CalendarServiceImpl) DeleteEvent(ctx context.Context, eventID uuid.UUID
 	s.invalidateAvailabilityCache(ctx, event.ListingID)
 
 	if s.log != nil {
-		s.log.Info(" deleted event id=%s", eventID)
+		s.log.Info("deleted event", "event_id", eventID)
 	}
 
 	return nil
@@ -498,7 +498,7 @@ func (s *CalendarServiceImpl) InitializeCalendar(ctx context.Context, listingID 
 	// Mark calendar as enabled in listing
 	if err := s.listingHooks.MarkCalendarEnabled(ctx, listingID, true); err != nil {
 		if s.log != nil {
-			s.log.Warn("failed to mark calendar enabled: %v", err)
+			s.log.Warn("failed to mark calendar enabled", "error", err)
 		}
 	}
 
@@ -507,7 +507,7 @@ func (s *CalendarServiceImpl) InitializeCalendar(ctx context.Context, listingID 
 	config.UpdatedAt = schemaConfig.UpdatedAt
 
 	if s.log != nil {
-		s.log.Info(" initialized calendar for listing=%s", listingID)
+		s.log.Info("initialized calendar for listing", "listing_id", listingID)
 	}
 
 	return config, nil
@@ -599,7 +599,7 @@ func (s *CalendarServiceImpl) MarkCompletedEvents(ctx context.Context) (int64, e
 	}
 
 	if s.log != nil {
-		s.log.Info(" marked %d events as completed", count)
+		s.log.Info("marked events as completed", "count", count)
 	}
 
 	return count, nil
@@ -612,7 +612,7 @@ func (s *CalendarServiceImpl) ArchiveOldEvents(ctx context.Context, completedBef
 	}
 
 	if s.log != nil {
-		s.log.Info(" archived %d old events", count)
+		s.log.Info("archived old events", "count", count)
 	}
 
 	return count, nil

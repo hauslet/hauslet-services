@@ -20,7 +20,7 @@ func (r *Resolver) ReconciliationReport(ctx context.Context, id string) (*domain
 
 	reportID, err := uuid.Parse(id)
 	if err != nil {
-		r.log.Error("invalid reconciliation report ID %s: %v", id, err)
+		r.log.Error("invalid reconciliation report ID", "id", id, "error", err)
 		return nil, fmt.Errorf("invalid report ID")
 	}
 
@@ -29,7 +29,7 @@ func (r *Resolver) ReconciliationReport(ctx context.Context, id string) (*domain
 		if err == domain.ErrReconciliationNotFound {
 			return nil, nil
 		}
-		r.log.Error("failed to get reconciliation report %s: %v", id, err)
+		r.log.Error("failed to get reconciliation report", "id", id, "error", err)
 		return nil, err
 	}
 
@@ -57,7 +57,7 @@ func (r *Resolver) ReconciliationReports(
 
 	reports, err := r.financeService.ListReconciliationReports(ctx, l, o)
 	if err != nil {
-		r.log.Error("failed to list reconciliation reports","error", err)
+		r.log.Error("failed to list reconciliation reports", "error", err)
 		return nil, err
 	}
 
@@ -75,7 +75,7 @@ func (r *Resolver) LatestReconciliation(ctx context.Context) (*domain.Reconcilia
 		if err == domain.ErrReconciliationNotFound {
 			return nil, nil
 		}
-		r.log.Error("failed to get latest reconciliation","error", err)
+		r.log.Error("failed to get latest reconciliation", "error", err)
 		return nil, err
 	}
 
@@ -94,7 +94,7 @@ func (r *Resolver) ReconciliationDiscrepancies(
 
 	rid, err := uuid.Parse(reportID)
 	if err != nil {
-		r.log.Error("invalid report ID %s: %v", reportID, err)
+		r.log.Error("invalid report ID", "report_id", reportID, "error", err)
 		return nil, fmt.Errorf("invalid report ID")
 	}
 
@@ -104,7 +104,7 @@ func (r *Resolver) ReconciliationDiscrepancies(
 		if err == domain.ErrReconciliationNotFound {
 			return nil, fmt.Errorf("report not found")
 		}
-		r.log.Error("failed to get reconciliation report %s: %v", reportID, err)
+		r.log.Error("failed to get reconciliation report", "report_id", reportID, "error", err)
 		return nil, err
 	}
 

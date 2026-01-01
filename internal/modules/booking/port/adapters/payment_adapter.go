@@ -31,8 +31,7 @@ func (a *PaymentServiceAdapter) InitiatePayment(
 	input service.PaymentInput,
 ) (*service.PaymentResult, error) {
 	if a.log != nil {
-		a.log.Info(" initiating payment for booking=%s amount=%d %s",
-			input.BookingID, input.Amount, input.Currency)
+		a.log.Info("initiating payment for booking", "booking_id", input.BookingID, "amount", input.Amount, "currency", input.Currency)
 	}
 
 	// Map to payment domain input
@@ -53,13 +52,13 @@ func (a *PaymentServiceAdapter) InitiatePayment(
 	payment, err := a.paymentSvc.CreatePayment(ctx, paymentInput)
 	if err != nil {
 		if a.log != nil {
-			a.log.Error("payment creation failed: %v", err)
+			a.log.Error("payment creation failed", "error", err)
 		}
 		return nil, err
 	}
 
 	if a.log != nil {
-		a.log.Info(" payment created: id=%s status=%s", payment.ID, payment.Status)
+		a.log.Info("payment created", "payment_id", payment.ID, "status", payment.Status)
 	}
 
 	// Map to booking's PaymentResult
@@ -83,13 +82,13 @@ func (a *PaymentServiceAdapter) VerifyPayment(
 	paymentID uuid.UUID,
 ) (*service.PaymentStatus, error) {
 	if a.log != nil {
-		a.log.Info(" verifying payment: id=%s", paymentID)
+		a.log.Info("verifying payment", "payment_id", paymentID)
 	}
 
 	payment, err := a.paymentSvc.GetPayment(ctx, paymentID)
 	if err != nil {
 		if a.log != nil {
-			a.log.Error("failed to get payment %s: %v", paymentID, err)
+			a.log.Error("failed to get payment", "payment_id", paymentID, "error", err)
 		}
 		return nil, err
 	}
@@ -107,7 +106,7 @@ func (a *PaymentServiceAdapter) RefundPayment(
 	input service.RefundPaymentInput,
 ) (*service.RefundResult, error) {
 	if a.log != nil {
-		a.log.Info(" processing refund for payment=%s", input.PaymentID)
+		a.log.Info("processing refund for payment", "payment_id", input.PaymentID)
 	}
 
 	// Map to payment domain input
@@ -122,14 +121,13 @@ func (a *PaymentServiceAdapter) RefundPayment(
 	refundedPayment, err := a.paymentSvc.RefundPayment(ctx, refundInput)
 	if err != nil {
 		if a.log != nil {
-			a.log.Error("refund failed: %v", err)
+			a.log.Error("refund failed", "error", err)
 		}
 		return nil, err
 	}
 
 	if a.log != nil {
-		a.log.Info(" refund processed: payment=%s refunded_amount=%d",
-			refundedPayment.ID, refundedPayment.RefundedAmount)
+		a.log.Info("refund processed", "payment_id", refundedPayment.ID, "refunded_amount", refundedPayment.RefundedAmount)
 	}
 
 	// Map to booking's RefundResult
@@ -155,7 +153,7 @@ func (a *PaymentServiceAdapter) GetDefaultPaymentMethodID(ctx context.Context, u
 	method, err := a.paymentSvc.GetDefaultPaymentMethod(ctx, userID)
 	if err != nil {
 		if a.log != nil {
-			a.log.Error("failed to get default payment method for user=%s: %v", userID, err)
+			a.log.Error("failed to get default payment method for user", "user_id", userID, "error", err)
 		}
 		return nil, err
 	}

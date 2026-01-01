@@ -559,7 +559,7 @@ func (s *ServiceImpl) unpublishAndEnqueueModeration(ctx context.Context, existin
 	if err != nil {
 		return fmt.Errorf("failed to get listing completeness: %w", err)
 	}
-	s.log.Info(" listing=%s completeness before unpublish: %f%%", listing.ID, float64(lc.CompletionScore))
+	s.log.Info("listing completeness before unpublish", "listing_id", listing.ID, "completeness_score", float64(lc.CompletionScore))
 
 	// Decide next status based on completeness.
 	nextStatus := domain.StatusUnderReview
@@ -587,7 +587,7 @@ func (s *ServiceImpl) unpublishAndEnqueueModeration(ctx context.Context, existin
 
 	// If not ready, stop after unpublishing.
 	if !lc.ReadyToPublish {
-		s.log.Info(" listing=%s not ready to publish; set status=%s and skipped moderation", listing.ID, nextStatus)
+		s.log.Info("listing not ready to publish; skipped moderation", "listing_id", listing.ID, "status", nextStatus)
 		return nil
 	}
 

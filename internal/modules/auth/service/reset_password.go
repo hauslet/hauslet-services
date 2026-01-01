@@ -36,7 +36,7 @@ func (s *AuthServiceImpl) RequestPasswordReset(ctx context.Context, email string
 	}
 
 	if err := s.SendPasswordResetEmail(ctx, email, user.Name, token, int(resetTokenTTL.Minutes())); err != nil {
-		s.log.Warn("failed to send password reset email to %s: %v", email, err)
+		s.log.Warn("failed to send password reset email", "email", email, "error", err)
 	}
 
 	return nil
@@ -102,7 +102,7 @@ func (s *AuthServiceImpl) ResetPassword(ctx context.Context, email, token, newPa
 	_ = s.redisClient.Del(ctx, key).Err()
 
 	if err := s.SendPasswordChangedEmail(ctx, email, user.Name); err != nil {
-		s.log.Warn("failed to send password changed email to %s: %v", email, err)
+		s.log.Warn("failed to send password changed email", "email", email, "error", err)
 	}
 
 	return nil

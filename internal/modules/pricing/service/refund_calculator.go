@@ -13,8 +13,7 @@ func (s *PricingServiceImpl) CalculateRefund(
 	input domain.RefundCalculationInput,
 ) (*domain.RefundBreakdown, error) {
 	if s.log != nil {
-		s.log.Info(" calculating refund booking=%s policy=%s cancelled_by=%s",
-			input.BookingID, input.RefundPolicy, input.CancelledBy)
+		s.log.Info("calculating refund", "booking_id", input.BookingID, "policy", input.RefundPolicy, "cancelled_by", input.CancelledBy)
 	}
 
 	// Validate input
@@ -125,8 +124,7 @@ func (s *PricingServiceImpl) calculateGracePeriodRefund(breakdown *domain.Refund
 	)
 
 	if s.log != nil {
-		s.log.Info(" refund calculation: grace_period refund=%.2f (%.1f%%)",
-			breakdown.NetRefund, breakdown.RefundPercentage)
+		s.log.Info("refund calculation", "policy", "grace_period", "refund", breakdown.NetRefund, "refund_percent", breakdown.RefundPercentage)
 	}
 
 	return breakdown, nil
@@ -153,8 +151,7 @@ func (s *PricingServiceImpl) calculateHostCancellationRefund(breakdown *domain.R
 	breakdown.PolicyRules = "Host Cancellation Policy: 100% refund to guest, host absorbs all fees and may face penalties"
 
 	if s.log != nil {
-		s.log.Info(" refund calculation: host_cancellation refund=%.2f (%.1f%%)",
-			breakdown.NetRefund, breakdown.RefundPercentage)
+		s.log.Info("refund calculation", "policy", "host_cancellation", "refund", breakdown.NetRefund, "refund_percent", breakdown.RefundPercentage)
 	}
 
 	return breakdown, nil
@@ -177,8 +174,7 @@ func (s *PricingServiceImpl) calculateAdminCancellationRefund(breakdown *domain.
 	breakdown.PolicyRules = "Admin Override: 100% refund, platform absorbs all fees"
 
 	if s.log != nil {
-		s.log.Info(" refund calculation: admin_cancellation refund=%.2f (%.1f%%)",
-			breakdown.NetRefund, breakdown.RefundPercentage)
+		s.log.Info("refund calculation", "policy", "admin_cancellation", "refund", breakdown.NetRefund, "refund_percent", breakdown.RefundPercentage)
 	}
 
 	return breakdown, nil
@@ -193,7 +189,7 @@ func (s *PricingServiceImpl) calculatePolicyBasedRefund(
 	policyTier, exists := s.platformConfig.Refunds.PolicyTiers[policyName]
 	if !exists {
 		if s.log != nil {
-			s.log.Warn("policy not found: %s, using moderate", policyName)
+			s.log.Warn("refund policy not found, using moderate", "policy", policyName)
 		}
 		// Fallback to moderate policy
 		policyTier = s.platformConfig.Refunds.PolicyTiers["moderate"]
@@ -251,7 +247,7 @@ func (s *PricingServiceImpl) calculatePolicyBasedRefund(
 		breakdown.Summary = fmt.Sprintf("No refund - %s policy", policyName)
 
 		if s.log != nil {
-			s.log.Info(" refund calculation: %s policy no_refund", policyName)
+			s.log.Info("refund calculation", "policy", policyName, "result", "no_refund")
 		}
 		return breakdown, nil
 	}
@@ -278,9 +274,7 @@ func (s *PricingServiceImpl) calculatePolicyBasedRefund(
 	}
 
 	if s.log != nil {
-		s.log.Info(" refund calculation: %s policy refund=%.2f (%.1f%%) hours_until_checkin=%.1f cutoff=%d",
-			policyName, breakdown.NetRefund, breakdown.RefundPercentage,
-			breakdown.HoursUntilCheckIn, policyTier.CutoffHoursBeforeCheckIn)
+		s.log.Info("refund calculation", "policy", policyName, "refund", breakdown.NetRefund, "refund_percent", breakdown.RefundPercentage, "hours_until_checkin", breakdown.HoursUntilCheckIn, "cutoff_hours", policyTier.CutoffHoursBeforeCheckIn)
 	}
 
 	return breakdown, nil
@@ -303,7 +297,7 @@ func (s *PricingServiceImpl) buildNoRefundBreakdown(
 	breakdown.PolicyRules = "No refund policy applies"
 
 	if s.log != nil {
-		s.log.Info(" refund calculation: %s no_refund", policy)
+		s.log.Info("refund calculation", "policy", policy, "result", "no_refund")
 	}
 
 	return breakdown, nil

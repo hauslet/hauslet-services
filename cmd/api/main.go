@@ -18,14 +18,14 @@ func main() {
 
 	infra, err := setup.InitInfrastructure(initCtx, cfg, log)
 	if err != nil {
-		log.Error("failed to initialize infrastructure: %v", err)
+		log.Error("failed to initialize infrastructure", "error", err)
 		return
 	}
 	defer infra.CloseDB()
 	defer infra.CloseCache()
 
 	if err := setup.RunMigrations(infra.DB, log); err != nil {
-		log.Error("failed to run migrations: %v", err)
+		log.Error("failed to run migrations", "error", err)
 		return
 	}
 

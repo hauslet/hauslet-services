@@ -44,7 +44,7 @@ func ensureActiveOnLogin(ctx context.Context, repo Dependencies, user *schema.Us
 func handleOAuthFlow(ctx context.Context, deps Dependencies, _ token.Claims, provider, providerUserID, email, name string, isLinking bool, linkState *LinkState) (*schema.User, error) {
 	if isLinking && linkState != nil {
 		if linkState.Provider != "" && linkState.Provider != provider {
-			deps.Log.Error("OAuth Linking: Provider mismatch: expected %s, got %s", linkState.Provider, provider)
+			deps.Log.Error("OAuth Linking: Provider mismatch", "expected", linkState.Provider, "got", provider)
 			return nil, fmt.Errorf("provider mismatch")
 		}
 
@@ -140,14 +140,14 @@ func handleOAuthFlow(ctx context.Context, deps Dependencies, _ token.Claims, pro
 			}
 		}
 
-		deps.Log.Info(" OAuth: Created new user ",
+		deps.Log.Info("OAuth: Created new user",
 			"user", user.ID,
 			"provider", provider)
 
 		if deps.SendWelcomeEmail != nil {
 			go func(email, name string) {
 				if err := deps.SendWelcomeEmail(context.Background(), email, name, ""); err != nil {
-					deps.Log.Warn("Failed to send OAuth welcome email to %s: %v", email, err)
+					deps.Log.Warn("Failed to send OAuth welcome email", "email", email, "error", err)
 				} else {
 					deps.Log.Info("OAuth welcome email sent", "email", email)
 				}
@@ -174,14 +174,14 @@ func handleOAuthFlow(ctx context.Context, deps Dependencies, _ token.Claims, pro
 		return nil, err
 	}
 
-	deps.Log.Info(" OAuth: Auto-linked identity to existing user ",
+	deps.Log.Info("OAuth: Auto-linked identity to existing user",
 		"provider", provider,
 		"user", user.ID)
 
 	if deps.SendIdentityLinked != nil {
 		go func(email, name, provider string) {
 			if err := deps.SendIdentityLinked(context.Background(), email, name, provider); err != nil {
-				deps.Log.Warn("Failed to send identity-linked notification", email, err)
+				deps.Log.Warn("Failed to send identity-linked notification", "email", email, "error", err)
 			}
 		}(user.PrimaryEmail, user.Name, provider)
 	}

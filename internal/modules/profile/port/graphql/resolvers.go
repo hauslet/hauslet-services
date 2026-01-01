@@ -40,11 +40,11 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 	// Load current profile for the authenticated user
 	profile, err := r.profileService.GetProfileByUserID(ctx, v.UserID)
 	if err != nil {
-		r.log.Error("Failed to get profile for user %s: %v", v.UserID, err)
+		r.log.Error("Failed to get profile for user", "user_id", v.UserID, "error", err)
 		return nil, err
 	}
 	if profile == nil {
-		r.log.Warn("Profile not found for user %s", v.UserID)
+		r.log.Warn("Profile not found for user", "user_id", v.UserID)
 		return nil, fmt.Errorf("profile not found")
 	}
 
@@ -53,19 +53,18 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 
 	// If no updates, return current profile
 	if len(updates) == 0 {
-		r.log.Info(" No updates provided for user %s", v.UserID)
+		r.log.Info("No updates provided for user", "user_id", v.UserID)
 		return sanitizeProfileForViewer(profile, v), nil
 	}
 
 	// Apply updates
 	updated, err := r.profileService.PatchProfile(ctx, profile.ID.String(), updates)
 	if err != nil {
-		r.log.Error("Failed to patch profile for user %s: %v", v.UserID, err)
+		r.log.Error("Failed to patch profile for user", "user_id", v.UserID, "error", err)
 		return nil, err
 	}
 
-	r.log.Info(" Profile updated successfully for user %s", v.UserID)
-
+	r.log.Info("Profile updated successfully for user", "user_id", v.UserID)
 	// Convert photo key back to URL for response
 	if updated.PhotoURL != nil && *updated.PhotoURL != "" {
 		url := r.keyToURL(*updated.PhotoURL)
@@ -79,7 +78,7 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 func (r *Resolver) Profile(ctx context.Context, id uuid.UUID) (*domain.Profile, error) {
 	p, err := r.profileService.GetProfileByID(ctx, id.String())
 	if err != nil {
-		r.log.Error("Failed to get profile by ID %s: %v", id, err)
+		r.log.Error("Failed to get profile by ID", "id", id.String(), "error", err)
 		return nil, err
 	}
 	if p != nil && p.PhotoURL != nil && *p.PhotoURL != "" {
@@ -99,7 +98,7 @@ func (r *Resolver) ProfileByUserID(ctx context.Context, userID string) (*domain.
 
 	p, err := r.profileService.GetProfileByUserID(ctx, userID)
 	if err != nil {
-		r.log.Error("Failed to get profile by user ID %s: %v", userID, err)
+		r.log.Error("Failed to get profile by user ID", "user_id", userID, "error", err)
 		return nil, err
 	}
 	if p != nil && p.PhotoURL != nil && *p.PhotoURL != "" {
@@ -122,7 +121,7 @@ func (r *Resolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*do
 
 	profiles, err := r.profileService.ListProfiles(ctx, l, o)
 	if err != nil {
-		r.log.Error("Failed to list profiles: %v", err)
+		r.log.Error("Failed to list profiles", "error", err)
 		return nil, err
 	}
 	return sanitizeProfilesForViewer(profiles, viewer.FromContext(ctx)), nil
@@ -141,7 +140,7 @@ func (r *Resolver) SearchProfiles(ctx context.Context, query string, limit *int,
 
 	profiles, err := r.profileService.SearchProfiles(ctx, query, l, o)
 	if err != nil {
-		r.log.Error("Failed to search profiles with query '%s': %v", query, err)
+		r.log.Error("Failed to search profiles with query", "query", query, "error", err)
 		return nil, err
 	}
 	return sanitizeProfilesForViewer(profiles, viewer.FromContext(ctx)), nil
@@ -157,7 +156,7 @@ func (r *Resolver) MyProfile(ctx context.Context) (*domain.Profile, error) {
 
 	profile, err := r.profileService.GetProfileByUserID(ctx, v.UserID)
 	if err != nil {
-		r.log.Error("Failed to get profile for user %s: %v", v.UserID, err)
+		r.log.Error("Failed to get profile for user", "user_id", v.UserID, "error", err)
 		return nil, err
 	}
 	if profile != nil && profile.PhotoURL != nil && *profile.PhotoURL != "" {
@@ -186,7 +185,7 @@ func (r *Resolver) keyToURL(key string) string {
 func (r *Resolver) UploadProfilePhoto(ctx context.Context, userID string, fileName string) (*domain.UploadResult, error) {
 	uploadResult, err := r.profileService.UploadProfilePhoto(ctx, userID, fileName)
 	if err != nil {
-		r.log.Error("Failed to upload profile photo for user %s: %v", userID, err)
+		r.log.Error("Failed to upload profile photo for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 	return uploadResult, nil
@@ -195,7 +194,7 @@ func (r *Resolver) UploadProfilePhoto(ctx context.Context, userID string, fileNa
 func (r *Resolver) UploadTravelCompanionPhoto(ctx context.Context, companionID uuid.UUID, userID string, fileName string) (*domain.UploadResult, error) {
 	uploadResult, err := r.profileService.UploadTravelCompanionPhoto(ctx, companionID, userID, fileName)
 	if err != nil {
-		r.log.Error("Failed to upload travel companion photo for user %s: %v", userID, err)
+		r.log.Error("Failed to upload travel companion photo for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 	return uploadResult, nil
@@ -212,7 +211,7 @@ func (r *Resolver) AddTravelCompanion(ctx context.Context, userID string, input 
 	}
 
 	if err := r.profileService.AddTravelCompanion(ctx, userID, companion); err != nil {
-		r.log.Error("Failed to add travel companion for user %s: %v", userID, err)
+		r.log.Error("Failed to add travel companion for user", "user_id", userID, "error", err)
 		return false, err
 	}
 	return true, nil
@@ -233,7 +232,7 @@ func (r *Resolver) UpdateTravelCompanion(ctx context.Context, userID string, com
 	}
 
 	if err := r.profileService.UpdateTravelCompanion(ctx, userID, companion); err != nil {
-		r.log.Error("Failed to update travel companion %s for user %s: %v", companionID, userID, err)
+		r.log.Error("Failed to update travel companion", "companion_id", companionID, "user_id", userID, "error", err)
 		return false, err
 	}
 	return true, nil
@@ -241,7 +240,7 @@ func (r *Resolver) UpdateTravelCompanion(ctx context.Context, userID string, com
 
 func (r *Resolver) DeleteTravelCompanion(ctx context.Context, userID string, companionID string) (bool, error) {
 	if err := r.profileService.DeleteTravelCompanion(ctx, userID, companionID); err != nil {
-		r.log.Error("Failed to delete travel companion %s for user %s: %v", companionID, userID, err)
+		r.log.Error("Failed to delete travel companion", "companion_id", companionID, "user_id", userID, "error", err)
 		return false, err
 	}
 	return true, nil
@@ -249,7 +248,7 @@ func (r *Resolver) DeleteTravelCompanion(ctx context.Context, userID string, com
 
 func (r *Resolver) DeleteProfile(ctx context.Context, userID string) (bool, error) {
 	if err := r.profileService.DeleteProfile(ctx, userID); err != nil {
-		r.log.Error("Failed to delete profile for user %s: %v", userID, err)
+		r.log.Error("Failed to delete profile for user", "user_id", userID, "error", err)
 		return false, err
 	}
 	return true, nil

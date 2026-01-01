@@ -16,7 +16,7 @@ import (
 func (r *Resolver) ListingStats(ctx context.Context, listingID string) (*domain.ListingStats, error) {
 	lid, err := uuid.Parse(listingID)
 	if err != nil {
-		r.log.Error("invalid listing ID %s: %v", listingID, err)
+		r.log.Error("invalid listing ID", "listing_id", listingID, "error", err)
 		return nil, fmt.Errorf("invalid listing ID")
 	}
 
@@ -25,7 +25,7 @@ func (r *Resolver) ListingStats(ctx context.Context, listingID string) (*domain.
 		if err == domain.ErrStatsNotFound {
 			return nil, nil
 		}
-		r.log.Error("failed to get listing stats for %s: %v", listingID, err)
+		r.log.Error("failed to get listing stats", "listing_id", listingID, "error", err)
 		return nil, err
 	}
 
@@ -36,7 +36,7 @@ func (r *Resolver) ListingStats(ctx context.Context, listingID string) (*domain.
 func (r *Resolver) HostStats(ctx context.Context, hostID string) (*domain.HostStats, error) {
 	hid, err := uuid.Parse(hostID)
 	if err != nil {
-		r.log.Error("invalid host ID %s: %v", hostID, err)
+		r.log.Error("invalid host ID", "host_id", hostID, "error", err)
 		return nil, fmt.Errorf("invalid host ID")
 	}
 
@@ -45,7 +45,7 @@ func (r *Resolver) HostStats(ctx context.Context, hostID string) (*domain.HostSt
 		if err == domain.ErrStatsNotFound {
 			return nil, nil
 		}
-		r.log.Error("failed to get host stats for %s: %v", hostID, err)
+		r.log.Error("failed to get host stats", "host_id", hostID, "error", err)
 		return nil, err
 	}
 

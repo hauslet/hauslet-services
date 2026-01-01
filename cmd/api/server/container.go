@@ -180,7 +180,7 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 		return nil, fmt.Errorf("failed to initialize review: %w", err)
 	}
 
-	if err := c.initAuth(ctx); err != nil {
+	if err := c.initAuth(); err != nil {
 		return nil, fmt.Errorf("failed to initialize auth: %w", err)
 	}
 
@@ -207,7 +207,7 @@ func (c *Container) initPlatformServices(ctx context.Context) error {
 
 	// Initialize AI embeddings client (optional - log warning if fails)
 	if provider, err := aiembeddings.NewGeminiProvider(ctx, c.Config.Services.Gemini); err != nil {
-		c.Logger.Warn("failed to initialize embedding client: %v", err)
+		c.Logger.Warn("failed to initialize embedding client", "error", err)
 		c.EmbeddingAI = nil
 	} else {
 		c.EmbeddingAI = aiembeddings.New(provider)
@@ -565,7 +565,7 @@ func (c *Container) initReview() error {
 }
 
 // initAuth initializes the auth service
-func (c *Container) initAuth(ctx context.Context) error {
+func (c *Container) initAuth() error {
 	emailSubject := c.Config.YAML.Queue.Subjects["email"]
 	sessionStore := authsession.NewSessionStore(*c.Redis)
 	authRepo := authrepository.NewAuthRepository(c.DB, sessionStore)

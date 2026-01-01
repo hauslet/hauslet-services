@@ -16,11 +16,11 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 		return domain.ErrInvalidListingID
 	}
 
-	s.log.Info(" starting publish request for listing=%s", listingID)
+	s.log.Info("starting publish request for listing", "listing_id", listingID)
 
 	listing, err := s.ensureListing(ctx, listingID, true)
 	if err != nil {
-		s.log.Error("failed to fetch listing=%s: %v", listingID, err)
+		s.log.Error("failed to fetch listing", "listing_id", listingID, "error", err)
 		return err
 	}
 
@@ -37,7 +37,7 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 		listing.Status == domain.StatusInactive
 
 	if !canPublish {
-		s.log.Warn("listing=%s is in status %s, cannot publish", listingID, listing.Status)
+		s.log.Warn("listing cannot publish from current state", "listing_id", listingID, "status", listing.Status)
 		return fmt.Errorf("cannot publish listing from current state: %s", listing.Status)
 	}
 
@@ -54,17 +54,17 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 	// check completeness
 	completeness, err := s.GetListingCompleteness(ctx, listingID, listing.OwnerID)
 	if err != nil {
-		s.log.Error("failed to check completeness for listing=%s: %v", listingID, err)
+		s.log.Error("failed to check completeness for listing", "listing_id", listingID, "error", err)
 		return err
 	}
 	if !completeness.ReadyToPublish {
-		s.log.Warn("listing=%s not ready to publish, completeness=%d%%", listingID, completeness.CompletionScore)
+		s.log.Warn("listing not ready to publish", "listing_id", listingID, "completeness_score", completeness.CompletionScore)
 		return fmt.Errorf("listing is not ready to be published, completeness: %v%%", completeness.CompletionScore)
 	}
 
 	property, err := s.ensureProperty(ctx, listing.PropertyID)
 	if err != nil {
-		s.log.Error("failed to fetch property=%s for listing=%s: %v", listing.PropertyID, listingID, err)
+		s.log.Error("failed to fetch property for listing", "property_id", listing.PropertyID, "listing_id", listingID, "error", err)
 		return err
 	}
 
@@ -73,7 +73,7 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 	// Best-effort notify immediately that moderation has been requested.
 	if s.notificationService != nil && contactEmail != "" {
 		if err := s.notificationService.SendPublishListingRequestNotification(ctx, listing.Title, contactName, contactEmail); err != nil {
-			s.log.Error("failed to send publish listing request notification for listing=%s: %v", listingID, err)
+			s.log.Error("failed to send publish listing request notification", "listing_id", listingID, "error", err)
 		}
 	}
 
@@ -132,20 +132,20 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 
 	listingPayloadStr, err := serializeToJSON(listingPayload)
 	if err != nil {
-		s.log.Error("failed to serialize listing payload for listing=%s: %v", listingID, err)
+		s.log.Error("failed to serialize listing payload", "listing_id", listingID, "error", err)
 		return fmt.Errorf("failed to serialize listing payload: %w", err)
 	}
 
 	// Enqueue moderation
 	if s.moderationHooks == nil {
-		s.log.Error("moderation hooks not configured for listing=%s", listingID)
+		s.log.Error("moderation hooks not configured", "listing_id", listingID)
 		return fmt.Errorf("moderation hooks not configured")
 	}
 
 	// Enqueue listing text moderation
-	s.log.Info(" enqueueing text moderation for listing=%s", listingID)
+	s.log.Info("enqueueing text moderation for listing", "listing_id", listingID)
 	if err := s.moderationHooks.EnqueueAIModeration(ctx, listing.ID, "listing_text", listingPayloadStr); err != nil {
-		s.log.Error("failed to enqueue text moderation for listing=%s: %v", listingID, err)
+		s.log.Error("failed to enqueue text moderation", "listing_id", listingID, "error", err)
 		return fmt.Errorf("failed to enqueue text moderation: %w", err)
 	}
 
@@ -167,12 +167,12 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 		}
 
 		if err := s.moderationHooks.EnqueueAIModeration(ctx, listing.ID, contentType, media.Key); err != nil {
-			s.log.Error("failed to enqueue moderation for media=%s listing=%s: %v", media.ID, listingID, err)
+			s.log.Error("failed to enqueue moderation for media", "media_id", media.ID, "listing_id", listingID, "error", err)
 			return fmt.Errorf("failed to enqueue moderation for media %s: %w", media.ID, err)
 		}
 		mediaCount++
 	}
-	s.log.Info(" enqueued moderation for %d media items for listing=%s", mediaCount, listingID)
+	s.log.Info("enqueued moderation for media items", "count", mediaCount, "listing_id", listingID)
 
 	statusChangedAt := time.Now()
 	updates := map[string]any{
@@ -184,7 +184,7 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 	}
 
 	if err := s.repo.PatchListing(ctx, listing.ID, updates); err != nil {
-		s.log.Error("failed to update listing status for listing=%s: %v", listingID, err)
+		s.log.Error("failed to update listing status", "listing_id", listingID, "error", err)
 		return fmt.Errorf("failed to update listing status: %w", err)
 	}
 
@@ -194,7 +194,7 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 
 	// No additional notification here; it was sent best-effort before enqueue.
 
-	s.log.Info(" successfully submitted listing=%s for moderation, status=%s", listingID, domain.StatusUnderReview)
+	s.log.Info("successfully submitted listing for moderation", "listing_id", listingID, "status", domain.StatusUnderReview)
 	return nil
 }
 
@@ -245,7 +245,7 @@ func (s *ServiceImpl) resolveOwnerContact(ctx context.Context, ownerType domain.
 				}
 				email = e
 			} else {
-				s.log.Warn("failed to fetch profile data for owner %s: %v", ownerID, err)
+				s.log.Warn("failed to fetch profile data for owner", "owner_id", ownerID, "error", err)
 			}
 		}
 		return name, email
@@ -253,13 +253,13 @@ func (s *ServiceImpl) resolveOwnerContact(ctx context.Context, ownerType domain.
 
 	// Business owner path: find a member to notify.
 	if s.businessService == nil {
-		s.log.Warn("business service not configured; cannot resolve contact for business %s", ownerID)
+		s.log.Warn("business service not configured; cannot resolve contact", "business_id", ownerID)
 		return name, email
 	}
 
 	members, err := s.businessService.GetBusinessMembers(ctx, ownerID)
 	if err != nil {
-		s.log.Warn("failed to fetch business members for %s: %v", ownerID, err)
+		s.log.Warn("failed to fetch business members", "business_id", ownerID, "error", err)
 		return name, email
 	}
 
@@ -284,6 +284,6 @@ func (s *ServiceImpl) resolveOwnerContact(ctx context.Context, ownerType domain.
 		return name, email
 	}
 
-	s.log.Warn("no eligible business contact found for business %s", ownerID)
+	s.log.Warn("no eligible business contact found", "business_id", ownerID)
 	return name, email
 }

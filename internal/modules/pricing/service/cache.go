@@ -46,7 +46,7 @@ func (s *PricingServiceImpl) cacheBasePrice(ctx context.Context, listingID uuid.
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		if s.log != nil {
-			s.log.Warn("failed to marshal base price for cache: %v", err)
+			s.log.Warn("failed to marshal base price for cache", "error", err)
 		}
 		return
 	}
@@ -54,7 +54,7 @@ func (s *PricingServiceImpl) cacheBasePrice(ctx context.Context, listingID uuid.
 	key := basePriceCacheKey(listingID)
 	if err := s.cache.Set(ctx, key, bytes, basePriceCacheTTL); err != nil {
 		if s.log != nil {
-			s.log.Warn("failed to cache base price: %v", err)
+			s.log.Warn("failed to cache base price", "error", err)
 		}
 	}
 }
@@ -67,7 +67,7 @@ func (s *PricingServiceImpl) cachePriceBreakdown(ctx context.Context, breakdown 
 	data, err := json.Marshal(breakdown)
 	if err != nil {
 		if s.log != nil {
-			s.log.Warn("failed to marshal price breakdown for cache: %v", err)
+			s.log.Warn("failed to marshal price breakdown for cache", "error", err)
 		}
 		return
 	}
@@ -75,7 +75,7 @@ func (s *PricingServiceImpl) cachePriceBreakdown(ctx context.Context, breakdown 
 	key := breakdownCacheKey(breakdown.ListingID, breakdown.CheckIn, breakdown.CheckOut)
 	if err := s.cache.Set(ctx, key, data, breakdownCacheTTL); err != nil {
 		if s.log != nil {
-			s.log.Warn("failed to cache price breakdown: %v", err)
+			s.log.Warn("failed to cache price breakdown", "error", err)
 		}
 	}
 }
@@ -110,7 +110,7 @@ func (s *PricingServiceImpl) invalidatePriceCaches(ctx context.Context, listingI
 	baseKey := basePriceCacheKey(listingID)
 	if err := s.cache.Del(ctx, baseKey); err != nil {
 		if s.log != nil {
-			s.log.Warn("failed to invalidate base price cache: %v", err)
+			s.log.Warn("failed to invalidate base price cache", "error", err)
 		}
 	}
 
@@ -119,14 +119,14 @@ func (s *PricingServiceImpl) invalidatePriceCaches(ctx context.Context, listingI
 	keys, err := s.cache.Keys(ctx, pattern).Result()
 	if err != nil {
 		if s.log != nil {
-			s.log.Warn("failed to find breakdown cache keys: %v", err)
+			s.log.Warn("failed to find breakdown cache keys", "error", err)
 		}
 		return
 	}
 	if len(keys) > 0 {
 		if err := s.cache.Del(ctx, keys...).Err(); err != nil {
 			if s.log != nil {
-				s.log.Warn("failed to invalidate breakdown cache: %v", err)
+				s.log.Warn("failed to invalidate breakdown cache", "error", err)
 			}
 		}
 	}

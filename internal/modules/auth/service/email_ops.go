@@ -17,7 +17,7 @@ import (
 func (s *AuthServiceImpl) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Warn("[WARN] %s: %v", label, err)
+			s.log.Warn("email operation failed", "operation", label, "error", err)
 		}
 	}()
 }
@@ -35,7 +35,7 @@ func (s *AuthServiceImpl) publishEmailJob(job emailJob.EmailJob) error {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Warn("failed to publish email job to %s", s.queueSubject, err)
+			s.log.Warn("failed to publish email job", "subject", s.queueSubject, "error", err)
 		}
 		return err
 	}

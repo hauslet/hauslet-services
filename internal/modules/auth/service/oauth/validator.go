@@ -40,7 +40,7 @@ func NewValidator(repo repository.AuthRepository, log *slog.Logger) token.Valida
 			return false
 		}
 		if session == nil {
-			log.Info(" Token rejected - session %s revoked for user %s", sessionID, userID)
+			log.Info("Token rejected session revoked", "session_id", sessionID, "user_id", userID)
 			return false
 		}
 

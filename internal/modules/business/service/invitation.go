@@ -77,7 +77,7 @@ func (s *BusinessServiceImpl) InviteUser(ctx context.Context, businessID uuid.UU
 		return nil, fmt.Errorf("failed to create invitation: %w", err)
 	}
 
-	s.log.Info(" Invitation created for %s to join business %s", email, businessID)
+	s.log.Info("Invitation created", "email", email, "business_id", businessID)
 	if s.notifier != nil {
 		business, err := s.GetBusiness(ctx, businessID)
 		if err != nil {
@@ -199,7 +199,7 @@ func (s *BusinessServiceImpl) AcceptInvitation(ctx context.Context, token string
 		}
 	}
 
-	s.log.Info(" User accepted invitation to business", "user_id", userID, "business_id", invitation.BusinessID)
+	s.log.Info("User accepted invitation to business", "user_id", userID, "business_id", invitation.BusinessID)
 	return member, nil
 }
 
@@ -254,7 +254,7 @@ func (s *BusinessServiceImpl) DeclineInvitation(ctx context.Context, token strin
 		}
 	}
 
-	s.log.Info(" User declined invitation to business", "user_id", userID, "business_id", invitation.BusinessID)
+	s.log.Info("User declined invitation to business", "user_id", userID, "business_id", invitation.BusinessID)
 	return nil
 }
 
@@ -294,7 +294,7 @@ func (s *BusinessServiceImpl) RevokeInvitation(ctx context.Context, invitationID
 		return fmt.Errorf("failed to revoke invitation: %w", err)
 	}
 
-	s.log.Info(" Invitation revoked", "invitation_id", invitationID, "revoked_by", revokedBy)
+	s.log.Info("Invitation revoked", "invitation_id", invitationID, "revoked_by", revokedBy)
 	return nil
 }
 

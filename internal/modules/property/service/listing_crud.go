@@ -24,11 +24,11 @@ func (s *ServiceImpl) CreateListing(ctx context.Context, l domain.Listing) (*dom
 	// Ensure property exists
 	exists, err := s.repo.PropertyExists(ctx, l.PropertyID)
 	if err != nil {
-		s.log.Error("failed to check property existence property=%s: %v", l.PropertyID, err)
+		s.log.Error("failed to check property existence", "property_id", l.PropertyID, "error", err)
 		return nil, err
 	}
 	if !exists {
-		s.log.Error("property not found for listing creation property=%s", l.PropertyID)
+		s.log.Error("property not found for listing creation", "property_id", l.PropertyID)
 		return nil, domain.ErrPropertyNotFound
 	}
 
@@ -47,14 +47,14 @@ func (s *ServiceImpl) CreateListing(ctx context.Context, l domain.Listing) (*dom
 	}
 
 	if err := s.repo.CreateListing(ctx, schemaListing); err != nil {
-		s.log.Error("failed to create listing property=%s owner=%s: %v", l.PropertyID, l.OwnerID, err)
+		s.log.Error("failed to create listing", "property_id", l.PropertyID, "owner_id", l.OwnerID, "error", err)
 		return nil, err
 	}
 
 	created := domain.MapListingFromSchema(schemaListing)
 	s.cacheListing(ctx, created, false, created.Slug, s.getPropertyPublicID(ctx, created.PropertyID))
 
-	s.log.Info(" created listing=%s property=%s owner=%s type=%s", schemaListing.ID, l.PropertyID, l.OwnerID, l.ListingType)
+	s.log.Info("created listing", "listing_id", schemaListing.ID, "property_id", l.PropertyID, "owner_id", l.OwnerID, "listing_type", l.ListingType)
 	return created, nil
 }
 
@@ -72,7 +72,7 @@ func (s *ServiceImpl) UpdateListing(ctx context.Context, l domain.Listing) (*dom
 
 	existing, err := s.ensureListing(ctx, l.ID, false)
 	if err != nil {
-		s.log.Error("listing not found for update listing=%s: %v", l.ID, err)
+		s.log.Error("listing not found for update", "listing_id", l.ID, "error", err)
 		return nil, err
 	}
 
@@ -84,14 +84,14 @@ func (s *ServiceImpl) UpdateListing(ctx context.Context, l domain.Listing) (*dom
 	// Auto-unpublish if live and critical changes are detected (excluding minor text tweaks)
 	if shouldUnpublish(existing, &l) {
 		if err := s.unpublishAndEnqueueModeration(ctx, existing); err != nil {
-			s.log.Error("failed to unpublish listing=%s for re-moderation: %v", l.ID, err)
+			s.log.Error("failed to unpublish listing for re-moderation", "listing_id", l.ID, "error", err)
 			return nil, err
 		}
 	}
 
 	schemaListing := domain.MapListingToSchema(&l)
 	if err := s.repo.UpdateListing(ctx, schemaListing); err != nil {
-		s.log.Error("failed to update listing=%s: %v", l.ID, err)
+		s.log.Error("failed to update listing", "listing_id", l.ID, "error", err)
 		return nil, err
 	}
 
@@ -101,7 +101,7 @@ func (s *ServiceImpl) UpdateListing(ctx context.Context, l domain.Listing) (*dom
 	updated := domain.MapListingFromSchema(schemaListing)
 	s.cacheListing(ctx, updated, false, updated.Slug, publicID)
 
-	s.log.Info(" updated listing=%s", l.ID)
+	s.log.Info("updated listing", "listing_id", l.ID)
 	return updated, nil
 }
 
@@ -114,14 +114,14 @@ func (s *ServiceImpl) PatchListing(ctx context.Context, id uuid.UUID, updates ma
 	// Load existing listing to compare changes
 	existing, err := s.ensureListing(ctx, id, false)
 	if err != nil {
-		s.log.Error("listing not found for patch listing=%s: %v", id, err)
+		s.log.Error("listing not found for patch", "listing_id", id, "error", err)
 		return nil, err
 	}
 
 	// Auto-unpublish if live and critical changes are detected (excluding minor text tweaks)
 	if shouldUnpublishPatch(existing, updates) {
 		if err := s.unpublishAndEnqueueModeration(ctx, existing); err != nil {
-			s.log.Error("failed to unpublish listing=%s for re-moderation (patch): %v", id, err)
+			s.log.Error("failed to unpublish listing for re-moderation (patch)", "listing_id", id, "error", err)
 			return nil, err
 		}
 	}
@@ -135,7 +135,7 @@ func (s *ServiceImpl) PatchListing(ctx context.Context, id uuid.UUID, updates ma
 	publicID := s.getPropertyPublicID(ctx, existing.PropertyID)
 
 	if err := s.repo.PatchListing(ctx, id, updates); err != nil {
-		s.log.Error("failed to patch listing=%s: %v", id, err)
+		s.log.Error("failed to patch listing", "listing_id", id, "error", err)
 		return nil, err
 	}
 
@@ -144,7 +144,7 @@ func (s *ServiceImpl) PatchListing(ctx context.Context, id uuid.UUID, updates ma
 		s.invalidateListingCache(ctx, id, newSlug, publicID)
 	}
 
-	s.log.Info(" patched listing=%s fields=%d", id, len(updates))
+	s.log.Info("patched listing", "listing_id", id, "fields", len(updates))
 	updated, err := s.ensureListing(ctx, id, false)
 	if err != nil {
 		return nil, err
@@ -161,10 +161,10 @@ func (s *ServiceImpl) GetListingByID(ctx context.Context, id uuid.UUID, preloadM
 
 	var cached domain.Listing
 	if ok, err := s.getCachedValue(ctx, listingIDCacheKey(id, preloadMedia), &cached); err == nil && ok {
-		s.log.Info(" listing cache hit id=%s", id)
+		s.log.Info("listing cache hit", "listing_id", id)
 		return &cached, nil
 	} else if err != nil {
-		s.log.Warn("listing cache read failed id=%s: %v", id, err)
+		s.log.Warn("listing cache read failed", "listing_id", id, "error", err)
 	}
 
 	l, err := s.repo.GetListingByID(ctx, id, preloadMedia)
@@ -190,7 +190,7 @@ func (s *ServiceImpl) GetListingByPublicID(ctx context.Context, publicID string,
 	if ok, err := s.getCachedValue(ctx, listingPublicIDCacheKey(publicID, preloadMedia), &cached); err == nil && ok {
 		return &cached, nil
 	} else if err != nil {
-		s.log.Warn("listing cache read failed public_id=%s: %v", publicID, err)
+		s.log.Warn("listing cache read failed", "public_id", publicID, "error", err)
 	}
 
 	l, err := s.repo.GetListingByPublicID(ctx, publicID, preloadMedia)
@@ -216,7 +216,7 @@ func (s *ServiceImpl) GetListingBySlug(ctx context.Context, slug string, preload
 	if ok, err := s.getCachedValue(ctx, listingSlugCacheKey(slug, preloadMedia), &cached); err == nil && ok {
 		return &cached, nil
 	} else if err != nil {
-		s.log.Warn("listing cache read failed slug=%s: %v", slug, err)
+		s.log.Warn("listing cache read failed", "slug", slug, "error", err)
 	}
 
 	l, err := s.repo.GetListingBySlug(ctx, slug, preloadMedia)
@@ -308,12 +308,12 @@ func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool
 	}
 
 	if hard {
-		s.log.Warn("hard deleting listing=%s", id)
+		s.log.Warn("hard deleting listing", "listing_id", id)
 		if err := s.repo.HardDeleteListing(ctx, id); err != nil {
-			s.log.Error("failed to hard delete listing=%s: %v", id, err)
+			s.log.Error("failed to hard delete listing", "listing_id", id, "error", err)
 			return err
 		}
-		s.log.Info(" hard deleted listing=%s", id)
+		s.log.Info("hard deleted listing", "listing_id", id)
 		if existing != nil {
 			s.invalidateListingCache(ctx, id, existing.Slug, s.getPropertyPublicID(ctx, existing.PropertyID))
 		} else {
@@ -323,10 +323,10 @@ func (s *ServiceImpl) DeleteListing(ctx context.Context, id uuid.UUID, hard bool
 	}
 
 	if err := s.repo.SoftDeleteListing(ctx, id); err != nil {
-		s.log.Error("failed to soft delete listing=%s: %v", id, err)
+		s.log.Error("failed to soft delete listing", "listing_id", id, "error", err)
 		return err
 	}
-	s.log.Info(" soft deleted listing=%s", id)
+	s.log.Info("soft deleted listing", "listing_id", id)
 	if existing != nil {
 		s.invalidateListingCache(ctx, id, existing.Slug, s.getPropertyPublicID(ctx, existing.PropertyID))
 	} else {
@@ -346,29 +346,29 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 
 	listing, err := s.ensureListing(ctx, listingID, true)
 	if err != nil {
-		s.log.Error("failed to fetch listing for completeness listing=%s: %v", listingID, err)
+		s.log.Error("failed to fetch listing for completeness", "listing_id", listingID, "error", err)
 		return nil, err
 	}
 	if listing.OwnerID != requesterID {
 		// For business-owned listings, allow authorized business members (via authorizer) to view completeness.
 		if listing.OwnerType == domain.OwnerBusiness {
 			if s.businessAuthorizer == nil {
-				s.log.Warn("business authorizer not configured for completeness listing=%s", listingID)
+				s.log.Warn("business authorizer not configured for completeness", "listing_id", listingID)
 				return nil, domain.ErrForbidden
 			}
 			if err := s.businessAuthorizer.CanEditListing(ctx, listing.OwnerID); err != nil {
-				s.log.Warn("unauthorized completeness check listing=%s requester=%s owner=%s", listingID, requesterID, listing.OwnerID)
+				s.log.Warn("unauthorized completeness check", "listing_id", listingID, "requester_id", requesterID, "owner_id", listing.OwnerID)
 				return nil, domain.ErrForbidden
 			}
 		} else {
-			s.log.Warn("unauthorized completeness check listing=%s requester=%s owner=%s", listingID, requesterID, listing.OwnerID)
+			s.log.Warn("unauthorized completeness check", "listing_id", listingID, "requester_id", requesterID, "owner_id", listing.OwnerID)
 			return nil, domain.ErrForbidden
 		}
 	}
 
 	property, err := s.ensureProperty(ctx, listing.PropertyID)
 	if err != nil {
-		s.log.Error("failed to fetch property for completeness property=%s listing=%s: %v", listing.PropertyID, listingID, err)
+		s.log.Error("failed to fetch property for completeness", "property_id", listing.PropertyID, "listing_id", listingID, "error", err)
 		return nil, err
 	}
 
@@ -550,7 +550,7 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 		hasAmenities && hasOwnerType && hasFurnishingType && hasPricingInfo && hasImages &&
 		hasQualityDescription && hasListingSpecificDetails
 
-	s.log.Info(" listing completeness listing=%s score=%d%% ready=%v", listingID, completionScore, readyToPublish)
+	s.log.Info("listing completeness", "listing_id", listingID, "score", completionScore, "ready", readyToPublish)
 
 	return &domain.ListingCompleteness{
 		ListingID:        listingID,

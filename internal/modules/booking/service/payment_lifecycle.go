@@ -175,7 +175,7 @@ func (s *BookingServiceImpl) ArchiveExpiredBookings(ctx context.Context, expired
 	expiredBookings, err := s.repo.FindExpiredHolds(ctx, expiredBefore)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to find expired bookings", "error", err)
+			s.log.Error("failed to find expired bookings", "expired_before", expiredBefore, "error", err)
 		}
 		return nil, fmt.Errorf("failed to find expired bookings: %w", err)
 	}

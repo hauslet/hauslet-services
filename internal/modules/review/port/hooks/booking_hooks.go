@@ -93,12 +93,12 @@ func (a *ReviewBookingHooksAdapter) SendReviewInvites(ctx context.Context, booki
 		a.notificationSvc.SendReviewInviteToGuest(ctx, booking.ID, guestContact, listingTitle, days)
 		guestSent = true
 	} else if a.log != nil {
-		a.log.Warn("guest email missing for booking %s; review invite skipped", booking.ID)
+		a.log.Warn("guest email missing for booking; review invite skipped", "booking_id", booking.ID)
 	}
 
 	hostContact, err := a.resolveHostContact(ctx, listing)
 	if err != nil && a.log != nil {
-		a.log.Warn("failed to resolve host contact for booking %s: %v", booking.ID, err)
+		a.log.Warn("failed to resolve host contact for booking", "booking_id", booking.ID, "error", err)
 	}
 
 	hostSent := false
@@ -106,7 +106,7 @@ func (a *ReviewBookingHooksAdapter) SendReviewInvites(ctx context.Context, booki
 		a.notificationSvc.SendReviewInviteToHost(ctx, booking.ID, hostContact, booking.GuestName, days)
 		hostSent = true
 	} else if a.log != nil {
-		a.log.Warn("host email missing for booking %s; review invite skipped", booking.ID)
+		a.log.Warn("host email missing for booking; review invite skipped", "booking_id", booking.ID)
 	}
 
 	if !guestSent && !hostSent {

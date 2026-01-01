@@ -39,7 +39,7 @@ func (r *Resolver) Business(ctx context.Context, id string) (*domain.Business, e
 
 	business, err := r.businessService.GetBusiness(ctx, businessID)
 	if err != nil {
-		r.log.Error("Failed to get business %s: %v", id, err)
+		r.log.Error("failed to get business", "business_id", id, "error", err)
 		return nil, err
 	}
 
@@ -50,7 +50,7 @@ func (r *Resolver) Business(ctx context.Context, id string) (*domain.Business, e
 func (r *Resolver) BusinessBySlug(ctx context.Context, slug string) (*domain.Business, error) {
 	business, err := r.businessService.GetBusinessBySlug(ctx, slug)
 	if err != nil {
-		r.log.Error("Failed to get business by slug %s: %v", slug, err)
+		r.log.Error("failed to get business by slug", "slug", slug, "error", err)
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func (r *Resolver) AllBusinesses(ctx context.Context, limit, offset *int) ([]dom
 
 	businesses, err := r.businessService.ListAllBusinesses(ctx, l, o)
 	if err != nil {
-		r.log.Error("Failed to list all businesses: %v", err)
+		r.log.Error("failed to list all businesses", "error", err)
 		return nil, err
 	}
 
@@ -90,7 +90,7 @@ func (r *Resolver) SearchBusinesses(ctx context.Context, query string, limit, of
 
 	businesses, err := r.businessService.SearchBusinesses(ctx, query, l, o)
 	if err != nil {
-		r.log.Error("Failed to search businesses: %v", err)
+		r.log.Error("failed to search businesses", "error", err)
 		return nil, err
 	}
 
@@ -106,7 +106,7 @@ func (r *Resolver) BusinessMembers(ctx context.Context, businessID string) ([]do
 
 	members, err := r.businessService.GetBusinessMembers(ctx, id)
 	if err != nil {
-		r.log.Error("Failed to get business members: %v", err)
+		r.log.Error("failed to get business members", "error", err)
 		return nil, err
 	}
 
@@ -122,7 +122,7 @@ func (r *Resolver) MyMemberships(ctx context.Context) ([]domain.BusinessMember, 
 
 	memberships, err := r.businessService.GetUserMemberships(ctx, userID)
 	if err != nil {
-		r.log.Error("Failed to get memberships for user %s: %v", userID, err)
+		r.log.Error("failed to get memberships for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 
@@ -143,7 +143,7 @@ func (r *Resolver) BusinessMember(ctx context.Context, businessID, userID string
 
 	member, err := r.businessService.GetMember(ctx, bid, uid)
 	if err != nil {
-		r.log.Error("Failed to get member: %v", err)
+		r.log.Error("failed to get member", "error", err)
 		return nil, err
 	}
 
@@ -159,7 +159,7 @@ func (r *Resolver) BusinessInvitations(ctx context.Context, businessID string) (
 
 	invitations, err := r.businessService.GetBusinessInvitations(ctx, id)
 	if err != nil {
-		r.log.Error("Failed to get business invitations: %v", err)
+		r.log.Error("failed to get business invitations", "error", err)
 		return nil, err
 	}
 
@@ -170,7 +170,7 @@ func (r *Resolver) BusinessInvitations(ctx context.Context, businessID string) (
 func (r *Resolver) MyInvitations(ctx context.Context, email string) ([]domain.BusinessInvitation, error) {
 	invitations, err := r.businessService.GetUserInvitations(ctx, email)
 	if err != nil {
-		r.log.Error("Failed to get user invitations: %v", err)
+		r.log.Error("failed to get user invitations", "error", err)
 		return nil, err
 	}
 
@@ -191,7 +191,7 @@ func (r *Resolver) MyBusinessPermissions(ctx context.Context, businessID string)
 
 	permissions, err := r.businessService.GetUserPermissions(ctx, userID, bid)
 	if err != nil {
-		r.log.Error("Failed to get user permissions: %v", err)
+		r.log.Error("failed to get user permissions", "error", err)
 		return nil, err
 	}
 
@@ -214,11 +214,11 @@ func (r *Resolver) CreateBusiness(ctx context.Context, input model.CreateBusines
 
 	business, err := r.businessService.CreateBusiness(ctx, domainInput, creatorID)
 	if err != nil {
-		r.log.Error("Failed to create business: %v", err)
+		r.log.Error("failed to create business", "error", err)
 		return nil, err
 	}
 
-	r.log.Info(" Business created: %s by user %s", business.ID, creatorID)
+	r.log.Info("business created", "business_id", business.ID, "user_id", creatorID)
 	return business, nil
 }
 
@@ -239,7 +239,7 @@ func (r *Resolver) UpdateBusiness(ctx context.Context, id string, input model.Up
 
 	business, err := r.businessService.UpdateBusiness(ctx, businessID, domainInput, updaterID)
 	if err != nil {
-		r.log.Error("Failed to update business: %v", err)
+		r.log.Error("failed to update business", "error", err)
 		return nil, err
 	}
 
@@ -259,7 +259,7 @@ func (r *Resolver) DeleteBusiness(ctx context.Context, id string) (bool, error) 
 	}
 
 	if err := r.businessService.DeleteBusiness(ctx, businessID, userID); err != nil {
-		r.log.Error("Failed to delete business: %v", err)
+		r.log.Error("failed to delete business", "error", err)
 		return false, err
 	}
 
@@ -291,7 +291,7 @@ func (r *Resolver) AddBusinessMember(ctx context.Context, businessID, userID str
 
 	member, err := r.businessService.AddMember(ctx, bid, uid, inviterID, role, domainPerms)
 	if err != nil {
-		r.log.Error("Failed to add member: %v", err)
+		r.log.Error("failed to add member", "error", err)
 		return nil, err
 	}
 
@@ -317,7 +317,7 @@ func (r *Resolver) UpdateMemberRole(ctx context.Context, businessID, memberID st
 
 	member, err := r.businessService.UpdateMemberRole(ctx, bid, mid, role, updaterID)
 	if err != nil {
-		r.log.Error("Failed to update member role: %v", err)
+		r.log.Error("failed to update member role", "error", err)
 		return nil, err
 	}
 
@@ -345,7 +345,7 @@ func (r *Resolver) UpdateMemberPermissions(ctx context.Context, businessID, memb
 
 	member, err := r.businessService.UpdateMemberPermissions(ctx, bid, mid, domainPerms, updaterID)
 	if err != nil {
-		r.log.Error("Failed to update member permissions: %v", err)
+		r.log.Error("failed to update member permissions", "error", err)
 		return nil, err
 	}
 
@@ -370,7 +370,7 @@ func (r *Resolver) RemoveMember(ctx context.Context, businessID, memberID string
 	}
 
 	if err := r.businessService.RemoveMember(ctx, bid, mid, removerID); err != nil {
-		r.log.Error("Failed to remove member: %v", err)
+		r.log.Error("failed to remove member", "error", err)
 		return false, err
 	}
 
@@ -396,7 +396,7 @@ func (r *Resolver) InviteMember(ctx context.Context, businessID string, input mo
 
 	invitation, err := r.businessService.InviteUser(ctx, bid, input.Email, input.Role, inviterID, domainPerms)
 	if err != nil {
-		r.log.Error("Failed to invite member: %v", err)
+		r.log.Error("failed to invite member", "error", err)
 		return nil, err
 	}
 
@@ -412,7 +412,7 @@ func (r *Resolver) AcceptInvitation(ctx context.Context, token string) (*domain.
 
 	member, err := r.businessService.AcceptInvitation(ctx, token, userID)
 	if err != nil {
-		r.log.Error("Failed to accept invitation: %v", err)
+		r.log.Error("failed to accept invitation", "error", err)
 		return nil, err
 	}
 
@@ -427,7 +427,7 @@ func (r *Resolver) DeclineInvitation(ctx context.Context, token string) (bool, e
 	}
 
 	if err := r.businessService.DeclineInvitation(ctx, token, userID); err != nil {
-		r.log.Error("Failed to decline invitation: %v", err)
+		r.log.Error("failed to decline invitation", "error", err)
 		return false, err
 	}
 
@@ -447,7 +447,7 @@ func (r *Resolver) RevokeInvitation(ctx context.Context, invitationID string) (b
 	}
 
 	if err := r.businessService.RevokeInvitation(ctx, iid, revokerID); err != nil {
-		r.log.Error("Failed to revoke invitation: %v", err)
+		r.log.Error("failed to revoke invitation", "error", err)
 		return false, err
 	}
 
@@ -464,7 +464,7 @@ func (r *Resolver) RevokeInvitation(ctx context.Context, invitationID string) (b
 func (r *Resolver) getAuthenticatedUserID(ctx context.Context, operation string) (uuid.UUID, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
-		r.log.Warn("Unauthenticated attempt to %s", operation)
+		r.log.Warn("unauthenticated attempt", "operation", operation)
 		return uuid.Nil, fmt.Errorf("unauthenticated")
 	}
 

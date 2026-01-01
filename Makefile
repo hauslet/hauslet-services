@@ -27,6 +27,7 @@ help:
 	@echo "  make seed-test     # Seed minimal test data (fast)"
 	@echo "  make seed-clear    # Clear all data and reseed"
 	@echo "  make fresh         # Reset DB, migrate, and seed (full reset)"
+	@echo "  make start-proxy    # Start Cloud SQL Proxy (export SQL_INSTANCE first)"
 
 
 $(BIN_DIR):
@@ -117,3 +118,11 @@ seed-clear:
 
 .PHONY: fresh
 fresh: reset-db migrate seed
+
+
+start-proxy:
+	@if [ -z "$(SQL_INSTANCE)" ]; then \
+		echo "SQL_INSTANCE is required, e.g. export SQL_INSTANCE=project:region:instance"; \
+		exit 1; \
+	fi
+    cloud-sql-proxy $(SQL_INSTANCE) --address 127.0.0.1 --port 5432

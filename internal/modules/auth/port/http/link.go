@@ -24,7 +24,7 @@ func (h *HTTPHandler) InitiateLinking(w http.ResponseWriter, r *http.Request) {
 	// Extract authenticated user
 	userInfo, err := token.GetUserInfo(r)
 	if err != nil {
-		h.log.Error("Failed to get user info: %v", err)
+		h.log.Error("Failed to get user info", "error", err)
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
@@ -50,12 +50,12 @@ func (h *HTTPHandler) InitiateLinking(w http.ResponseWriter, r *http.Request) {
 	// Generate OAuth linking URL
 	oauthURL, err := h.authService.InitiateIdentityLinking(userID, provider, redirectURI)
 	if err != nil {
-		h.log.Error("Failed to initiate linking for user %s: %v", userID, err)
+		h.log.Error("failed to initiate linking", "user_id", userID, "error", err)
 		h.sendError(w, "Failed to initiate linking", http.StatusInternalServerError, "")
 		return
 	}
 
-	h.log.Info(" User %s initiating %s linking", userID, provider)
+	h.log.Info("initiating identity linking", "user_id", userID, "provider", provider)
 
 	// Redirect to OAuth provider
 	http.Redirect(w, r, oauthURL, http.StatusTemporaryRedirect)

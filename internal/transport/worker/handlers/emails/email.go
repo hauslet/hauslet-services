@@ -48,13 +48,13 @@ func (h *EmailHandler) Handle(ctx context.Context, data []byte) error {
 		return fmt.Errorf("invalid email job: %w", err)
 	}
 
-	h.log.Info("Sending email to %s: %s", job.To, job.Subject)
+	h.log.Info("Sending email", "to", job.To, "subject", job.Subject)
 
 	// Send email
 	if err := h.client.SendHTML(ctx, job.To, job.Subject, job.HTML); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 
-	h.log.Info("✅ Email sent successfully to %s", job.To)
+	h.log.Info("✅ Email sent successfully", slog.String("to", job.To))
 	return nil
 }

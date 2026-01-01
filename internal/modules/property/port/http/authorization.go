@@ -14,7 +14,7 @@ func (h *HTTPHandler) verifyListingOwnership(ctx context.Context, listingID uuid
 	// Get the listing by ID
 	listing, err := h.propertyService.GetListingByID(ctx, listingID, false)
 	if err != nil {
-		h.log.Error("Failed to get listing %s: %v", listingID, err)
+		h.log.Error("failed to get listing", "listing_id", listingID, "error", err)
 		return err
 	}
 
@@ -31,7 +31,7 @@ func (h *HTTPHandler) verifyListingOwnership(ctx context.Context, listingID uuid
 
 	// Check if the user owns the listing
 	if listing.OwnerID != userID {
-		h.log.Warn("User %s attempted to access listing %s owned by %s", userID, listingID, listing.OwnerID)
+		h.log.Warn("unauthorized listing access", "user_id", userID, "listing_id", listingID, "owner_id", listing.OwnerID)
 		return domain.ErrForbidden
 	}
 

@@ -30,21 +30,21 @@ func NewSimplePayoutHooksAdapter(repo repository.BookingRepository, log *slog.Lo
 // This is a lightweight implementation that updates the repository directly.
 func (a *SimplePayoutHooksAdapter) MarkAsSettled(ctx context.Context, bookingID uuid.UUID) error {
 	if a.log != nil {
-		a.log.Info(" marking booking %s as settled (worker)", bookingID)
+		a.log.Info("marking booking as settled", "booking_id", bookingID)
 	}
 
 	// Get the booking
 	schemaBooking, err := a.repo.GetBookingByID(ctx, bookingID)
 	if err != nil {
 		if a.log != nil {
-			a.log.Error("failed to get booking %s: %v", bookingID, err)
+			a.log.Error("failed to get booking", "booking_id", bookingID, "error", err)
 		}
 		return err
 	}
 
 	if schemaBooking == nil {
 		if a.log != nil {
-			a.log.Warn("booking %s not found", bookingID)
+			a.log.Warn("booking not found", "booking_id", bookingID)
 		}
 		return domain.ErrBookingNotFound
 	}
@@ -54,7 +54,7 @@ func (a *SimplePayoutHooksAdapter) MarkAsSettled(ctx context.Context, bookingID 
 	// Only mark as settled if currently completed
 	if booking.Status != domain.BookingStatusCompleted {
 		if a.log != nil {
-			a.log.Warn("booking %s cannot be settled (status=%s, expected=completed)", bookingID, booking.Status)
+			a.log.Warn("booking cannot be settled", "booking_id", bookingID, "status", booking.Status, "expected_status", "completed")
 		}
 		// Don't fail - just log warning (payout already succeeded)
 		return nil
@@ -67,13 +67,13 @@ func (a *SimplePayoutHooksAdapter) MarkAsSettled(ctx context.Context, bookingID 
 	// Save updated booking
 	if err := a.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 		if a.log != nil {
-			a.log.Error("failed to update booking status to settled: %v", err)
+			a.log.Error("failed to update booking status to settled", "error", err)
 		}
 		return err
 	}
 
 	if a.log != nil {
-		a.log.Info(" booking %s marked as settled (worker)", bookingID)
+		a.log.Info("booking marked as settled", "booking_id", bookingID)
 	}
 
 	return nil

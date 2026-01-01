@@ -54,7 +54,7 @@ func NewHTTPServer(
 		EmailClient: mC,
 	})
 	if err != nil {
-		log.Error("failed to initialize application container: %v", err)
+		log.Error("failed to initialize application container", "error", err)
 		panic(err) // Panic is appropriate here as we can't continue without the container
 	}
 

@@ -15,7 +15,7 @@ func RunMigrations(db *gorm.DB, log *slog.Logger, models ...interface{}) error {
 	// In production, these should ideally be run manually by a DBA
 	if err := setupExtensions(db); err != nil {
 		// Extensions are optional - just log and continue
-		log.Info(": Skipping extensions setup (may require superuser): %v", err)
+		log.Info(": Skipping extensions setup (may require superuser)", "error", err)
 	}
 
 	// Step 2: Auto-migrate all models

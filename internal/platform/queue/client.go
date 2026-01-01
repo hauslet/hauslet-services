@@ -111,7 +111,7 @@ func (c *Client) Publish(ctx context.Context, queueName string, payload any) err
 
 	if _, err := c.client.CreateTask(ctx, req); err != nil {
 		if c.log != nil {
-			c.log.Error("failed to publish task to %s: %v", queueName, err)
+			c.log.Error("failed to publish task", "queue", queueName, "error", err)
 		}
 		return fmt.Errorf("publish: %w", err)
 	}

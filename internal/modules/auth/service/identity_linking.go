@@ -61,7 +61,7 @@ func (s *AuthServiceImpl) linkIdentityToUser(ctx context.Context, linkState *Lin
 
 	// If already linked to same user, idempotent success
 	if existingIdentity != nil && existingIdentity.UserID.String() == linkState.UserID {
-		s.log.Info(" Identity Linking: Provider %s already linked to user ID: %s (idempotent)", provider, user.ID)
+		s.log.Info("Identity Linking: Provider already linked to user", "provider", provider, "user_id", user.ID)
 		return nil
 	}
 
@@ -79,12 +79,12 @@ func (s *AuthServiceImpl) linkIdentityToUser(ctx context.Context, linkState *Lin
 		return fmt.Errorf("failed to create identity: %w", err)
 	}
 
-	s.log.Info(" Identity Linking: Linked %s identity to user ID: %s", provider, user.ID)
+	s.log.Info("Identity Linking: Linked identity", "provider", provider, "user_id", user.ID)
 
 	// Send security notification email
 	go func(userEmail, userName, provider string) {
 		if err := s.SendIdentityLinkedEmail(context.Background(), userEmail, userName, provider); err != nil {
-			s.log.Warn("Failed to send identity linked notification to %s: %v", userEmail, err)
+			s.log.Warn("Failed to send identity linked notification", "user_email", userEmail, "error", err)
 		}
 	}(user.PrimaryEmail, user.Name, provider)
 

@@ -69,7 +69,7 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter ListingFilter, 
 	embedding, err := s.getOrCreateQueryEmbedding(ctx, normalized)
 	if err != nil {
 		if s.log != nil {
-			s.log.Warn("semantic embedding unavailable, falling back to filtered search: %v", err)
+			s.log.Warn("semantic embedding unavailable, falling back to filtered search", "error", err)
 		}
 		return s.searchWithFiltersOnly(ctx, repoFilter, limit)
 	}
@@ -128,7 +128,7 @@ func (s *ServiceImpl) getOrCreateQueryEmbedding(ctx context.Context, normalizedQ
 	if ok, err := s.getCachedValue(ctx, cacheKey, &cached); err == nil && ok {
 		return cached, nil
 	} else if err != nil {
-		s.log.Warn("search embedding cache read failed: %v", err)
+		s.log.Warn("search embedding cache read failed", "error", err)
 	}
 
 	value, err, _ := s.embeddingGroup.Do(cacheKey, func() (any, error) {
@@ -136,7 +136,7 @@ func (s *ServiceImpl) getOrCreateQueryEmbedding(ctx context.Context, normalizedQ
 		if ok, err := s.getCachedValue(ctx, cacheKey, &innerCached); err == nil && ok {
 			return innerCached, nil
 		} else if err != nil && s.log != nil {
-			s.log.Warn("search embedding cache read failed: %v", err)
+			s.log.Warn("search embedding cache read failed", "error", err)
 		}
 
 		embedCtx, cancel := context.WithTimeout(ctx, embeddingRequestTimeout)

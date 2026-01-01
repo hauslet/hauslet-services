@@ -39,14 +39,14 @@ func (h *HTTPHandler) ResendOTP(w http.ResponseWriter, r *http.Request) {
 
 	// Decode request body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Error("Failed to decode resend OTP request: %v", err)
+		h.log.Error("failed to decode resend OTP request", "error", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
-		h.log.Warn("Resend OTP validation failed: %v", err)
+		h.log.Warn("resend OTP validation failed", "error", err)
 
 		if valErr, ok := err.(*domain.ValidationError); ok {
 			h.sendError(w, valErr.Message, http.StatusBadRequest, valErr.Field)
@@ -60,7 +60,7 @@ func (h *HTTPHandler) ResendOTP(w http.ResponseWriter, r *http.Request) {
 	// Get user by email
 	user, err := h.authService.GetUserByEmail(r.Context(), req.Email)
 	if err != nil {
-		h.log.Warn("User not found for email %s: %v", req.Email, err)
+		h.log.Warn("user not found for email", "email", req.Email, "error", err)
 		// Don't reveal if user exists or not for security
 		h.sendSuccess(w, map[string]string{
 			"message": "If this email is registered and not verified, a new verification code has been sent.",
@@ -71,7 +71,7 @@ func (h *HTTPHandler) ResendOTP(w http.ResponseWriter, r *http.Request) {
 	// Check if user's email is already verified
 	identities, err := h.authService.ListUserIdentities(r.Context(), user.ID.String())
 	if err != nil {
-		h.log.Error("Failed to list user identities: %v", err)
+		h.log.Error("failed to list user identities", "error", err)
 		h.sendError(w, "Failed to resend verification code", http.StatusInternalServerError, "")
 		return
 	}
@@ -79,7 +79,7 @@ func (h *HTTPHandler) ResendOTP(w http.ResponseWriter, r *http.Request) {
 	// Check if email is already verified
 	for _, identity := range identities {
 		if identity.Provider == "password" && identity.Email == req.Email && identity.EmailVerified {
-			h.log.Info(" Email already verified for %s", req.Email)
+			h.log.Info("email already verified", "email", req.Email)
 			h.sendError(w, "Email is already verified", http.StatusBadRequest, "email")
 			return
 		}
@@ -88,19 +88,19 @@ func (h *HTTPHandler) ResendOTP(w http.ResponseWriter, r *http.Request) {
 	// Generate new OTP (this will overwrite the old one in Redis)
 	otpCode, err := h.authService.GenerateEmailOTP(r.Context(), req.Email)
 	if err != nil {
-		h.log.Error("Failed to generate OTP for %s: %v", req.Email, err)
+		h.log.Error("failed to generate OTP", "email", req.Email, "error", err)
 		h.sendError(w, "Failed to generate verification code", http.StatusInternalServerError, "")
 		return
 	}
 
 	// Send welcome email with new OTP
 	if err := h.authService.SendWelcomeEmail(r.Context(), req.Email, user.Name, otpCode); err != nil {
-		h.log.Error("Failed to send OTP email to %s: %v", req.Email, err)
+		h.log.Error("failed to send OTP email", "email", req.Email, "error", err)
 		h.sendError(w, "Failed to send verification email", http.StatusInternalServerError, "")
 		return
 	}
 
-	h.log.Info(" Resent OTP to %s", req.Email)
+	h.log.Info("resent OTP", "email", req.Email)
 
 	// Send success response
 	h.sendSuccess(w, map[string]string{

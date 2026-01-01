@@ -44,7 +44,7 @@ func NewNotificationService(
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Warn("%s: %v", label, err)
+			s.log.Warn("notification dispatch failed", "label", label, "error", err)
 		}
 	}()
 }
@@ -60,7 +60,7 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Warn("failed to publish finance email job to %s: %v", s.queueSubject, err)
+			s.log.Warn("failed to publish finance email job", "queue_subject", s.queueSubject, "error", err)
 		}
 		return err
 	}
@@ -105,7 +105,7 @@ func (s *NotificationService) SendPaymentReceipt(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to render payment receipt template: %v", err)
+			s.log.Error("failed to render payment receipt template", "error", err)
 		}
 		return nil
 	}
@@ -164,7 +164,7 @@ func (s *NotificationService) SendPayoutInitiated(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to render payout initiated template: %v", err)
+			s.log.Error("failed to render payout initiated template", "error", err)
 		}
 		return nil
 	}
@@ -229,7 +229,7 @@ func (s *NotificationService) SendPayoutSuccess(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to render payout success template: %v", err)
+			s.log.Error("failed to render payout success template", "error", err)
 		}
 		return nil
 	}
@@ -297,7 +297,7 @@ func (s *NotificationService) SendPayoutFailed(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to render payout failed template: %v", err)
+			s.log.Error("failed to render payout failed template", "error", err)
 		}
 		return nil
 	}
@@ -356,7 +356,7 @@ func (s *NotificationService) SendRefundProcessed(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to render refund processed template: %v", err)
+			s.log.Error("failed to render refund processed template", "error", err)
 		}
 		return nil
 	}

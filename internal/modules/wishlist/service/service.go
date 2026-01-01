@@ -17,7 +17,7 @@ func (s *WishlistServiceImpl) CreateWishlist(ctx context.Context, userID uuid.UU
 	}
 
 	if s.log != nil {
-		s.log.Info(" creating wishlist for user=%s name=%s private=%t", userID, name, isPrivate)
+		s.log.Info("creating wishlist", "user_id", userID, "name", name, "private", isPrivate)
 	}
 
 	// Create schema wishlist
@@ -26,7 +26,7 @@ func (s *WishlistServiceImpl) CreateWishlist(ctx context.Context, userID uuid.UU
 	// Save to repository
 	if err := s.repo.CreateWishlist(ctx, schemaWishlist); err != nil {
 		if s.log != nil {
-			s.log.Error("failed to create wishlist for user=%s: %v", userID, err)
+			s.log.Error("failed to create wishlist", "user_id", userID, "error", err)
 		}
 		return nil, fmt.Errorf("failed to create wishlist: %w", err)
 	}
@@ -39,7 +39,7 @@ func (s *WishlistServiceImpl) CreateWishlist(ctx context.Context, userID uuid.UU
 	s.invalidateUserWishlistsCache(ctx, userID)
 
 	if s.log != nil {
-		s.log.Info(" created wishlist id=%s for user=%s", wishlist.ID, userID)
+		s.log.Info("created wishlist", "id", wishlist.ID, "user_id", userID)
 	}
 
 	return wishlist, nil
@@ -52,12 +52,12 @@ func (s *WishlistServiceImpl) GetWishlist(ctx context.Context, wishlistID uuid.U
 	cached, err := s.getCachedValue(ctx, wishlistCacheKey(wishlistID), &wishlist)
 	if err == nil && cached && wishlist != nil {
 		if s.log != nil {
-			s.log.Debug("cache hit for wishlist id=%s", wishlistID)
+			s.log.Debug("cache hit for wishlist", "wishlist_id", wishlistID)
 		}
 		// Permission check: viewer must be owner OR wishlist must be public
 		if !wishlist.IsAccessibleBy(viewerID) {
 			if s.log != nil {
-				s.log.Warn("access denied for viewer=%s to wishlist=%s (private)", viewerID, wishlistID)
+				s.log.Warn("access denied to wishlist", "viewer_id", viewerID, "wishlist_id", wishlistID, "reason", "private")
 			}
 			return nil, fmt.Errorf("access denied: wishlist is private")
 		}
@@ -72,14 +72,14 @@ func (s *WishlistServiceImpl) GetWishlist(ctx context.Context, wishlistID uuid.U
 	schemaWishlist, err := s.repo.GetWishlistByID(ctx, wishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to get wishlist id=%s: %v", wishlistID, err)
+			s.log.Error("failed to get wishlist", "wishlist_id", wishlistID, "error", err)
 		}
 		return nil, fmt.Errorf("failed to get wishlist: %w", err)
 	}
 
 	if schemaWishlist == nil {
 		if s.log != nil {
-			s.log.Warn("wishlist not found id=%s", wishlistID)
+			s.log.Warn("wishlist not found", "wishlist_id", wishlistID)
 		}
 		return nil, fmt.Errorf("wishlist not found")
 	}
@@ -93,7 +93,7 @@ func (s *WishlistServiceImpl) GetWishlist(ctx context.Context, wishlistID uuid.U
 	// Permission check: viewer must be owner OR wishlist must be public
 	if !wishlist.IsAccessibleBy(viewerID) {
 		if s.log != nil {
-			s.log.Warn("access denied for viewer=%s to wishlist=%s (private)", viewerID, wishlistID)
+			s.log.Warn("access denied to wishlist", "viewer_id", viewerID, "wishlist_id", wishlistID, "reason", "private")
 		}
 		return nil, fmt.Errorf("access denied: wishlist is private")
 	}
@@ -121,7 +121,7 @@ func (s *WishlistServiceImpl) ListUserWishlists(ctx context.Context, userID uuid
 	schemaWishlists, err := s.repo.GetWishlistsByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to list wishlists for user=%s: %v", userID, err)
+			s.log.Error("failed to list wishlists", "user_id", userID, "error", err)
 		}
 		return nil, fmt.Errorf("failed to list wishlists: %w", err)
 	}
@@ -133,7 +133,7 @@ func (s *WishlistServiceImpl) ListUserWishlists(ctx context.Context, userID uuid
 	s.cacheUserWishlists(ctx, userID, wishlists, limit, offset)
 
 	if s.log != nil {
-		s.log.Info(" retrieved %d wishlists for user=%s", len(wishlists), userID)
+		s.log.Info("retrieved wishlists", "count", len(wishlists), "user_id", userID)
 	}
 
 	return wishlists, nil
@@ -142,21 +142,21 @@ func (s *WishlistServiceImpl) ListUserWishlists(ctx context.Context, userID uuid
 // UpdateWishlist modifies metadata (Name, Description, Privacy).
 func (s *WishlistServiceImpl) UpdateWishlist(ctx context.Context, wishlistID uuid.UUID, userID uuid.UUID, name *string, description *string, isPrivate *bool) (*domain.Wishlist, error) {
 	if s.log != nil {
-		s.log.Info(" updating wishlist id=%s by user=%s", wishlistID, userID)
+		s.log.Info("updating wishlist", "wishlist_id", wishlistID, "user_id", userID)
 	}
 
 	// Fetch existing wishlist
 	schemaWishlist, err := s.repo.GetWishlistByID(ctx, wishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to get wishlist id=%s for update: %v", wishlistID, err)
+			s.log.Error("failed to get wishlist for update", "wishlist_id", wishlistID, "error", err)
 		}
 		return nil, fmt.Errorf("failed to get wishlist: %w", err)
 	}
 
 	if schemaWishlist == nil {
 		if s.log != nil {
-			s.log.Warn("wishlist not found for update id=%s", wishlistID)
+			s.log.Warn("wishlist not found for update", "wishlist_id", wishlistID)
 		}
 		return nil, fmt.Errorf("wishlist not found")
 	}
@@ -164,7 +164,7 @@ func (s *WishlistServiceImpl) UpdateWishlist(ctx context.Context, wishlistID uui
 	// Permission check: only owner can update
 	if schemaWishlist.UserID != userID {
 		if s.log != nil {
-			s.log.Warn("unauthorized update attempt on wishlist=%s by user=%s (owner=%s)", wishlistID, userID, schemaWishlist.UserID)
+			s.log.Warn("unauthorized update attempt", "wishlist_id", wishlistID, "user_id", userID, "owner_id", schemaWishlist.UserID)
 		}
 		return nil, fmt.Errorf("access denied: only owner can update wishlist")
 	}
@@ -175,7 +175,7 @@ func (s *WishlistServiceImpl) UpdateWishlist(ctx context.Context, wishlistID uui
 	// Save changes
 	if err := s.repo.UpdateWishlist(ctx, schemaWishlist); err != nil {
 		if s.log != nil {
-			s.log.Error("failed to save wishlist update id=%s: %v", wishlistID, err)
+			s.log.Error("failed to save wishlist update", "wishlist_id", wishlistID, "error", err)
 		}
 		return nil, fmt.Errorf("failed to update wishlist: %w", err)
 	}
@@ -187,7 +187,7 @@ func (s *WishlistServiceImpl) UpdateWishlist(ctx context.Context, wishlistID uui
 	s.invalidateWishlistAndRelated(ctx, wishlistID, userID)
 
 	if s.log != nil {
-		s.log.Info(" updated wishlist id=%s", wishlistID)
+		s.log.Info("updated wishlist", "wishlist_id", wishlistID)
 	}
 
 	return wishlist, nil
@@ -196,21 +196,21 @@ func (s *WishlistServiceImpl) UpdateWishlist(ctx context.Context, wishlistID uui
 // DeleteWishlist removes the list and cascades the delete to all items.
 func (s *WishlistServiceImpl) DeleteWishlist(ctx context.Context, wishlistID uuid.UUID, userID uuid.UUID) error {
 	if s.log != nil {
-		s.log.Info(" deleting wishlist id=%s by user=%s", wishlistID, userID)
+		s.log.Info("deleting wishlist", "wishlist_id", wishlistID, "user_id", userID)
 	}
 
 	// Fetch existing wishlist to check ownership
 	schemaWishlist, err := s.repo.GetWishlistByID(ctx, wishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to get wishlist id=%s for deletion: %v", wishlistID, err)
+			s.log.Error("failed to get wishlist for deletion", "wishlist_id", wishlistID, "error", err)
 		}
 		return fmt.Errorf("failed to get wishlist: %w", err)
 	}
 
 	if schemaWishlist == nil {
 		if s.log != nil {
-			s.log.Warn("wishlist not found for deletion id=%s", wishlistID)
+			s.log.Warn("wishlist not found for deletion", "wishlist_id", wishlistID)
 		}
 		return fmt.Errorf("wishlist not found")
 	}
@@ -218,7 +218,7 @@ func (s *WishlistServiceImpl) DeleteWishlist(ctx context.Context, wishlistID uui
 	// Permission check: only owner can delete
 	if schemaWishlist.UserID != userID {
 		if s.log != nil {
-			s.log.Warn("unauthorized delete attempt on wishlist=%s by user=%s (owner=%s)", wishlistID, userID, schemaWishlist.UserID)
+			s.log.Warn("unauthorized delete attempt", "wishlist_id", wishlistID, "user_id", userID, "owner_id", schemaWishlist.UserID)
 		}
 		return fmt.Errorf("access denied: only owner can delete wishlist")
 	}
@@ -226,7 +226,7 @@ func (s *WishlistServiceImpl) DeleteWishlist(ctx context.Context, wishlistID uui
 	// Delete from repository (cascades to items)
 	if err := s.repo.DeleteWishlist(ctx, wishlistID); err != nil {
 		if s.log != nil {
-			s.log.Error("failed to delete wishlist id=%s: %v", wishlistID, err)
+			s.log.Error("failed to delete wishlist", "wishlist_id", wishlistID, "error", err)
 		}
 		return fmt.Errorf("failed to delete wishlist: %w", err)
 	}
@@ -235,7 +235,7 @@ func (s *WishlistServiceImpl) DeleteWishlist(ctx context.Context, wishlistID uui
 	s.invalidateWishlistAndRelated(ctx, wishlistID, userID)
 
 	if s.log != nil {
-		s.log.Info(" deleted wishlist id=%s", wishlistID)
+		s.log.Info("deleted wishlist", "wishlist_id", wishlistID)
 	}
 
 	return nil
@@ -244,20 +244,20 @@ func (s *WishlistServiceImpl) DeleteWishlist(ctx context.Context, wishlistID uui
 // AddItem adds a listing to a wishlist.
 func (s *WishlistServiceImpl) AddItem(ctx context.Context, wishlistID uuid.UUID, userID uuid.UUID, listingID uuid.UUID, source domain.WishlistItemSource) (*domain.WishlistItem, error) {
 	if s.log != nil {
-		s.log.Info(" adding item listing=%s to wishlist=%s by user=%s source=%s", listingID, wishlistID, userID, source)
+		s.log.Info("adding item to wishlist", "listing_id", listingID, "wishlist_id", wishlistID, "user_id", userID, "source", source)
 	}
 
 	// Check if listing can be added via hooks
 	canAdd, err := s.listingHooks.CanAddListingToWishlist(ctx, listingID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("listing hook check failed for listing=%s: %v", listingID, err)
+			s.log.Error("listing hook check failed", "listing_id", listingID, "error", err)
 		}
 		return nil, err
 	}
 	if !canAdd {
 		if s.log != nil {
-			s.log.Warn("listing=%s cannot be added to wishlists per hooks", listingID)
+			s.log.Warn("listing cannot be added to wishlists", "listing_id", listingID)
 		}
 		return nil, fmt.Errorf("listing cannot be added to wishlist")
 	}
@@ -266,14 +266,14 @@ func (s *WishlistServiceImpl) AddItem(ctx context.Context, wishlistID uuid.UUID,
 	schemaWishlist, err := s.repo.GetWishlistByID(ctx, wishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to get wishlist id=%s for add item: %v", wishlistID, err)
+			s.log.Error("failed to get wishlist for add item", "wishlist_id", wishlistID, "error", err)
 		}
 		return nil, fmt.Errorf("failed to get wishlist: %w", err)
 	}
 
 	if schemaWishlist == nil {
 		if s.log != nil {
-			s.log.Warn("wishlist not found for add item id=%s", wishlistID)
+			s.log.Warn("wishlist not found for add item", "wishlist_id", wishlistID)
 		}
 		return nil, fmt.Errorf("wishlist not found")
 	}
@@ -281,7 +281,7 @@ func (s *WishlistServiceImpl) AddItem(ctx context.Context, wishlistID uuid.UUID,
 	// Permission check: only owner can add items
 	if schemaWishlist.UserID != userID {
 		if s.log != nil {
-			s.log.Warn("unauthorized add item attempt on wishlist=%s by user=%s (owner=%s)", wishlistID, userID, schemaWishlist.UserID)
+			s.log.Warn("unauthorized add item attempt", "wishlist_id", wishlistID, "user_id", userID, "owner_id", schemaWishlist.UserID)
 		}
 		return nil, fmt.Errorf("access denied: only owner can add items")
 	}
@@ -292,7 +292,7 @@ func (s *WishlistServiceImpl) AddItem(ctx context.Context, wishlistID uuid.UUID,
 	// Add to repository
 	if err := s.repo.AddItem(ctx, schemaItem); err != nil {
 		if s.log != nil {
-			s.log.Error("failed to add item listing=%s to wishlist=%s: %v", listingID, wishlistID, err)
+			s.log.Error("failed to add item", "listing_id", listingID, "wishlist_id", wishlistID, "error", err)
 		}
 		return nil, fmt.Errorf("failed to add item: %w", err)
 	}
@@ -302,7 +302,7 @@ func (s *WishlistServiceImpl) AddItem(ctx context.Context, wishlistID uuid.UUID,
 	s.invalidateListingExistsCache(ctx, wishlistID, listingID)
 
 	if s.log != nil {
-		s.log.Info(" added item id=%s to wishlist=%s", schemaItem.ID, wishlistID)
+		s.log.Info("added item to wishlist", "item_id", schemaItem.ID, "wishlist_id", wishlistID)
 	}
 
 	// Convert to domain entity and return
@@ -312,21 +312,21 @@ func (s *WishlistServiceImpl) AddItem(ctx context.Context, wishlistID uuid.UUID,
 // RemoveItem removes a listing from a wishlist.
 func (s *WishlistServiceImpl) RemoveItem(ctx context.Context, wishlistID uuid.UUID, userID uuid.UUID, listingID uuid.UUID) error {
 	if s.log != nil {
-		s.log.Info(" removing item listing=%s from wishlist=%s by user=%s", listingID, wishlistID, userID)
+		s.log.Info("removing item from wishlist", "listing_id", listingID, "wishlist_id", wishlistID, "user_id", userID)
 	}
 
 	// Fetch wishlist to check ownership
 	schemaWishlist, err := s.repo.GetWishlistByID(ctx, wishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to get wishlist id=%s for remove item: %v", wishlistID, err)
+			s.log.Error("failed to get wishlist for remove item", "wishlist_id", wishlistID, "error", err)
 		}
 		return fmt.Errorf("failed to get wishlist: %w", err)
 	}
 
 	if schemaWishlist == nil {
 		if s.log != nil {
-			s.log.Warn("wishlist not found for remove item id=%s", wishlistID)
+			s.log.Warn("wishlist not found for remove item", "wishlist_id", wishlistID)
 		}
 		return fmt.Errorf("wishlist not found")
 	}
@@ -334,7 +334,7 @@ func (s *WishlistServiceImpl) RemoveItem(ctx context.Context, wishlistID uuid.UU
 	// Permission check: only owner can remove items
 	if schemaWishlist.UserID != userID {
 		if s.log != nil {
-			s.log.Warn("unauthorized remove item attempt on wishlist=%s by user=%s (owner=%s)", wishlistID, userID, schemaWishlist.UserID)
+			s.log.Warn("unauthorized remove item attempt", "wishlist_id", wishlistID, "user_id", userID, "owner_id", schemaWishlist.UserID)
 		}
 		return fmt.Errorf("access denied: only owner can remove items")
 	}
@@ -342,7 +342,7 @@ func (s *WishlistServiceImpl) RemoveItem(ctx context.Context, wishlistID uuid.UU
 	// Remove from repository
 	if err := s.repo.RemoveItem(ctx, wishlistID, listingID); err != nil {
 		if s.log != nil {
-			s.log.Error("failed to remove item listing=%s from wishlist=%s: %v", listingID, wishlistID, err)
+			s.log.Error("failed to remove item", "listing_id", listingID, "wishlist_id", wishlistID, "error", err)
 		}
 		return fmt.Errorf("failed to remove item: %w", err)
 	}
@@ -352,7 +352,7 @@ func (s *WishlistServiceImpl) RemoveItem(ctx context.Context, wishlistID uuid.UU
 	s.invalidateListingExistsCache(ctx, wishlistID, listingID)
 
 	if s.log != nil {
-		s.log.Info(" removed item listing=%s from wishlist=%s", listingID, wishlistID)
+		s.log.Info("removed item from wishlist", "listing_id", listingID, "wishlist_id", wishlistID)
 	}
 
 	return nil
@@ -364,14 +364,14 @@ func (s *WishlistServiceImpl) GetItems(ctx context.Context, wishlistID uuid.UUID
 	schemaWishlist, err := s.repo.GetWishlistByID(ctx, wishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to get wishlist id=%s for items fetch: %v", wishlistID, err)
+			s.log.Error("failed to get wishlist for items fetch", "wishlist_id", wishlistID, "error", err)
 		}
 		return nil, fmt.Errorf("failed to get wishlist: %w", err)
 	}
 
 	if schemaWishlist == nil {
 		if s.log != nil {
-			s.log.Warn("wishlist not found for items fetch id=%s", wishlistID)
+			s.log.Warn("wishlist not found for items fetch", "wishlist_id", wishlistID)
 		}
 		return nil, fmt.Errorf("wishlist not found")
 	}
@@ -382,7 +382,7 @@ func (s *WishlistServiceImpl) GetItems(ctx context.Context, wishlistID uuid.UUID
 	// Permission check: viewer must have access
 	if !wishlist.IsAccessibleBy(viewerID) {
 		if s.log != nil {
-			s.log.Warn("access denied for viewer=%s to wishlist=%s items (private)", viewerID, wishlistID)
+			s.log.Warn("access denied to wishlist items", "viewer_id", viewerID, "wishlist_id", wishlistID, "reason", "private")
 		}
 		return nil, fmt.Errorf("access denied: wishlist is private")
 	}
@@ -405,7 +405,7 @@ func (s *WishlistServiceImpl) GetItems(ctx context.Context, wishlistID uuid.UUID
 	schemaItems, err := s.repo.GetWishlistItems(ctx, wishlistID, limit, offset)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to get wishlist items id=%s: %v", wishlistID, err)
+			s.log.Error("failed to get wishlist items", "wishlist_id", wishlistID, "error", err)
 		}
 		return nil, fmt.Errorf("failed to get wishlist items: %w", err)
 	}
@@ -417,7 +417,7 @@ func (s *WishlistServiceImpl) GetItems(ctx context.Context, wishlistID uuid.UUID
 	s.cacheWishlistItems(ctx, wishlistID, items, limit, offset)
 
 	if s.log != nil {
-		s.log.Info(" retrieved %d items from wishlist=%s", len(items), wishlistID)
+		s.log.Info("retrieved wishlist items", "count", len(items), "wishlist_id", wishlistID)
 	}
 
 	return items, nil
@@ -439,7 +439,7 @@ func (s *WishlistServiceImpl) IsListed(ctx context.Context, wishlistID uuid.UUID
 	exists, err = s.repo.IsListingInWishlist(ctx, wishlistID, listingID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to check listing wishlist=%s listing=%s: %v", wishlistID, listingID, err)
+			s.log.Error("failed to check listing", "wishlist_id", wishlistID, "listing_id", listingID, "error", err)
 		}
 		return false, fmt.Errorf("failed to check if listing is in wishlist: %w", err)
 	}
@@ -466,7 +466,7 @@ func (s *WishlistServiceImpl) CountItems(ctx context.Context, wishlistID uuid.UU
 	count, err = s.repo.CountItems(ctx, wishlistID)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to count items wishlist=%s: %v", wishlistID, err)
+			s.log.Error("failed to count items", "wishlist_id", wishlistID, "error", err)
 		}
 		return 0, fmt.Errorf("failed to count items: %w", err)
 	}

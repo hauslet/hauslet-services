@@ -41,6 +41,7 @@ This directory contains all deployment-related configurations, scripts, and docu
 **Architecture**: Serverless (Cloud Run)
 
 **Services**:
+
 - **Cloud Run** - API and Worker services (auto-scaling, pay-per-request)
 - **Cloud SQL for PostgreSQL** - Managed database (HA, automated backups)
 - **Memorystore for Redis** - Managed cache (sessions + application cache)
@@ -57,6 +58,7 @@ This directory contains all deployment-related configurations, scripts, and docu
 ### Automatic Deployment (Recommended)
 
 **Main Branch → Production**
+
 ```bash
 git checkout main
 git merge develop
@@ -65,6 +67,7 @@ git push origin main
 ```
 
 **Staging Branch → Staging Environment**
+
 ```bash
 git checkout staging
 git merge develop
@@ -86,6 +89,7 @@ gcloud builds submit --config=../cloudbuild.yaml --region=us-central1
 ## 🔧 Initial Setup
 
 ### Prerequisites
+
 - GCP Project with billing enabled
 - gcloud CLI installed and authenticated
 - Terraform v1.5+ installed
@@ -123,6 +127,7 @@ gcloud builds submit --config=cloudbuild.yaml
 ## 📊 Monitoring and Logs
 
 ### View Logs
+
 ```bash
 # API logs
 gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=hauslet-api" --limit=50
@@ -135,7 +140,8 @@ gcloud logging read "resource.type=cloud_tasks_queue" --limit=50
 ```
 
 ### Monitoring Dashboards
-- **Cloud Console**: https://console.cloud.google.com/monitoring
+
+- **Cloud Console**: <https://console.cloud.google.com/monitoring>
 - **API Service**: Cloud Run → hauslet-api → Metrics
 - **Worker Service**: Cloud Run → hauslet-worker → Metrics
 - **Database**: Cloud SQL → hauslet-postgres → Metrics
@@ -145,16 +151,19 @@ gcloud logging read "resource.type=cloud_tasks_queue" --limit=50
 All secrets are stored in **Google Cloud Secret Manager**.
 
 ### List Secrets
+
 ```bash
 gcloud secrets list
 ```
 
 ### Update a Secret
+
 ```bash
 echo -n "new-secret-value" | gcloud secrets versions add SECRET_NAME --data-file=-
 ```
 
 ### Grant Access to Service Account
+
 ```bash
 gcloud secrets add-iam-policy-binding SECRET_NAME \
   --member="serviceAccount:SERVICE_ACCOUNT@PROJECT_ID.iam.gserviceaccount.com" \
@@ -164,6 +173,7 @@ gcloud secrets add-iam-policy-binding SECRET_NAME \
 ## 🧪 Testing
 
 ### Staging Environment
+
 ```bash
 # Deploy to staging
 git push origin staging
@@ -174,6 +184,7 @@ curl $STAGING_URL/health
 ```
 
 ### Load Testing
+
 ```bash
 # Using Apache Bench
 ab -n 1000 -c 10 https://api.hauslet.com/api/v1/properties
@@ -185,6 +196,7 @@ k6 run load-test.js
 ## 🆘 Troubleshooting
 
 ### Service Won't Start
+
 ```bash
 # Check logs
 gcloud logging read "resource.type=cloud_run_revision" --limit=50
@@ -194,6 +206,7 @@ gcloud run services describe hauslet-api --region=us-central1
 ```
 
 ### Database Connection Issues
+
 ```bash
 # Test via Cloud SQL Proxy
 cloud_sql_proxy -instances=PROJECT:REGION:INSTANCE=tcp:5432
@@ -203,6 +216,7 @@ gcloud sql instances describe hauslet-postgres
 ```
 
 ### High Costs
+
 ```bash
 # View billing dashboard
 gcloud billing accounts list
@@ -219,6 +233,7 @@ gcloud billing accounts list
 ## 🔄 Migration from NATS to Cloud Tasks
 
 The application is migrating from NATS JetStream (local/dev) to Google Cloud Tasks (production). See GCP_DEPLOYMENT_PLAN.md for:
+
 - Queue mappings (11 queues)
 - Code changes required
 - Migration strategy
@@ -227,7 +242,7 @@ The application is migrating from NATS JetStream (local/dev) to Google Cloud Tas
 ## 📞 Support
 
 - **Internal**: Slack #hauslet-devops
-- **GCP Support**: https://cloud.google.com/support
+- **GCP Support**: <https://cloud.google.com/support>
 - **Emergency Runbook**: See GCP_DEPLOYMENT_PLAN.md → Troubleshooting
 
 ---
