@@ -44,7 +44,7 @@ func (r *BookingRepositoryImpl) ListBookingsForGuest(ctx context.Context, guestI
 	var bookings []*schema.Booking
 	if err := r.db.WithContext(ctx).
 		Where("guest_id = ?", guestID).
-		Order("check_in DESC").
+		Order("check_in_time DESC").
 		Limit(limit).
 		Offset(offset).
 		Find(&bookings).Error; err != nil {
@@ -57,7 +57,7 @@ func (r *BookingRepositoryImpl) ListBookingsForListing(ctx context.Context, list
 	var bookings []*schema.Booking
 	if err := r.db.WithContext(ctx).
 		Where("listing_id = ?", listingID).
-		Order("check_in DESC").
+		Order("check_in_time DESC").
 		Limit(limit).
 		Offset(offset).
 		Find(&bookings).Error; err != nil {
@@ -168,6 +168,47 @@ func (r *BookingRepositoryImpl) FindBookingsReadyForCompletion(
 		Where("status = ?", schema.BookingStatusActive).
 		Where(timeField+" < ?", cutoffTime).
 		Order(timeField + " ASC").
+		Limit(limit)
+
+	if err := query.Find(&bookings).Error; err != nil {
+		return nil, err
+	}
+
+	return bookings, nil
+}
+
+// FindBookingsPendingCheckIn returns bookings past scheduled check-in without actual check-in recorded
+func (r *BookingRepositoryImpl) FindBookingsPendingCheckIn(ctx context.Context, cutoff time.Time, limit int) ([]*schema.Booking, error) {
+	var bookings []*schema.Booking
+	query := r.db.WithContext(ctx).
+		Where("check_in IS NULL").
+		Where("check_in_time IS NOT NULL").
+		Where("check_in_time <= ?", cutoff).
+		Where("status IN ?", []schema.BookingStatus{
+			schema.BookingStatusConfirmed,
+			schema.BookingStatusActive,
+		}).
+		Order("check_in_time ASC").
+		Limit(limit)
+
+	if err := query.Find(&bookings).Error; err != nil {
+		return nil, err
+	}
+
+	return bookings, nil
+}
+
+// FindBookingsPendingCheckOut returns bookings past scheduled check-out without actual check-out recorded
+func (r *BookingRepositoryImpl) FindBookingsPendingCheckOut(ctx context.Context, cutoff time.Time, limit int) ([]*schema.Booking, error) {
+	var bookings []*schema.Booking
+	query := r.db.WithContext(ctx).
+		Where("check_out IS NULL").
+		Where("check_out_time IS NOT NULL").
+		Where("check_out_time <= ?", cutoff).
+		Where("status IN ?", []schema.BookingStatus{
+			schema.BookingStatusActive,
+		}).
+		Order("check_out_time ASC").
 		Limit(limit)
 
 	if err := query.Find(&bookings).Error; err != nil {

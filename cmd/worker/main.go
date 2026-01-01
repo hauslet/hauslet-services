@@ -47,6 +47,7 @@ func main() {
 	// - /tasks/media/cleanup (every 15 min)
 	// - /tasks/booking/expiry (every 2 min)
 	// - /tasks/booking/completion (every hour)
+	// - /tasks/booking/checkin-out (every hour)
 	// - /tasks/finance/payout/process (every hour)
 	// - /tasks/finance/payout/retry (every 15 min)
 	// - /tasks/finance/reconciliation (daily at 2 AM UTC)

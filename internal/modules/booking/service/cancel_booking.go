@@ -45,12 +45,17 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 		// Convert TotalPrice to minor units
 		currencyMinorUnit := int64(100) // Default to 100 (for most currencies)
 
+		scheduledCheckIn := booking.ScheduledCheckIn()
+		if scheduledCheckIn == nil {
+			return nil, domain.ErrInvalidDateRange
+		}
+
 		refundInput := pricingdomain.RefundCalculationInput{
 			BookingID:        booking.ID,
 			TotalPaid:        booking.TotalPrice,
 			Currency:         booking.Currency,
 			BookingCreatedAt: booking.CreatedAt,
-			CheckInTime:      booking.CheckIn,
+			CheckInTime:      *scheduledCheckIn,
 			CancellationTime: time.Now(),
 			RefundPolicy:     "moderate", // Default
 			CancelledBy:      pricingdomain.CancellationActor(cancelledBy),

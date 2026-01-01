@@ -38,6 +38,8 @@ type BookingService interface {
 	ConfirmBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error)
 	CancelBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID, reason *string) (*domain.Booking, error)
 	GetBooking(ctx context.Context, bookingID uuid.UUID, requestorID uuid.UUID) (*domain.Booking, error)
+	CheckInBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error)
+	CheckOutBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error)
 
 	// List methods
 	ListBookingsForGuest(ctx context.Context, guestID uuid.UUID, limit, offset int) ([]*domain.Booking, error)
@@ -54,6 +56,9 @@ type BookingService interface {
 
 	// Completion lifecycle methods
 	CompleteBookings(ctx context.Context) error
+
+	// Check-in/out fallback
+	AutoPopulateCheckInOut(ctx context.Context) (int, int, error)
 }
 
 type ContactInfo struct {

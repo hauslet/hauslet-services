@@ -47,7 +47,7 @@ func (s *NotificationService) SendHostApprovalRequest(ctx context.Context, booki
 	}
 
 	subject := fmt.Sprintf("Booking request from %s", booking.GuestName)
-	preview := fmt.Sprintf("%s wants to stay %d night(s) starting %s", booking.GuestName, booking.DurationNights(), s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("%s wants to stay %d night(s) starting %s", booking.GuestName, booking.DurationNights(), s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["HostName"] = s.fallbackName(hostName)
@@ -162,7 +162,7 @@ func (s *NotificationService) SendGuestBookingConfirmed(ctx context.Context, boo
 	}
 
 	subject := "Your booking is confirmed"
-	preview := fmt.Sprintf("You're confirmed for %s.", s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("You're confirmed for %s.", s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["GuestName"] = booking.GuestName
@@ -178,7 +178,7 @@ func (s *NotificationService) SendHostBookingConfirmed(ctx context.Context, book
 	}
 
 	subject := fmt.Sprintf("New confirmed booking from %s", booking.GuestName)
-	preview := fmt.Sprintf("%s booked %d night(s) starting %s", booking.GuestName, booking.DurationNights(), s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("%s booked %d night(s) starting %s", booking.GuestName, booking.DurationNights(), s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["HostName"] = s.fallbackName(hostName)
@@ -195,7 +195,7 @@ func (s *NotificationService) SendGuestBookingCancelled(ctx context.Context, boo
 	}
 
 	subject := "Your booking has been cancelled"
-	preview := fmt.Sprintf("Your booking for %s has been cancelled.", s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("Your booking for %s has been cancelled.", s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["GuestName"] = booking.GuestName
@@ -216,7 +216,7 @@ func (s *NotificationService) SendHostBookingCancelled(ctx context.Context, book
 	}
 
 	subject := fmt.Sprintf("Booking from %s has been cancelled", booking.GuestName)
-	preview := fmt.Sprintf("The booking for %s has been cancelled.", s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("The booking for %s has been cancelled.", s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["HostName"] = s.fallbackName(hostName)
@@ -289,8 +289,8 @@ func (s *NotificationService) baseBookingData(subject, preview string, booking *
 		"Preview":    preview,
 		"Year":       time.Now().Year(),
 		"BookingID":  booking.ID.String(),
-		"CheckIn":    s.formatDate(booking.CheckIn),
-		"CheckOut":   s.formatDate(booking.CheckOut),
+		"CheckIn":    s.formatDate(booking.ScheduledCheckIn()),
+		"CheckOut":   s.formatDate(booking.ScheduledCheckOut()),
 		"GuestCount": booking.GuestCount,
 		"Nights":     booking.DurationNights(),
 		"TotalPrice": s.formatTotal(booking),
@@ -303,7 +303,10 @@ func (s *NotificationService) baseBookingData(subject, preview string, booking *
 	}
 }
 
-func (s *NotificationService) formatDate(t time.Time) string {
+func (s *NotificationService) formatDate(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
 	return t.Format("Mon, Jan 2 2006")
 }
 

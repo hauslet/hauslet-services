@@ -30,7 +30,9 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		return nil, err
 	}
 
-	availability, err := s.calendar.CheckAvailability(ctx, listingID, checkIn, checkOut)
+	scheduledCheckIn, scheduledCheckOut := s.buildScheduledTimes(checkIn, checkOut, constraints)
+
+	availability, err := s.calendar.CheckAvailability(ctx, listingID, scheduledCheckIn, scheduledCheckOut)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +60,7 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 
 	bufferDuration := cleaningBufferDuration(calendarConfig)
 	if bufferDuration > 0 {
-		bufferAvailability, err := s.calendar.CheckAvailability(ctx, listingID, checkOut, checkOut.Add(bufferDuration))
+		bufferAvailability, err := s.calendar.CheckAvailability(ctx, listingID, scheduledCheckOut, scheduledCheckOut.Add(bufferDuration))
 		if err != nil {
 			return nil, err
 		}
@@ -106,8 +108,8 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		ListingID: listingID,
 		EventType: calendardomain.EventTypeBooking,
 		Status:    calendardomain.EventStatusPending,
-		StartTime: checkIn,
-		EndTime:   checkOut,
+		StartTime: scheduledCheckIn,
+		EndTime:   scheduledCheckOut,
 		BookingID: &bookingID,
 	}
 
@@ -124,7 +126,7 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 
 	var cleaningEventID *uuid.UUID
 	if bufferDuration > 0 {
-		cleaningEvent, err := s.createCleaningBufferEvent(ctx, listingID, bookingID, checkOut, bufferDuration)
+		cleaningEvent, err := s.createCleaningBufferEvent(ctx, listingID, bookingID, scheduledCheckOut, bufferDuration)
 		if err != nil {
 			if s.log != nil {
 				s.log.Error("failed to create cleaning buffer event for booking", "booking_id", bookingID, "error", err)
@@ -140,7 +142,7 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 	now := time.Now()
 
 	// Determine booking flow based on AutoAcceptBookings and time to check-in
-	bookingType, holdDuration, err := s.determineBookingFlow(checkIn, constraints)
+	bookingType, holdDuration, err := s.determineBookingFlow(scheduledCheckIn, constraints)
 	if err != nil {
 		_ = s.calendar.DeleteEvent(ctx, createdEvent.ID, ownerID)
 		if cleaningEventID != nil {
@@ -164,10 +166,10 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		GuestCount:      guestCount,
 		Status:          initialStatus,
 		BookingType:     bookingType,
-		CheckIn:         checkIn,
-		CheckOut:        checkOut,
-		CheckInTime:     constraints.CheckInTime,
-		CheckOutTime:    constraints.CheckOutTime,
+		CheckIn:         nil,
+		CheckOut:        nil,
+		CheckInTime:     &scheduledCheckIn,
+		CheckOutTime:    &scheduledCheckOut,
 		SpecialRequests: specialRequests,
 		PriceBreakdown:  priceSnapshot,
 		TotalPrice:      total,
@@ -199,11 +201,14 @@ func (s *BookingServiceImpl) validateBookingConstraints(checkIn, checkOut time.T
 		return nil
 	}
 
-	if !checkOut.After(checkIn) {
+	checkInDate := time.Date(checkIn.Year(), checkIn.Month(), checkIn.Day(), 0, 0, 0, 0, checkIn.Location())
+	checkOutDate := time.Date(checkOut.Year(), checkOut.Month(), checkOut.Day(), 0, 0, 0, 0, checkOut.Location())
+
+	if !checkOutDate.After(checkInDate) {
 		return domain.ErrInvalidDateRange
 	}
 
-	nights := int(checkOut.Sub(checkIn).Hours() / 24)
+	nights := int(checkOutDate.Sub(checkInDate).Hours() / 24)
 	if nights < constraints.MinNights {
 		return domain.ErrMinimumStayNotMet
 	}
@@ -216,7 +221,7 @@ func (s *BookingServiceImpl) validateBookingConstraints(checkIn, checkOut time.T
 		return domain.ErrGuestCountExceeded
 	}
 
-	if checkIn.Before(time.Now()) {
+	if checkInDate.Before(time.Now()) {
 		return domain.ErrBookingInPast
 	}
 

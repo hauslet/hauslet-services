@@ -15,7 +15,7 @@ platform:
 
   payouts:
     escrow_release_hours: 24        # Hours after checkin before funds leave escrow
-    escrow_release_event: checkin_confirmed  # Event triggering escrow release
+    escrow_release_event: checkout_confirmed  # Event triggering escrow release
     disbursement_provider: paystack # Payout provider (paystack | stripe); must match currency routing
     batch_interval_minutes: 60      # How often the payout worker runs
     max_retry_attempts: 5           # Retries for failed disbursements

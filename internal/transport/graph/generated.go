@@ -479,6 +479,8 @@ type ComplexityRoot struct {
 		AddWishlistItem         func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID, source *domain1.WishlistItemSource) int
 		CancelBooking           func(childComplexity int, input model.CancelBookingInput) int
 		CancelDispute           func(childComplexity int, disputeID uuid.UUID) int
+		CheckInBooking          func(childComplexity int, bookingID uuid.UUID) int
+		CheckOutBooking         func(childComplexity int, bookingID uuid.UUID) int
 		ConfirmBooking          func(childComplexity int, bookingID uuid.UUID) int
 		CreateBusiness          func(childComplexity int, input model.CreateBusinessInput) int
 		CreateListing           func(childComplexity int, input model.CreateListingInput) int
@@ -1078,6 +1080,8 @@ type MutationResolver interface {
 	PayForBooking(ctx context.Context, input model.PayForBookingInput) (*graphql3.CompleteBookingPayload, error)
 	ConfirmBooking(ctx context.Context, bookingID uuid.UUID) (*domain4.Booking, error)
 	CancelBooking(ctx context.Context, input model.CancelBookingInput) (*domain4.Booking, error)
+	CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*domain4.Booking, error)
+	CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*domain4.Booking, error)
 	CreatePayment(ctx context.Context, input graphql1.CreatePaymentInput) (*model.PaymentInitResponse, error)
 	VerifyPayment(ctx context.Context, reference string) (*domain5.Payment, error)
 	RefundPayment(ctx context.Context, input graphql1.RefundPaymentInput) (*domain5.Payment, error)
@@ -3170,6 +3174,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CancelDispute(childComplexity, args["disputeId"].(uuid.UUID)), true
+	case "Mutation.checkInBooking":
+		if e.complexity.Mutation.CheckInBooking == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_checkInBooking_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CheckInBooking(childComplexity, args["bookingId"].(uuid.UUID)), true
+	case "Mutation.checkOutBooking":
+		if e.complexity.Mutation.CheckOutBooking == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_checkOutBooking_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CheckOutBooking(childComplexity, args["bookingId"].(uuid.UUID)), true
 	case "Mutation.confirmBooking":
 		if e.complexity.Mutation.ConfirmBooking == nil {
 			break
@@ -7796,11 +7822,13 @@ type Booking {
   status: BookingStatus!
   bookingType: BookingType!
 
-  checkIn: Time!
-  checkOut: Time!
+  # Actual check-in/out timestamps (nullable until populated)
+  checkIn: Time
+  checkOut: Time
 
-  checkInTime: String
-  checkOutTime: String
+  # Scheduled check-in/out timestamps
+  checkInTime: Time
+  checkOutTime: Time
 
   holdExpiresAt: Time
   paymentDueAt: Time
@@ -7863,8 +7891,8 @@ type BookingQuote {
   minNights: Int!
   maxNights: Int
   maxGuests: Int!
-  checkInTime: String
-  checkOutTime: String
+  checkInTime: Time
+  checkOutTime: Time
 
   responseWindowHours: Float
   unavailabilityReason: String
@@ -7948,6 +7976,10 @@ extend type Mutation {
 
   # Cancel a booking
   cancelBooking(input: CancelBookingInput!): Booking!
+
+  # Host actions to record actual stay
+  checkInBooking(bookingId: UUID!): Booking!
+  checkOutBooking(bookingId: UUID!): Booking!
 }
 `, BuiltIn: false},
 	{Name: "../../modules/payments/port/graphql/schema.graphqls", Input: `# internal/modules/payments/port/graphql/schema.graphqls
@@ -8888,6 +8920,28 @@ func (ec *executionContext) field_Mutation_cancelDispute_args(ctx context.Contex
 		return nil, err
 	}
 	args["disputeId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_checkInBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bookingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["bookingId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_checkOutBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bookingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["bookingId"] = arg0
 	return args, nil
 }
 
@@ -11081,9 +11135,9 @@ func (ec *executionContext) _Booking_checkIn(ctx context.Context, field graphql.
 			return obj.CheckIn, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		ec.marshalOTime2ᚖtimeᚐTime,
 		true,
-		true,
+		false,
 	)
 }
 
@@ -11110,9 +11164,9 @@ func (ec *executionContext) _Booking_checkOut(ctx context.Context, field graphql
 			return obj.CheckOut, nil
 		},
 		nil,
-		ec.marshalNTime2timeᚐTime,
+		ec.marshalOTime2ᚖtimeᚐTime,
 		true,
-		true,
+		false,
 	)
 }
 
@@ -11139,7 +11193,7 @@ func (ec *executionContext) _Booking_checkInTime(ctx context.Context, field grap
 			return obj.CheckInTime, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		ec.marshalOTime2ᚖtimeᚐTime,
 		true,
 		false,
 	)
@@ -11152,7 +11206,7 @@ func (ec *executionContext) fieldContext_Booking_checkInTime(_ context.Context, 
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -11168,7 +11222,7 @@ func (ec *executionContext) _Booking_checkOutTime(ctx context.Context, field gra
 			return obj.CheckOutTime, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		ec.marshalOTime2ᚖtimeᚐTime,
 		true,
 		false,
 	)
@@ -11181,7 +11235,7 @@ func (ec *executionContext) fieldContext_Booking_checkOutTime(_ context.Context,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -12049,7 +12103,7 @@ func (ec *executionContext) _BookingQuote_checkInTime(ctx context.Context, field
 			return obj.CheckInTime, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		ec.marshalOTime2ᚖtimeᚐTime,
 		true,
 		false,
 	)
@@ -12062,7 +12116,7 @@ func (ec *executionContext) fieldContext_BookingQuote_checkInTime(_ context.Cont
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -12078,7 +12132,7 @@ func (ec *executionContext) _BookingQuote_checkOutTime(ctx context.Context, fiel
 			return obj.CheckOutTime, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		ec.marshalOTime2ᚖtimeᚐTime,
 		true,
 		false,
 	)
@@ -12091,7 +12145,7 @@ func (ec *executionContext) fieldContext_BookingQuote_checkOutTime(_ context.Con
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -21674,6 +21728,216 @@ func (ec *executionContext) fieldContext_Mutation_cancelBooking(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_cancelBooking_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_checkInBooking(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_checkInBooking,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CheckInBooking(ctx, fc.Args["bookingId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBooking2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBooking,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_checkInBooking(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Booking_id(ctx, field)
+			case "listingId":
+				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "calendarEventId":
+				return ec.fieldContext_Booking_calendarEventId(ctx, field)
+			case "cleaningEventId":
+				return ec.fieldContext_Booking_cleaningEventId(ctx, field)
+			case "guestId":
+				return ec.fieldContext_Booking_guestId(ctx, field)
+			case "guestName":
+				return ec.fieldContext_Booking_guestName(ctx, field)
+			case "guestEmail":
+				return ec.fieldContext_Booking_guestEmail(ctx, field)
+			case "guestPhone":
+				return ec.fieldContext_Booking_guestPhone(ctx, field)
+			case "guestCount":
+				return ec.fieldContext_Booking_guestCount(ctx, field)
+			case "status":
+				return ec.fieldContext_Booking_status(ctx, field)
+			case "bookingType":
+				return ec.fieldContext_Booking_bookingType(ctx, field)
+			case "checkIn":
+				return ec.fieldContext_Booking_checkIn(ctx, field)
+			case "checkOut":
+				return ec.fieldContext_Booking_checkOut(ctx, field)
+			case "checkInTime":
+				return ec.fieldContext_Booking_checkInTime(ctx, field)
+			case "checkOutTime":
+				return ec.fieldContext_Booking_checkOutTime(ctx, field)
+			case "holdExpiresAt":
+				return ec.fieldContext_Booking_holdExpiresAt(ctx, field)
+			case "paymentDueAt":
+				return ec.fieldContext_Booking_paymentDueAt(ctx, field)
+			case "activeAt":
+				return ec.fieldContext_Booking_activeAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Booking_completedAt(ctx, field)
+			case "archivedAt":
+				return ec.fieldContext_Booking_archivedAt(ctx, field)
+			case "paymentReference":
+				return ec.fieldContext_Booking_paymentReference(ctx, field)
+			case "lastPaymentId":
+				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "specialRequests":
+				return ec.fieldContext_Booking_specialRequests(ctx, field)
+			case "priceBreakdown":
+				return ec.fieldContext_Booking_priceBreakdown(ctx, field)
+			case "totalPrice":
+				return ec.fieldContext_Booking_totalPrice(ctx, field)
+			case "currency":
+				return ec.fieldContext_Booking_currency(ctx, field)
+			case "confirmedAt":
+				return ec.fieldContext_Booking_confirmedAt(ctx, field)
+			case "cancelledAt":
+				return ec.fieldContext_Booking_cancelledAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Booking_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Booking_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Booking_deletedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_checkInBooking_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_checkOutBooking(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_checkOutBooking,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CheckOutBooking(ctx, fc.Args["bookingId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBooking2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBooking,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_checkOutBooking(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Booking_id(ctx, field)
+			case "listingId":
+				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "calendarEventId":
+				return ec.fieldContext_Booking_calendarEventId(ctx, field)
+			case "cleaningEventId":
+				return ec.fieldContext_Booking_cleaningEventId(ctx, field)
+			case "guestId":
+				return ec.fieldContext_Booking_guestId(ctx, field)
+			case "guestName":
+				return ec.fieldContext_Booking_guestName(ctx, field)
+			case "guestEmail":
+				return ec.fieldContext_Booking_guestEmail(ctx, field)
+			case "guestPhone":
+				return ec.fieldContext_Booking_guestPhone(ctx, field)
+			case "guestCount":
+				return ec.fieldContext_Booking_guestCount(ctx, field)
+			case "status":
+				return ec.fieldContext_Booking_status(ctx, field)
+			case "bookingType":
+				return ec.fieldContext_Booking_bookingType(ctx, field)
+			case "checkIn":
+				return ec.fieldContext_Booking_checkIn(ctx, field)
+			case "checkOut":
+				return ec.fieldContext_Booking_checkOut(ctx, field)
+			case "checkInTime":
+				return ec.fieldContext_Booking_checkInTime(ctx, field)
+			case "checkOutTime":
+				return ec.fieldContext_Booking_checkOutTime(ctx, field)
+			case "holdExpiresAt":
+				return ec.fieldContext_Booking_holdExpiresAt(ctx, field)
+			case "paymentDueAt":
+				return ec.fieldContext_Booking_paymentDueAt(ctx, field)
+			case "activeAt":
+				return ec.fieldContext_Booking_activeAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Booking_completedAt(ctx, field)
+			case "archivedAt":
+				return ec.fieldContext_Booking_archivedAt(ctx, field)
+			case "paymentReference":
+				return ec.fieldContext_Booking_paymentReference(ctx, field)
+			case "lastPaymentId":
+				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "specialRequests":
+				return ec.fieldContext_Booking_specialRequests(ctx, field)
+			case "priceBreakdown":
+				return ec.fieldContext_Booking_priceBreakdown(ctx, field)
+			case "totalPrice":
+				return ec.fieldContext_Booking_totalPrice(ctx, field)
+			case "currency":
+				return ec.fieldContext_Booking_currency(ctx, field)
+			case "confirmedAt":
+				return ec.fieldContext_Booking_confirmedAt(ctx, field)
+			case "cancelledAt":
+				return ec.fieldContext_Booking_cancelledAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Booking_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Booking_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Booking_deletedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_checkOutBooking_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -43387,14 +43651,8 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "checkIn":
 			out.Values[i] = ec._Booking_checkIn(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "checkOut":
 			out.Values[i] = ec._Booking_checkOut(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "checkInTime":
 			out.Values[i] = ec._Booking_checkInTime(ctx, field, obj)
 		case "checkOutTime":
@@ -46404,6 +46662,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "cancelBooking":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_cancelBooking(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "checkInBooking":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_checkInBooking(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "checkOutBooking":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_checkOutBooking(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

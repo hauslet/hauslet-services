@@ -41,6 +41,12 @@ type BookingRepository interface {
 	// Used for review reminder system to find bookings that need review invites
 	// limit: maximum number of bookings to return (0 = no limit, but not recommended for production)
 	FindCompletedBookingsInRange(ctx context.Context, startTime, endTime time.Time, limit int) ([]*schema.Booking, error)
+
+	// FindBookingsPendingCheckIn returns bookings past scheduled check-in without actual check-in recorded
+	FindBookingsPendingCheckIn(ctx context.Context, cutoff time.Time, limit int) ([]*schema.Booking, error)
+
+	// FindBookingsPendingCheckOut returns bookings past scheduled check-out without actual check-out recorded
+	FindBookingsPendingCheckOut(ctx context.Context, cutoff time.Time, limit int) ([]*schema.Booking, error)
 }
 
 type BookingRepositoryImpl struct {

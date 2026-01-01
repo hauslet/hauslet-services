@@ -405,6 +405,50 @@ func (r *Resolver) CancelBooking(ctx context.Context, input *CancelBookingInput)
 	return booking, nil
 }
 
+// CheckInBooking records an actual check-in time for a booking (host-only).
+func (r *Resolver) CheckInBooking(ctx context.Context, bookingID string) (*domain.Booking, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := uuid.Parse(bookingID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid booking ID")
+	}
+
+	booking, err := r.bookingService.CheckInBooking(ctx, id, userID)
+	if err != nil {
+		r.log.Error("failed to check in booking: %v", err)
+		return nil, err
+	}
+
+	r.localizeBooking(ctx, booking)
+	return booking, nil
+}
+
+// CheckOutBooking records an actual check-out time for a booking (host-only).
+func (r *Resolver) CheckOutBooking(ctx context.Context, bookingID string) (*domain.Booking, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := uuid.Parse(bookingID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid booking ID")
+	}
+
+	booking, err := r.bookingService.CheckOutBooking(ctx, id, userID)
+	if err != nil {
+		r.log.Error("failed to check out booking: %v", err)
+		return nil, err
+	}
+
+	r.localizeBooking(ctx, booking)
+	return booking, nil
+}
+
 // CompleteBookingPayload represents the response from booking with payment
 type CompleteBookingPayload struct {
 	Booking               *domain.Booking `json:"booking"`

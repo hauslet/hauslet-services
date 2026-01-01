@@ -35,11 +35,13 @@ type Booking {
   status: BookingStatus!
   bookingType: BookingType!
 
-  checkIn: Time!
-  checkOut: Time!
+  # Actual check-in/out timestamps (nullable until populated)
+  checkIn: Time
+  checkOut: Time
 
-  checkInTime: String
-  checkOutTime: String
+  # Scheduled check-in/out timestamps
+  checkInTime: Time
+  checkOutTime: Time
 
   holdExpiresAt: Time
   paymentDueAt: Time
@@ -102,8 +104,8 @@ type BookingQuote {
   minNights: Int!
   maxNights: Int
   maxGuests: Int!
-  checkInTime: String
-  checkOutTime: String
+  checkInTime: Time
+  checkOutTime: Time
 
   responseWindowHours: Float
   unavailabilityReason: String
@@ -187,4 +189,8 @@ extend type Mutation {
 
   # Cancel a booking
   cancelBooking(input: CancelBookingInput!): Booking!
+
+  # Host actions to record actual stay
+  checkInBooking(bookingId: UUID!): Booking!
+  checkOutBooking(bookingId: UUID!): Booking!
 }

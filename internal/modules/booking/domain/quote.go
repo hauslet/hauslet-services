@@ -22,8 +22,8 @@ type BookingQuote struct {
 	MinNights      int    `json:"min_nights"`
 	MaxNights      *int   `json:"max_nights,omitempty"`
 	MaxGuests      int    `json:"max_guests"`
-	CheckInTime    *string `json:"check_in_time,omitempty"`
-	CheckOutTime   *string `json:"check_out_time,omitempty"`
+	CheckInTime    *time.Time `json:"check_in_time,omitempty"`
+	CheckOutTime   *time.Time `json:"check_out_time,omitempty"`
 
 	// Response window for manual approval (in hours)
 	ResponseWindowHours float64 `json:"response_window_hours,omitempty"`
@@ -34,5 +34,10 @@ type BookingQuote struct {
 
 // DurationNights returns the total nights for the quote.
 func (q *BookingQuote) DurationNights() int {
-	return int(q.CheckOut.Sub(q.CheckIn).Hours() / 24)
+	startDate := time.Date(q.CheckIn.Year(), q.CheckIn.Month(), q.CheckIn.Day(), 0, 0, 0, 0, q.CheckIn.Location())
+	endDate := time.Date(q.CheckOut.Year(), q.CheckOut.Month(), q.CheckOut.Day(), 0, 0, 0, 0, q.CheckOut.Location())
+	if endDate.Before(startDate) {
+		return 0
+	}
+	return int(endDate.Sub(startDate).Hours() / 24)
 }

@@ -113,7 +113,43 @@ resource "google_cloud_scheduler_job" "booking_completion" {
   ]
 }
 
-# 4. Payout Processing Scheduler (every hour)
+# 4. Booking Check-In/Out Scheduler (every hour)
+resource "google_cloud_scheduler_job" "booking_checkin_out" {
+  name        = "booking-checkin-out-scheduler"
+  description = "Auto-populates booking check-in/out timestamps every hour"
+  schedule    = "0 * * * *"  # Every hour at minute 0
+  time_zone   = "UTC"
+  region      = "europe-west1"  # Cloud Scheduler not available in europe-north1
+
+  retry_config {
+    retry_count = 3
+    min_backoff_duration = "5s"
+    max_backoff_duration = "60s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/booking/checkin-out"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Job payload matching BookingCheckInOutJob
+    body = base64encode(jsonencode({}))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
+# 5. Payout Processing Scheduler (every hour)
 resource "google_cloud_scheduler_job" "payout_process" {
   name        = "payout-process-scheduler"
   description = "Processes pending payouts every hour"
@@ -150,7 +186,7 @@ resource "google_cloud_scheduler_job" "payout_process" {
   ]
 }
 
-# 5. Disbursement Retry Scheduler (every 15 minutes)
+# 6. Disbursement Retry Scheduler (every 15 minutes)
 resource "google_cloud_scheduler_job" "disbursement_retry" {
   name        = "disbursement-retry-scheduler"
   description = "Retries failed disbursements every 15 minutes"
@@ -187,7 +223,7 @@ resource "google_cloud_scheduler_job" "disbursement_retry" {
   ]
 }
 
-# 6. Financial Reconciliation Scheduler (daily at 2 AM UTC)
+# 7. Financial Reconciliation Scheduler (daily at 2 AM UTC)
 resource "google_cloud_scheduler_job" "finance_reconciliation" {
   name        = "finance-reconciliation-scheduler"
   description = "Runs daily financial reconciliation at 2 AM UTC"
@@ -224,7 +260,7 @@ resource "google_cloud_scheduler_job" "finance_reconciliation" {
   ]
 }
 
-# 7. Review Standoff Publishing Scheduler (daily at midnight UTC)
+# 8. Review Standoff Publishing Scheduler (daily at midnight UTC)
 resource "google_cloud_scheduler_job" "review_publish_standoffs" {
   name        = "review-publish-standoffs-scheduler"
   description = "Publishes reviews stuck in standoff after 14 days"
@@ -263,7 +299,7 @@ resource "google_cloud_scheduler_job" "review_publish_standoffs" {
   ]
 }
 
-# 8. Review Reminder Scheduler (daily at 10 AM UTC)
+# 9. Review Reminder Scheduler (daily at 10 AM UTC)
 resource "google_cloud_scheduler_job" "review_send_reminders" {
   name        = "review-send-reminders-scheduler"
   description = "Sends review reminders to users approaching deadline"

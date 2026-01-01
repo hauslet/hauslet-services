@@ -28,11 +28,13 @@ type Booking struct {
 	Status      BookingStatus `gorm:"type:varchar(32);not null;default:'awaiting_payment';index"`
 	BookingType BookingType   `gorm:"type:varchar(32);not null;default:'request'"`
 
-	CheckIn  time.Time `gorm:"not null;index"`
-	CheckOut time.Time `gorm:"not null;index"`
+	// Actual check-in/out timestamps (populated by host or system)
+	CheckIn  *time.Time `gorm:"index"`
+	CheckOut *time.Time `gorm:"index"`
 
-	CheckInTime  *string `gorm:"type:varchar(10)"`
-	CheckOutTime *string `gorm:"type:varchar(10)"`
+	// Scheduled check-in/out timestamps (derived from listing rules)
+	CheckInTime  *time.Time `gorm:"index"`
+	CheckOutTime *time.Time `gorm:"index"`
 
 	HoldExpiresAt *time.Time `gorm:"index"`
 	PaymentDueAt  *time.Time `gorm:"index"`
@@ -123,8 +125,20 @@ func (b *Booking) BeforeSave(tx *gorm.DB) error {
 	if b.GuestID == uuid.Nil {
 		return errors.New("guest_id is required")
 	}
-	if !b.CheckOut.After(b.CheckIn) {
-		return errors.New("checkout must be after checkin")
+	hasScheduled := b.CheckInTime != nil && b.CheckOutTime != nil
+	hasActual := b.CheckIn != nil && b.CheckOut != nil
+
+	switch {
+	case hasScheduled:
+		if !b.CheckOutTime.After(*b.CheckInTime) {
+			return errors.New("scheduled checkout must be after scheduled checkin")
+		}
+	case hasActual:
+		if !b.CheckOut.After(*b.CheckIn) {
+			return errors.New("checkout must be after checkin")
+		}
+	default:
+		return errors.New("check-in/check-out timestamps are required")
 	}
 	if b.GuestCount <= 0 {
 		return errors.New("guest_count must be positive")

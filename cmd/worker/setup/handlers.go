@@ -133,6 +133,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	hasBookingExpiry := qCfg["booking_expiry"] != ""
 	hasBookingCompletion := qCfg["booking_completion"] != ""
 	hasBookingRefund := qCfg["booking_refund"] != ""
+	hasBookingCheckInOut := qCfg["booking_checkin_out"] != ""
 	if hasBookingExpiry || hasBookingCompletion || hasBookingRefund {
 		// Initialize booking dependencies
 		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
@@ -226,6 +227,28 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			h := bookingHandler.NewBookingRefundHandler(bookingRepo, paymentsSvc, log, qCfg["booking_refund"])
 			registry.Register(h)
 		}
+	}
+
+	if hasBookingCheckInOut {
+		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
+		bookingSvc := bookingservice.NewBookingService(
+			bookingRepo,
+			nil, // calendar not required for check-in/out sync
+			nil, // pricing not required for check-in/out sync
+			nil, // payment gateway not required for check-in/out sync
+			nil, // listing hooks not required for check-in/out sync
+			nil, // profile provider not required for check-in/out sync
+			nil, // notification service not required for check-in/out sync
+			nil, // refund queue not required for check-in/out sync
+			"",
+			nil, // finance hooks not required for check-in/out sync
+			nil, // review hooks not required for check-in/out sync
+			cfg.YAML.Platform,
+			log,
+		)
+
+		h := bookingHandler.NewBookingCheckInOutHandler(bookingSvc, log, qCfg["booking_checkin_out"])
+		registry.Register(h)
 	}
 
 	if hasPaymentWebhook {

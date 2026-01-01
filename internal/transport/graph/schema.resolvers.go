@@ -363,6 +363,16 @@ func (r *mutationResolver) CancelBooking(ctx context.Context, input model.Cancel
 	return r.BookingResolver.CancelBooking(ctx, bookingInput)
 }
 
+// CheckInBooking is the resolver for the checkInBooking field.
+func (r *mutationResolver) CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*domain5.Booking, error) {
+	return r.BookingResolver.CheckInBooking(ctx, bookingID.String())
+}
+
+// CheckOutBooking is the resolver for the checkOutBooking field.
+func (r *mutationResolver) CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*domain5.Booking, error) {
+	return r.BookingResolver.CheckOutBooking(ctx, bookingID.String())
+}
+
 // CreatePayment is the resolver for the createPayment field.
 func (r *mutationResolver) CreatePayment(ctx context.Context, input graphql1.CreatePaymentInput) (*model.PaymentInitResponse, error) {
 	payment, err := r.PaymentsResolver.CreatePayment(ctx, &input)

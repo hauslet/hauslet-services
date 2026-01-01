@@ -2,7 +2,7 @@
 set -e
 
 # Cloud Scheduler Deployment Script for Hauslet
-# This script deploys the 4 Cloud Scheduler jobs that replace manual tickers
+# This script deploys the Cloud Scheduler jobs that replace manual tickers
 
 REGION="${REGION:-us-central1}"
 PROJECT_ID="${PROJECT_ID:-}"
@@ -128,7 +128,7 @@ echo "🧪 Testing Jobs..."
 echo ""
 
 # Test each job
-JOBS=("media-cleanup-scheduler" "booking-expiry-scheduler" "booking-completion-scheduler" "payout-process-scheduler" "disbursement-retry-scheduler")
+JOBS=("media-cleanup-scheduler" "booking-expiry-scheduler" "booking-completion-scheduler" "booking-checkin-out-scheduler" "payout-process-scheduler" "disbursement-retry-scheduler")
 
 for JOB in "${JOBS[@]}"; do
     echo "   Testing $JOB..."
