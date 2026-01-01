@@ -1,7 +1,6 @@
 package service
 
 import (
-	"hauslet/config"
 	"math"
 )
 
@@ -62,30 +61,4 @@ func (s *PricingServiceImpl) calculatePayoutProcessing(amount float64) float64 {
 		return 0
 	}
 	return amount * (s.platformConfig.Fees.PayoutProcessingPercent / 100)
-}
-
-// Legacy helper for backward compatibility with config types
-func platformFeesFromConfig(cfg config.PlatformYAMLConfig) struct {
-	HostCommissionPercent    float64
-	GuestServicePercent      float64
-	PayoutProcessingPercent  float64
-	MinimumServiceFeeMinor   int64
-	MaximumServiceFeePercent float64
-	CurrencyMinorUnit        int64
-} {
-	return struct {
-		HostCommissionPercent    float64
-		GuestServicePercent      float64
-		PayoutProcessingPercent  float64
-		MinimumServiceFeeMinor   int64
-		MaximumServiceFeePercent float64
-		CurrencyMinorUnit        int64
-	}{
-		HostCommissionPercent:    cfg.Fees.HostCommissionPercent,
-		GuestServicePercent:      cfg.Fees.GuestServicePercent,
-		PayoutProcessingPercent:  cfg.Fees.PayoutProcessingPercent,
-		MinimumServiceFeeMinor:   cfg.Fees.MinimumServiceFeeMinor,
-		MaximumServiceFeePercent: cfg.Fees.MaximumServiceFeePercent,
-		CurrencyMinorUnit:        cfg.Currency.MinorUnit,
-	}
 }

@@ -147,7 +147,7 @@ func (s *PayoutServiceImpl) initiateTransferWithRecipient(
 // RetryFailedDisbursements retries all failed disbursements that are due for retry
 func (s *PayoutServiceImpl) RetryFailedDisbursements(ctx context.Context) error {
 	if s.log != nil {
-		s.log.Info(" retrying failed disbursements")
+		s.log.Info("checking for failed disbursements")
 	}
 
 	// Get all pending retries
@@ -156,8 +156,19 @@ func (s *PayoutServiceImpl) RetryFailedDisbursements(ctx context.Context) error 
 		return fmt.Errorf("failed to list pending retries: %w", err)
 	}
 
+	// Nothing to retry
+	if len(pendingRetries) == 0 {
+		if s.log != nil {
+			s.log.Info("no disbursements due for retry")
+		}
+		return nil
+	}
+
 	if s.log != nil {
-		s.log.Info(" found disbursements to retry", "count", len(pendingRetries))
+		s.log.Info(
+			"found disbursements to retry",
+			"count", len(pendingRetries),
+		)
 	}
 
 	for _, d := range pendingRetries {

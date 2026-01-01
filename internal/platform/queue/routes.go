@@ -53,6 +53,22 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/finance/payout/retry",
 		Timeout: 120 * time.Second,
 	},
+	"finance_reconciliation": {
+		Path:    "/tasks/finance/reconciliation",
+		Timeout: 300 * time.Second,
+	},
+	"review_stats": {
+		Path:    "/tasks/review/stats",
+		Timeout: 120 * time.Second,
+	},
+	"review_standoff": {
+		Path:    "/tasks/review/standoff/publish",
+		Timeout: 120 * time.Second,
+	},
+	"review_reminders": {
+		Path:    "/tasks/review/reminders",
+		Timeout: 120 * time.Second,
+	},
 }
 
 func BuildQueueRoutes(queueNames map[string]string) map[string]QueueRoute {

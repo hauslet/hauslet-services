@@ -12,7 +12,10 @@ import (
 // This should be called by a cron job (e.g., every hour)
 func (s *BookingServiceImpl) CompleteBookings(ctx context.Context) error {
 	if s.log != nil {
-		s.log.Info("[AUDIT] booking_completion_batch_started", "time", time.Now().Format(time.RFC3339))
+		s.log.Info(
+			"[AUDIT] booking_completion_batch_started",
+			"time", time.Now().Format(time.RFC3339),
+		)
 	}
 
 	// Get escrow release config
@@ -28,23 +31,46 @@ func (s *BookingServiceImpl) CompleteBookings(ctx context.Context) error {
 	}
 
 	if s.log != nil {
-		s.log.Info("[AUDIT] completion_config", "escrow_release_event", escrowReleaseEvent, "escrow_release_hours", escrowReleaseHours)
+		s.log.Info(
+			"[AUDIT] completion_config",
+			"escrow_release_event", escrowReleaseEvent,
+			"escrow_release_hours", escrowReleaseHours,
+		)
 	}
 
 	// Convert to string only when passing to the query
-	bookings, err := s.repo.FindBookingsReadyForCompletion(ctx, escrowReleaseEvent.String(), escrowReleaseHours, 100)
+	bookings, err := s.repo.FindBookingsReadyForCompletion(
+		ctx,
+		escrowReleaseEvent.String(),
+		escrowReleaseHours,
+		100,
+	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Error("failed to query bookings ready for completion", "error", err)
+			s.log.Error(
+				"failed to query bookings ready for completion",
+				"error", err,
+			)
 		}
 		return fmt.Errorf("failed to query bookings: %w", err)
+	}
+
+	// Nothing to process
+	if len(bookings) == 0 {
+		if s.log != nil {
+			s.log.Info("[AUDIT] no bookings ready for completion")
+		}
+		return nil
 	}
 
 	successCount := 0
 	failureCount := 0
 
 	if s.log != nil {
-		s.log.Info("[AUDIT] found bookings ready for completion", "count", len(bookings))
+		s.log.Info(
+			"[AUDIT] found bookings ready for completion",
+			"count", len(bookings),
+		)
 	}
 
 	// Process each booking
@@ -52,19 +78,33 @@ func (s *BookingServiceImpl) CompleteBookings(ctx context.Context) error {
 		err := s.completeSingleBooking(ctx, booking)
 		if err != nil {
 			if s.log != nil {
-				s.log.Error("[AUDIT] completion_failed", "booking_id", booking.ID, "error", err)
+				s.log.Error(
+					"[AUDIT] completion_failed",
+					"booking_id", booking.ID,
+					"error", err,
+				)
 			}
 			failureCount++
-		} else {
-			if s.log != nil {
-				s.log.Info(" [AUDIT] completion_success", "booking_id", booking.ID)
-			}
-			successCount++
+			continue
 		}
+
+		if s.log != nil {
+			s.log.Info(
+				"[AUDIT] completion_success",
+				"booking_id", booking.ID,
+			)
+		}
+		successCount++
 	}
 
 	if s.log != nil {
-		s.log.Info("[AUDIT] booking_completion_batch_completed", "time", time.Now().Format(time.RFC3339), "total", len(bookings), "success", successCount, "failed", failureCount)
+		s.log.Info(
+			"[AUDIT] booking_completion_batch_completed",
+			"time", time.Now().Format(time.RFC3339),
+			"total", len(bookings),
+			"success", successCount,
+			"failed", failureCount,
+		)
 	}
 
 	return nil
