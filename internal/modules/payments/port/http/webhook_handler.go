@@ -42,6 +42,12 @@ type PayoutHooks interface {
 	OnTransferFailed(ctx context.Context, transferCode string, reason string) error
 }
 
+// PromotionHooks defines the interface for promotion/subscription lifecycle callbacks
+type PromotionHooks interface {
+	OnPromotionPaymentSucceeded(ctx context.Context, promotionID uuid.UUID, payment *paymentdomain.Payment) error
+	OnSubscriptionPaymentSucceeded(ctx context.Context, subscriptionID uuid.UUID, payment *paymentdomain.Payment) error
+}
+
 // WebhookHandler handles payment provider webhooks
 type WebhookHandler struct {
 	paymentService service.PaymentService
@@ -49,6 +55,7 @@ type WebhookHandler struct {
 	bookingHooks   BookingHooks
 	financeHooks   FinanceHooks
 	payoutHooks    PayoutHooks
+	promotionHooks PromotionHooks
 	queueClient    *platformQueue.Client
 	queueSubject   string
 	log            *slog.Logger
@@ -61,6 +68,7 @@ func NewWebhookHandler(
 	bookingHooks BookingHooks,
 	financeHooks FinanceHooks,
 	payoutHooks PayoutHooks,
+	promotionHooks PromotionHooks,
 	queueClient *platformQueue.Client,
 	queueSubject string,
 	log *slog.Logger,
@@ -71,6 +79,7 @@ func NewWebhookHandler(
 		bookingHooks:   bookingHooks,
 		financeHooks:   financeHooks,
 		payoutHooks:    payoutHooks,
+		promotionHooks: promotionHooks,
 		queueClient:    queueClient,
 		queueSubject:   queueSubject,
 		log:            log,
@@ -292,6 +301,48 @@ func (h *WebhookHandler) handleChargeSuccess(ctx context.Context, event *payment
 				// Don't fail the webhook - payment already succeeded
 				// The booking can be confirmed manually or via retry
 			}
+		}
+	}
+
+	// If payment is for a promotion, activate it
+	if pmt.ResourceType == paymentdomain.ResourceTypePromotion && pmt.ResourceID != nil {
+		if h.promotionHooks != nil {
+			h.log.Info(" activating promotion after payment success",
+				"promotion", *pmt.ResourceID,
+				"amount", pmt.Amount,
+				"payment_id", pmt.ID,
+			)
+
+			if err := h.promotionHooks.OnPromotionPaymentSucceeded(ctx, *pmt.ResourceID, pmt); err != nil {
+				h.log.Error("failed to activate promotion", "error", err)
+				// Don't fail the webhook - payment already succeeded
+				// The promotion can be activated manually or via retry
+			}
+		} else {
+			h.log.Warn("promotion hooks not configured, payment succeeded but promotion not activated",
+				"promotion", *pmt.ResourceID,
+			)
+		}
+	}
+
+	// If payment is for a subscription, activate it
+	if pmt.ResourceType == paymentdomain.ResourceTypeSubscription && pmt.ResourceID != nil {
+		if h.promotionHooks != nil {
+			h.log.Info(" activating subscription after payment success",
+				"subscription", *pmt.ResourceID,
+				"amount", pmt.Amount,
+				"payment_id", pmt.ID,
+			)
+
+			if err := h.promotionHooks.OnSubscriptionPaymentSucceeded(ctx, *pmt.ResourceID, pmt); err != nil {
+				h.log.Error("failed to activate subscription", "error", err)
+				// Don't fail the webhook - payment already succeeded
+				// The subscription can be activated manually or via retry
+			}
+		} else {
+			h.log.Warn("promotion hooks not configured, payment succeeded but subscription not activated",
+				"subscription", *pmt.ResourceID,
+			)
 		}
 	}
 

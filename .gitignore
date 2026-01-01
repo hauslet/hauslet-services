@@ -8,8 +8,10 @@ config/overrides/
 .cache/
 .gomodcache/
 .gocache
+.hintrc
 AGENTS.md
 CLAUDE.md
+todo.md
 
 # Binary outputs
 /bin/

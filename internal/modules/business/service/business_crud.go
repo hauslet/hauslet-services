@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"hauslet/internal/modules/auth/authorization"
 	"hauslet/internal/modules/business/domain"
 
 	"github.com/google/uuid"
@@ -14,6 +15,12 @@ import (
 
 // CreateBusiness creates a new business
 func (s *BusinessServiceImpl) CreateBusiness(ctx context.Context, input domain.CreateBusinessInput, creatorID uuid.UUID) (*domain.Business, error) {
+	if s.supplyGate != nil {
+		if err := s.supplyGate.Authorize(ctx, creatorID, authorization.SupplyActionCreateBusiness, nil); err != nil {
+			return nil, err
+		}
+	}
+
 	// Validate input
 	if input.Name == "" {
 		return nil, fmt.Errorf("business name is required")

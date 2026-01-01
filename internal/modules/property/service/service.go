@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"hauslet/internal/modules/auth/authorization"
 	"hauslet/internal/modules/property/domain"
 
 	"github.com/google/uuid"
@@ -14,6 +15,10 @@ import (
 func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.UUID) error {
 	if listingID == uuid.Nil {
 		return domain.ErrInvalidListingID
+	}
+
+	if err := s.authorizeSupplyAction(ctx, authorization.SupplyActionPublishListing, nil); err != nil {
+		return err
 	}
 
 	s.log.Info("starting publish request for listing", "listing_id", listingID)

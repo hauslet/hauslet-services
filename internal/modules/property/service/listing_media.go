@@ -31,7 +31,55 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 		return nil, err
 	}
 
-	s.log.Info("uploading media items for listing", "count", len(media), "listing_id", listingID)
+	// Check subscription limits - count existing photos + new photos
+	existingMedia, err := s.repo.ListListingMedia(ctx, listingID)
+	if err != nil {
+		s.log.Error("failed to get existing media for quota check", "listing_id", listingID, "error", err)
+		return nil, err
+	}
+
+	// Count existing photos
+	existingPhotoCount := 0
+	for _, m := range existingMedia {
+		if m.Type == schema.MediaTypeImage {
+			existingPhotoCount++
+		}
+	}
+
+	// Count new photos being uploaded
+	newPhotoCount := 0
+	for _, m := range media {
+		if m.Type == domain.MediaTypeImage {
+			newPhotoCount++
+		}
+	}
+
+	totalPhotoCount := existingPhotoCount + newPhotoCount
+
+	// Check if user can add this many photos
+	canAdd, err := s.subscriptionService.CanAddPhotos(ctx, listing.OwnerID, listingID, totalPhotoCount)
+	if err != nil {
+		s.log.Error("failed to check photo limit", "owner_id", listing.OwnerID, "listing_id", listingID, "error", err)
+		return nil, err
+	}
+	if !canAdd {
+		s.log.Warn("photo limit exceeded",
+			"owner_id", listing.OwnerID,
+			"listing_id", listingID,
+			"existing_photos", existingPhotoCount,
+			"new_photos", newPhotoCount,
+			"total", totalPhotoCount,
+		)
+		return nil, fmt.Errorf("photo limit exceeded - your plan allows fewer photos per listing (total would be %d)", totalPhotoCount)
+	}
+
+	s.log.Info("uploading media items for listing",
+		"count", len(media),
+		"listing_id", listingID,
+		"existing_photos", existingPhotoCount,
+		"new_photos", newPhotoCount,
+		"total_photos", totalPhotoCount,
+	)
 
 	mapped := make([]schema.ListingMedia, len(media))
 	result := make([]domain.ListingMediaResult, len(media))

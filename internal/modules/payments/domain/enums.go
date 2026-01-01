@@ -95,6 +95,7 @@ const (
 	ResourceTypeBooking        ResourceType = "booking"
 	ResourceTypeIDVerification ResourceType = "id_verification"
 	ResourceTypeSubscription   ResourceType = "subscription"
+	ResourceTypePromotion      ResourceType = "promotion"
 	ResourceTypeRentalDraft    ResourceType = "rental_draft"
 )
 
@@ -105,6 +106,7 @@ func (rt ResourceType) IsValid() bool {
 		ResourceTypeBooking,
 		ResourceTypeIDVerification,
 		ResourceTypeSubscription,
+		ResourceTypePromotion,
 		ResourceTypeRentalDraft:
 		return true
 	default:

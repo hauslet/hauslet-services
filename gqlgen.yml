@@ -12,6 +12,8 @@ schema:
   - internal/modules/finance/port/graphql/*.graphqls
   - internal/modules/wishlist/port/graphql/*.graphqls
   - internal/modules/review/port/graphql/*.graphqls
+  - internal/modules/promotions/port/graphql/*.graphqls
+  - internal/modules/leads/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
 exec:
@@ -337,3 +339,51 @@ models:
     model: hauslet/internal/modules/review/domain.ReviewTargetType
   ModerationReason:
     model: hauslet/internal/modules/review/domain.ModerationReason
+
+  # --- Promotions Module Bindings ---
+  ListingPromotion:
+    model: hauslet/internal/modules/promotions/domain.ListingPromotion
+  AgentSubscription:
+    model: hauslet/internal/modules/promotions/domain.AgentSubscription
+  UsageTracking:
+    model: hauslet/internal/modules/promotions/domain.UsageTracking
+
+  # Promotion Input/Output Types
+  CreatePromotionPayload:
+    model: hauslet/internal/modules/promotions/port/graphql.CreatePromotionPayload
+  CreateSubscriptionPayload:
+    model: hauslet/internal/modules/promotions/port/graphql.CreateSubscriptionPayload
+  FeatureLimitCheckResult:
+    model: hauslet/internal/modules/promotions/port/graphql.FeatureLimitCheckResult
+  PlanLimits:
+    model: hauslet/internal/modules/promotions/port/graphql.PlanLimits
+
+  # Promotion Enums
+  PromotionType:
+    model: hauslet/internal/modules/promotions/domain.PromotionType
+  PromotionStatus:
+    model: hauslet/internal/modules/promotions/domain.PromotionStatus
+  PlanType:
+    model: hauslet/internal/modules/promotions/domain.PlanType
+  BillingCycle:
+    model: hauslet/internal/modules/promotions/domain.BillingCycle
+  SubscriptionStatus:
+    model: hauslet/internal/modules/promotions/domain.SubscriptionStatus
+
+  # --- Leads Module Bindings ---
+  Lead:
+    model: hauslet/internal/modules/leads/domain.Lead
+  LeadEvent:
+    model: hauslet/internal/modules/leads/domain.LeadEvent
+
+  # Leads Enums
+  LeadStatus:
+    model: hauslet/internal/modules/leads/domain.LeadStatus
+  LeadSource:
+    model: hauslet/internal/modules/leads/domain.LeadSource
+  LeadEventType:
+    model: hauslet/internal/modules/leads/domain.LeadEventType
+  ActorType:
+    model: hauslet/internal/modules/leads/domain.ActorType
+  AssignmentReason:
+    model: hauslet/internal/modules/leads/domain.AssignmentReason

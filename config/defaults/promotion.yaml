@@ -16,6 +16,9 @@ promotion:
     bulk_upload_enabled: false     # No bulk upload
     priority_support: false        # Standard support only
     lead_management_enabled: false # No CRM/lead tools
+    viewing_events_enabled: false  # No viewing events
+    open_house_events_enabled: false # No open houses
+    private_showings_enabled: false  # No private showings
 
   # Pay-Per-Listing Promotion Tiers
   listing_promotions:
@@ -92,6 +95,45 @@ promotion:
 
   # Agent Subscription Plans (For agencies/professionals)
   subscription_plans:
+    # Free Plan - Opt-in access for supply-side features
+    free:
+      name: "Free Plan"
+      description: "Opt-in access with strict limits"
+      enabled: true
+      target_audience: "individual_agents"
+
+      pricing:
+        monthly: 0
+        yearly: 0
+
+      limits:
+        max_listings: 3                     # Match free tier limits
+        max_photos_per_listing: 20          # Match free tier limits
+        max_virtual_tours: 0                # No virtual tours
+        included_featured_per_month: 0
+        included_premium_per_month: 0
+        included_open_houses_per_month: 0
+        included_private_showings_per_month: 0
+
+      features:
+        advanced_analytics: false
+        lead_management: false
+        bulk_upload: false
+        api_access: false
+        branded_page: false
+        priority_support: false
+        virtual_tour_support: false
+        social_media_sync: false
+        export_leads: false
+        white_label_reports: false
+        viewing_events_enabled: false
+        open_house_events_enabled: false
+        private_showings_enabled: false
+        viewing_analytics: false
+        automated_reminders: false
+        calendar_sync: false
+        sms_reminders: false
+
     # Basic Plan - Individual agents/landlords
     basic:
       name: "Basic Plan"
@@ -109,6 +151,8 @@ promotion:
         max_virtual_tours: 5                # Up to 5 virtual tours
         included_featured_per_month: 2      # 2 free featured listings/month
         included_premium_per_month: 0       # No free premium
+        included_open_houses_per_month: 2   # 2 free open houses/month
+        included_private_showings_per_month: 0 # No private showings
 
       features:
         advanced_analytics: false
@@ -121,6 +165,12 @@ promotion:
         social_media_sync: false
         export_leads: true
         white_label_reports: false
+        viewing_events_enabled: true        # Can create viewing events
+        open_house_events_enabled: true     # Can create open houses
+        private_showings_enabled: false     # No private showings (upgrade required)
+        viewing_analytics: false            # No viewing analytics
+        automated_reminders: false          # No automated reminders
+        calendar_sync: false                # No .ics calendar sync
 
     # Professional Plan - Agencies
     professional:
@@ -139,6 +189,8 @@ promotion:
         max_virtual_tours: -1               # Unlimited virtual tours (-1 = unlimited)
         included_featured_per_month: 5      # 5 free featured listings/month
         included_premium_per_month: 10      # 10 free premium/month
+        included_open_houses_per_month: 10  # 10 free open houses/month
+        included_private_showings_per_month: 20 # 20 private showings/month
 
       features:
         advanced_analytics: true
@@ -151,6 +203,13 @@ promotion:
         social_media_sync: true
         export_leads: true
         white_label_reports: true
+        viewing_events_enabled: true        # Can create viewing events
+        open_house_events_enabled: true     # Can create open houses
+        private_showings_enabled: true      # Can create private showings
+        viewing_analytics: true             # Basic viewing analytics
+        automated_reminders: true           # Email reminders for viewings
+        calendar_sync: true                 # .ics calendar file generation
+        sms_reminders: false                # No SMS (Enterprise only)
 
     # Enterprise Plan - Large agencies
     enterprise:
@@ -169,6 +228,8 @@ promotion:
         max_virtual_tours: -1               # Unlimited virtual tours
         included_featured_per_month: 15     # 15 free featured listings/month
         included_premium_per_month: -1      # Unlimited free premium
+        included_open_houses_per_month: -1  # Unlimited open houses
+        included_private_showings_per_month: -1 # Unlimited private showings
 
       features:
         advanced_analytics: true
@@ -184,6 +245,14 @@ promotion:
         white_label_reports: true
         custom_integrations: true           # Zapier, webhooks, etc.
         multi_user_access: true             # Team collaboration
+        viewing_events_enabled: true        # Can create viewing events
+        open_house_events_enabled: true     # Can create open houses
+        private_showings_enabled: true      # Can create private showings
+        viewing_analytics: true             # Advanced viewing analytics
+        automated_reminders: true           # Email + SMS reminders
+        calendar_sync: true                 # .ics calendar file generation
+        sms_reminders: true                 # SMS reminders (Enterprise only)
+        priority_viewing_support: true      # Dedicated viewing coordinator
 
   # Add-ons (Available to all tiers)
   addons:
@@ -210,6 +279,15 @@ promotion:
       description: "Increase photo limit by 20"
       pricing:
         one_time: 500000          # ₦5,000 one-time per listing
+
+    viewing_events_pack:
+      name: "Additional Viewing Slots"
+      description: "Purchase extra viewing event slots when quota exceeded"
+      pricing:
+        one_time: 500000          # ₦5,000 for 10 slots
+      includes:
+        open_houses: 5            # 5 additional open houses
+        private_showings: 10      # 10 additional private showings
 
   # Billing & Usage Settings
   billing:

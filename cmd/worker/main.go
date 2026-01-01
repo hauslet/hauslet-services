@@ -53,6 +53,8 @@ func main() {
 	// - /tasks/finance/reconciliation (daily at 2 AM UTC)
 	// - /tasks/review/standoff/publish (daily at midnight UTC)
 	// - /tasks/review/reminders (daily at 10 AM UTC)
+	// - /tasks/promotion/expiry (daily at 1 AM UTC)
+	// - /tasks/promotion/billing (daily at 3 AM UTC)
 
 	ready.Store(true)
 

@@ -2,10 +2,12 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
 	"time"
 
+	"hauslet/internal/modules/auth/authorization"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/repository"
 
@@ -19,6 +21,23 @@ func (s *ServiceImpl) CreateListing(ctx context.Context, l domain.Listing) (*dom
 	}
 	if l.OwnerID == uuid.Nil {
 		return nil, domain.ErrInvalidOwnerID
+	}
+
+	if err := s.authorizeSupplyAction(ctx, authorization.SupplyActionCreateListing, &authorization.SupplyOptions{
+		ListingType: string(l.ListingType),
+	}); err != nil {
+		return nil, err
+	}
+
+	// Check subscription limits - user can add listing
+	canCreate, err := s.subscriptionService.CanAddListing(ctx, l.OwnerID)
+	if err != nil {
+		s.log.Error("failed to check listing limit", "owner_id", l.OwnerID, "error", err)
+		return nil, err
+	}
+	if !canCreate {
+		s.log.Warn("listing limit reached", "owner_id", l.OwnerID)
+		return nil, fmt.Errorf("listing limit reached - upgrade your subscription to create more listings")
 	}
 
 	// Ensure property exists

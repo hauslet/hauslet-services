@@ -151,6 +151,7 @@ extend type Query {
 extend type Mutation {
   # Update current user's profile
   updateProfile(input: UpdateProfileInput!): Profile!
+  selectSupplyRoles(userTypes: [UserType!]!): Profile!
   addTravelCompanion(userId: String!, input: TravelCompanionInput!): Boolean!
   updateTravelCompanion(userId: String!, companionId: String!, input: TravelCompanionInput!): Boolean!
   deleteTravelCompanion(userId: String!, companionId: String!): Boolean!

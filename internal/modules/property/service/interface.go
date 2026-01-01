@@ -4,7 +4,9 @@ import (
 	"context"
 	"log/slog"
 
+	"hauslet/internal/modules/auth/authorization"
 	businessservice "hauslet/internal/modules/business/service"
+	promotionservice "hauslet/internal/modules/promotions/service"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/notification"
 	"hauslet/internal/modules/property/repository"
@@ -89,6 +91,8 @@ type ServiceImpl struct {
 	embeddingGroup      singleflight.Group
 	businessAuthorizer  BusinessAuthorizer
 	businessService     businessservice.BusinessService
+	subscriptionService promotionservice.SubscriptionService
+	supplyGate          authorization.SupplyGate
 }
 
 // NewPropertyService creates a new property service.
@@ -104,6 +108,8 @@ func NewPropertyService(repo repository.Repository,
 	log *slog.Logger,
 	businessAuthorizer BusinessAuthorizer,
 	businessService businessservice.BusinessService,
+	subscriptionService promotionservice.SubscriptionService,
+	supplyGate authorization.SupplyGate,
 ) *ServiceImpl {
 	return &ServiceImpl{
 		repo:                repo,
@@ -118,5 +124,7 @@ func NewPropertyService(repo repository.Repository,
 		log:                 log,
 		businessAuthorizer:  businessAuthorizer,
 		businessService:     businessService,
+		subscriptionService: subscriptionService,
+		supplyGate:          supplyGate,
 	}
 }

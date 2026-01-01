@@ -14,9 +14,12 @@ import (
 	domain3 "hauslet/internal/modules/business/domain"
 	domain7 "hauslet/internal/modules/finance/domain"
 	graphql2 "hauslet/internal/modules/finance/port/graphql"
+	domain10 "hauslet/internal/modules/leads/domain"
 	domain6 "hauslet/internal/modules/payments/domain"
 	graphql1 "hauslet/internal/modules/payments/port/graphql"
 	domain1 "hauslet/internal/modules/profile/domain"
+	domain9 "hauslet/internal/modules/promotions/domain"
+	graphql5 "hauslet/internal/modules/promotions/port/graphql"
 	"hauslet/internal/modules/property/domain"
 	domain8 "hauslet/internal/modules/review/domain"
 	graphql3 "hauslet/internal/modules/review/port/graphql"
@@ -27,6 +30,70 @@ import (
 
 	"github.com/google/uuid"
 )
+
+// StartDate is the resolver for the startDate field.
+func (r *agentSubscriptionResolver) StartDate(ctx context.Context, obj *domain9.AgentSubscription) (*time.Time, error) {
+	if obj == nil || obj.StartedAt.IsZero() {
+		return nil, nil
+	}
+	return &obj.StartedAt, nil
+}
+
+// CurrentPeriodStart is the resolver for the currentPeriodStart field.
+func (r *agentSubscriptionResolver) CurrentPeriodStart(ctx context.Context, obj *domain9.AgentSubscription) (*time.Time, error) {
+	if obj == nil || obj.StartedAt.IsZero() {
+		return nil, nil
+	}
+	return &obj.StartedAt, nil
+}
+
+// CurrentPeriodEnd is the resolver for the currentPeriodEnd field.
+func (r *agentSubscriptionResolver) CurrentPeriodEnd(ctx context.Context, obj *domain9.AgentSubscription) (*time.Time, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	if obj.NextBillingDate != nil {
+		return obj.NextBillingDate, nil
+	}
+	if obj.TrialEndsAt != nil {
+		return obj.TrialEndsAt, nil
+	}
+	if obj.StartedAt.IsZero() {
+		return nil, nil
+	}
+
+	periodEnd := obj.StartedAt
+	switch obj.BillingCycle {
+	case domain9.BillingCycleMonthly:
+		periodEnd = periodEnd.AddDate(0, 1, 0)
+	case domain9.BillingCycleYearly:
+		periodEnd = periodEnd.AddDate(1, 0, 0)
+	default:
+		periodEnd = periodEnd.AddDate(0, 1, 0)
+	}
+
+	return &periodEnd, nil
+}
+
+// CancelAt is the resolver for the cancelAt field.
+func (r *agentSubscriptionResolver) CancelAt(ctx context.Context, obj *domain9.AgentSubscription) (*time.Time, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	return obj.CancelledAt, nil
+}
+
+// Metadata is the resolver for the metadata field.
+func (r *agentSubscriptionResolver) Metadata(ctx context.Context, obj *domain9.AgentSubscription) (map[string]any, error) {
+	if obj == nil || len(obj.Features) == 0 {
+		return nil, nil
+	}
+	metadata := make(map[string]any, len(obj.Features))
+	for key, value := range obj.Features {
+		metadata[key] = value
+	}
+	return metadata, nil
+}
 
 // Location is the resolver for the location field.
 func (r *businessResolver) Location(ctx context.Context, obj *domain3.Business) (*domain.Location, error) {
@@ -111,6 +178,41 @@ func (r *hostStatsResolver) UpdatedAt(ctx context.Context, obj *domain8.HostStat
 	return &obj.LastUpdatedAt, nil
 }
 
+// ID is the resolver for the id field.
+func (r *leadResolver) ID(ctx context.Context, obj *domain10.Lead) (string, error) {
+	panic(fmt.Errorf("not implemented: ID - id"))
+}
+
+// ListingID is the resolver for the listingId field.
+func (r *leadResolver) ListingID(ctx context.Context, obj *domain10.Lead) (string, error) {
+	panic(fmt.Errorf("not implemented: ListingID - listingId"))
+}
+
+// BusinessID is the resolver for the businessId field.
+func (r *leadResolver) BusinessID(ctx context.Context, obj *domain10.Lead) (*string, error) {
+	panic(fmt.Errorf("not implemented: BusinessID - businessId"))
+}
+
+// AssignedTo is the resolver for the assignedTo field.
+func (r *leadResolver) AssignedTo(ctx context.Context, obj *domain10.Lead) (*string, error) {
+	panic(fmt.Errorf("not implemented: AssignedTo - assignedTo"))
+}
+
+// ID is the resolver for the id field.
+func (r *leadEventResolver) ID(ctx context.Context, obj *domain10.LeadEvent) (string, error) {
+	panic(fmt.Errorf("not implemented: ID - id"))
+}
+
+// LeadID is the resolver for the leadId field.
+func (r *leadEventResolver) LeadID(ctx context.Context, obj *domain10.LeadEvent) (string, error) {
+	panic(fmt.Errorf("not implemented: LeadID - leadId"))
+}
+
+// ActorID is the resolver for the actorId field.
+func (r *leadEventResolver) ActorID(ctx context.Context, obj *domain10.LeadEvent) (*string, error) {
+	panic(fmt.Errorf("not implemented: ActorID - actorId"))
+}
+
 // ResourceType is the resolver for the resourceType field.
 func (r *ledgerEntryResolver) ResourceType(ctx context.Context, obj *domain7.LedgerEntry) (string, error) {
 	return string(obj.ResourceType), nil
@@ -129,6 +231,30 @@ func (r *listingResolver) Property(ctx context.Context, obj *domain.Listing) (*d
 // Thumbnails is the resolver for the thumbnails field.
 func (r *listingMediaResolver) Thumbnails(ctx context.Context, obj *domain.ListingMedia) ([]*domain.ThumbnailVariant, error) {
 	return r.PropertyResolver.ListingMediaThumbnails(ctx, obj)
+}
+
+// StartDate is the resolver for the startDate field.
+func (r *listingPromotionResolver) StartDate(ctx context.Context, obj *domain9.ListingPromotion) (*time.Time, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	return obj.StartedAt, nil
+}
+
+// EndDate is the resolver for the endDate field.
+func (r *listingPromotionResolver) EndDate(ctx context.Context, obj *domain9.ListingPromotion) (*time.Time, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	return obj.ExpiresAt, nil
+}
+
+// Price is the resolver for the price field.
+func (r *listingPromotionResolver) Price(ctx context.Context, obj *domain9.ListingPromotion) (int, error) {
+	if obj == nil {
+		return 0, nil
+	}
+	return int(obj.Amount), nil
 }
 
 // TotalReviews is the resolver for the totalReviews field.
@@ -197,6 +323,11 @@ func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
 // UpdateProfile is the resolver for the updateProfile field.
 func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain1.Profile, error) {
 	return r.ProfileResolver.UpdateProfile(ctx, input)
+}
+
+// SelectSupplyRoles is the resolver for the selectSupplyRoles field.
+func (r *mutationResolver) SelectSupplyRoles(ctx context.Context, userTypes []domain1.UserType) (*domain1.Profile, error) {
+	return r.ProfileResolver.SelectSupplyRoles(ctx, userTypes)
 }
 
 // AddTravelCompanion is the resolver for the addTravelCompanion field.
@@ -554,6 +685,81 @@ func (r *mutationResolver) UpdateResponse(ctx context.Context, responseID uuid.U
 // DeleteResponse is the resolver for the deleteResponse field.
 func (r *mutationResolver) DeleteResponse(ctx context.Context, responseID uuid.UUID) (bool, error) {
 	return r.ReviewResolver.DeleteResponse(ctx, responseID.String())
+}
+
+// CreatePromotion is the resolver for the createPromotion field.
+func (r *mutationResolver) CreatePromotion(ctx context.Context, input model.CreatePromotionInput) (*graphql5.CreatePromotionPayload, error) {
+	return r.PromotionResolver.CreatePromotion(ctx, input.ListingID, input.Type, input.Duration)
+}
+
+// CreateIncludedPromotion is the resolver for the createIncludedPromotion field.
+func (r *mutationResolver) CreateIncludedPromotion(ctx context.Context, input model.CreateIncludedPromotionInput) (*domain9.ListingPromotion, error) {
+	return r.PromotionResolver.CreateIncludedPromotion(ctx, input.ListingID, input.Type, input.Duration)
+}
+
+// CancelPromotion is the resolver for the cancelPromotion field.
+func (r *mutationResolver) CancelPromotion(ctx context.Context, id uuid.UUID) (*domain9.ListingPromotion, error) {
+	return r.PromotionResolver.CancelPromotion(ctx, id)
+}
+
+// CreateSubscription is the resolver for the createSubscription field.
+func (r *mutationResolver) CreateSubscription(ctx context.Context, input model.CreateSubscriptionInput) (*graphql5.CreateSubscriptionPayload, error) {
+	return r.PromotionResolver.CreateSubscription(ctx, input.PlanType, input.BillingCycle, input.StartTrial)
+}
+
+// UpgradeSubscription is the resolver for the upgradeSubscription field.
+func (r *mutationResolver) UpgradeSubscription(ctx context.Context, subscriptionID uuid.UUID, newPlan domain9.PlanType) (*domain9.AgentSubscription, error) {
+	return r.PromotionResolver.UpgradeSubscription(ctx, subscriptionID, newPlan)
+}
+
+// DowngradeSubscription is the resolver for the downgradeSubscription field.
+func (r *mutationResolver) DowngradeSubscription(ctx context.Context, subscriptionID uuid.UUID, newPlan domain9.PlanType) (*domain9.AgentSubscription, error) {
+	return r.PromotionResolver.DowngradeSubscription(ctx, subscriptionID, newPlan)
+}
+
+// CancelSubscription is the resolver for the cancelSubscription field.
+func (r *mutationResolver) CancelSubscription(ctx context.Context, subscriptionID uuid.UUID) (*domain9.AgentSubscription, error) {
+	return r.PromotionResolver.CancelSubscription(ctx, subscriptionID)
+}
+
+// UseIncludedPromotion is the resolver for the useIncludedPromotion field.
+func (r *mutationResolver) UseIncludedPromotion(ctx context.Context, promoType domain9.PromotionType) (bool, error) {
+	return r.PromotionResolver.UseIncludedPromotion(ctx, promoType)
+}
+
+// UseOpenHouse is the resolver for the useOpenHouse field.
+func (r *mutationResolver) UseOpenHouse(ctx context.Context) (bool, error) {
+	return r.PromotionResolver.UseOpenHouse(ctx)
+}
+
+// UsePrivateShowing is the resolver for the usePrivateShowing field.
+func (r *mutationResolver) UsePrivateShowing(ctx context.Context) (bool, error) {
+	return r.PromotionResolver.UsePrivateShowing(ctx)
+}
+
+// CreateLead is the resolver for the createLead field.
+func (r *mutationResolver) CreateLead(ctx context.Context, input model.CreateLeadInput) (*domain10.Lead, error) {
+	panic(fmt.Errorf("not implemented: CreateLead - createLead"))
+}
+
+// UpdateLeadStatus is the resolver for the updateLeadStatus field.
+func (r *mutationResolver) UpdateLeadStatus(ctx context.Context, leadID string, status domain10.LeadStatus, notes *string) (*domain10.Lead, error) {
+	panic(fmt.Errorf("not implemented: UpdateLeadStatus - updateLeadStatus"))
+}
+
+// AssignLead is the resolver for the assignLead field.
+func (r *mutationResolver) AssignLead(ctx context.Context, leadID string, assigneeID string, reason domain10.AssignmentReason) (*domain10.Lead, error) {
+	panic(fmt.Errorf("not implemented: AssignLead - assignLead"))
+}
+
+// MarkLeadAsSpam is the resolver for the markLeadAsSpam field.
+func (r *mutationResolver) MarkLeadAsSpam(ctx context.Context, leadID string) (bool, error) {
+	panic(fmt.Errorf("not implemented: MarkLeadAsSpam - markLeadAsSpam"))
+}
+
+// DeleteLead is the resolver for the deleteLead field.
+func (r *mutationResolver) DeleteLead(ctx context.Context, leadID string) (bool, error) {
+	panic(fmt.Errorf("not implemented: DeleteLead - deleteLead"))
 }
 
 // Currency is the resolver for the currency field.
@@ -1139,6 +1345,127 @@ func (r *queryResolver) ReviewResponse(ctx context.Context, reviewID uuid.UUID) 
 	return r.ReviewResolver.ReviewResponse(ctx, reviewID.String())
 }
 
+// GetPromotion is the resolver for the getPromotion field.
+func (r *queryResolver) GetPromotion(ctx context.Context, id uuid.UUID) (*domain9.ListingPromotion, error) {
+	return r.PromotionResolver.GetPromotion(ctx, id)
+}
+
+// ListMyPromotions is the resolver for the listMyPromotions field.
+func (r *queryResolver) ListMyPromotions(ctx context.Context, limit *int, offset *int) ([]*domain9.ListingPromotion, error) {
+	l := 20
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.PromotionResolver.ListMyPromotions(ctx, l, o)
+}
+
+// GetActivePromotionForListing is the resolver for the getActivePromotionForListing field.
+func (r *queryResolver) GetActivePromotionForListing(ctx context.Context, listingID uuid.UUID) (*domain9.ListingPromotion, error) {
+	return r.PromotionResolver.GetActivePromotionForListing(ctx, listingID)
+}
+
+// GetFeaturedListings is the resolver for the getFeaturedListings field.
+func (r *queryResolver) GetFeaturedListings(ctx context.Context, limit *int) ([]*domain9.ListingPromotion, error) {
+	l := 20
+	if limit != nil {
+		l = *limit
+	}
+	return r.PromotionResolver.GetFeaturedListings(ctx, l)
+}
+
+// GetPremiumListings is the resolver for the getPremiumListings field.
+func (r *queryResolver) GetPremiumListings(ctx context.Context, limit *int) ([]*domain9.ListingPromotion, error) {
+	l := 20
+	if limit != nil {
+		l = *limit
+	}
+	return r.PromotionResolver.GetPremiumListings(ctx, l)
+}
+
+// GetSubscription is the resolver for the getSubscription field.
+func (r *queryResolver) GetSubscription(ctx context.Context, id uuid.UUID) (*domain9.AgentSubscription, error) {
+	return r.PromotionResolver.GetSubscription(ctx, id)
+}
+
+// GetMySubscription is the resolver for the getMySubscription field.
+func (r *queryResolver) GetMySubscription(ctx context.Context) (*domain9.AgentSubscription, error) {
+	return r.PromotionResolver.GetMySubscription(ctx)
+}
+
+// CanAddListing is the resolver for the canAddListing field.
+func (r *queryResolver) CanAddListing(ctx context.Context) (bool, error) {
+	return r.PromotionResolver.CanAddListing(ctx)
+}
+
+// CanAddPhotos is the resolver for the canAddPhotos field.
+func (r *queryResolver) CanAddPhotos(ctx context.Context, listingID uuid.UUID, photoCount int) (bool, error) {
+	return r.PromotionResolver.CanAddPhotos(ctx, listingID, photoCount)
+}
+
+// CanUseFeature is the resolver for the canUseFeature field.
+func (r *queryResolver) CanUseFeature(ctx context.Context, feature string) (bool, error) {
+	return r.PromotionResolver.CanUseFeature(ctx, feature)
+}
+
+// CanUseIncludedPromotion is the resolver for the canUseIncludedPromotion field.
+func (r *queryResolver) CanUseIncludedPromotion(ctx context.Context, promoType domain9.PromotionType) (bool, error) {
+	return r.PromotionResolver.CanUseIncludedPromotion(ctx, promoType)
+}
+
+// CanCreateOpenHouse is the resolver for the canCreateOpenHouse field.
+func (r *queryResolver) CanCreateOpenHouse(ctx context.Context) (*graphql5.FeatureLimitCheckResult, error) {
+	return r.PromotionResolver.CanCreateOpenHouse(ctx)
+}
+
+// CanCreatePrivateShowing is the resolver for the canCreatePrivateShowing field.
+func (r *queryResolver) CanCreatePrivateShowing(ctx context.Context) (*graphql5.FeatureLimitCheckResult, error) {
+	return r.PromotionResolver.CanCreatePrivateShowing(ctx)
+}
+
+// GetFeatureLimit is the resolver for the getFeatureLimit field.
+func (r *queryResolver) GetFeatureLimit(ctx context.Context, feature string) (int, error) {
+	return r.PromotionResolver.GetFeatureLimit(ctx, feature)
+}
+
+// GetPlanLimits is the resolver for the getPlanLimits field.
+func (r *queryResolver) GetPlanLimits(ctx context.Context, planType domain9.PlanType) (*graphql5.PlanLimits, error) {
+	return r.PromotionResolver.GetPlanLimits(ctx, planType)
+}
+
+// GetCurrentUsage is the resolver for the getCurrentUsage field.
+func (r *queryResolver) GetCurrentUsage(ctx context.Context) (*domain9.UsageTracking, error) {
+	return r.PromotionResolver.GetCurrentUsage(ctx)
+}
+
+// Lead is the resolver for the lead field.
+func (r *queryResolver) Lead(ctx context.Context, id string) (*domain10.Lead, error) {
+	panic(fmt.Errorf("not implemented: Lead - lead"))
+}
+
+// LeadsByListing is the resolver for the leadsByListing field.
+func (r *queryResolver) LeadsByListing(ctx context.Context, listingID string, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error) {
+	panic(fmt.Errorf("not implemented: LeadsByListing - leadsByListing"))
+}
+
+// LeadsByBusiness is the resolver for the leadsByBusiness field.
+func (r *queryResolver) LeadsByBusiness(ctx context.Context, businessID string, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error) {
+	panic(fmt.Errorf("not implemented: LeadsByBusiness - leadsByBusiness"))
+}
+
+// MyLeads is the resolver for the myLeads field.
+func (r *queryResolver) MyLeads(ctx context.Context, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error) {
+	panic(fmt.Errorf("not implemented: MyLeads - myLeads"))
+}
+
+// LeadHistory is the resolver for the leadHistory field.
+func (r *queryResolver) LeadHistory(ctx context.Context, leadID string) ([]*domain10.LeadEvent, error) {
+	panic(fmt.Errorf("not implemented: LeadHistory - leadHistory"))
+}
+
 // OneStar is the resolver for the oneStar field.
 func (r *ratingDistributionResolver) OneStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
 	return obj.OneStarCount, nil
@@ -1335,6 +1662,22 @@ func (r *travelCompanionResolver) Relationship(ctx context.Context, obj *domain1
 	return string(obj.Relationship), nil
 }
 
+// FeaturedPromotionsUsed is the resolver for the featuredPromotionsUsed field.
+func (r *usageTrackingResolver) FeaturedPromotionsUsed(ctx context.Context, obj *domain9.UsageTracking) (int, error) {
+	if obj == nil {
+		return 0, nil
+	}
+	return obj.FeaturedUsed, nil
+}
+
+// PremiumPromotionsUsed is the resolver for the premiumPromotionsUsed field.
+func (r *usageTrackingResolver) PremiumPromotionsUsed(ctx context.Context, obj *domain9.UsageTracking) (int, error) {
+	if obj == nil {
+		return 0, nil
+	}
+	return obj.PremiumUsed, nil
+}
+
 // OwnerType is the resolver for the ownerType field.
 func (r *walletResolver) OwnerType(ctx context.Context, obj *domain7.Wallet) (string, error) {
 	return string(obj.OwnerType), nil
@@ -1454,6 +1797,11 @@ func (r *refundPaymentInputResolver) PaymentID(ctx context.Context, obj *graphql
 	return nil
 }
 
+// AgentSubscription returns AgentSubscriptionResolver implementation.
+func (r *Resolver) AgentSubscription() AgentSubscriptionResolver {
+	return &agentSubscriptionResolver{r}
+}
+
 // Business returns BusinessResolver implementation.
 func (r *Resolver) Business() BusinessResolver { return &businessResolver{r} }
 
@@ -1473,6 +1821,12 @@ func (r *Resolver) FinanceTransaction() FinanceTransactionResolver {
 // HostStats returns HostStatsResolver implementation.
 func (r *Resolver) HostStats() HostStatsResolver { return &hostStatsResolver{r} }
 
+// Lead returns LeadResolver implementation.
+func (r *Resolver) Lead() LeadResolver { return &leadResolver{r} }
+
+// LeadEvent returns LeadEventResolver implementation.
+func (r *Resolver) LeadEvent() LeadEventResolver { return &leadEventResolver{r} }
+
 // LedgerEntry returns LedgerEntryResolver implementation.
 func (r *Resolver) LedgerEntry() LedgerEntryResolver { return &ledgerEntryResolver{r} }
 
@@ -1481,6 +1835,9 @@ func (r *Resolver) Listing() ListingResolver { return &listingResolver{r} }
 
 // ListingMedia returns ListingMediaResolver implementation.
 func (r *Resolver) ListingMedia() ListingMediaResolver { return &listingMediaResolver{r} }
+
+// ListingPromotion returns ListingPromotionResolver implementation.
+func (r *Resolver) ListingPromotion() ListingPromotionResolver { return &listingPromotionResolver{r} }
 
 // ListingStats returns ListingStatsResolver implementation.
 func (r *Resolver) ListingStats() ListingStatsResolver { return &listingStatsResolver{r} }
@@ -1529,6 +1886,9 @@ func (r *Resolver) Transaction() TransactionResolver { return &transactionResolv
 // TravelCompanion returns TravelCompanionResolver implementation.
 func (r *Resolver) TravelCompanion() TravelCompanionResolver { return &travelCompanionResolver{r} }
 
+// UsageTracking returns UsageTrackingResolver implementation.
+func (r *Resolver) UsageTracking() UsageTrackingResolver { return &usageTrackingResolver{r} }
+
 // Wallet returns WalletResolver implementation.
 func (r *Resolver) Wallet() WalletResolver { return &walletResolver{r} }
 
@@ -1563,14 +1923,18 @@ func (r *Resolver) RefundPaymentInput() RefundPaymentInputResolver {
 	return &refundPaymentInputResolver{r}
 }
 
+type agentSubscriptionResolver struct{ *Resolver }
 type businessResolver struct{ *Resolver }
 type completeBookingPayloadResolver struct{ *Resolver }
 type disbursementResolver struct{ *Resolver }
 type financeTransactionResolver struct{ *Resolver }
 type hostStatsResolver struct{ *Resolver }
+type leadResolver struct{ *Resolver }
+type leadEventResolver struct{ *Resolver }
 type ledgerEntryResolver struct{ *Resolver }
 type listingResolver struct{ *Resolver }
 type listingMediaResolver struct{ *Resolver }
+type listingPromotionResolver struct{ *Resolver }
 type listingStatsResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type paymentResolver struct{ *Resolver }
@@ -1586,6 +1950,7 @@ type saleDetailResolver struct{ *Resolver }
 type subRatingsResolver struct{ *Resolver }
 type transactionResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }
+type usageTrackingResolver struct{ *Resolver }
 type walletResolver struct{ *Resolver }
 type wishlistResolver struct{ *Resolver }
 type wishlistItemResolver struct{ *Resolver }

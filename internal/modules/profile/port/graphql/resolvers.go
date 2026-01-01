@@ -74,6 +74,29 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileI
 	return sanitizeProfileForViewer(updated, v), nil
 }
 
+// SelectSupplyRoles assigns supply-side roles for the authenticated user.
+func (r *Resolver) SelectSupplyRoles(ctx context.Context, userTypes []domain.UserType) (*domain.Profile, error) {
+	v := viewer.FromContext(ctx)
+	if v == nil || v.UserID == "" {
+		r.log.Warn("Unauthenticated attempt to select supply roles")
+		return nil, fmt.Errorf("unauthenticated")
+	}
+
+	updated, err := r.profileService.SelectSupplyRoles(ctx, v.UserID, userTypes)
+	if err != nil {
+		r.log.Error("Failed to select supply roles", "user_id", v.UserID, "error", err)
+		return nil, err
+	}
+
+	if updated != nil && updated.PhotoURL != nil && *updated.PhotoURL != "" {
+		url := r.keyToURL(*updated.PhotoURL)
+		updated.PhotoURL = &url
+	}
+
+	r.log.Info("Supply roles updated successfully for user", "user_id", v.UserID)
+	return sanitizeProfileForViewer(updated, v), nil
+}
+
 // Profile is the resolver for the profile field.
 func (r *Resolver) Profile(ctx context.Context, id uuid.UUID) (*domain.Profile, error) {
 	p, err := r.profileService.GetProfileByID(ctx, id.String())

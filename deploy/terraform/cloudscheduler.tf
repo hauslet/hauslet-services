@@ -338,6 +338,80 @@ resource "google_cloud_scheduler_job" "review_send_reminders" {
   ]
 }
 
+# 10. Promotion Expiry Scheduler (daily at 1 AM UTC)
+resource "google_cloud_scheduler_job" "promotion_expiry" {
+  name        = "promotion-expiry-scheduler"
+  description = "Expires promotions that have passed their end date"
+  schedule    = "0 1 * * *"  # Daily at 1:00 AM UTC
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 2
+    min_backoff_duration = "5s"
+    max_backoff_duration = "60s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/promotion/expiry"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Job payload matching PromotionExpiryJob
+    # Handler will use current time (time.Now())
+    body = base64encode(jsonencode({}))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
+# 11. Subscription Billing Scheduler (daily at 3 AM UTC)
+resource "google_cloud_scheduler_job" "subscription_billing" {
+  name        = "subscription-billing-scheduler"
+  description = "Processes billing for subscriptions due for renewal"
+  schedule    = "0 3 * * *"  # Daily at 3:00 AM UTC
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 2  # Lower retry for billing operations
+    min_backoff_duration = "10s"
+    max_backoff_duration = "300s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/promotion/billing"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Job payload matching SubscriptionBillingJob
+    # Handler will use current time (time.Now())
+    body = base64encode(jsonencode({}))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
 # Enable Cloud Scheduler API
 resource "google_project_service" "cloudscheduler" {
   project = var.project_id

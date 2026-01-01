@@ -24,6 +24,8 @@ queue:
     review_stats: "review-stats-queue"
     review_standoff: "review-standoff-queue"
     review_reminders: "review-reminders-queue"
+    promotion_expiry: "promotion-expiry-queue"
+    subscription_billing: "subscription-billing-queue"
 
   # Legacy field (unused for Cloud Tasks)
   consumers:
@@ -44,3 +46,5 @@ queue:
     review_stats: "review-stats-worker"
     review_standoff: "review-standoff-worker"
     review_reminders: "review-reminders-worker"
+    promotion_expiry: "promotion-expiry-worker"
+    subscription_billing: "subscription-billing-worker"

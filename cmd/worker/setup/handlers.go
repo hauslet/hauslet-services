@@ -33,6 +33,8 @@ import (
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
 	profileservice "hauslet/internal/modules/profile/service"
+	promotionrepository "hauslet/internal/modules/promotions/repository"
+	promotionservice "hauslet/internal/modules/promotions/service"
 	propertynotification "hauslet/internal/modules/property/notification"
 	propertyhooks "hauslet/internal/modules/property/port/hooks"
 	propertyrepository "hauslet/internal/modules/property/repository"
@@ -48,6 +50,7 @@ import (
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
 	paymentHandler "hauslet/internal/transport/worker/handlers/payments"
+	promotionHandler "hauslet/internal/transport/worker/handlers/promotions"
 	reviewHandler "hauslet/internal/transport/worker/handlers/review"
 )
 
@@ -95,7 +98,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	if hasModeration {
 		moderationRepo := moderationrepository.NewModerationRepository(infra.DB)
 		businessRepo := businessrepository.NewBusinessRepository(infra.DB)
-		businessSvc := businessservice.NewBusinessService(businessRepo, nil, nil, log)
+		businessSvc := businessservice.NewBusinessService(businessRepo, nil, nil, log, nil)
 
 		// Setup property moderation callback
 		propertyNotificationService := propertynotification.NewNotificationService(infra.Email, nil, "", cfg.App.Client, log)
@@ -351,8 +354,9 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			bookingHooksAdapter,
 			financeHooksAdapter,
 			payoutHooksAdapter,
-			nil,
-			"",
+			nil, // promotion hooks not needed for worker webhook processing
+			infra.Queue,
+			qCfg["payment_webhook"],
 			log,
 		)
 
@@ -517,6 +521,79 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				log,
 				qCfg["review_reminders"],
 			)
+			registry.Register(h)
+		}
+	}
+
+	// Promotion handlers
+	hasPromotionExpiry := qCfg["promotion_expiry"] != ""
+	hasSubscriptionBilling := qCfg["subscription_billing"] != ""
+	if hasPromotionExpiry || hasSubscriptionBilling {
+		// Initialize promotion repositories
+		promoRepo := promotionrepository.NewListingPromotionRepository(infra.DB)
+		subscriptionRepo := promotionrepository.NewAgentSubscriptionRepository(infra.DB)
+		usageRepo := promotionrepository.NewUsageTrackingRepository(infra.DB)
+
+		// Initialize usage service
+		usageSvc := promotionservice.NewUsageService(
+			usageRepo,
+			&cfg.YAML.Promotion,
+			infra.DB,
+			log,
+		)
+
+		// Initialize payment service (needed for subscription billing)
+		var paymentsSvc paymentsservice.PaymentService
+		if hasSubscriptionBilling {
+			paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
+			paymentClient := payment.New(paymentFactory)
+			paymentsRepo := paymentsrepository.NewRepository(infra.DB)
+			paymentsNotification := paymentsnotification.NewNotificationService(
+				infra.Email,
+				infra.Queue,
+				qCfg["email"],
+				cfg.App.Client,
+				nil,
+				nil,
+				log,
+			)
+			paymentsSvc = paymentsservice.NewPaymentService(
+				paymentsRepo,
+				paymentClient,
+				paymentsNotification,
+				infra.Cache,
+				log,
+			)
+		}
+
+		// Initialize subscription service
+		subscriptionSvc := promotionservice.NewSubscriptionService(
+			subscriptionRepo,
+			usageSvc,
+			paymentsSvc,
+			&cfg.YAML.Promotion,
+			infra.DB,
+			log,
+		)
+
+		// Initialize promotion service
+		promotionSvc := promotionservice.NewPromotionService(
+			promoRepo,
+			subscriptionRepo,
+			usageSvc,
+			paymentsSvc,
+			&cfg.YAML.Promotion,
+			infra.DB,
+			log,
+		)
+
+		if hasPromotionExpiry {
+			h := promotionHandler.NewPromotionExpiryHandler(promotionSvc, log, qCfg["promotion_expiry"])
+			registry.Register(h)
+		}
+
+		if hasSubscriptionBilling {
+			h := promotionHandler.NewSubscriptionBillingHandler(subscriptionSvc, log, qCfg["subscription_billing"])
 			registry.Register(h)
 		}
 	}

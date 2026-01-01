@@ -10,6 +10,7 @@ import (
 )
 
 // RunReconciliation executes a full financial reconciliation
+
 func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.ReconciliationReport, error) {
 	// Check if a reconciliation is already running
 	runningReport, err := s.reconciliationRepo.GetRunningReport(ctx)
@@ -81,9 +82,16 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 	s.log.Warn("reconciliation: provider reconciliation not yet implemented")
 
 	// Save all discrepancies
-	s.log.Info("reconciliation: found discrepancies",
-		"count", len(result.Discrepancies),
-	)
+	if len(result.Discrepancies) == 0 {
+		s.log.Info("reconciliation passed with no discrepancies",
+			"report_id", report.ID,
+		)
+	} else {
+		s.log.Info("reconciliation: found discrepancies",
+			"count", len(result.Discrepancies),
+		)
+	}
+
 	for _, discrepancy := range result.Discrepancies {
 		discrepancy.ID = uuid.New()
 		discrepancy.CreatedAt = time.Now()
@@ -171,7 +179,7 @@ func (s *FinanceServiceImpl) ValidateLedgerBalance(ctx context.Context) ([]domai
 			Description:   fmt.Sprintf("Transaction has imbalanced ledger entries: debit=%d credit=%d", imbalance.TotalDebit, imbalance.TotalCredit),
 			ExpectedValue: &imbalance.TotalDebit,
 			ActualValue:   &imbalance.TotalCredit,
-			Details: map[string]interface{}{
+			Details: map[string]any{
 				"transaction_id": imbalance.TransactionID.String(),
 				"total_debit":    imbalance.TotalDebit,
 				"total_credit":   imbalance.TotalCredit,
@@ -179,9 +187,13 @@ func (s *FinanceServiceImpl) ValidateLedgerBalance(ctx context.Context) ([]domai
 		})
 	}
 
-	s.log.Info("ledger validation: found imbalanced transactions",
-		"count", len(discrepancies),
-	)
+	if len(discrepancies) > 0 {
+		s.log.Info("ledger validation: found imbalanced transactions",
+			"count", len(discrepancies),
+		)
+	} else {
+		s.log.Info("ledger validation: all transactions balanced")
+	}
 
 	return discrepancies, nil
 }
@@ -224,6 +236,14 @@ func (s *FinanceServiceImpl) ValidateWalletBalance(ctx context.Context) ([]domai
 		return nil, fmt.Errorf("failed to query wallet balance mismatches: %w", err)
 	}
 
+	// No mismatches found — validation passed
+	if len(mismatches) == 0 {
+		if s.log != nil {
+			s.log.Info("wallet validation passed: no wallet balance mismatches found")
+		}
+		return nil, nil
+	}
+
 	// Create discrepancies for each mismatch
 	for _, mismatch := range mismatches {
 		severity := domain.DiscrepancySeverityHigh
@@ -233,10 +253,15 @@ func (s *FinanceServiceImpl) ValidateWalletBalance(ctx context.Context) ([]domai
 		}
 
 		discrepancies = append(discrepancies, domain.Discrepancy{
-			Type:          domain.DiscrepancyTypeWalletMismatch,
-			Severity:      severity,
-			WalletID:      &mismatch.WalletID,
-			Description:   fmt.Sprintf("Wallet balance mismatch: actual=%d ledger_sum=%d currency=%s", mismatch.ActualBalance, mismatch.LedgerBalance, mismatch.Currency),
+			Type:     domain.DiscrepancyTypeWalletMismatch,
+			Severity: severity,
+			WalletID: &mismatch.WalletID,
+			Description: fmt.Sprintf(
+				"Wallet balance mismatch: actual=%d ledger_sum=%d currency=%s",
+				mismatch.ActualBalance,
+				mismatch.LedgerBalance,
+				mismatch.Currency,
+			),
 			ExpectedValue: &mismatch.LedgerBalance,
 			ActualValue:   &mismatch.ActualBalance,
 			Details: map[string]interface{}{
@@ -249,9 +274,12 @@ func (s *FinanceServiceImpl) ValidateWalletBalance(ctx context.Context) ([]domai
 		})
 	}
 
-	s.log.Info("wallet validation: found wallet mismatches",
-		"count", len(discrepancies),
-	)
+	if s.log != nil {
+		s.log.Info(
+			"wallet validation: wallet balance mismatches detected",
+			"count", len(discrepancies),
+		)
+	}
 
 	return discrepancies, nil
 }

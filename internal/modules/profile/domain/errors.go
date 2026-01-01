@@ -11,4 +11,6 @@ var (
 	ErrInvalidRating           = errors.New("invalid rating value")
 	ErrTravelCompanionNotFound = errors.New("travel companion not found")
 	ErrInvalidProfileID        = errors.New("invalid profile ID")
+	ErrInvalidUserType         = errors.New("invalid user type")
+	ErrSupplyRoleRequired      = errors.New("supply user type required")
 )

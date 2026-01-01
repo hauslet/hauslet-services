@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"hauslet/internal/platform/authz"
+
 	"github.com/go-pkgz/auth/token"
 )
 
@@ -36,6 +38,10 @@ func WithContext(next http.Handler) http.Handler {
 				Role:   role,
 			}
 			ctx := context.WithValue(r.Context(), contextKey{}, v)
+			ctx = authz.ContextWithActor(ctx, &authz.Actor{
+				UserID: userID,
+				Role:   role,
+			})
 			r = r.WithContext(ctx)
 		}
 		next.ServeHTTP(w, r)

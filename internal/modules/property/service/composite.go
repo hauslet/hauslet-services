@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"hauslet/internal/modules/auth/authorization"
 	"hauslet/internal/modules/property/domain"
 
 	"github.com/google/uuid"
@@ -14,6 +15,12 @@ import (
 func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Property, l domain.Listing) (*domain.Property, *domain.Listing, error) {
 	var createdProperty *domain.Property
 	var createdListing *domain.Listing
+
+	if err := s.authorizeSupplyAction(ctx, authorization.SupplyActionCreateListing, &authorization.SupplyOptions{
+		ListingType: string(l.ListingType),
+	}); err != nil {
+		return nil, nil, err
+	}
 
 	s.log.Info("creating property with listing", "owner_id", p.OwnerID)
 

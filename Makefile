@@ -120,9 +120,10 @@ seed-clear:
 fresh: reset-db migrate seed
 
 
+.PHONY: start-proxy
 start-proxy:
 	@if [ -z "$(SQL_INSTANCE)" ]; then \
 		echo "SQL_INSTANCE is required, e.g. export SQL_INSTANCE=project:region:instance"; \
 		exit 1; \
 	fi
-    cloud-sql-proxy $(SQL_INSTANCE) --address 127.0.0.1 --port 5432
+	cloud-sql-proxy $(SQL_INSTANCE) --address 127.0.0.1 --port 5432

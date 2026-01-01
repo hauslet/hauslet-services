@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hauslet/config"
+	"hauslet/internal/modules/auth/authorization"
 	authrepository "hauslet/internal/modules/auth/repository"
 	authservice "hauslet/internal/modules/auth/service"
 	authsession "hauslet/internal/modules/auth/session"
@@ -24,6 +25,8 @@ import (
 	financehooks "hauslet/internal/modules/finance/port/hooks"
 	financerepository "hauslet/internal/modules/finance/repository"
 	financeservice "hauslet/internal/modules/finance/service"
+	leadsrepository "hauslet/internal/modules/leads/repository"
+	leadsservice "hauslet/internal/modules/leads/service"
 	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
@@ -37,6 +40,9 @@ import (
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
 	profileservice "hauslet/internal/modules/profile/service"
+	promotionhooks "hauslet/internal/modules/promotions/port/hooks"
+	promotionrepository "hauslet/internal/modules/promotions/repository"
+	promotionservice "hauslet/internal/modules/promotions/service"
 	propertynotification "hauslet/internal/modules/property/notification"
 	propertyhooks "hauslet/internal/modules/property/port/hooks"
 	propertyhttp "hauslet/internal/modules/property/port/http"
@@ -90,19 +96,24 @@ type Container struct {
 	EmbeddingAI   *aiembeddings.Client
 
 	// Module Services
-	AuthSvc       authservice.AuthService
-	ProfileSvc    profileservice.ProfileService
-	BusinessSvc   businessservice.BusinessService
-	PropertySvc   propertyservice.PropertyService
-	BookingSvc    bookingservice.BookingService
-	PaymentsSvc   paymentsservice.PaymentService
-	FinanceSvc    financeservice.FinanceService
-	PayoutSvc     financeservice.PayoutService
-	CalendarSvc   calendarservice.CalendarService
-	PricingSvc    pricingservice.PricingService
-	WishlistSvc   wishlistservice.WishlistService
-	ReviewSvc     reviewservice.ReviewService
-	ModerationSvc moderationservice.ModerationService
+	AuthSvc         authservice.AuthService
+	ProfileSvc      profileservice.ProfileService
+	BusinessSvc     businessservice.BusinessService
+	PropertySvc     propertyservice.PropertyService
+	BookingSvc      bookingservice.BookingService
+	PaymentsSvc     paymentsservice.PaymentService
+	FinanceSvc      financeservice.FinanceService
+	PayoutSvc       financeservice.PayoutService
+	CalendarSvc     calendarservice.CalendarService
+	PricingSvc      pricingservice.PricingService
+	WishlistSvc     wishlistservice.WishlistService
+	ReviewSvc       reviewservice.ReviewService
+	ModerationSvc   moderationservice.ModerationService
+	PromotionSvc    promotionservice.PromotionService
+	SubscriptionSvc promotionservice.SubscriptionService
+	UsageSvc        promotionservice.UsageService
+	LeadSvc         leadsservice.LeadService
+	SupplyGate      authorization.SupplyGate
 
 	// HTTP Handlers
 	AuthHTTP           *authhttp.HTTPHandler
@@ -148,8 +159,20 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 		return nil, fmt.Errorf("failed to initialize payments: %w", err)
 	}
 
+	if err := c.initPromotions(); err != nil {
+		return nil, fmt.Errorf("failed to initialize promotions: %w", err)
+	}
+
+	if err := c.initSupplyGate(); err != nil {
+		return nil, fmt.Errorf("failed to initialize supply gate: %w", err)
+	}
+
 	if err := c.initProperty(); err != nil {
 		return nil, fmt.Errorf("failed to initialize property: %w", err)
+	}
+
+	if err := c.initLeads(); err != nil {
+		return nil, fmt.Errorf("failed to initialize leads: %w", err)
 	}
 
 	if err := c.initCalendar(); err != nil {
@@ -275,6 +298,7 @@ func (c *Container) initBusiness() error {
 		businessNotificationService,
 		businessProfileAdapter,
 		c.Logger,
+		c.SupplyGate,
 	)
 
 	c.BusinessMW = businessmiddleware.NewMiddleware(c.BusinessSvc, c.Logger)
@@ -311,6 +335,56 @@ func (c *Container) initPayments() error {
 	return nil
 }
 
+// initPromotions initializes the promotion, subscription, and usage services
+func (c *Container) initPromotions() error {
+	// Initialize repositories
+	promoRepo := promotionrepository.NewListingPromotionRepository(c.DB)
+	subscriptionRepo := promotionrepository.NewAgentSubscriptionRepository(c.DB)
+	usageRepo := promotionrepository.NewUsageTrackingRepository(c.DB)
+
+	// Initialize usage service (no dependencies on other promotion services)
+	c.UsageSvc = promotionservice.NewUsageService(
+		usageRepo,
+		&c.Config.YAML.Promotion,
+		c.DB,
+		c.Logger,
+	)
+
+	// Initialize subscription service
+	c.SubscriptionSvc = promotionservice.NewSubscriptionService(
+		subscriptionRepo,
+		c.UsageSvc,
+		c.PaymentsSvc,
+		&c.Config.YAML.Promotion,
+		c.DB,
+		c.Logger,
+	)
+
+	// Initialize promotion service
+	c.PromotionSvc = promotionservice.NewPromotionService(
+		promoRepo,
+		subscriptionRepo,
+		c.UsageSvc,
+		c.PaymentsSvc,
+		&c.Config.YAML.Promotion,
+		c.DB,
+		c.Logger,
+	)
+
+	return nil
+}
+
+// initSupplyGate initializes the supply-side access gate.
+func (c *Container) initSupplyGate() error {
+	c.SupplyGate = authorization.NewSupplyGate(
+		c.ProfileSvc,
+		c.SubscriptionSvc,
+		[]string{"admin", "root", "support"},
+	)
+
+	return nil
+}
+
 // initProperty initializes the property service
 func (c *Container) initProperty() error {
 	emailSubject := c.Config.YAML.Queue.Subjects["email"]
@@ -341,6 +415,32 @@ func (c *Container) initProperty() error {
 		c.Logger,
 		businessmiddleware.NewPropertyAuthHelper(c.BusinessSvc),
 		c.BusinessSvc,
+		c.SubscriptionSvc,
+		c.SupplyGate,
+	)
+
+	return nil
+}
+
+// initLeads initializes the leads service
+func (c *Container) initLeads() error {
+	// Initialize repositories
+	leadRepo := leadsrepository.NewLeadRepository(c.DB)
+	leadEventRepo := leadsrepository.NewLeadEventRepository(c.DB)
+	leadAssignmentRepo := leadsrepository.NewLeadAssignmentRepository(c.DB)
+
+	// Initialize hooks adapters
+	propertyHooks := leadsservice.NewPropertyHooksAdapter(c.PropertySvc)
+	businessHooks := leadsservice.NewBusinessHooksAdapter(c.BusinessSvc)
+
+	// Initialize lead service
+	c.LeadSvc = leadsservice.NewLeadService(
+		leadRepo,
+		leadEventRepo,
+		leadAssignmentRepo,
+		propertyHooks,
+		businessHooks,
+		c.Logger,
 	)
 
 	return nil
@@ -600,6 +700,11 @@ func (c *Container) initHTTPHandlers(ctx context.Context) error {
 	bookingHooksAdapter := bookinghooks.NewBookingHooksAdapter(c.BookingSvc)
 	financeHooksAdapter := financehooks.NewPaymentHooksAdapter(c.FinanceSvc)
 	payoutHooksAdapter := financehooks.NewPayoutHooksAdapter(c.PayoutSvc)
+	promotionHooksAdapter := promotionhooks.NewPaymentHooks(
+		c.PromotionSvc,
+		c.SubscriptionSvc,
+		c.Logger,
+	)
 
 	c.PaymentWebhookHTTP = paymentshttp.NewWebhookHandler(
 		c.PaymentsSvc,
@@ -607,6 +712,7 @@ func (c *Container) initHTTPHandlers(ctx context.Context) error {
 		bookingHooksAdapter,
 		financeHooksAdapter,
 		payoutHooksAdapter,
+		promotionHooksAdapter,
 		c.Queue,
 		c.Config.YAML.Queue.Subjects["payment_webhook"],
 		c.Logger,

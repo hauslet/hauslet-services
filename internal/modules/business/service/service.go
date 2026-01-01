@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"hauslet/internal/modules/auth/authorization"
 	"hauslet/internal/modules/business/notification"
 	"hauslet/internal/modules/business/repository"
 
@@ -12,10 +13,11 @@ import (
 
 // BusinessServiceImpl implements BusinessService
 type BusinessServiceImpl struct {
-	repo     repository.BusinessRepository
-	log      *slog.Logger
-	notifier *notification.NotificationService
-	profile  ProfileProvider
+	repo       repository.BusinessRepository
+	log        *slog.Logger
+	notifier   *notification.NotificationService
+	profile    ProfileProvider
+	supplyGate authorization.SupplyGate
 }
 
 // ProfileProvider exposes just the bits of profile data the business module needs.
@@ -24,12 +26,13 @@ type ProfileProvider interface {
 }
 
 // NewBusinessService creates a new business service
-func NewBusinessService(repo repository.BusinessRepository, notifier *notification.NotificationService, profile ProfileProvider, log *slog.Logger) BusinessService {
+func NewBusinessService(repo repository.BusinessRepository, notifier *notification.NotificationService, profile ProfileProvider, log *slog.Logger, supplyGate authorization.SupplyGate) BusinessService {
 	return &BusinessServiceImpl{
-		repo:     repo,
-		notifier: notifier,
-		profile:  profile,
-		log:      log,
+		repo:       repo,
+		notifier:   notifier,
+		profile:    profile,
+		log:        log,
+		supplyGate: supplyGate,
 	}
 }
 

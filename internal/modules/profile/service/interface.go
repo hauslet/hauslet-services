@@ -34,6 +34,7 @@ type ProfileService interface {
 	ProfileExists(ctx context.Context, userID string) (bool, error)
 
 	// Field-level operations
+	SelectSupplyRoles(ctx context.Context, userID string, userTypes []domain.UserType) (*domain.Profile, error)
 	AddBadge(ctx context.Context, userID string, badge domain.Badge) error
 	RemoveBadge(ctx context.Context, userID string, badge domain.Badge) error
 	AddTravelCompanion(ctx context.Context, userID string, companion domain.TravelCompanion) error

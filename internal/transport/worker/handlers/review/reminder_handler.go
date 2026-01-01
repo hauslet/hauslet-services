@@ -67,7 +67,10 @@ func (h *ReminderHandler) Handle(ctx context.Context, data []byte) error {
 	thresholdDays := job.GetThresholdDays()
 	reviewWindowDays := 14 // Standard Airbnb review window
 
-	h.log.Info("sending review reminders for bookings", "days_from_deadline", thresholdDays)
+	h.log.Info(
+		"sending review reminders job started",
+		"days_from_deadline", thresholdDays,
+	)
 
 	// Calculate the target date range
 	// If thresholdDays=3 and window=14, we want bookings completed 11 days ago (14-3=11)
@@ -78,43 +81,65 @@ func (h *ReminderHandler) Handle(ctx context.Context, data []byte) error {
 	startTime := targetDate.Add(-30 * time.Minute)
 	endTime := targetDate.Add(30 * time.Minute)
 
-	h.log.Info("finding completed bookings between", "start", startTime, "end", endTime)
+	h.log.Info(
+		"finding completed bookings in time window",
+		"start", startTime,
+		"end", endTime,
+	)
 
-	// Get completed bookings in the date range
-	// This is a simplified implementation - in production, you'd want a dedicated repository method
 	bookings, err := h.findCompletedBookingsInRange(ctx, startTime, endTime)
 	if err != nil {
 		h.log.Error("failed to find completed bookings", "error", err)
 		return err
 	}
 
-	h.log.Info("found completed bookings to check for reminders", "count", len(bookings))
+	// Nothing to process
+	if len(bookings) == 0 {
+		h.log.Info("no completed bookings found for review reminders")
+		return nil
+	}
+
+	h.log.Info(
+		"found completed bookings to process for reminders",
+		"count", len(bookings),
+	)
 
 	guestRemindersSent := 0
 	hostRemindersSent := 0
 
-	// Process each booking
 	for _, booking := range bookings {
-		// Check if guest needs reminder
+		// Guest reminder
 		if booking.GuestReviewedAt == nil {
 			if err := h.sendGuestReminder(ctx, booking, thresholdDays); err != nil {
-				h.log.Warn("failed to send guest reminder for booking", "booking_id", booking.ID, "error", err)
+				h.log.Warn(
+					"failed to send guest review reminder",
+					"booking_id", booking.ID,
+					"error", err,
+				)
 			} else {
 				guestRemindersSent++
 			}
 		}
 
-		// Check if host needs reminder
+		// Host reminder
 		if booking.HostReviewedAt == nil {
 			if err := h.sendHostReminder(ctx, booking, thresholdDays); err != nil {
-				h.log.Warn("failed to send host reminder for booking", "booking_id", booking.ID, "error", err)
+				h.log.Warn(
+					"failed to send host review reminder",
+					"booking_id", booking.ID,
+					"error", err,
+				)
 			} else {
 				hostRemindersSent++
 			}
 		}
 	}
 
-	h.log.Info("review reminder job completed", "guest_reminders_sent", guestRemindersSent, "host_reminders_sent", hostRemindersSent)
+	h.log.Info(
+		"review reminder job completed",
+		"guest_reminders_sent", guestRemindersSent,
+		"host_reminders_sent", hostRemindersSent,
+	)
 
 	return nil
 }

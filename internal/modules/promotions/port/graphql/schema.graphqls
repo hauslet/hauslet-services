@@ -1,0 +1,198 @@
+# Promotion System Schema
+
+# ============================================================================
+# Types
+# ============================================================================
+
+type ListingPromotion {
+  id: UUID!
+  listingID: UUID!
+  ownerID: UUID!
+  type: PromotionType!
+  status: PromotionStatus!
+  startDate: Time
+  endDate: Time
+  duration: Int!
+  boostMultiplier: Float!
+  price: Int!
+  currency: String!
+  paymentID: UUID
+  subscriptionID: UUID
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type AgentSubscription {
+  id: UUID!
+  userID: UUID!
+  planType: PlanType!
+  billingCycle: BillingCycle!
+  status: SubscriptionStatus!
+  startDate: Time!
+  currentPeriodStart: Time!
+  currentPeriodEnd: Time!
+  nextBillingDate: Time
+  cancelAt: Time
+  cancelledAt: Time
+  trialEndsAt: Time
+  metadata: Map
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type UsageTracking {
+  id: UUID!
+  subscriptionID: UUID!
+  userID: UUID!
+  periodStart: Time!
+  periodEnd: Time!
+  featuredPromotionsUsed: Int!
+  premiumPromotionsUsed: Int!
+  openHousesUsed: Int!
+  privateShowingsUsed: Int!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type PlanLimits {
+  maxListings: Int!
+  maxPhotosPerListing: Int!
+  maxVideosPerListing: Int!
+  featuredPromotionsPerMonth: Int!
+  premiumPromotionsPerMonth: Int!
+  openHousesPerMonth: Int!
+  privateShowingsPerMonth: Int!
+  features: [String!]!
+}
+
+# ============================================================================
+# Enums
+# ============================================================================
+
+enum PromotionType {
+  FEATURED
+  PREMIUM
+}
+
+enum PromotionStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PlanType {
+  FREE
+  BASIC
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  PENDING
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+# ============================================================================
+# Inputs
+# ============================================================================
+
+input CreatePromotionInput {
+  listingID: UUID!
+  type: PromotionType!
+  duration: Int!
+}
+
+input CreateIncludedPromotionInput {
+  listingID: UUID!
+  type: PromotionType!
+  duration: Int!
+}
+
+input CreateSubscriptionInput {
+  planType: PlanType!
+  billingCycle: BillingCycle!
+  startTrial: Boolean!
+}
+
+# ============================================================================
+# Payloads
+# ============================================================================
+
+type CreatePromotionPayload {
+  promotion: ListingPromotion!
+  paymentURL: String!
+  paymentID: UUID!
+}
+
+type CreateSubscriptionPayload {
+  subscription: AgentSubscription!
+  paymentURL: String
+  paymentID: UUID
+}
+
+type FeatureLimitCheckResult {
+  allowed: Boolean!
+  limit: Int!
+  used: Int!
+  remaining: Int!
+}
+
+# ============================================================================
+# Queries
+# ============================================================================
+
+extend type Query {
+  # Promotions
+  getPromotion(id: UUID!): ListingPromotion
+  listMyPromotions(limit: Int, offset: Int): [ListingPromotion!]!
+  getActivePromotionForListing(listingID: UUID!): ListingPromotion
+  getFeaturedListings(limit: Int): [ListingPromotion!]!
+  getPremiumListings(limit: Int): [ListingPromotion!]!
+
+  # Subscriptions
+  getSubscription(id: UUID!): AgentSubscription
+  getMySubscription: AgentSubscription
+  canAddListing: Boolean!
+  canAddPhotos(listingID: UUID!, photoCount: Int!): Boolean!
+  canUseFeature(feature: String!): Boolean!
+  canUseIncludedPromotion(promoType: PromotionType!): Boolean!
+  canCreateOpenHouse: FeatureLimitCheckResult!
+  canCreatePrivateShowing: FeatureLimitCheckResult!
+  getFeatureLimit(feature: String!): Int!
+  getPlanLimits(planType: PlanType!): PlanLimits!
+
+  # Usage
+  getCurrentUsage: UsageTracking
+}
+
+# ============================================================================
+# Mutations
+# ============================================================================
+
+extend type Mutation {
+  # Promotions
+  createPromotion(input: CreatePromotionInput!): CreatePromotionPayload!
+  createIncludedPromotion(input: CreateIncludedPromotionInput!): ListingPromotion!
+  cancelPromotion(id: UUID!): ListingPromotion!
+
+  # Subscriptions
+  createSubscription(input: CreateSubscriptionInput!): CreateSubscriptionPayload!
+  upgradeSubscription(subscriptionID: UUID!, newPlan: PlanType!): AgentSubscription!
+  downgradeSubscription(subscriptionID: UUID!, newPlan: PlanType!): AgentSubscription!
+  cancelSubscription(subscriptionID: UUID!): AgentSubscription!
+
+  # Usage
+  useIncludedPromotion(promoType: PromotionType!): Boolean!
+  useOpenHouse: Boolean!
+  usePrivateShowing: Boolean!
+}

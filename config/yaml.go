@@ -10,10 +10,11 @@ import (
 
 // ServiceConfig holds all YAML-based service configurations
 type ServiceConfig struct {
-	Calendar CalendarYAMLConfig `yaml:"calendar"`
-	Queue    QueueYAMLConfig    `yaml:"queue"`
-	Features FeatureYAMLConfig  `yaml:"features"`
-	Platform PlatformYAMLConfig `yaml:"platform"`
+	Calendar  CalendarYAMLConfig  `yaml:"calendar"`
+	Queue     QueueYAMLConfig     `yaml:"queue"`
+	Features  FeatureYAMLConfig   `yaml:"features"`
+	Platform  PlatformYAMLConfig  `yaml:"platform"`
+	Promotion PromotionYAMLConfig `yaml:"promotion"`
 }
 
 // CalendarYAMLConfig defines calendar service settings
@@ -167,7 +168,7 @@ func loadYAMLConfigFromPaths(defaultsPath, overridesPath string) (*ServiceConfig
 
 // loadYAMLFiles loads all YAML files from a directory into the config
 func loadYAMLFiles(cfg *ServiceConfig, dirPath string) error {
-	files := []string{"calendar.yaml", "queue.yaml", "features.yaml", "platform.yaml"}
+	files := []string{"calendar.yaml", "queue.yaml", "features.yaml", "platform.yaml", "promotion.yaml"}
 
 	for _, filename := range files {
 		filePath := filepath.Join(dirPath, filename)
@@ -252,6 +253,9 @@ func mergeServiceConfig(dst, src *ServiceConfig) {
 
 	// Merge Platform config
 	mergePlatformConfig(&dst.Platform, &src.Platform)
+
+	// Merge Promotion config
+	mergePromotionConfig(&dst.Promotion, &src.Promotion)
 }
 
 func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
@@ -333,5 +337,83 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 	}
 	if src.Notifications.SendDisputeAlerts {
 		dst.Notifications.SendDisputeAlerts = src.Notifications.SendDisputeAlerts
+	}
+}
+
+func mergePromotionConfig(dst, src *PromotionYAMLConfig) {
+	// Currency
+	if src.Currency.Code != "" {
+		dst.Currency.Code = src.Currency.Code
+	}
+	if src.Currency.MinorUnit != 0 {
+		dst.Currency.MinorUnit = src.Currency.MinorUnit
+	}
+
+	// Free Tier
+	if src.FreeTier.MaxListings != 0 {
+		dst.FreeTier.MaxListings = src.FreeTier.MaxListings
+	}
+	if src.FreeTier.MaxPhotosPerListing != 0 {
+		dst.FreeTier.MaxPhotosPerListing = src.FreeTier.MaxPhotosPerListing
+	}
+	if src.FreeTier.MaxVirtualTours != 0 {
+		dst.FreeTier.MaxVirtualTours = src.FreeTier.MaxVirtualTours
+	}
+
+	// Listing Promotions
+	if src.ListingPromotions != nil {
+		if dst.ListingPromotions == nil {
+			dst.ListingPromotions = make(map[string]ListingPromotionConfig)
+		}
+		for k, v := range src.ListingPromotions {
+			dst.ListingPromotions[k] = v
+		}
+	}
+
+	// Subscription Plans
+	if src.SubscriptionPlans != nil {
+		if dst.SubscriptionPlans == nil {
+			dst.SubscriptionPlans = make(map[string]SubscriptionPlanConfig)
+		}
+		for k, v := range src.SubscriptionPlans {
+			dst.SubscriptionPlans[k] = v
+		}
+	}
+
+	// Addons
+	if src.Addons != nil {
+		if dst.Addons == nil {
+			dst.Addons = make(map[string]AddonConfig)
+		}
+		for k, v := range src.Addons {
+			dst.Addons[k] = v
+		}
+	}
+
+	// Billing
+	if src.Billing.TrialPeriodDays != 0 {
+		dst.Billing.TrialPeriodDays = src.Billing.TrialPeriodDays
+	}
+	if src.Billing.GracePeriodDays != 0 {
+		dst.Billing.GracePeriodDays = src.Billing.GracePeriodDays
+	}
+	if src.Billing.UsageResetDay != 0 {
+		dst.Billing.UsageResetDay = src.Billing.UsageResetDay
+	}
+
+	// Analytics
+	if src.Analytics.RetentionDays != 0 {
+		dst.Analytics.RetentionDays = src.Analytics.RetentionDays
+	}
+	if src.Analytics.FunnelEvents != nil {
+		dst.Analytics.FunnelEvents = src.Analytics.FunnelEvents
+	}
+
+	// Rate Limits
+	if src.RateLimits.MaxActivePromotionsPerListing != 0 {
+		dst.RateLimits.MaxActivePromotionsPerListing = src.RateLimits.MaxActivePromotionsPerListing
+	}
+	if src.RateLimits.MinPromotionDurationHours != 0 {
+		dst.RateLimits.MinPromotionDurationHours = src.RateLimits.MinPromotionDurationHours
 	}
 }
