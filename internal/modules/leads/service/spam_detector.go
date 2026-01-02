@@ -23,8 +23,8 @@ func NewSpamDetector() *SpamDetector {
 			regexp.MustCompile(`https?://[^\s]{50,}`),
 			// Multiple consecutive URLs
 			regexp.MustCompile(`(https?://[^\s]+\s*){3,}`),
-			// Excessive repeated characters
-			regexp.MustCompile(`(.)\1{10,}`),
+			// Note: Excessive repeated characters checked programmatically (hasExcessiveRepeatedChars)
+			// Go's regexp doesn't support backreferences like (.)\1{10,}
 		},
 		spamKeywords: []string{
 			"bitcoin", "crypto", "investment scheme", "guaranteed profit",
@@ -32,6 +32,26 @@ func NewSpamDetector() *SpamDetector {
 			"congratulations", "you've won", "claim your prize",
 		},
 	}
+}
+
+// hasExcessiveRepeatedChars checks if a string has 10+ consecutive identical characters
+func hasExcessiveRepeatedChars(s string) bool {
+	if len(s) < 10 {
+		return false
+	}
+
+	count := 1
+	for i := 1; i < len(s); i++ {
+		if s[i] == s[i-1] {
+			count++
+			if count >= 10 {
+				return true
+			}
+		} else {
+			count = 1
+		}
+	}
+	return false
 }
 
 // CalculateSpamScore calculates a spam probability score for a lead submission
@@ -44,6 +64,11 @@ func (sd *SpamDetector) CalculateSpamScore(name, email, message string) float64 
 		if pattern.MatchString(message) {
 			score += 0.3
 		}
+	}
+
+	// Check for excessive repeated characters (programmatic check since Go regex doesn't support backreferences)
+	if hasExcessiveRepeatedChars(message) {
+		score += 0.3
 	}
 
 	// Check for spam keywords

@@ -1,4 +1,4 @@
--- +goose Up
+ -- +goose Up
 -- Create leads module tables for lead capture and management
 
 -- Main leads table
@@ -124,12 +124,12 @@ CREATE INDEX idx_lead_assignments_user ON lead_assignments(to_user_id, assigned_
 
 -- Update trigger for leads.updated_at
 CREATE OR REPLACE FUNCTION update_leads_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $func$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$func$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trigger_update_leads_updated_at
     BEFORE UPDATE ON leads
