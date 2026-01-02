@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go/cloudtasks v1.13.7
 	github.com/99designs/gqlgen v0.17.84
 	github.com/DATA-DOG/go-sqlmock v1.5.2
+	github.com/arran4/golang-ical v0.3.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.3
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.11.1

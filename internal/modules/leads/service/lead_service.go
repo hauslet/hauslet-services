@@ -12,8 +12,39 @@ import (
 )
 
 // CreateLead creates a new lead with validation, spam detection, and rate limiting
-// This is a PUBLIC endpoint - no authentication required but rate limited
+// HYBRID endpoint: Works with or without authentication
+// - Authenticated users: Auto-fills from profile, marked as verified, lower spam score
+// - Anonymous users: Manual entry, spam checks applied, rate limited
 func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*domain.Lead, error) {
+	isVerified := false
+
+	// HYBRID: If UserID provided, auto-fill from profile
+	if input.UserID != nil {
+		s.log.Info("authenticated user creating lead", "user_id", input.UserID)
+
+		// Fetch profile data via hooks (if available)
+		if s.profileHooks != nil {
+			profile, err := s.profileHooks.GetUserProfile(ctx, *input.UserID)
+			if err != nil {
+				s.log.Error("failed to fetch user profile", "error", err, "user_id", input.UserID)
+				// Don't fail - fall back to manual entry
+			} else if profile != nil {
+				// Auto-fill from verified profile
+				if input.Name == "" {
+					input.Name = profile.FullName
+				}
+				if input.Email == "" {
+					input.Email = profile.Email
+				}
+				if input.PhoneNumber == nil && profile.Phone != nil {
+					input.PhoneNumber = profile.Phone
+				}
+				isVerified = true // Mark as verified since from authenticated user
+				s.log.Info("auto-filled lead from profile", "user_id", input.UserID, "name", input.Name)
+			}
+		}
+	}
+
 	// 1. Validate input
 	if err := s.validator.ValidateCreateLeadInput(input); err != nil {
 		s.log.Warn("lead validation failed", "error", err, "email", input.Email)
@@ -48,12 +79,19 @@ func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*d
 		return nil, err
 	}
 
-	// 4. Spam detection
+	// 4. Spam detection (adjusted for verified users)
 	spamScore := s.spamDetector.CalculateSpamScore(input.Name, input.Email, input.Message)
+
+	// Verified users get benefit of doubt - reduce spam score by 50%
+	if isVerified {
+		spamScore = spamScore * 0.5
+		s.log.Debug("spam score reduced for verified user", "original_score", spamScore*2, "adjusted_score", spamScore)
+	}
+
 	isSpam := s.spamDetector.IsSpam(spamScore)
 
 	if isSpam {
-		s.log.Warn("spam detected", "email", input.Email, "spam_score", spamScore)
+		s.log.Warn("spam detected", "email", input.Email, "spam_score", spamScore, "is_verified", isVerified)
 		// Still create the lead but mark as spam
 	}
 
@@ -83,6 +121,8 @@ func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*d
 		ID:             uuid.New(),
 		ListingID:      input.ListingID,
 		BusinessID:     ownerInfo.BusinessID,
+		UserID:         input.UserID, // Track authenticated user (nil for anonymous)
+		IsVerified:     isVerified,   // True if from authenticated user with profile
 		Name:           input.Name,
 		Email:          input.Email,
 		PhoneNumber:    input.PhoneNumber,

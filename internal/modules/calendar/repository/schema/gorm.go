@@ -67,6 +67,14 @@ type ShowingDetail struct {
 	Notes    *string `json:"notes,omitempty"`
 	Attended *bool   `json:"attended,omitempty"`
 	Feedback *string `json:"feedback,omitempty"`
+
+	// Request tracking fields
+	RequestedBy      *uuid.UUID `json:"requested_by,omitempty"`
+	RequestedAt      *time.Time `json:"requested_at,omitempty"`
+	RescheduledAt    *time.Time `json:"rescheduled_at,omitempty"`
+	RescheduleCount  int        `json:"reschedule_count"`
+	RescheduleReason *string    `json:"reschedule_reason,omitempty"`
+	CancelReason     *string    `json:"cancel_reason,omitempty"`
 }
 
 // MaintenanceDetail contains maintenance-specific information
@@ -111,16 +119,21 @@ type OpenHouseDetail struct {
 
 	// Attendee tracking
 	Attendees []Attendee `json:"attendees,omitempty"`
+
+	// Registration deadline
+	RegistrationDeadline *time.Time `json:"registration_deadline,omitempty"`
 }
 
 // Attendee represents someone who registered for an open house
 type Attendee struct {
-	ID           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	Phone        *string   `json:"phone,omitempty"`
-	RegisteredAt time.Time `json:"registered_at"`
-	Attended     *bool     `json:"attended,omitempty"`
+	ID                uuid.UUID  `json:"id"`
+	Name              string     `json:"name"`
+	Email             string     `json:"email"`
+	Phone             *string    `json:"phone,omitempty"`
+	UserID            *uuid.UUID `json:"user_id,omitempty"`
+	RegisteredAt      time.Time  `json:"registered_at"`
+	Attended          *bool      `json:"attended,omitempty"`
+	RegistrationToken *string    `json:"registration_token,omitempty"`
 }
 
 // CalendarConfig stores calendar configuration for a listing

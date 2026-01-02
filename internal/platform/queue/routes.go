@@ -69,6 +69,14 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/review/reminders",
 		Timeout: 120 * time.Second,
 	},
+	"calendar_showing_reminders": {
+		Path:    "/tasks/calendar/showing/reminders",
+		Timeout: 120 * time.Second,
+	},
+	"calendar_open_house_reminders": {
+		Path:    "/tasks/calendar/open-house/reminders",
+		Timeout: 120 * time.Second,
+	},
 }
 
 func BuildQueueRoutes(queueNames map[string]string) map[string]QueueRoute {

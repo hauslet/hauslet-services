@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	calendarnotification "hauslet/internal/modules/calendar/notification"
 	calendarservice "hauslet/internal/modules/calendar/service"
 	"hauslet/internal/modules/property/domain"
 	propertyrepository "hauslet/internal/modules/property/repository"
@@ -126,6 +127,21 @@ func (a *CalendarHooksAdapter) GetListingConstraints(ctx context.Context, listin
 	return constraints, nil
 }
 
+// GetListingInfo provides minimal listing data for calendar notifications.
+func (a *CalendarHooksAdapter) GetListingInfo(ctx context.Context, listingID uuid.UUID) (*calendarnotification.ListingInfo, error) {
+	listing, err := a.getListing(ctx, listingID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &calendarnotification.ListingInfo{
+		ID:        listing.ID,
+		Title:     listing.Title,
+		OwnerID:   listing.OwnerID,
+		OwnerType: string(listing.OwnerType),
+	}, nil
+}
+
 func (a *CalendarHooksAdapter) MarkCalendarEnabled(ctx context.Context, listingID uuid.UUID, enabled bool) error {
 	listing, err := a.getListing(ctx, listingID)
 	if err != nil {
@@ -140,6 +156,49 @@ func (a *CalendarHooksAdapter) MarkCalendarEnabled(ctx context.Context, listingI
 		"has_calendar": enabled,
 	})
 	return err
+}
+
+func (a *CalendarHooksAdapter) GetShowingAvailability(ctx context.Context, listingID uuid.UUID) ([]calendarservice.ShowingAvailability, error) {
+	listing, err := a.getListing(ctx, listingID)
+	if err != nil {
+		return nil, err
+	}
+
+	var availability []calendarservice.ShowingAvailability
+
+	// Check rental details
+	if listing.RentalDetails != nil && listing.RentalDetails.ShowingAvailability != nil {
+		for _, slot := range *listing.RentalDetails.ShowingAvailability {
+			availability = append(availability, calendarservice.ShowingAvailability{
+				DayOfWeek: slot.DayOfWeek,
+				StartTime: slot.StartTime,
+				EndTime:   slot.EndTime,
+				Timezone:  slot.Timezone,
+			})
+		}
+	}
+
+	// Check sale details
+	if listing.SaleDetails != nil && listing.SaleDetails.ShowingAvailability != nil {
+		for _, slot := range *listing.SaleDetails.ShowingAvailability {
+			availability = append(availability, calendarservice.ShowingAvailability{
+				DayOfWeek: slot.DayOfWeek,
+				StartTime: slot.StartTime,
+				EndTime:   slot.EndTime,
+				Timezone:  slot.Timezone,
+			})
+		}
+	}
+
+	return availability, nil
+}
+
+func (a *CalendarHooksAdapter) GetListingType(ctx context.Context, listingID uuid.UUID) (string, error) {
+	listing, err := a.getListing(ctx, listingID)
+	if err != nil {
+		return "", err
+	}
+	return string(listing.ListingType), nil
 }
 
 // CalendarHooksRepoAdapter implements calendar hooks using the property repository.
@@ -197,6 +256,21 @@ func (a *CalendarHooksRepoAdapter) GetListingConstraints(ctx context.Context, li
 	return constraints, nil
 }
 
+// GetListingInfo provides minimal listing data for calendar notifications.
+func (a *CalendarHooksRepoAdapter) GetListingInfo(ctx context.Context, listingID uuid.UUID) (*calendarnotification.ListingInfo, error) {
+	listing, err := a.getListing(ctx, listingID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &calendarnotification.ListingInfo{
+		ID:        listing.ID,
+		Title:     listing.Title,
+		OwnerID:   listing.OwnerID,
+		OwnerType: string(listing.OwnerType),
+	}, nil
+}
+
 func (a *CalendarHooksRepoAdapter) MarkCalendarEnabled(ctx context.Context, listingID uuid.UUID, enabled bool) error {
 	listing, err := a.getListing(ctx, listingID)
 	if err != nil {
@@ -210,4 +284,47 @@ func (a *CalendarHooksRepoAdapter) MarkCalendarEnabled(ctx context.Context, list
 	return a.repo.PatchListing(ctx, listingID, map[string]any{
 		"has_calendar": enabled,
 	})
+}
+
+func (a *CalendarHooksRepoAdapter) GetShowingAvailability(ctx context.Context, listingID uuid.UUID) ([]calendarservice.ShowingAvailability, error) {
+	listing, err := a.getListing(ctx, listingID)
+	if err != nil {
+		return nil, err
+	}
+
+	var availability []calendarservice.ShowingAvailability
+
+	// Check rental details
+	if listing.RentalDetails != nil && listing.RentalDetails.ShowingAvailability != nil {
+		for _, slot := range *listing.RentalDetails.ShowingAvailability {
+			availability = append(availability, calendarservice.ShowingAvailability{
+				DayOfWeek: slot.DayOfWeek,
+				StartTime: slot.StartTime,
+				EndTime:   slot.EndTime,
+				Timezone:  slot.Timezone,
+			})
+		}
+	}
+
+	// Check sale details
+	if listing.SaleDetails != nil && listing.SaleDetails.ShowingAvailability != nil {
+		for _, slot := range *listing.SaleDetails.ShowingAvailability {
+			availability = append(availability, calendarservice.ShowingAvailability{
+				DayOfWeek: slot.DayOfWeek,
+				StartTime: slot.StartTime,
+				EndTime:   slot.EndTime,
+				Timezone:  slot.Timezone,
+			})
+		}
+	}
+
+	return availability, nil
+}
+
+func (a *CalendarHooksRepoAdapter) GetListingType(ctx context.Context, listingID uuid.UUID) (string, error) {
+	listing, err := a.getListing(ctx, listingID)
+	if err != nil {
+		return "", err
+	}
+	return string(listing.ListingType), nil
 }

@@ -55,6 +55,8 @@ func main() {
 	// - /tasks/review/reminders (daily at 10 AM UTC)
 	// - /tasks/promotion/expiry (daily at 1 AM UTC)
 	// - /tasks/promotion/billing (daily at 3 AM UTC)
+	// - /tasks/calendar/showing/reminders (hourly)
+	// - /tasks/calendar/open-house/reminders (hourly)
 
 	ready.Store(true)
 

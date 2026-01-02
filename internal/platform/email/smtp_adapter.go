@@ -2,6 +2,9 @@ package email
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/go-pkgz/email"
 )
@@ -42,4 +45,40 @@ func (s *SMTPAdapter) SendHtml(ctx context.Context, to, subject, htmlBody string
 		To:      []string{to},
 		Subject: subj,
 	})
+}
+
+// SendHtmlWithAttachments sends an email with attachments via SMTP.
+func (s *SMTPAdapter) SendHtmlWithAttachments(ctx context.Context, to, subject, htmlBody string, attachments []Attachment) error {
+	subj := "[Hauslet] " + subject
+	params := email.Params{
+		From:    s.from,
+		To:      []string{to},
+		Subject: subj,
+	}
+
+	if len(attachments) == 0 {
+		return s.client.Send(htmlBody, params)
+	}
+
+	tempDir, err := os.MkdirTemp("", "hauslet-email-")
+	if err != nil {
+		return fmt.Errorf("create temp dir: %w", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	paths := make([]string, 0, len(attachments))
+	for _, attachment := range attachments {
+		filename := attachment.Filename
+		if filename == "" {
+			filename = "attachment"
+		}
+		path := filepath.Join(tempDir, filename)
+		if err := os.WriteFile(path, attachment.Content, 0o600); err != nil {
+			return fmt.Errorf("write attachment: %w", err)
+		}
+		paths = append(paths, path)
+	}
+
+	params.Attachments = paths
+	return s.client.Send(htmlBody, params)
 }

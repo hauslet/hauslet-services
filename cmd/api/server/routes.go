@@ -55,6 +55,7 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		container.FinanceSvc,
 		container.PayoutSvc,
 		container.BookingSvc,
+		container.CalendarSvc,
 		container.WishlistSvc,
 		container.ReviewSvc,
 		container.PromotionSvc,

@@ -38,6 +38,20 @@ func (c *Client) SendHTML(ctx context.Context, to, subject, htmlBody string) err
 	return c.sender.SendHtml(ctx, to, subject, htmlBody)
 }
 
+// SendHTMLWithAttachments sends HTML with optional attachments when supported.
+func (c *Client) SendHTMLWithAttachments(ctx context.Context, to, subject, htmlBody string, attachments []Attachment) error {
+	if len(attachments) == 0 {
+		return c.sender.SendHtml(ctx, to, subject, htmlBody)
+	}
+
+	senderWithAttachments, ok := c.sender.(SenderWithAttachments)
+	if !ok {
+		return fmt.Errorf("email sender does not support attachments")
+	}
+
+	return senderWithAttachments.SendHtmlWithAttachments(ctx, to, subject, htmlBody, attachments)
+}
+
 // RenderTemplate builds the HTML string without sending.
 func (c *Client) RenderTemplate(fsys fs.FS, templateName string, data interface{}) (string, error) {
 	if c.layoutFS == nil {

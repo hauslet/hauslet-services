@@ -18,6 +18,7 @@ type ServiceImpl struct {
 
 	propertyHooks  PropertyHooks
 	businessHooks  BusinessHooks
+	profileHooks   ProfileHooks // For hybrid authentication (optional)
 	analyticsHooks AnalyticsHooks
 
 	log *slog.Logger
@@ -30,6 +31,7 @@ func NewLeadService(
 	assignmentRepo repository.LeadAssignmentRepository,
 	propertyHooks PropertyHooks,
 	businessHooks BusinessHooks,
+	profileHooks ProfileHooks, // Optional - for hybrid authentication
 	log *slog.Logger,
 ) LeadService {
 	return &ServiceImpl{
@@ -41,6 +43,7 @@ func NewLeadService(
 		rateLimiter:    NewRateLimiter(leadRepo),
 		propertyHooks:  propertyHooks,
 		businessHooks:  businessHooks,
+		profileHooks:   profileHooks,
 		analyticsHooks: &NullAnalyticsHooks{}, // No-op for Phase 1
 		log:            log,
 	}

@@ -45,6 +45,14 @@ type ShowingDetail struct {
 	Notes         *string    `json:"notes,omitempty"`
 	Attended      *bool      `json:"attended,omitempty"`
 	Feedback      *string    `json:"feedback,omitempty"`
+
+	// Request tracking fields
+	RequestedBy      *uuid.UUID `json:"requested_by,omitempty"`      // User ID who requested the viewing
+	RequestedAt      *time.Time `json:"requested_at,omitempty"`      // When the request was made
+	RescheduledAt    *time.Time `json:"rescheduled_at,omitempty"`    // Last reschedule time
+	RescheduleCount  int        `json:"reschedule_count"`            // Number of times rescheduled
+	RescheduleReason *string    `json:"reschedule_reason,omitempty"` // Reason for last reschedule
+	CancelReason     *string    `json:"cancel_reason,omitempty"`     // Reason for cancellation
 }
 
 // MaintenanceDetail contains maintenance-specific information
@@ -78,16 +86,21 @@ type OpenHouseDetail struct {
 	AgentID      *uuid.UUID `json:"agent_id,omitempty"`
 	AgentName    *string    `json:"agent_name,omitempty"`
 	Attendees    []Attendee `json:"attendees,omitempty"`
+
+	// Registration deadline
+	RegistrationDeadline *time.Time `json:"registration_deadline,omitempty"`
 }
 
 // Attendee represents someone who registered for an open house
 type Attendee struct {
-	ID           uuid.UUID `json:"id"`
-	Name         string    `json:"name"`
-	Email        string    `json:"email"`
-	Phone        *string   `json:"phone,omitempty"`
-	RegisteredAt time.Time `json:"registered_at"`
-	Attended     *bool     `json:"attended,omitempty"`
+	ID                uuid.UUID  `json:"id"`
+	Name              string     `json:"name"`
+	Email             string     `json:"email"`
+	Phone             *string    `json:"phone,omitempty"`
+	UserID            *uuid.UUID `json:"user_id,omitempty"` // Optional: for registered users
+	RegisteredAt      time.Time  `json:"registered_at"`
+	Attended          *bool      `json:"attended,omitempty"`
+	RegistrationToken *string    `json:"registration_token,omitempty"` // For public cancel links
 }
 
 // CalendarConfig stores calendar configuration for a listing

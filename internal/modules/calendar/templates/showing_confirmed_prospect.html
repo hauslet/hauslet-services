@@ -1,0 +1,33 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        Your Showing Is Confirmed
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.ProspectName}}, your viewing for <strong>{{.ListingTitle}}</strong> is confirmed.
+    </p>
+
+    <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
+            <strong>When:</strong> {{.StartTime}} - {{.EndTime}}
+        </p>
+    </div>
+
+    {{if .CalendarURL}}
+    <div style="text-align: center; margin: 28px 0;">
+        <a href="{{.CalendarURL}}" style="display: inline-block; background-color: #111827; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px;">
+            Add to Calendar
+        </a>
+    </div>
+    {{end}}
+
+    <div style="text-align: center; margin: 24px 0;">
+        <a href="{{.ListingURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px;">
+            View Listing
+        </a>
+    </div>
+</div>
+{{end}}
+
+{{template "layout" .}}

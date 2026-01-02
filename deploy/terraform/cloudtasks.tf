@@ -261,3 +261,49 @@ resource "google_cloud_tasks_queue" "payout_retry" {
     google_project_service.cloudtasks
   ]
 }
+
+# Calendar Showing Reminders Queue - For sending viewing appointment reminders
+resource "google_cloud_tasks_queue" "calendar_showing_reminders" {
+  name     = "calendar-showing-reminders-queue"
+  location = "europe-west2"
+
+  rate_limits {
+    max_dispatches_per_second = 10
+    max_concurrent_dispatches = 5
+  }
+
+  retry_config {
+    max_attempts       = 3
+    max_retry_duration = "600s"
+    min_backoff        = "5s"
+    max_backoff        = "60s"
+    max_doublings      = 2
+  }
+
+  depends_on = [
+    google_project_service.cloudtasks
+  ]
+}
+
+# Calendar Open House Reminders Queue - For sending open house event reminders
+resource "google_cloud_tasks_queue" "calendar_open_house_reminders" {
+  name     = "calendar-open-house-reminders-queue"
+  location = "europe-west2"
+
+  rate_limits {
+    max_dispatches_per_second = 10
+    max_concurrent_dispatches = 5
+  }
+
+  retry_config {
+    max_attempts       = 3
+    max_retry_duration = "600s"
+    min_backoff        = "5s"
+    max_backoff        = "60s"
+    max_doublings      = 2
+  }
+
+  depends_on = [
+    google_project_service.cloudtasks
+  ]
+}

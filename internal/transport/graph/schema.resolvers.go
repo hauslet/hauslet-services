@@ -12,6 +12,7 @@ import (
 	domain5 "hauslet/internal/modules/booking/domain"
 	graphql4 "hauslet/internal/modules/booking/port/graphql"
 	domain3 "hauslet/internal/modules/business/domain"
+	calendardomain "hauslet/internal/modules/calendar/domain"
 	domain7 "hauslet/internal/modules/finance/domain"
 	graphql2 "hauslet/internal/modules/finance/port/graphql"
 	domain10 "hauslet/internal/modules/leads/domain"
@@ -315,6 +316,30 @@ func (r *listingStatsResolver) UpdatedAt(ctx context.Context, obj *domain8.Listi
 	return &obj.LastUpdatedAt, nil
 }
 
+// MaintenanceType is the resolver for the maintenanceType field.
+func (r *maintenanceDetailResolver) MaintenanceType(ctx context.Context, obj *calendardomain.MaintenanceDetail) (string, error) {
+	if obj == nil {
+		return "", nil
+	}
+	return string(obj.MaintenanceType), nil
+}
+
+// AssignedTo is the resolver for the assignedTo field.
+func (r *maintenanceDetailResolver) AssignedTo(ctx context.Context, obj *calendardomain.MaintenanceDetail) (*uuid.UUID, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	return obj.VendorID, nil
+}
+
+// Notes is the resolver for the notes field.
+func (r *maintenanceDetailResolver) Notes(ctx context.Context, obj *calendardomain.MaintenanceDetail) (*string, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	return obj.CompletionNotes, nil
+}
+
 // Ping is the resolver for the ping field.
 func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
 	return "pong", nil
@@ -502,6 +527,41 @@ func (r *mutationResolver) CheckInBooking(ctx context.Context, bookingID uuid.UU
 // CheckOutBooking is the resolver for the checkOutBooking field.
 func (r *mutationResolver) CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*domain5.Booking, error) {
 	return r.BookingResolver.CheckOutBooking(ctx, bookingID.String())
+}
+
+// RequestShowing is the resolver for the requestShowing field.
+func (r *mutationResolver) RequestShowing(ctx context.Context, input model.RequestShowingInput) (*calendardomain.CalendarEvent, error) {
+	return r.CalendarResolver.RequestShowing(ctx, input)
+}
+
+// ConfirmShowing is the resolver for the confirmShowing field.
+func (r *mutationResolver) ConfirmShowing(ctx context.Context, eventID uuid.UUID) (*calendardomain.CalendarEvent, error) {
+	return r.CalendarResolver.ConfirmShowing(ctx, eventID)
+}
+
+// CancelShowing is the resolver for the cancelShowing field.
+func (r *mutationResolver) CancelShowing(ctx context.Context, input model.CancelShowingInput) (*calendardomain.CalendarEvent, error) {
+	return r.CalendarResolver.CancelShowing(ctx, input)
+}
+
+// RescheduleShowing is the resolver for the rescheduleShowing field.
+func (r *mutationResolver) RescheduleShowing(ctx context.Context, input model.RescheduleShowingInput) (*calendardomain.CalendarEvent, error) {
+	return r.CalendarResolver.RescheduleShowing(ctx, input)
+}
+
+// CreateOpenHouse is the resolver for the createOpenHouse field.
+func (r *mutationResolver) CreateOpenHouse(ctx context.Context, input model.CreateOpenHouseInput) (*calendardomain.CalendarEvent, error) {
+	return r.CalendarResolver.CreateOpenHouse(ctx, input)
+}
+
+// RegisterOpenHouse is the resolver for the registerOpenHouse field.
+func (r *mutationResolver) RegisterOpenHouse(ctx context.Context, input model.RegisterOpenHouseInput) (bool, error) {
+	return r.CalendarResolver.RegisterOpenHouse(ctx, input)
+}
+
+// RemoveOpenHouseAttendee is the resolver for the removeOpenHouseAttendee field.
+func (r *mutationResolver) RemoveOpenHouseAttendee(ctx context.Context, eventID uuid.UUID, attendeeID uuid.UUID) (bool, error) {
+	return r.CalendarResolver.RemoveOpenHouseAttendee(ctx, eventID, attendeeID)
 }
 
 // CreatePayment is the resolver for the createPayment field.
@@ -1119,6 +1179,36 @@ func (r *queryResolver) ListingBookings(ctx context.Context, listingID uuid.UUID
 		statusStr = &s
 	}
 	return r.BookingResolver.ListingBookings(ctx, listingID.String(), statusStr, limit, offset)
+}
+
+// CalendarEvent is the resolver for the calendarEvent field.
+func (r *queryResolver) CalendarEvent(ctx context.Context, id uuid.UUID) (*calendardomain.CalendarEvent, error) {
+	return r.CalendarResolver.CalendarEvent(ctx, id)
+}
+
+// ListingEvents is the resolver for the listingEvents field.
+func (r *queryResolver) ListingEvents(ctx context.Context, listingID uuid.UUID, startTime time.Time, endTime time.Time, eventTypes []calendardomain.EventType) ([]*calendardomain.CalendarEvent, error) {
+	return r.CalendarResolver.ListingEvents(ctx, listingID, startTime, endTime, eventTypes)
+}
+
+// UpcomingListingEvents is the resolver for the upcomingListingEvents field.
+func (r *queryResolver) UpcomingListingEvents(ctx context.Context, listingID uuid.UUID, limit *int) ([]*calendardomain.CalendarEvent, error) {
+	return r.CalendarResolver.UpcomingListingEvents(ctx, listingID, limit)
+}
+
+// MyCalendarEvents is the resolver for the myCalendarEvents field.
+func (r *queryResolver) MyCalendarEvents(ctx context.Context, startTime time.Time, endTime time.Time) ([]*calendardomain.CalendarEvent, error) {
+	return r.CalendarResolver.MyCalendarEvents(ctx, startTime, endTime)
+}
+
+// OpenHouseAttendees is the resolver for the openHouseAttendees field.
+func (r *queryResolver) OpenHouseAttendees(ctx context.Context, eventID uuid.UUID) ([]*calendardomain.Attendee, error) {
+	return r.CalendarResolver.OpenHouseAttendees(ctx, eventID)
+}
+
+// CheckListingAvailability is the resolver for the checkListingAvailability field.
+func (r *queryResolver) CheckListingAvailability(ctx context.Context, listingID uuid.UUID, startTime time.Time, endTime time.Time) (bool, error) {
+	return r.CalendarResolver.CheckListingAvailability(ctx, listingID, startTime, endTime)
 }
 
 // Payment is the resolver for the payment field.
@@ -1842,6 +1932,11 @@ func (r *Resolver) ListingPromotion() ListingPromotionResolver { return &listing
 // ListingStats returns ListingStatsResolver implementation.
 func (r *Resolver) ListingStats() ListingStatsResolver { return &listingStatsResolver{r} }
 
+// MaintenanceDetail returns MaintenanceDetailResolver implementation.
+func (r *Resolver) MaintenanceDetail() MaintenanceDetailResolver {
+	return &maintenanceDetailResolver{r}
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
@@ -1936,6 +2031,7 @@ type listingResolver struct{ *Resolver }
 type listingMediaResolver struct{ *Resolver }
 type listingPromotionResolver struct{ *Resolver }
 type listingStatsResolver struct{ *Resolver }
+type maintenanceDetailResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type paymentResolver struct{ *Resolver }
 type paymentMethodResolver struct{ *Resolver }

@@ -5,10 +5,25 @@ import (
 	"fmt"
 
 	businessservice "hauslet/internal/modules/business/service"
+	profileservice "hauslet/internal/modules/profile/service"
 	propertyservice "hauslet/internal/modules/property/service"
 
 	"github.com/google/uuid"
 )
+
+// ProfileHooks defines the interface for accessing user profile data (for hybrid authentication)
+type ProfileHooks interface {
+	// GetUserProfile retrieves profile data for auto-filling leads
+	GetUserProfile(ctx context.Context, userID uuid.UUID) (*UserProfile, error)
+}
+
+// UserProfile represents minimal profile data needed for lead auto-fill
+type UserProfile struct {
+	UserID   uuid.UUID
+	FullName string
+	Email    string
+	Phone    *string
+}
 
 // PropertyHooksAdapter implements PropertyHooks by wrapping PropertyService
 type PropertyHooksAdapter struct {
@@ -105,4 +120,47 @@ func (a *BusinessHooksAdapter) GetBusinessMembers(ctx context.Context, businessI
 	}
 
 	return memberIDs, nil
+}
+
+// ProfileHooksAdapter implements ProfileHooks by wrapping ProfileService
+type ProfileHooksAdapter struct {
+	profileSvc profileservice.ProfileService
+}
+
+// NewProfileHooksAdapter creates a new ProfileHooksAdapter
+func NewProfileHooksAdapter(profileSvc profileservice.ProfileService) ProfileHooks {
+	return &ProfileHooksAdapter{
+		profileSvc: profileSvc,
+	}
+}
+
+// GetUserProfile retrieves profile data for auto-filling leads
+func (a *ProfileHooksAdapter) GetUserProfile(ctx context.Context, userID uuid.UUID) (*UserProfile, error) {
+	profile, err := a.profileSvc.GetProfileByUserID(ctx, userID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user profile: %w", err)
+	}
+	if profile == nil {
+		return nil, fmt.Errorf("profile not found for user %s", userID)
+	}
+
+	// Validate required fields
+	if profile.FullName == "" {
+		return nil, fmt.Errorf("user profile incomplete: full name required")
+	}
+	if profile.Email == nil || *profile.Email == "" {
+		return nil, fmt.Errorf("user profile incomplete: email required")
+	}
+
+	var phone *string
+	if len(profile.PhoneNumbers) > 0 {
+		phone = &profile.PhoneNumbers[0]
+	}
+
+	return &UserProfile{
+		UserID:   userID,
+		FullName: profile.FullName,
+		Email:    *profile.Email,
+		Phone:    phone,
+	}, nil
 }

@@ -13,6 +13,10 @@ type Lead struct {
 	ListingID  uuid.UUID  `gorm:"type:uuid;not null;index:idx_leads_listing"`
 	BusinessID *uuid.UUID `gorm:"type:uuid;index:idx_leads_business"`
 
+	// User Tracking (Hybrid Authentication)
+	UserID     *uuid.UUID `gorm:"type:uuid;index:idx_leads_user_id"`      // Authenticated users only
+	IsVerified bool       `gorm:"default:false;index:idx_leads_verified"` // True if from authenticated user
+
 	// Contact Information
 	Name        string  `gorm:"type:varchar(255);not null"`
 	Email       string  `gorm:"type:varchar(255);not null;index:idx_leads_email"`
@@ -78,8 +82,8 @@ func (l *Lead) BeforeSave(tx *gorm.DB) error {
 
 // LeadEvent represents the GORM schema for lead_events table (audit trail)
 type LeadEvent struct {
-	ID     uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	LeadID uuid.UUID  `gorm:"type:uuid;not null;index:idx_lead_events_lead"`
+	ID     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	LeadID uuid.UUID `gorm:"type:uuid;not null;index:idx_lead_events_lead"`
 
 	// Event Details
 	EventType string     `gorm:"type:varchar(50);not null"`
@@ -104,8 +108,8 @@ func (LeadEvent) TableName() string {
 
 // LeadAssignment represents the GORM schema for lead_assignments table (routing history)
 type LeadAssignment struct {
-	ID     uuid.UUID  `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
-	LeadID uuid.UUID  `gorm:"type:uuid;not null;index:idx_lead_assignments_lead"`
+	ID     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	LeadID uuid.UUID `gorm:"type:uuid;not null;index:idx_lead_assignments_lead"`
 
 	// Assignment Details
 	FromUserID *uuid.UUID `gorm:"type:uuid"`

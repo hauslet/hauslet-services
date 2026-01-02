@@ -8,6 +8,7 @@ schema:
   - internal/modules/property/port/graphql/*.graphqls
   - internal/modules/business/port/graphql/*.graphqls
   - internal/modules/booking/port/graphql/*.graphqls
+  - internal/modules/calendar/port/graphql/*.graphqls
   - internal/modules/payments/port/graphql/*.graphqls
   - internal/modules/finance/port/graphql/*.graphqls
   - internal/modules/wishlist/port/graphql/*.graphqls
@@ -369,6 +370,24 @@ models:
     model: hauslet/internal/modules/promotions/domain.BillingCycle
   SubscriptionStatus:
     model: hauslet/internal/modules/promotions/domain.SubscriptionStatus
+
+  # --- Calendar Module Bindings ---
+  CalendarEvent:
+    model: hauslet/internal/modules/calendar/domain.CalendarEvent
+  ShowingDetail:
+    model: hauslet/internal/modules/calendar/domain.ShowingDetail
+  OpenHouseDetail:
+    model: hauslet/internal/modules/calendar/domain.OpenHouseDetail
+  Attendee:
+    model: hauslet/internal/modules/calendar/domain.Attendee
+  MaintenanceDetail:
+    model: hauslet/internal/modules/calendar/domain.MaintenanceDetail
+  BlockDetail:
+    model: hauslet/internal/modules/calendar/domain.BlockDetail
+  EventType:
+    model: hauslet/internal/modules/calendar/domain.EventType
+  EventStatus:
+    model: hauslet/internal/modules/calendar/domain.EventStatus
 
   # --- Leads Module Bindings ---
   Lead:

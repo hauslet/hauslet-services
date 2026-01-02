@@ -12,6 +12,10 @@ type Lead struct {
 	ListingID  uuid.UUID
 	BusinessID *uuid.UUID // Nullable - direct to owner if nil
 
+	// User Tracking (Hybrid Authentication)
+	UserID     *uuid.UUID // Nullable - authenticated users only
+	IsVerified bool       // True if created by authenticated user with verified profile
+
 	// Contact Information
 	Name        string
 	Email       string
@@ -52,6 +56,16 @@ type Lead struct {
 // IsNew returns true if the lead has just been created and not yet contacted
 func (l *Lead) IsNew() bool {
 	return l.Status == StatusNew && l.FirstResponseAt == nil
+}
+
+// IsAuthenticatedUser returns true if the lead was created by an authenticated user
+func (l *Lead) IsAuthenticatedUser() bool {
+	return l.UserID != nil
+}
+
+// IsAnonymous returns true if the lead was created anonymously (no user account)
+func (l *Lead) IsAnonymous() bool {
+	return l.UserID == nil
 }
 
 // IsAssigned returns true if the lead is assigned to an agent

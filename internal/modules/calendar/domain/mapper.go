@@ -99,15 +99,21 @@ func mapShowingDetailFromSchema(s *schema.ShowingDetail) *ShowingDetail {
 	}
 
 	return &ShowingDetail{
-		ProspectID:    s.ProspectID,
-		ProspectName:  s.ProspectName,
-		ProspectEmail: s.ProspectEmail,
-		ProspectPhone: s.ProspectPhone,
-		AgentID:       s.AgentID,
-		AgentName:     s.AgentName,
-		Notes:         s.Notes,
-		Attended:      s.Attended,
-		Feedback:      s.Feedback,
+		ProspectID:       s.ProspectID,
+		ProspectName:     s.ProspectName,
+		ProspectEmail:    s.ProspectEmail,
+		ProspectPhone:    s.ProspectPhone,
+		AgentID:          s.AgentID,
+		AgentName:        s.AgentName,
+		Notes:            s.Notes,
+		Attended:         s.Attended,
+		Feedback:         s.Feedback,
+		RequestedBy:      s.RequestedBy,
+		RequestedAt:      s.RequestedAt,
+		RescheduledAt:    s.RescheduledAt,
+		RescheduleCount:  s.RescheduleCount,
+		RescheduleReason: s.RescheduleReason,
+		CancelReason:     s.CancelReason,
 	}
 }
 
@@ -117,15 +123,21 @@ func mapShowingDetailToSchema(d *ShowingDetail) *schema.ShowingDetail {
 	}
 
 	return &schema.ShowingDetail{
-		ProspectID:    d.ProspectID,
-		ProspectName:  d.ProspectName,
-		ProspectEmail: d.ProspectEmail,
-		ProspectPhone: d.ProspectPhone,
-		AgentID:       d.AgentID,
-		AgentName:     d.AgentName,
-		Notes:         d.Notes,
-		Attended:      d.Attended,
-		Feedback:      d.Feedback,
+		ProspectID:       d.ProspectID,
+		ProspectName:     d.ProspectName,
+		ProspectEmail:    d.ProspectEmail,
+		ProspectPhone:    d.ProspectPhone,
+		AgentID:          d.AgentID,
+		AgentName:        d.AgentName,
+		Notes:            d.Notes,
+		Attended:         d.Attended,
+		Feedback:         d.Feedback,
+		RequestedBy:      d.RequestedBy,
+		RequestedAt:      d.RequestedAt,
+		RescheduledAt:    d.RescheduledAt,
+		RescheduleCount:  d.RescheduleCount,
+		RescheduleReason: d.RescheduleReason,
+		CancelReason:     d.CancelReason,
 	}
 }
 
@@ -207,11 +219,12 @@ func mapOpenHouseDetailFromSchema(s *schema.OpenHouseDetail) *OpenHouseDetail {
 	}
 
 	d := &OpenHouseDetail{
-		Title:        s.Title,
-		Description:  s.Description,
-		MaxAttendees: s.MaxAttendees,
-		AgentID:      s.AgentID,
-		AgentName:    s.AgentName,
+		Title:                s.Title,
+		Description:          s.Description,
+		MaxAttendees:         s.MaxAttendees,
+		AgentID:              s.AgentID,
+		AgentName:            s.AgentName,
+		RegistrationDeadline: s.RegistrationDeadline,
 	}
 
 	// Map attendees
@@ -219,12 +232,14 @@ func mapOpenHouseDetailFromSchema(s *schema.OpenHouseDetail) *OpenHouseDetail {
 		d.Attendees = make([]Attendee, len(s.Attendees))
 		for i, attendee := range s.Attendees {
 			d.Attendees[i] = Attendee{
-				ID:           attendee.ID,
-				Name:         attendee.Name,
-				Email:        attendee.Email,
-				Phone:        attendee.Phone,
-				RegisteredAt: attendee.RegisteredAt,
-				Attended:     attendee.Attended,
+				ID:                attendee.ID,
+				Name:              attendee.Name,
+				Email:             attendee.Email,
+				Phone:             attendee.Phone,
+				UserID:            attendee.UserID,
+				RegisteredAt:      attendee.RegisteredAt,
+				Attended:          attendee.Attended,
+				RegistrationToken: attendee.RegistrationToken,
 			}
 		}
 	}
@@ -238,11 +253,12 @@ func mapOpenHouseDetailToSchema(d *OpenHouseDetail) *schema.OpenHouseDetail {
 	}
 
 	s := &schema.OpenHouseDetail{
-		Title:        d.Title,
-		Description:  d.Description,
-		MaxAttendees: d.MaxAttendees,
-		AgentID:      d.AgentID,
-		AgentName:    d.AgentName,
+		Title:                d.Title,
+		Description:          d.Description,
+		MaxAttendees:         d.MaxAttendees,
+		AgentID:              d.AgentID,
+		AgentName:            d.AgentName,
+		RegistrationDeadline: d.RegistrationDeadline,
 	}
 
 	// Map attendees
@@ -250,12 +266,14 @@ func mapOpenHouseDetailToSchema(d *OpenHouseDetail) *schema.OpenHouseDetail {
 		s.Attendees = make([]schema.Attendee, len(d.Attendees))
 		for i, attendee := range d.Attendees {
 			s.Attendees[i] = schema.Attendee{
-				ID:           attendee.ID,
-				Name:         attendee.Name,
-				Email:        attendee.Email,
-				Phone:        attendee.Phone,
-				RegisteredAt: attendee.RegisteredAt,
-				Attended:     attendee.Attended,
+				ID:                attendee.ID,
+				Name:              attendee.Name,
+				Email:             attendee.Email,
+				Phone:             attendee.Phone,
+				UserID:            attendee.UserID,
+				RegisteredAt:      attendee.RegisteredAt,
+				Attended:          attendee.Attended,
+				RegistrationToken: attendee.RegistrationToken,
 			}
 		}
 	}

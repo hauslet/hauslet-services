@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -50,9 +51,28 @@ func (h *EmailHandler) Handle(ctx context.Context, data []byte) error {
 
 	h.log.Info("Sending email", "to", job.To, "subject", job.Subject)
 
+	attachments := make([]email.Attachment, 0, len(job.Attachments))
+	for _, attachment := range job.Attachments {
+		payload, err := base64.StdEncoding.DecodeString(attachment.ContentBase64)
+		if err != nil {
+			return fmt.Errorf("failed to decode attachment %s: %w", attachment.Filename, err)
+		}
+		attachments = append(attachments, email.Attachment{
+			Filename:    attachment.Filename,
+			ContentType: attachment.ContentType,
+			Content:     payload,
+		})
+	}
+
 	// Send email
-	if err := h.client.SendHTML(ctx, job.To, job.Subject, job.HTML); err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+	if len(attachments) == 0 {
+		if err := h.client.SendHTML(ctx, job.To, job.Subject, job.HTML); err != nil {
+			return fmt.Errorf("failed to send email: %w", err)
+		}
+	} else {
+		if err := h.client.SendHTMLWithAttachments(ctx, job.To, job.Subject, job.HTML, attachments); err != nil {
+			return fmt.Errorf("failed to send email with attachments: %w", err)
+		}
 	}
 
 	h.log.Info("✅ Email sent successfully", slog.String("to", job.To))

@@ -18,6 +18,7 @@ import (
 	businesshooks "hauslet/internal/modules/business/port/hooks"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
+	calendarnotification "hauslet/internal/modules/calendar/notification"
 	calendarhttp "hauslet/internal/modules/calendar/port/http"
 	calendarrepository "hauslet/internal/modules/calendar/repository"
 	calendarservice "hauslet/internal/modules/calendar/service"
@@ -432,6 +433,7 @@ func (c *Container) initLeads() error {
 	// Initialize hooks adapters
 	propertyHooks := leadsservice.NewPropertyHooksAdapter(c.PropertySvc)
 	businessHooks := leadsservice.NewBusinessHooksAdapter(c.BusinessSvc)
+	profileHooks := leadsservice.NewProfileHooksAdapter(c.ProfileSvc)
 
 	// Initialize lead service
 	c.LeadSvc = leadsservice.NewLeadService(
@@ -440,6 +442,7 @@ func (c *Container) initLeads() error {
 		leadAssignmentRepo,
 		propertyHooks,
 		businessHooks,
+		profileHooks,
 		c.Logger,
 	)
 
@@ -450,11 +453,24 @@ func (c *Container) initLeads() error {
 func (c *Container) initCalendar() error {
 	calendarRepo := calendarrepository.NewCalendarRepository(c.DB)
 	calendarHooksAdapter := propertyhooks.NewCalendarHooksAdapter(c.PropertySvc)
+	emailSubject := c.Config.YAML.Queue.Subjects["email"]
+	calendarProfileAdapter := profileport.NewCalendarProfileAdapter(c.ProfileSvc)
+	calendarNotificationService := calendarnotification.NewNotificationService(
+		c.EmailClient,
+		c.Queue,
+		emailSubject,
+		c.Config.App.Client,
+		calendarHooksAdapter,
+		calendarProfileAdapter,
+		c.Logger,
+	)
 
 	c.CalendarSvc = calendarservice.NewCalendarService(
 		calendarRepo,
 		*c.Redis,
 		calendarHooksAdapter,
+		calendarProfileAdapter,
+		calendarNotificationService,
 		c.Logger,
 	)
 

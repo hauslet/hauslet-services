@@ -77,6 +77,18 @@ func (r *Resolver) CreateLead(ctx context.Context, input CreateLeadInput) (*doma
 		UTMParams:   input.UTMParams,
 	}
 
+	// HYBRID: Check if user is authenticated (optional)
+	v := viewer.FromContext(ctx)
+	if v != nil && v.UserID != "" {
+		userID, err := uuid.Parse(v.UserID)
+		if err == nil {
+			serviceInput.UserID = &userID // Pass UserID for auto-fill and verification
+			r.log.Info("authenticated user creating lead", "user_id", userID, "listing_id", listingID)
+		}
+	} else {
+		r.log.Info("anonymous user creating lead", "listing_id", listingID, "email", input.Email)
+	}
+
 	lead, err := r.leadService.CreateLead(ctx, serviceInput)
 	if err != nil {
 		r.log.Error("failed to create lead", "error", err, "email", input.Email)
@@ -87,6 +99,8 @@ func (r *Resolver) CreateLead(ctx context.Context, input CreateLeadInput) (*doma
 		"lead_id", lead.ID,
 		"listing_id", listingID,
 		"email", input.Email,
+		"is_verified", lead.IsVerified,
+		"is_authenticated", lead.IsAuthenticatedUser(),
 	)
 
 	return lead, nil

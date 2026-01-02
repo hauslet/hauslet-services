@@ -59,6 +59,11 @@ type CancelBookingInput struct {
 	Reason    *string   `json:"reason,omitempty"`
 }
 
+type CancelShowingInput struct {
+	EventID uuid.UUID `json:"eventId"`
+	Reason  *string   `json:"reason,omitempty"`
+}
+
 type CreateBusinessInput struct {
 	Name               string                `json:"name"`
 	DisplayName        string                `json:"displayName"`
@@ -131,6 +136,16 @@ type CreateListingPropertyInput struct {
 	FloorArea          *float64                   `json:"floorArea,omitempty"`
 	Amenities          []*AmenityGroupInput       `json:"amenities,omitempty"`
 	FeaturesCommercial []*AmenityGroupInput       `json:"featuresCommercial,omitempty"`
+}
+
+type CreateOpenHouseInput struct {
+	ListingID            uuid.UUID  `json:"listingId"`
+	StartTime            time.Time  `json:"startTime"`
+	EndTime              time.Time  `json:"endTime"`
+	Title                string     `json:"title"`
+	Description          *string    `json:"description,omitempty"`
+	MaxAttendees         int        `json:"maxAttendees"`
+	RegistrationDeadline *time.Time `json:"registrationDeadline,omitempty"`
 }
 
 type CreatePayoutInput struct {
@@ -297,6 +312,10 @@ type PropertyFilterExtension struct {
 type Query struct {
 }
 
+type RegisterOpenHouseInput struct {
+	EventID uuid.UUID `json:"eventId"`
+}
+
 type RentalDetailInput struct {
 	RentalPrice            float64               `json:"rentalPrice"`
 	RentalPricePeriod      domain3.PaymentPeriod `json:"rentalPricePeriod"`
@@ -329,6 +348,20 @@ type RequestBookingInput struct {
 	CheckOut        time.Time `json:"checkOut"`
 	GuestCount      int       `json:"guestCount"`
 	SpecialRequests *string   `json:"specialRequests,omitempty"`
+}
+
+type RequestShowingInput struct {
+	ListingID uuid.UUID `json:"listingId"`
+	StartTime time.Time `json:"startTime"`
+	EndTime   time.Time `json:"endTime"`
+	Notes     *string   `json:"notes,omitempty"`
+}
+
+type RescheduleShowingInput struct {
+	EventID      uuid.UUID `json:"eventId"`
+	NewStartTime time.Time `json:"newStartTime"`
+	NewEndTime   time.Time `json:"newEndTime"`
+	Reason       *string   `json:"reason,omitempty"`
 }
 
 type ReserveBookingInput struct {
@@ -432,6 +465,13 @@ type ShortletFilterInput struct {
 	CheckOutTimeAfter  *string                     `json:"checkOutTimeAfter,omitempty"`
 	CheckOutTimeBefore *string                     `json:"checkOutTimeBefore,omitempty"`
 	AccommodationTypes []domain3.AccommodationType `json:"accommodationTypes,omitempty"`
+}
+
+type ShowingAvailability struct {
+	DayOfWeek DayOfWeek `json:"dayOfWeek"`
+	StartTime string    `json:"startTime"`
+	EndTime   string    `json:"endTime"`
+	Timezone  *string   `json:"timezone,omitempty"`
 }
 
 type TravelCompanionInput struct {
@@ -592,6 +632,71 @@ type UploadResult struct {
 	UploadURL         string     `json:"uploadURL"`
 	Key               string     `json:"key"`
 	TravelCompanionID *uuid.UUID `json:"travelCompanionID,omitempty"`
+}
+
+type DayOfWeek string
+
+const (
+	DayOfWeekMonday    DayOfWeek = "monday"
+	DayOfWeekTuesday   DayOfWeek = "tuesday"
+	DayOfWeekWednesday DayOfWeek = "wednesday"
+	DayOfWeekThursday  DayOfWeek = "thursday"
+	DayOfWeekFriday    DayOfWeek = "friday"
+	DayOfWeekSaturday  DayOfWeek = "saturday"
+	DayOfWeekSunday    DayOfWeek = "sunday"
+)
+
+var AllDayOfWeek = []DayOfWeek{
+	DayOfWeekMonday,
+	DayOfWeekTuesday,
+	DayOfWeekWednesday,
+	DayOfWeekThursday,
+	DayOfWeekFriday,
+	DayOfWeekSaturday,
+	DayOfWeekSunday,
+}
+
+func (e DayOfWeek) IsValid() bool {
+	switch e {
+	case DayOfWeekMonday, DayOfWeekTuesday, DayOfWeekWednesday, DayOfWeekThursday, DayOfWeekFriday, DayOfWeekSaturday, DayOfWeekSunday:
+		return true
+	}
+	return false
+}
+
+func (e DayOfWeek) String() string {
+	return string(e)
+}
+
+func (e *DayOfWeek) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DayOfWeek(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DayOfWeek", str)
+	}
+	return nil
+}
+
+func (e DayOfWeek) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *DayOfWeek) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e DayOfWeek) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
 
 type ReviewVisibility string

@@ -15,7 +15,9 @@ import (
 	bookingservice "hauslet/internal/modules/booking/service"
 	businessrepository "hauslet/internal/modules/business/repository"
 	businessservice "hauslet/internal/modules/business/service"
+	calendarnotification "hauslet/internal/modules/calendar/notification"
 	calendarrepository "hauslet/internal/modules/calendar/repository"
+	calendarschema "hauslet/internal/modules/calendar/repository/schema"
 	calendarservice "hauslet/internal/modules/calendar/service"
 	financenotification "hauslet/internal/modules/finance/notification"
 	financehooks "hauslet/internal/modules/finance/port/hooks"
@@ -44,7 +46,9 @@ import (
 	reviewservice "hauslet/internal/modules/review/service"
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/queue"
+	calendarjobs "hauslet/internal/queue/jobs/calendar"
 	bookingHandler "hauslet/internal/transport/worker/handlers/booking"
+	calendarHandler "hauslet/internal/transport/worker/handlers/calendar"
 	emailHandler "hauslet/internal/transport/worker/handlers/emails"
 	financeHandler "hauslet/internal/transport/worker/handlers/finance"
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
@@ -68,6 +72,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	hasCleanup := qCfg["media_cleanup"] != ""
 	hasModeration := qCfg["ai_moderation"] != ""
 	hasPaymentWebhook := qCfg["payment_webhook"] != ""
+	hasCalendarShowingReminders := qCfg["calendar_showing_reminders"] != ""
+	hasCalendarOpenHouseReminders := qCfg["calendar_open_house_reminders"] != ""
 
 	// Shared repos/services
 	var propertyRepo propertyrepository.Repository
@@ -75,7 +81,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	var propertyProfileAdapter *profileport.PropertyProfileAdapter
 	var profileRepo profilerepository.ProfileRepository
 
-	if hasThumbnail || hasCleanup || hasModeration || hasPaymentWebhook {
+	if hasThumbnail || hasCleanup || hasModeration || hasPaymentWebhook || hasCalendarShowingReminders || hasCalendarOpenHouseReminders {
 		propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
 		profileRepo = profilerepository.NewProfileRepository(infra.DB)
 		profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
@@ -154,7 +160,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				// Calendar gateway (needed to cancel expired booking events)
 				calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
 				calendarHooksAdapter := propertyhooks.NewCalendarHooksRepoAdapter(propertyRepo)
-				calendarSvc = calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, log)
+				calendarProfileAdapter := profileport.NewCalendarProfileAdapter(profileSvc)
+				calendarSvc = calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, calendarProfileAdapter, nil, log)
 
 				// Pricing service with minimal dependencies
 				pricingRepo := pricingrepository.NewPricingRepository(infra.DB)
@@ -260,7 +267,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		listingHooks := bookinghooks.NewPropertyHooksAdapter(propertyRepo)
 		calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
 		calendarHooksAdapter := propertyhooks.NewCalendarHooksRepoAdapter(propertyRepo)
-		calendarSvc := calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, log)
+		calendarProfileAdapter := profileport.NewCalendarProfileAdapter(profileSvc)
+		calendarSvc := calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, calendarProfileAdapter, nil, log)
 
 		bookingNotificationService := bookingnotification.NewNotificationService(
 			infra.Email,
@@ -520,6 +528,55 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				reviewNotificationSvc,
 				log,
 				qCfg["review_reminders"],
+			)
+			registry.Register(h)
+		}
+	}
+
+	// Calendar reminder handlers
+	if hasCalendarShowingReminders || hasCalendarOpenHouseReminders {
+		if propertyRepo == nil {
+			propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
+		}
+		if profileSvc == nil {
+			profileRepo = profilerepository.NewProfileRepository(infra.DB)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+		}
+
+		calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
+		listingInfoProvider := propertyhooks.NewCalendarHooksRepoAdapter(propertyRepo)
+		calendarProfileAdapter := profileport.NewCalendarProfileAdapter(profileSvc)
+
+		calendarNotificationSvc := calendarnotification.NewNotificationService(
+			infra.Email,
+			infra.Queue,
+			qCfg["email"],
+			cfg.App.Client,
+			listingInfoProvider,
+			calendarProfileAdapter,
+			log,
+		)
+
+		if hasCalendarShowingReminders {
+			h := calendarHandler.NewReminderHandler(
+				calendarRepo,
+				calendarNotificationSvc,
+				log,
+				qCfg["calendar_showing_reminders"],
+				calendarschema.EventTypeShowing,
+				calendarjobs.ShowingReminderJobType,
+			)
+			registry.Register(h)
+		}
+
+		if hasCalendarOpenHouseReminders {
+			h := calendarHandler.NewReminderHandler(
+				calendarRepo,
+				calendarNotificationSvc,
+				log,
+				qCfg["calendar_open_house_reminders"],
+				calendarschema.EventTypeOpenHouse,
+				calendarjobs.OpenHouseReminderJobType,
 			)
 			registry.Register(h)
 		}

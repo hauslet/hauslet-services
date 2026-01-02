@@ -10,6 +10,7 @@ import (
 	"hauslet/internal/modules/auth/service"
 	bookingservice "hauslet/internal/modules/booking/service"
 	businessservice "hauslet/internal/modules/business/service"
+	calendarservice "hauslet/internal/modules/calendar/service"
 	financeservice "hauslet/internal/modules/finance/service"
 	leadsservice "hauslet/internal/modules/leads/service"
 	paymentsservice "hauslet/internal/modules/payments/service"
@@ -42,6 +43,7 @@ func SetupGraphQL(r chi.Router,
 	financeService financeservice.FinanceService,
 	payoutService financeservice.PayoutService,
 	bookingService bookingservice.BookingService,
+	calendarService calendarservice.CalendarService,
 	wishlistService wishlistservice.WishlistService,
 	reviewService reviewservice.ReviewService,
 	promotionService promotionservice.PromotionService,
@@ -65,6 +67,7 @@ func SetupGraphQL(r chi.Router,
 				financeService,
 				payoutService,
 				bookingService,
+				calendarService,
 				wishlistService,
 				reviewService,
 				promotionService,

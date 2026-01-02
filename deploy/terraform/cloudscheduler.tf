@@ -412,6 +412,158 @@ resource "google_cloud_scheduler_job" "subscription_billing" {
   ]
 }
 
+# 14. Calendar Showing Reminders (1 hour before)
+resource "google_cloud_scheduler_job" "calendar_showing_reminders_1h" {
+  name        = "calendar-showing-reminders-1h"
+  description = "Sends showing reminders 1 hour before scheduled time"
+  schedule    = "*/15 * * * *"  # Every 15 minutes
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 3
+    min_backoff_duration = "5s"
+    max_backoff_duration = "60s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/calendar/showing/reminders"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Send reminders for showings 60 minutes away
+    body = base64encode(jsonencode({
+      reminder_minutes = 60
+    }))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
+# 15. Calendar Showing Reminders (24 hours before)
+resource "google_cloud_scheduler_job" "calendar_showing_reminders_24h" {
+  name        = "calendar-showing-reminders-24h"
+  description = "Sends showing reminders 24 hours before scheduled time"
+  schedule    = "0 */4 * * *"  # Every 4 hours
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 3
+    min_backoff_duration = "5s"
+    max_backoff_duration = "60s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/calendar/showing/reminders"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Send reminders for showings 1440 minutes (24h) away
+    body = base64encode(jsonencode({
+      reminder_minutes = 1440
+    }))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
+# 16. Calendar Open House Reminders (1 hour before)
+resource "google_cloud_scheduler_job" "calendar_open_house_reminders_1h" {
+  name        = "calendar-open-house-reminders-1h"
+  description = "Sends open house reminders 1 hour before event"
+  schedule    = "*/15 * * * *"  # Every 15 minutes
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 3
+    min_backoff_duration = "5s"
+    max_backoff_duration = "60s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/calendar/open-house/reminders"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Send reminders for open houses 60 minutes away
+    body = base64encode(jsonencode({
+      reminder_minutes = 60
+    }))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
+# 17. Calendar Open House Reminders (24 hours before)
+resource "google_cloud_scheduler_job" "calendar_open_house_reminders_24h" {
+  name        = "calendar-open-house-reminders-24h"
+  description = "Sends open house reminders 24 hours before event"
+  schedule    = "0 */4 * * *"  # Every 4 hours
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 3
+    min_backoff_duration = "5s"
+    max_backoff_duration = "60s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/calendar/open-house/reminders"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Send reminders for open houses 1440 minutes (24h) away
+    body = base64encode(jsonencode({
+      reminder_minutes = 1440
+    }))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
 # Enable Cloud Scheduler API
 resource "google_project_service" "cloudscheduler" {
   project = var.project_id

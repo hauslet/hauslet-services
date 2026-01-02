@@ -44,7 +44,12 @@ type LeadService interface {
 
 // CreateLeadInput represents the input for creating a new lead
 type CreateLeadInput struct {
-	ListingID   uuid.UUID
+	ListingID uuid.UUID
+
+	// Hybrid Authentication (Optional)
+	UserID *uuid.UUID // If provided, will auto-fill from profile and mark as verified
+
+	// Contact Information (required if UserID is nil, optional if UserID provided)
 	Name        string
 	Email       string
 	PhoneNumber *string

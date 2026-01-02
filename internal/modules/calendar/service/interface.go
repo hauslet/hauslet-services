@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"hauslet/internal/modules/calendar/domain"
+	"hauslet/internal/modules/calendar/notification"
 	"hauslet/internal/modules/calendar/repository"
 	"hauslet/internal/platform/redis"
 	"log/slog"
@@ -47,6 +48,17 @@ type CalendarService interface {
 	RegisterAttendee(ctx context.Context, eventID uuid.UUID, attendee domain.Attendee) error
 	MarkAttendeePresence(ctx context.Context, eventID uuid.UUID, attendeeID uuid.UUID, attended bool) error
 
+	// --- Viewing Events (New) ---
+	RequestShowing(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time, details *domain.ShowingDetail, requestorID uuid.UUID) (*domain.CalendarEvent, error)
+	ConfirmShowing(ctx context.Context, eventID uuid.UUID, confirmerID uuid.UUID) error
+	CancelShowing(ctx context.Context, eventID uuid.UUID, cancelReason string, cancellerID uuid.UUID) error
+	RescheduleViewing(ctx context.Context, eventID uuid.UUID, newStartTime, newEndTime time.Time, reason string, requestorID uuid.UUID) (*domain.CalendarEvent, error)
+	RegisterOpenHouseAttendee(ctx context.Context, eventID uuid.UUID, attendee domain.Attendee) error
+	RemoveOpenHouseAttendee(ctx context.Context, eventID uuid.UUID, attendeeID uuid.UUID, removerID uuid.UUID) error
+
+	// --- Profile Integration ---
+	GetUserProfile(ctx context.Context, userID uuid.UUID) (*UserProfile, error)
+
 	// --- Calendar Configuration ---
 	InitializeCalendar(ctx context.Context, listingID uuid.UUID, config *domain.CalendarConfig) (*domain.CalendarConfig, error)
 	GetCalendarConfig(ctx context.Context, listingID uuid.UUID) (*domain.CalendarConfig, error)
@@ -79,6 +91,27 @@ type ListingHooks interface {
 
 	// MarkCalendarEnabled updates the has_calendar flag in the listing
 	MarkCalendarEnabled(ctx context.Context, listingID uuid.UUID, enabled bool) error
+
+	// GetShowingAvailability returns showing availability windows for rent/sale listings
+	GetShowingAvailability(ctx context.Context, listingID uuid.UUID) ([]ShowingAvailability, error)
+
+	// GetListingType returns the listing type (sale, rent, shortlet)
+	GetListingType(ctx context.Context, listingID uuid.UUID) (string, error)
+}
+
+// ProfileHooks interface for user profile integration
+type ProfileHooks interface {
+	// GetUserProfile returns profile data for a user
+	GetUserProfile(ctx context.Context, userID uuid.UUID) (*UserProfile, error)
+}
+
+// UserProfile represents minimal user profile data needed for calendar operations
+type UserProfile struct {
+	UserID       uuid.UUID
+	FullName     string
+	Email        string
+	Phone        *string
+	IsIDVerified bool
 }
 
 // ListingConstraints represents constraints from the listing/property
@@ -93,10 +126,20 @@ type ListingConstraints struct {
 	Timezone     string
 }
 
+// ShowingAvailability defines when viewings can be scheduled
+type ShowingAvailability struct {
+	DayOfWeek string // "monday", "tuesday", etc.
+	StartTime string // HH:MM format (24h)
+	EndTime   string // HH:MM format (24h)
+	Timezone  string // IANA timezone (e.g., "Africa/Lagos")
+}
+
 type CalendarServiceImpl struct {
 	repo         repository.CalendarRepository
 	cache        redis.RedisClient
 	listingHooks ListingHooks
+	profileHooks ProfileHooks
+	notifier     *notification.NotificationService
 	log          *slog.Logger
 }
 
@@ -104,12 +147,16 @@ func NewCalendarService(
 	repo repository.CalendarRepository,
 	cache redis.RedisClient,
 	listingHooks ListingHooks,
+	profileHooks ProfileHooks,
+	notifier *notification.NotificationService,
 	log *slog.Logger,
 ) CalendarService {
 	return &CalendarServiceImpl{
 		repo:         repo,
 		cache:        cache,
 		listingHooks: listingHooks,
+		profileHooks: profileHooks,
+		notifier:     notifier,
 		log:          log,
 	}
 }

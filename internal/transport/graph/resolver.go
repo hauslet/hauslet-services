@@ -8,6 +8,8 @@ import (
 	bookingservice "hauslet/internal/modules/booking/service"
 	businessgraphql "hauslet/internal/modules/business/port/graphql"
 	businessservice "hauslet/internal/modules/business/service"
+	calendargraphql "hauslet/internal/modules/calendar/port/graphql"
+	calendarservice "hauslet/internal/modules/calendar/service"
 	financegraphql "hauslet/internal/modules/finance/port/graphql"
 	financeservice "hauslet/internal/modules/finance/service"
 	leadsgraphql "hauslet/internal/modules/leads/port/graphql"
@@ -38,6 +40,7 @@ type Resolver struct {
 	PaymentsResolver  *paymentsgraphql.Resolver
 	FinanceResolver   *financegraphql.Resolver
 	BookingResolver   *bookinggraphql.Resolver
+	CalendarResolver  *calendargraphql.Resolver
 	WishlistResolver  *wishlistgraphql.Resolver
 	ReviewResolver    *reviewgraphql.Resolver
 	PromotionResolver *promotiongraphql.Resolver
@@ -53,6 +56,7 @@ func NewResolver(
 	financeSvc financeservice.FinanceService,
 	payoutSvc financeservice.PayoutService,
 	bookingSvc bookingservice.BookingService,
+	calendarSvc calendarservice.CalendarService,
 	wishlistSvc wishlistservice.WishlistService,
 	reviewSvc reviewservice.ReviewService,
 	promotionSvc promotionservice.PromotionService,
@@ -72,6 +76,7 @@ func NewResolver(
 		PaymentsResolver:  paymentsgraphql.NewResolver(paymentsSvc, log),
 		FinanceResolver:   financegraphql.NewResolver(financeSvc, payoutSvc, log),
 		BookingResolver:   bookinggraphql.NewResolver(bookingSvc, fxClient, log),
+		CalendarResolver:  calendargraphql.NewResolver(calendarSvc, log),
 		WishlistResolver:  wishlistgraphql.NewResolver(wishlistSvc, log),
 		ReviewResolver:    reviewgraphql.NewResolver(reviewSvc, log),
 		PromotionResolver: promotiongraphql.NewResolver(promotionSvc, subscriptionSvc, usageSvc, &appCfg.YAML.Promotion, log),
