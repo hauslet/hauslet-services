@@ -845,7 +845,20 @@ func (r *paymentMethodResolver) AccountNumberLast4(ctx context.Context, obj *dom
 
 // PlatformFees is the resolver for the platformFees field.
 func (r *priceBreakdownSnapshotResolver) PlatformFees(ctx context.Context, obj *domain5.PriceBreakdownSnapshot) (*model.PlatformFeeBreakdown, error) {
-	panic(fmt.Errorf("not implemented: PlatformFees - platformFees"))
+	if obj == nil || obj.PlatformFees == nil {
+		return nil, nil
+	}
+
+	return &model.PlatformFeeBreakdown{
+		GuestFeePercent:         obj.PlatformFees.GuestFeePercent,
+		GuestFeeAmount:          obj.PlatformFees.GuestFeeAmount,
+		HostCommissionPercent:   obj.PlatformFees.HostCommissionPercent,
+		HostCommissionAmount:    obj.PlatformFees.HostCommissionAmount,
+		PayoutProcessingPercent: obj.PlatformFees.PayoutProcessingPercent,
+		PayoutProcessingAmount:  obj.PlatformFees.PayoutProcessingAmount,
+		MinimumGuestFeeApplied:  obj.PlatformFees.MinimumGuestFeeApplied,
+		HostNetAmount:           obj.PlatformFees.HostNetAmount,
+	}, nil
 }
 
 // Gender is the resolver for the gender field.
