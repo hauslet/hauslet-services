@@ -15,6 +15,7 @@ schema:
   - internal/modules/review/port/graphql/*.graphqls
   - internal/modules/promotions/port/graphql/*.graphqls
   - internal/modules/leads/port/graphql/*.graphqls
+  - internal/modules/interactions/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
 exec:

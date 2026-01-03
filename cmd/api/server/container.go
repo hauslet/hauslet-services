@@ -55,6 +55,8 @@ import (
 	reviewservice "hauslet/internal/modules/review/service"
 	wishlistrepository "hauslet/internal/modules/wishlist/repository"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
+	interactionsrepository "hauslet/internal/modules/interactions/repository"
+	interactionsservice "hauslet/internal/modules/interactions/service"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/payment"
@@ -110,11 +112,13 @@ type Container struct {
 	WishlistSvc     wishlistservice.WishlistService
 	ReviewSvc       reviewservice.ReviewService
 	ModerationSvc   moderationservice.ModerationService
-	PromotionSvc    promotionservice.PromotionService
-	SubscriptionSvc promotionservice.SubscriptionService
-	UsageSvc        promotionservice.UsageService
-	LeadSvc         leadsservice.LeadService
-	SupplyGate      authorization.SupplyGate
+	PromotionSvc      promotionservice.PromotionService
+	SubscriptionSvc   promotionservice.SubscriptionService
+	UsageSvc          promotionservice.UsageService
+	LeadSvc           leadsservice.LeadService
+	InteractionTracker interactionsservice.TrackerService
+	InteractionReader  interactionsservice.ReaderService
+	SupplyGate        authorization.SupplyGate
 
 	// HTTP Handlers
 	AuthHTTP           *authhttp.HTTPHandler
@@ -206,6 +210,10 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 
 	if err := c.initAuth(); err != nil {
 		return nil, fmt.Errorf("failed to initialize auth: %w", err)
+	}
+
+	if err := c.initInteractions(); err != nil {
+		return nil, fmt.Errorf("failed to initialize interactions: %w", err)
 	}
 
 	if err := c.initHTTPHandlers(ctx); err != nil {
@@ -696,6 +704,27 @@ func (c *Container) initAuth() error {
 		c.Queue,
 		emailSubject,
 		authProfileAdapter,
+	)
+
+	return nil
+}
+
+// initInteractions initializes the interactions tracking and analytics services
+func (c *Container) initInteractions() error {
+	interactionRepo := interactionsrepository.NewInteractionRepository(c.DB)
+	analyticsRepo := interactionsrepository.NewAnalyticsRepository(c.DB)
+	botDetector := interactionsservice.NewBotDetector()
+
+	c.InteractionTracker = interactionsservice.NewTrackerService(
+		*c.Redis,
+		botDetector,
+		c.Logger,
+	)
+
+	c.InteractionReader = interactionsservice.NewReaderService(
+		interactionRepo,
+		analyticsRepo,
+		c.Logger,
 	)
 
 	return nil

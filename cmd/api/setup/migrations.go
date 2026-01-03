@@ -6,6 +6,7 @@ import (
 	businessSchema "hauslet/internal/modules/business/repository/schema"
 	calendarSchema "hauslet/internal/modules/calendar/repository/schema"
 	financeSchema "hauslet/internal/modules/finance/repository/schema"
+	interactionsSchema "hauslet/internal/modules/interactions/repository/schema"
 	moderationSchema "hauslet/internal/modules/moderation/repository/schema"
 	paymentsSchema "hauslet/internal/modules/payments/repository/schema"
 	pricingSchema "hauslet/internal/modules/pricing/repository/schema"
@@ -59,6 +60,8 @@ func RunMigrations(db *gorm.DB, log *slog.Logger) error {
 		&promotionsSchema.ListingPromotion{},
 		&promotionsSchema.AgentSubscription{},
 		&promotionsSchema.UsageTracking{},
+		&interactionsSchema.Interaction{},
+		&interactionsSchema.InteractionAggregate{},
 	); err != nil {
 		return err
 	}

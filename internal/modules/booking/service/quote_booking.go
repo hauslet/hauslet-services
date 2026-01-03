@@ -40,8 +40,8 @@ func (s *BookingServiceImpl) QuoteBooking(
 
 	quote := &domain.BookingQuote{
 		ListingID:    listingID,
-		CheckIn:      checkIn,
-		CheckOut:     checkOut,
+		CheckIn:      scheduledCheckIn,
+		CheckOut:     scheduledCheckOut,
 		GuestCount:   guestCount,
 		Currency:     constraints.Currency,
 		MinNights:    constraints.MinNights,
@@ -89,9 +89,9 @@ func (s *BookingServiceImpl) QuoteBooking(
 		quote.ResponseWindowHours = responseWindow.Hours()
 	}
 
-	// Calculate pricing
+	// Calculate pricing using scheduled times to ensure consistency with listing's check-in/out times
 	if s.pricing != nil {
-		priceBreakdown, err := s.pricing.CalculatePrice(ctx, listingID, checkIn, checkOut, guestCount)
+		priceBreakdown, err := s.pricing.CalculatePrice(ctx, listingID, scheduledCheckIn, scheduledCheckOut, guestCount)
 		if err != nil {
 			// Fallback to base price if pricing calculation fails
 			if s.log != nil {
@@ -99,7 +99,10 @@ func (s *BookingServiceImpl) QuoteBooking(
 			}
 			baseRate, baseCurrency, baseErr := s.pricing.GetBasePrice(ctx, listingID)
 			if baseErr == nil {
-				nights := int(checkOut.Sub(checkIn).Hours() / 24)
+				// Calculate nights using scheduled times normalized to dates
+				checkInDate := time.Date(scheduledCheckIn.Year(), scheduledCheckIn.Month(), scheduledCheckIn.Day(), 0, 0, 0, 0, scheduledCheckIn.Location())
+				checkOutDate := time.Date(scheduledCheckOut.Year(), scheduledCheckOut.Month(), scheduledCheckOut.Day(), 0, 0, 0, 0, scheduledCheckOut.Location())
+				nights := int(checkOutDate.Sub(checkInDate).Hours() / 24)
 				quote.TotalPrice = baseRate * float64(nights)
 				quote.Currency = baseCurrency
 			}

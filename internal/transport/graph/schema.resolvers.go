@@ -822,6 +822,11 @@ func (r *mutationResolver) DeleteLead(ctx context.Context, leadID string) (bool,
 	panic(fmt.Errorf("not implemented: DeleteLead - deleteLead"))
 }
 
+// TrackInteraction is the resolver for the trackInteraction field.
+func (r *mutationResolver) TrackInteraction(ctx context.Context, input model.TrackInteractionInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: TrackInteraction - trackInteraction"))
+}
+
 // Currency is the resolver for the currency field.
 func (r *paymentResolver) Currency(ctx context.Context, obj *domain6.Payment) (string, error) {
 	return string(obj.Currency), nil
@@ -1554,6 +1559,16 @@ func (r *queryResolver) MyLeads(ctx context.Context, filter *model.LeadFilterInp
 // LeadHistory is the resolver for the leadHistory field.
 func (r *queryResolver) LeadHistory(ctx context.Context, leadID string) ([]*domain10.LeadEvent, error) {
 	panic(fmt.Errorf("not implemented: LeadHistory - leadHistory"))
+}
+
+// ListingAnalytics is the resolver for the listingAnalytics field.
+func (r *queryResolver) ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*model.ListingAnalytics, error) {
+	panic(fmt.Errorf("not implemented: ListingAnalytics - listingAnalytics"))
+}
+
+// MyInteractionHistory is the resolver for the myInteractionHistory field.
+func (r *queryResolver) MyInteractionHistory(ctx context.Context, limit *int) ([]*model.Interaction, error) {
+	panic(fmt.Errorf("not implemented: MyInteractionHistory - myInteractionHistory"))
 }
 
 // OneStar is the resolver for the oneStar field.

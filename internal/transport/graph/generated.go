@@ -130,6 +130,12 @@ type ComplexityRoot struct {
 		Title   func(childComplexity int) int
 	}
 
+	AnalyticsPeriod struct {
+		Days      func(childComplexity int) int
+		EndDate   func(childComplexity int) int
+		StartDate func(childComplexity int) int
+	}
+
 	Attendee struct {
 		Email             func(childComplexity int) int
 		ID                func(childComplexity int) int
@@ -425,6 +431,18 @@ type ComplexityRoot struct {
 		UpdatedAt          func(childComplexity int) int
 	}
 
+	Interaction struct {
+		Context    func(childComplexity int) int
+		CreatedAt  func(childComplexity int) int
+		EntityID   func(childComplexity int) int
+		EntityType func(childComplexity int) int
+		ID         func(childComplexity int) int
+		IsBot      func(childComplexity int) int
+		SessionID  func(childComplexity int) int
+		Type       func(childComplexity int) int
+		UserID     func(childComplexity int) int
+	}
+
 	Lead struct {
 		AssignedAt      func(childComplexity int) int
 		AssignedTo      func(childComplexity int) int
@@ -512,6 +530,26 @@ type ComplexityRoot struct {
 		UpdatedAt          func(childComplexity int) int
 		UpdatedBy          func(childComplexity int) int
 		ViewCount          func(childComplexity int) int
+	}
+
+	ListingAnalytics struct {
+		AvgTimeOnPage   func(childComplexity int) int
+		BookingRequests func(childComplexity int) int
+		ConversionRate  func(childComplexity int) int
+		EngagementRate  func(childComplexity int) int
+		EngagementTrend func(childComplexity int) int
+		ListingID       func(childComplexity int) int
+		MapViews        func(childComplexity int) int
+		MediaViews      func(childComplexity int) int
+		NetSaves        func(childComplexity int) int
+		Period          func(childComplexity int) int
+		SavesTrend      func(childComplexity int) int
+		TotalContacts   func(childComplexity int) int
+		TotalSaves      func(childComplexity int) int
+		TotalShares     func(childComplexity int) int
+		TotalViews      func(childComplexity int) int
+		UniqueViews     func(childComplexity int) int
+		ViewsTrend      func(childComplexity int) int
 	}
 
 	ListingCompleteness struct {
@@ -689,6 +727,7 @@ type ComplexityRoot struct {
 		SavePaymentMethod       func(childComplexity int, input graphql1.SavePaymentMethodInput) int
 		SelectSupplyRoles       func(childComplexity int, userTypes []domain5.UserType) int
 		SetDefaultPaymentMethod func(childComplexity int, id uuid.UUID) int
+		TrackInteraction        func(childComplexity int, input model.TrackInteractionInput) int
 		UnhideReview            func(childComplexity int, reviewID uuid.UUID) int
 		UnpublishListing        func(childComplexity int, id uuid.UUID) int
 		UpdateBusiness          func(childComplexity int, id uuid.UUID, input model.UpdateBusinessInput) int
@@ -922,6 +961,7 @@ type ComplexityRoot struct {
 		LeadsByListing               func(childComplexity int, listingID string, filter *model.LeadFilterInput, page *model.PageInput) int
 		ListMyPromotions             func(childComplexity int, limit *int, offset *int) int
 		Listing                      func(childComplexity int, id uuid.UUID) int
+		ListingAnalytics             func(childComplexity int, listingID uuid.UUID, days int) int
 		ListingBookings              func(childComplexity int, listingID uuid.UUID, status *domain7.BookingStatus, limit *int, offset *int) int
 		ListingByPublicID            func(childComplexity int, publicID string) int
 		ListingBySlug                func(childComplexity int, slug string) int
@@ -938,6 +978,7 @@ type ComplexityRoot struct {
 		MyDisputes                   func(childComplexity int, limit *int, offset *int) int
 		MyEarnings                   func(childComplexity int) int
 		MyIndividualListings         func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
+		MyInteractionHistory         func(childComplexity int, limit *int) int
 		MyInvitations                func(childComplexity int, email string) int
 		MyLeads                      func(childComplexity int, filter *model.LeadFilterInput, page *model.PageInput) int
 		MyListings                   func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
@@ -1424,6 +1465,7 @@ type MutationResolver interface {
 	AssignLead(ctx context.Context, leadID string, assigneeID string, reason domain2.AssignmentReason) (*domain2.Lead, error)
 	MarkLeadAsSpam(ctx context.Context, leadID string) (bool, error)
 	DeleteLead(ctx context.Context, leadID string) (bool, error)
+	TrackInteraction(ctx context.Context, input model.TrackInteractionInput) (bool, error)
 }
 type PaymentResolver interface {
 	Currency(ctx context.Context, obj *domain9.Payment) (string, error)
@@ -1542,6 +1584,8 @@ type QueryResolver interface {
 	LeadsByBusiness(ctx context.Context, businessID string, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error)
 	MyLeads(ctx context.Context, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error)
 	LeadHistory(ctx context.Context, leadID string) ([]*domain2.LeadEvent, error)
+	ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*model.ListingAnalytics, error)
+	MyInteractionHistory(ctx context.Context, limit *int) ([]*model.Interaction, error)
 }
 type RatingDistributionResolver interface {
 	OneStar(ctx context.Context, obj *domain4.RatingDistribution) (int, error)
@@ -1770,6 +1814,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AmenityHighlight.Title(childComplexity), true
+
+	case "AnalyticsPeriod.days":
+		if e.complexity.AnalyticsPeriod.Days == nil {
+			break
+		}
+
+		return e.complexity.AnalyticsPeriod.Days(childComplexity), true
+	case "AnalyticsPeriod.endDate":
+		if e.complexity.AnalyticsPeriod.EndDate == nil {
+			break
+		}
+
+		return e.complexity.AnalyticsPeriod.EndDate(childComplexity), true
+	case "AnalyticsPeriod.startDate":
+		if e.complexity.AnalyticsPeriod.StartDate == nil {
+			break
+		}
+
+		return e.complexity.AnalyticsPeriod.StartDate(childComplexity), true
 
 	case "Attendee.email":
 		if e.complexity.Attendee.Email == nil {
@@ -3150,6 +3213,61 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.HostStats.UpdatedAt(childComplexity), true
 
+	case "Interaction.context":
+		if e.complexity.Interaction.Context == nil {
+			break
+		}
+
+		return e.complexity.Interaction.Context(childComplexity), true
+	case "Interaction.createdAt":
+		if e.complexity.Interaction.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Interaction.CreatedAt(childComplexity), true
+	case "Interaction.entityId":
+		if e.complexity.Interaction.EntityID == nil {
+			break
+		}
+
+		return e.complexity.Interaction.EntityID(childComplexity), true
+	case "Interaction.entityType":
+		if e.complexity.Interaction.EntityType == nil {
+			break
+		}
+
+		return e.complexity.Interaction.EntityType(childComplexity), true
+	case "Interaction.id":
+		if e.complexity.Interaction.ID == nil {
+			break
+		}
+
+		return e.complexity.Interaction.ID(childComplexity), true
+	case "Interaction.isBot":
+		if e.complexity.Interaction.IsBot == nil {
+			break
+		}
+
+		return e.complexity.Interaction.IsBot(childComplexity), true
+	case "Interaction.sessionId":
+		if e.complexity.Interaction.SessionID == nil {
+			break
+		}
+
+		return e.complexity.Interaction.SessionID(childComplexity), true
+	case "Interaction.type":
+		if e.complexity.Interaction.Type == nil {
+			break
+		}
+
+		return e.complexity.Interaction.Type(childComplexity), true
+	case "Interaction.userId":
+		if e.complexity.Interaction.UserID == nil {
+			break
+		}
+
+		return e.complexity.Interaction.UserID(childComplexity), true
+
 	case "Lead.assignedAt":
 		if e.complexity.Lead.AssignedAt == nil {
 			break
@@ -3603,6 +3721,109 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Listing.ViewCount(childComplexity), true
+
+	case "ListingAnalytics.avgTimeOnPage":
+		if e.complexity.ListingAnalytics.AvgTimeOnPage == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.AvgTimeOnPage(childComplexity), true
+	case "ListingAnalytics.bookingRequests":
+		if e.complexity.ListingAnalytics.BookingRequests == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.BookingRequests(childComplexity), true
+	case "ListingAnalytics.conversionRate":
+		if e.complexity.ListingAnalytics.ConversionRate == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.ConversionRate(childComplexity), true
+	case "ListingAnalytics.engagementRate":
+		if e.complexity.ListingAnalytics.EngagementRate == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.EngagementRate(childComplexity), true
+	case "ListingAnalytics.engagementTrend":
+		if e.complexity.ListingAnalytics.EngagementTrend == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.EngagementTrend(childComplexity), true
+	case "ListingAnalytics.listingId":
+		if e.complexity.ListingAnalytics.ListingID == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.ListingID(childComplexity), true
+	case "ListingAnalytics.mapViews":
+		if e.complexity.ListingAnalytics.MapViews == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.MapViews(childComplexity), true
+	case "ListingAnalytics.mediaViews":
+		if e.complexity.ListingAnalytics.MediaViews == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.MediaViews(childComplexity), true
+	case "ListingAnalytics.netSaves":
+		if e.complexity.ListingAnalytics.NetSaves == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.NetSaves(childComplexity), true
+	case "ListingAnalytics.period":
+		if e.complexity.ListingAnalytics.Period == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.Period(childComplexity), true
+	case "ListingAnalytics.savesTrend":
+		if e.complexity.ListingAnalytics.SavesTrend == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.SavesTrend(childComplexity), true
+	case "ListingAnalytics.totalContacts":
+		if e.complexity.ListingAnalytics.TotalContacts == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.TotalContacts(childComplexity), true
+	case "ListingAnalytics.totalSaves":
+		if e.complexity.ListingAnalytics.TotalSaves == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.TotalSaves(childComplexity), true
+	case "ListingAnalytics.totalShares":
+		if e.complexity.ListingAnalytics.TotalShares == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.TotalShares(childComplexity), true
+	case "ListingAnalytics.totalViews":
+		if e.complexity.ListingAnalytics.TotalViews == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.TotalViews(childComplexity), true
+	case "ListingAnalytics.uniqueViews":
+		if e.complexity.ListingAnalytics.UniqueViews == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.UniqueViews(childComplexity), true
+	case "ListingAnalytics.viewsTrend":
+		if e.complexity.ListingAnalytics.ViewsTrend == nil {
+			break
+		}
+
+		return e.complexity.ListingAnalytics.ViewsTrend(childComplexity), true
 
 	case "ListingCompleteness.completionScore":
 		if e.complexity.ListingCompleteness.CompletionScore == nil {
@@ -4798,6 +5019,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SetDefaultPaymentMethod(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.trackInteraction":
+		if e.complexity.Mutation.TrackInteraction == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_trackInteraction_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.TrackInteraction(childComplexity, args["input"].(model.TrackInteractionInput)), true
 	case "Mutation.unhideReview":
 		if e.complexity.Mutation.UnhideReview == nil {
 			break
@@ -6254,6 +6486,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Listing(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.listingAnalytics":
+		if e.complexity.Query.ListingAnalytics == nil {
+			break
+		}
+
+		args, err := ec.field_Query_listingAnalytics_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ListingAnalytics(childComplexity, args["listingId"].(uuid.UUID), args["days"].(int)), true
 	case "Query.listingBookings":
 		if e.complexity.Query.ListingBookings == nil {
 			break
@@ -6420,6 +6663,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyIndividualListings(childComplexity, args["filter"].(*model.ListingFilterInput), args["first"].(*int), args["after"].(*string)), true
+	case "Query.myInteractionHistory":
+		if e.complexity.Query.MyInteractionHistory == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myInteractionHistory_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyInteractionHistory(childComplexity, args["limit"].(*int)), true
 	case "Query.myInvitations":
 		if e.complexity.Query.MyInvitations == nil {
 			break
@@ -8149,6 +8403,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputServiceChargeInput,
 		ec.unmarshalInputShortletDetailInput,
 		ec.unmarshalInputShortletFilterInput,
+		ec.unmarshalInputTrackInteractionInput,
 		ec.unmarshalInputTravelCompanionInput,
 		ec.unmarshalInputUpdateBusinessInput,
 		ec.unmarshalInputUpdateListingInput,
@@ -11108,6 +11363,129 @@ enum AssignmentReason {
   ESCALATE
 }
 `, BuiltIn: false},
+	{Name: "../../modules/interactions/port/graphql/schema.graphqls", Input: `# Interactions Module GraphQL Schema
+
+extend type Mutation {
+  """
+  Fire-and-forget tracking. Returns true immediately if queued successfully.
+  Client should throttle events (max 1 per second for scroll events).
+  """
+  trackInteraction(input: TrackInteractionInput!): Boolean!
+}
+
+extend type Query {
+  """
+  For Landlords: Shows performance analytics for their listing.
+  """
+  listingAnalytics(listingId: UUID!, days: Int!): ListingAnalytics!
+
+  """
+  For Users: Recently viewed properties
+  """
+  myInteractionHistory(limit: Int): [Interaction!]!
+}
+
+# Inputs
+
+input TrackInteractionInput {
+  type: InteractionType!
+  entityType: EntityType!
+  entityId: UUID
+  context: Map      # Source, position in list, query, etc.
+
+  # Metadata
+  deviceType: DeviceType
+  platform: Platform
+  referrer: String
+}
+
+# Enums
+
+enum InteractionType {
+  VIEW_LISTING
+  VIEW_LISTING_DETAIL
+  VIEW_MEDIA
+  VIEW_MAP
+  SAVE_LISTING
+  UNSAVE_LISTING
+  SHARE_LISTING
+  CONTACT_OWNER
+  REQUEST_VIEWING
+  BOOKING_REQUEST
+  SEARCH
+  FILTER_APPLY
+  SCROLL_DEEP
+  TIME_MILESTONE
+}
+
+enum EntityType {
+  LISTING
+  SEARCH
+  PROFILE
+}
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  UNKNOWN
+}
+
+enum Platform {
+  WEB
+  IOS
+  ANDROID
+  UNKNOWN
+}
+
+# Types
+
+type Interaction {
+  id: UUID!
+  userId: UUID
+  sessionId: String!
+  type: InteractionType!
+  entityType: EntityType!
+  entityId: UUID
+  context: Map
+  isBot: Boolean!
+  createdAt: Time!
+}
+
+type ListingAnalytics {
+  listingId: UUID!
+  period: AnalyticsPeriod!
+
+  # View Metrics
+  totalViews: Int!
+  uniqueViews: Int!
+  mediaViews: Int!
+  mapViews: Int!
+
+  # Engagement Metrics
+  totalSaves: Int!
+  netSaves: Int!
+  totalShares: Int!
+  totalContacts: Int!
+  bookingRequests: Int!
+
+  # Calculated Metrics
+  conversionRate: Float!
+  engagementRate: Float!
+  avgTimeOnPage: Int!
+
+  # Trends (% change from previous period)
+  viewsTrend: Float!
+  savesTrend: Float!
+  engagementTrend: Float!
+}
+
+type AnalyticsPeriod {
+  startDate: Time!
+  endDate: Time!
+  days: Int!
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -11925,6 +12303,17 @@ func (ec *executionContext) field_Mutation_setDefaultPaymentMethod_args(ctx cont
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_trackInteraction_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNTrackInteractionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTrackInteractionInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_unhideReview_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -12624,6 +13013,22 @@ func (ec *executionContext) field_Query_listMyPromotions_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_listingAnalytics_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "listingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["listingId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "days", ec.unmarshalNInt2int)
+	if err != nil {
+		return nil, err
+	}
+	args["days"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_listingBookings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -12881,6 +13286,17 @@ func (ec *executionContext) field_Query_myIndividualListings_args(ctx context.Co
 		return nil, err
 	}
 	args["after"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_myInteractionHistory_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
 	return args, nil
 }
 
@@ -14124,6 +14540,93 @@ func (ec *executionContext) fieldContext_AmenityHighlight_icon(_ context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AnalyticsPeriod_startDate(ctx context.Context, field graphql.CollectedField, obj *model.AnalyticsPeriod) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AnalyticsPeriod_startDate,
+		func(ctx context.Context) (any, error) {
+			return obj.StartDate, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AnalyticsPeriod_startDate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AnalyticsPeriod",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AnalyticsPeriod_endDate(ctx context.Context, field graphql.CollectedField, obj *model.AnalyticsPeriod) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AnalyticsPeriod_endDate,
+		func(ctx context.Context) (any, error) {
+			return obj.EndDate, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AnalyticsPeriod_endDate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AnalyticsPeriod",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AnalyticsPeriod_days(ctx context.Context, field graphql.CollectedField, obj *model.AnalyticsPeriod) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AnalyticsPeriod_days,
+		func(ctx context.Context) (any, error) {
+			return obj.Days, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AnalyticsPeriod_days(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AnalyticsPeriod",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -21037,6 +21540,267 @@ func (ec *executionContext) fieldContext_HostStats_updatedAt(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _Interaction_id(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Interaction_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Interaction_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Interaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Interaction_userId(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Interaction_userId,
+		func(ctx context.Context) (any, error) {
+			return obj.UserID, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Interaction_userId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Interaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Interaction_sessionId(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Interaction_sessionId,
+		func(ctx context.Context) (any, error) {
+			return obj.SessionID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Interaction_sessionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Interaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Interaction_type(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Interaction_type,
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		ec.marshalNInteractionType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Interaction_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Interaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type InteractionType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Interaction_entityType(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Interaction_entityType,
+		func(ctx context.Context) (any, error) {
+			return obj.EntityType, nil
+		},
+		nil,
+		ec.marshalNEntityType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐEntityType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Interaction_entityType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Interaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type EntityType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Interaction_entityId(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Interaction_entityId,
+		func(ctx context.Context) (any, error) {
+			return obj.EntityID, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Interaction_entityId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Interaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Interaction_context(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Interaction_context,
+		func(ctx context.Context) (any, error) {
+			return obj.Context, nil
+		},
+		nil,
+		ec.marshalOMap2map,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Interaction_context(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Interaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Map does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Interaction_isBot(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Interaction_isBot,
+		func(ctx context.Context) (any, error) {
+			return obj.IsBot, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Interaction_isBot(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Interaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Interaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Interaction_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Interaction_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Interaction",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Lead_id(ctx context.Context, field graphql.CollectedField, obj *domain2.Lead) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -23503,6 +24267,507 @@ func (ec *executionContext) fieldContext_Listing_deletedAt(_ context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_listingId(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_listingId,
+		func(ctx context.Context) (any, error) {
+			return obj.ListingID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_listingId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_period(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_period,
+		func(ctx context.Context) (any, error) {
+			return obj.Period, nil
+		},
+		nil,
+		ec.marshalNAnalyticsPeriod2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAnalyticsPeriod,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_period(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "startDate":
+				return ec.fieldContext_AnalyticsPeriod_startDate(ctx, field)
+			case "endDate":
+				return ec.fieldContext_AnalyticsPeriod_endDate(ctx, field)
+			case "days":
+				return ec.fieldContext_AnalyticsPeriod_days(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AnalyticsPeriod", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_totalViews(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_totalViews,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalViews, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_totalViews(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_uniqueViews(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_uniqueViews,
+		func(ctx context.Context) (any, error) {
+			return obj.UniqueViews, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_uniqueViews(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_mediaViews(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_mediaViews,
+		func(ctx context.Context) (any, error) {
+			return obj.MediaViews, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_mediaViews(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_mapViews(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_mapViews,
+		func(ctx context.Context) (any, error) {
+			return obj.MapViews, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_mapViews(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_totalSaves(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_totalSaves,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalSaves, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_totalSaves(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_netSaves(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_netSaves,
+		func(ctx context.Context) (any, error) {
+			return obj.NetSaves, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_netSaves(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_totalShares(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_totalShares,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalShares, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_totalShares(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_totalContacts(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_totalContacts,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalContacts, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_totalContacts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_bookingRequests(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_bookingRequests,
+		func(ctx context.Context) (any, error) {
+			return obj.BookingRequests, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_bookingRequests(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_conversionRate(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_conversionRate,
+		func(ctx context.Context) (any, error) {
+			return obj.ConversionRate, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_conversionRate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_engagementRate(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_engagementRate,
+		func(ctx context.Context) (any, error) {
+			return obj.EngagementRate, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_engagementRate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_avgTimeOnPage(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_avgTimeOnPage,
+		func(ctx context.Context) (any, error) {
+			return obj.AvgTimeOnPage, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_avgTimeOnPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_viewsTrend(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_viewsTrend,
+		func(ctx context.Context) (any, error) {
+			return obj.ViewsTrend, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_viewsTrend(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_savesTrend(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_savesTrend,
+		func(ctx context.Context) (any, error) {
+			return obj.SavesTrend, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_savesTrend(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListingAnalytics_engagementTrend(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListingAnalytics_engagementTrend,
+		func(ctx context.Context) (any, error) {
+			return obj.EngagementTrend, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListingAnalytics_engagementTrend(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListingAnalytics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
 		},
 	}
 	return fc, nil
@@ -31511,6 +32776,47 @@ func (ec *executionContext) fieldContext_Mutation_deleteLead(ctx context.Context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteLead_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_trackInteraction(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_trackInteraction,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().TrackInteraction(ctx, fc.Args["input"].(model.TrackInteractionInput))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_trackInteraction(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_trackInteraction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -42333,6 +43639,144 @@ func (ec *executionContext) fieldContext_Query_leadHistory(ctx context.Context, 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_leadHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_listingAnalytics(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_listingAnalytics,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().ListingAnalytics(ctx, fc.Args["listingId"].(uuid.UUID), fc.Args["days"].(int))
+		},
+		nil,
+		ec.marshalNListingAnalytics2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingAnalytics,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_listingAnalytics(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "listingId":
+				return ec.fieldContext_ListingAnalytics_listingId(ctx, field)
+			case "period":
+				return ec.fieldContext_ListingAnalytics_period(ctx, field)
+			case "totalViews":
+				return ec.fieldContext_ListingAnalytics_totalViews(ctx, field)
+			case "uniqueViews":
+				return ec.fieldContext_ListingAnalytics_uniqueViews(ctx, field)
+			case "mediaViews":
+				return ec.fieldContext_ListingAnalytics_mediaViews(ctx, field)
+			case "mapViews":
+				return ec.fieldContext_ListingAnalytics_mapViews(ctx, field)
+			case "totalSaves":
+				return ec.fieldContext_ListingAnalytics_totalSaves(ctx, field)
+			case "netSaves":
+				return ec.fieldContext_ListingAnalytics_netSaves(ctx, field)
+			case "totalShares":
+				return ec.fieldContext_ListingAnalytics_totalShares(ctx, field)
+			case "totalContacts":
+				return ec.fieldContext_ListingAnalytics_totalContacts(ctx, field)
+			case "bookingRequests":
+				return ec.fieldContext_ListingAnalytics_bookingRequests(ctx, field)
+			case "conversionRate":
+				return ec.fieldContext_ListingAnalytics_conversionRate(ctx, field)
+			case "engagementRate":
+				return ec.fieldContext_ListingAnalytics_engagementRate(ctx, field)
+			case "avgTimeOnPage":
+				return ec.fieldContext_ListingAnalytics_avgTimeOnPage(ctx, field)
+			case "viewsTrend":
+				return ec.fieldContext_ListingAnalytics_viewsTrend(ctx, field)
+			case "savesTrend":
+				return ec.fieldContext_ListingAnalytics_savesTrend(ctx, field)
+			case "engagementTrend":
+				return ec.fieldContext_ListingAnalytics_engagementTrend(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ListingAnalytics", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_listingAnalytics_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myInteractionHistory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myInteractionHistory,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyInteractionHistory(ctx, fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalNInteraction2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myInteractionHistory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Interaction_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_Interaction_userId(ctx, field)
+			case "sessionId":
+				return ec.fieldContext_Interaction_sessionId(ctx, field)
+			case "type":
+				return ec.fieldContext_Interaction_type(ctx, field)
+			case "entityType":
+				return ec.fieldContext_Interaction_entityType(ctx, field)
+			case "entityId":
+				return ec.fieldContext_Interaction_entityId(ctx, field)
+			case "context":
+				return ec.fieldContext_Interaction_context(ctx, field)
+			case "isBot":
+				return ec.fieldContext_Interaction_isBot(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Interaction_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Interaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myInteractionHistory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -53209,6 +54653,75 @@ func (ec *executionContext) unmarshalInputShortletFilterInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputTrackInteractionInput(ctx context.Context, obj any) (model.TrackInteractionInput, error) {
+	var it model.TrackInteractionInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"type", "entityType", "entityId", "context", "deviceType", "platform", "referrer"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			data, err := ec.unmarshalNInteractionType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Type = data
+		case "entityType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
+			data, err := ec.unmarshalNEntityType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐEntityType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EntityType = data
+		case "entityId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("entityId"))
+			data, err := ec.unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EntityID = data
+		case "context":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("context"))
+			data, err := ec.unmarshalOMap2map(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Context = data
+		case "deviceType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deviceType"))
+			data, err := ec.unmarshalODeviceType2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDeviceType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DeviceType = data
+		case "platform":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("platform"))
+			data, err := ec.unmarshalOPlatform2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPlatform(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Platform = data
+		case "referrer":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("referrer"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Referrer = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputTravelCompanionInput(ctx context.Context, obj any) (model.TravelCompanionInput, error) {
 	var it model.TravelCompanionInput
 	asMap := map[string]any{}
@@ -54671,6 +56184,55 @@ func (ec *executionContext) _AmenityHighlight(ctx context.Context, sel ast.Selec
 			}
 		case "icon":
 			out.Values[i] = ec._AmenityHighlight_icon(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var analyticsPeriodImplementors = []string{"AnalyticsPeriod"}
+
+func (ec *executionContext) _AnalyticsPeriod(ctx context.Context, sel ast.SelectionSet, obj *model.AnalyticsPeriod) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, analyticsPeriodImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AnalyticsPeriod")
+		case "startDate":
+			out.Values[i] = ec._AnalyticsPeriod_startDate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endDate":
+			out.Values[i] = ec._AnalyticsPeriod_endDate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "days":
+			out.Values[i] = ec._AnalyticsPeriod_days(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -56775,6 +58337,76 @@ func (ec *executionContext) _HostStats(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var interactionImplementors = []string{"Interaction"}
+
+func (ec *executionContext) _Interaction(ctx context.Context, sel ast.SelectionSet, obj *model.Interaction) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, interactionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Interaction")
+		case "id":
+			out.Values[i] = ec._Interaction_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "userId":
+			out.Values[i] = ec._Interaction_userId(ctx, field, obj)
+		case "sessionId":
+			out.Values[i] = ec._Interaction_sessionId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "type":
+			out.Values[i] = ec._Interaction_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "entityType":
+			out.Values[i] = ec._Interaction_entityType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "entityId":
+			out.Values[i] = ec._Interaction_entityId(ctx, field, obj)
+		case "context":
+			out.Values[i] = ec._Interaction_context(ctx, field, obj)
+		case "isBot":
+			out.Values[i] = ec._Interaction_isBot(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._Interaction_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var leadImplementors = []string{"Lead"}
 
 func (ec *executionContext) _Lead(ctx context.Context, sel ast.SelectionSet, obj *domain2.Lead) graphql.Marshaler {
@@ -57527,6 +59159,125 @@ func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "deletedAt":
 			out.Values[i] = ec._Listing_deletedAt(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var listingAnalyticsImplementors = []string{"ListingAnalytics"}
+
+func (ec *executionContext) _ListingAnalytics(ctx context.Context, sel ast.SelectionSet, obj *model.ListingAnalytics) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, listingAnalyticsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ListingAnalytics")
+		case "listingId":
+			out.Values[i] = ec._ListingAnalytics_listingId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "period":
+			out.Values[i] = ec._ListingAnalytics_period(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalViews":
+			out.Values[i] = ec._ListingAnalytics_totalViews(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "uniqueViews":
+			out.Values[i] = ec._ListingAnalytics_uniqueViews(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "mediaViews":
+			out.Values[i] = ec._ListingAnalytics_mediaViews(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "mapViews":
+			out.Values[i] = ec._ListingAnalytics_mapViews(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalSaves":
+			out.Values[i] = ec._ListingAnalytics_totalSaves(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "netSaves":
+			out.Values[i] = ec._ListingAnalytics_netSaves(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalShares":
+			out.Values[i] = ec._ListingAnalytics_totalShares(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalContacts":
+			out.Values[i] = ec._ListingAnalytics_totalContacts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "bookingRequests":
+			out.Values[i] = ec._ListingAnalytics_bookingRequests(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "conversionRate":
+			out.Values[i] = ec._ListingAnalytics_conversionRate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "engagementRate":
+			out.Values[i] = ec._ListingAnalytics_engagementRate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "avgTimeOnPage":
+			out.Values[i] = ec._ListingAnalytics_avgTimeOnPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "viewsTrend":
+			out.Values[i] = ec._ListingAnalytics_viewsTrend(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "savesTrend":
+			out.Values[i] = ec._ListingAnalytics_savesTrend(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "engagementTrend":
+			out.Values[i] = ec._ListingAnalytics_engagementTrend(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -59282,6 +61033,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteLead":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteLead(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "trackInteraction":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_trackInteraction(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -62555,6 +64313,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "listingAnalytics":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_listingAnalytics(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myInteractionHistory":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myInteractionHistory(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -65659,6 +67461,16 @@ func (ec *executionContext) unmarshalNAmenityHighlightInput2ᚖhausletᚋinterna
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNAnalyticsPeriod2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAnalyticsPeriod(ctx context.Context, sel ast.SelectionSet, v *model.AnalyticsPeriod) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AnalyticsPeriod(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNAssignmentReason2hausletᚋinternalᚋmodulesᚋleadsᚋdomainᚐAssignmentReason(ctx context.Context, v any) (domain2.AssignmentReason, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain2.AssignmentReason(tmp)
@@ -66744,6 +68556,16 @@ func (ec *executionContext) marshalNEarningsSummary2ᚖhausletᚋinternalᚋmodu
 	return ec._EarningsSummary(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNEntityType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐEntityType(ctx context.Context, v any) (model.EntityType, error) {
+	var res model.EntityType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNEntityType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐEntityType(ctx context.Context, sel ast.SelectionSet, v model.EntityType) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNEventStatus2hausletᚋinternalᚋmodulesᚋcalendarᚋdomainᚐEventStatus(ctx context.Context, v any) (domain8.EventStatus, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain8.EventStatus(tmp)
@@ -66964,6 +68786,70 @@ func (ec *executionContext) marshalNInt2int64(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNInteraction2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Interaction) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNInteraction2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteraction(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNInteraction2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteraction(ctx context.Context, sel ast.SelectionSet, v *model.Interaction) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Interaction(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNInteractionType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionType(ctx context.Context, v any) (model.InteractionType, error) {
+	var res model.InteractionType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInteractionType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionType(ctx context.Context, sel ast.SelectionSet, v model.InteractionType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNInvitationStatus2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐInvitationStatus(ctx context.Context, v any) (domain.InvitationStatus, error) {
@@ -67279,6 +69165,20 @@ func (ec *executionContext) marshalNListing2ᚖhausletᚋinternalᚋmodulesᚋpr
 		return graphql.Null
 	}
 	return ec._Listing(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNListingAnalytics2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingAnalytics(ctx context.Context, sel ast.SelectionSet, v model.ListingAnalytics) graphql.Marshaler {
+	return ec._ListingAnalytics(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNListingAnalytics2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingAnalytics(ctx context.Context, sel ast.SelectionSet, v *model.ListingAnalytics) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ListingAnalytics(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNListingConnection2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingConnection(ctx context.Context, sel ast.SelectionSet, v model.ListingConnection) graphql.Marshaler {
@@ -68732,6 +70632,11 @@ func (ec *executionContext) marshalNTime2ᚖtimeᚐTime(ctx context.Context, sel
 	return res
 }
 
+func (ec *executionContext) unmarshalNTrackInteractionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTrackInteractionInput(ctx context.Context, v any) (model.TrackInteractionInput, error) {
+	res, err := ec.unmarshalInputTrackInteractionInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNTransaction2hausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐTransaction(ctx context.Context, sel ast.SelectionSet, v domain9.Transaction) graphql.Marshaler {
 	return ec._Transaction(ctx, sel, &v)
 }
@@ -69783,6 +71688,22 @@ func (ec *executionContext) marshalODailyRate2ᚕhausletᚋinternalᚋmodulesᚋ
 	return ret
 }
 
+func (ec *executionContext) unmarshalODeviceType2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDeviceType(ctx context.Context, v any) (*model.DeviceType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.DeviceType)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalODeviceType2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDeviceType(ctx context.Context, sel ast.SelectionSet, v *model.DeviceType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) marshalODisbursement2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursement(ctx context.Context, sel ast.SelectionSet, v *domain6.Disbursement) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -70764,6 +72685,22 @@ func (ec *executionContext) marshalOPayoutDetail2ᚖhausletᚋinternalᚋmodules
 		return graphql.Null
 	}
 	return ec._PayoutDetail(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOPlatform2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPlatform(ctx context.Context, v any) (*model.Platform, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.Platform)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOPlatform2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPlatform(ctx context.Context, sel ast.SelectionSet, v *model.Platform) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalOPriceBreakdownSnapshot2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐPriceBreakdownSnapshot(ctx context.Context, sel ast.SelectionSet, v *domain7.PriceBreakdownSnapshot) graphql.Marshaler {

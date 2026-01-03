@@ -21,8 +21,13 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 		return nil, fmt.Errorf("pricing listing hooks not configured")
 	}
 
+	// Normalize checkIn and checkOut to midnight UTC for consistent date-based calculations
+	// This ensures pricing is based on calendar dates regardless of time-of-day in the input
+	checkInDate := time.Date(checkIn.Year(), checkIn.Month(), checkIn.Day(), 0, 0, 0, 0, time.UTC)
+	checkOutDate := time.Date(checkOut.Year(), checkOut.Month(), checkOut.Day(), 0, 0, 0, 0, time.UTC)
+
 	// Validate date range
-	if !checkOut.After(checkIn) {
+	if !checkOutDate.After(checkInDate) {
 		return nil, domain.ErrInvalidDateRange
 	}
 
@@ -32,8 +37,8 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 		return nil, fmt.Errorf("failed to get listing pricing: %w", err)
 	}
 
-	// Calculate number of nights
-	nights := int(checkOut.Sub(checkIn).Hours() / 24)
+	// Calculate number of nights using normalized dates
+	nights := int(checkOutDate.Sub(checkInDate).Hours() / 24)
 
 	// Get all active pricing rules for the listing
 	schemaRules, err := s.repo.GetRulesForListing(ctx, listingID, true)
@@ -43,8 +48,8 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 
 	rules := domain.MapRulesFromSchema(schemaRules)
 
-	// Calculate daily rates
-	dailyRates := s.calculateDailyRates(listingPricing.BaseRate, checkIn, checkOut, rules)
+	// Calculate daily rates using normalized dates
+	dailyRates := s.calculateDailyRates(listingPricing.BaseRate, checkInDate, checkOutDate, rules)
 
 	// Sum up base total
 	baseTotal := 0.0
@@ -108,8 +113,8 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 
 	breakdown := &domain.PriceBreakdown{
 		ListingID:     listingID,
-		CheckIn:       checkIn,
-		CheckOut:      checkOut,
+		CheckIn:       checkInDate,
+		CheckOut:      checkOutDate,
 		Nights:        nights,
 		GuestCount:    guestCount,
 		BaseTotal:     baseTotal,

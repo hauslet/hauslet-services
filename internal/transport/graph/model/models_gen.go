@@ -41,6 +41,12 @@ type AmenityHighlightInput struct {
 	Icon    string `json:"icon"`
 }
 
+type AnalyticsPeriod struct {
+	StartDate time.Time `json:"startDate"`
+	EndDate   time.Time `json:"endDate"`
+	Days      int       `json:"days"`
+}
+
 type BusinessAddressInput struct {
 	HouseNumber    *string `json:"houseNumber,omitempty"`
 	Street         *string `json:"street,omitempty"`
@@ -182,6 +188,18 @@ type FileDisputeInput struct {
 	Currency    string                `json:"currency"`
 }
 
+type Interaction struct {
+	ID         uuid.UUID       `json:"id"`
+	UserID     *uuid.UUID      `json:"userId,omitempty"`
+	SessionID  string          `json:"sessionId"`
+	Type       InteractionType `json:"type"`
+	EntityType EntityType      `json:"entityType"`
+	EntityID   *uuid.UUID      `json:"entityId,omitempty"`
+	Context    map[string]any  `json:"context,omitempty"`
+	IsBot      bool            `json:"isBot"`
+	CreatedAt  time.Time       `json:"createdAt"`
+}
+
 type InviteMemberInput struct {
 	Email             string                  `json:"email"`
 	Role              domain.MemberRole       `json:"role"`
@@ -202,6 +220,26 @@ type LeadFilterInput struct {
 	DateFrom   *time.Time           `json:"dateFrom,omitempty"`
 	DateTo     *time.Time           `json:"dateTo,omitempty"`
 	SearchTerm *string              `json:"searchTerm,omitempty"`
+}
+
+type ListingAnalytics struct {
+	ListingID       uuid.UUID        `json:"listingId"`
+	Period          *AnalyticsPeriod `json:"period"`
+	TotalViews      int              `json:"totalViews"`
+	UniqueViews     int              `json:"uniqueViews"`
+	MediaViews      int              `json:"mediaViews"`
+	MapViews        int              `json:"mapViews"`
+	TotalSaves      int              `json:"totalSaves"`
+	NetSaves        int              `json:"netSaves"`
+	TotalShares     int              `json:"totalShares"`
+	TotalContacts   int              `json:"totalContacts"`
+	BookingRequests int              `json:"bookingRequests"`
+	ConversionRate  float64          `json:"conversionRate"`
+	EngagementRate  float64          `json:"engagementRate"`
+	AvgTimeOnPage   int              `json:"avgTimeOnPage"`
+	ViewsTrend      float64          `json:"viewsTrend"`
+	SavesTrend      float64          `json:"savesTrend"`
+	EngagementTrend float64          `json:"engagementTrend"`
 }
 
 type ListingConnection struct {
@@ -474,6 +512,16 @@ type ShowingAvailability struct {
 	Timezone  *string   `json:"timezone,omitempty"`
 }
 
+type TrackInteractionInput struct {
+	Type       InteractionType `json:"type"`
+	EntityType EntityType      `json:"entityType"`
+	EntityID   *uuid.UUID      `json:"entityId,omitempty"`
+	Context    map[string]any  `json:"context,omitempty"`
+	DeviceType *DeviceType     `json:"deviceType,omitempty"`
+	Platform   *Platform       `json:"platform,omitempty"`
+	Referrer   *string         `json:"referrer,omitempty"`
+}
+
 type TravelCompanionInput struct {
 	Name         string  `json:"name"`
 	AgeGroup     string  `json:"ageGroup"`
@@ -694,6 +742,260 @@ func (e *DayOfWeek) UnmarshalJSON(b []byte) error {
 }
 
 func (e DayOfWeek) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type DeviceType string
+
+const (
+	DeviceTypeDesktop DeviceType = "DESKTOP"
+	DeviceTypeMobile  DeviceType = "MOBILE"
+	DeviceTypeTablet  DeviceType = "TABLET"
+	DeviceTypeUnknown DeviceType = "UNKNOWN"
+)
+
+var AllDeviceType = []DeviceType{
+	DeviceTypeDesktop,
+	DeviceTypeMobile,
+	DeviceTypeTablet,
+	DeviceTypeUnknown,
+}
+
+func (e DeviceType) IsValid() bool {
+	switch e {
+	case DeviceTypeDesktop, DeviceTypeMobile, DeviceTypeTablet, DeviceTypeUnknown:
+		return true
+	}
+	return false
+}
+
+func (e DeviceType) String() string {
+	return string(e)
+}
+
+func (e *DeviceType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DeviceType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DeviceType", str)
+	}
+	return nil
+}
+
+func (e DeviceType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *DeviceType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e DeviceType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type EntityType string
+
+const (
+	EntityTypeListing EntityType = "LISTING"
+	EntityTypeSearch  EntityType = "SEARCH"
+	EntityTypeProfile EntityType = "PROFILE"
+)
+
+var AllEntityType = []EntityType{
+	EntityTypeListing,
+	EntityTypeSearch,
+	EntityTypeProfile,
+}
+
+func (e EntityType) IsValid() bool {
+	switch e {
+	case EntityTypeListing, EntityTypeSearch, EntityTypeProfile:
+		return true
+	}
+	return false
+}
+
+func (e EntityType) String() string {
+	return string(e)
+}
+
+func (e *EntityType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = EntityType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid EntityType", str)
+	}
+	return nil
+}
+
+func (e EntityType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *EntityType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e EntityType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type InteractionType string
+
+const (
+	InteractionTypeViewListing       InteractionType = "VIEW_LISTING"
+	InteractionTypeViewListingDetail InteractionType = "VIEW_LISTING_DETAIL"
+	InteractionTypeViewMedia         InteractionType = "VIEW_MEDIA"
+	InteractionTypeViewMap           InteractionType = "VIEW_MAP"
+	InteractionTypeSaveListing       InteractionType = "SAVE_LISTING"
+	InteractionTypeUnsaveListing     InteractionType = "UNSAVE_LISTING"
+	InteractionTypeShareListing      InteractionType = "SHARE_LISTING"
+	InteractionTypeContactOwner      InteractionType = "CONTACT_OWNER"
+	InteractionTypeRequestViewing    InteractionType = "REQUEST_VIEWING"
+	InteractionTypeBookingRequest    InteractionType = "BOOKING_REQUEST"
+	InteractionTypeSearch            InteractionType = "SEARCH"
+	InteractionTypeFilterApply       InteractionType = "FILTER_APPLY"
+	InteractionTypeScrollDeep        InteractionType = "SCROLL_DEEP"
+	InteractionTypeTimeMilestone     InteractionType = "TIME_MILESTONE"
+)
+
+var AllInteractionType = []InteractionType{
+	InteractionTypeViewListing,
+	InteractionTypeViewListingDetail,
+	InteractionTypeViewMedia,
+	InteractionTypeViewMap,
+	InteractionTypeSaveListing,
+	InteractionTypeUnsaveListing,
+	InteractionTypeShareListing,
+	InteractionTypeContactOwner,
+	InteractionTypeRequestViewing,
+	InteractionTypeBookingRequest,
+	InteractionTypeSearch,
+	InteractionTypeFilterApply,
+	InteractionTypeScrollDeep,
+	InteractionTypeTimeMilestone,
+}
+
+func (e InteractionType) IsValid() bool {
+	switch e {
+	case InteractionTypeViewListing, InteractionTypeViewListingDetail, InteractionTypeViewMedia, InteractionTypeViewMap, InteractionTypeSaveListing, InteractionTypeUnsaveListing, InteractionTypeShareListing, InteractionTypeContactOwner, InteractionTypeRequestViewing, InteractionTypeBookingRequest, InteractionTypeSearch, InteractionTypeFilterApply, InteractionTypeScrollDeep, InteractionTypeTimeMilestone:
+		return true
+	}
+	return false
+}
+
+func (e InteractionType) String() string {
+	return string(e)
+}
+
+func (e *InteractionType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = InteractionType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid InteractionType", str)
+	}
+	return nil
+}
+
+func (e InteractionType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *InteractionType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e InteractionType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type Platform string
+
+const (
+	PlatformWeb     Platform = "WEB"
+	PlatformIos     Platform = "IOS"
+	PlatformAndroid Platform = "ANDROID"
+	PlatformUnknown Platform = "UNKNOWN"
+)
+
+var AllPlatform = []Platform{
+	PlatformWeb,
+	PlatformIos,
+	PlatformAndroid,
+	PlatformUnknown,
+}
+
+func (e Platform) IsValid() bool {
+	switch e {
+	case PlatformWeb, PlatformIos, PlatformAndroid, PlatformUnknown:
+		return true
+	}
+	return false
+}
+
+func (e Platform) String() string {
+	return string(e)
+}
+
+func (e *Platform) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Platform(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Platform", str)
+	}
+	return nil
+}
+
+func (e Platform) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *Platform) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e Platform) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

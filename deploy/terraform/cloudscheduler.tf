@@ -564,6 +564,43 @@ resource "google_cloud_scheduler_job" "calendar_open_house_reminders_24h" {
   ]
 }
 
+# 18. Interactions Batch Writer (every 2 minutes)
+resource "google_cloud_scheduler_job" "interactions_batch_writer" {
+  name        = "interactions-batch-writer"
+  description = "Processes interactions from Redis queue to database"
+  schedule    = "*/2 * * * *"  # Every 2 minutes
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 3
+    min_backoff_duration = "5s"
+    max_backoff_duration = "60s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/interactions/batch"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Job payload - handler reads from Redis queue
+    # No parameters needed
+    body = base64encode(jsonencode({}))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
 # Enable Cloud Scheduler API
 resource "google_project_service" "cloudscheduler" {
   project = var.project_id
