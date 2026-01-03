@@ -42,7 +42,7 @@ func (h *BatchWriterHandler) Handle(ctx context.Context, payload []byte) error {
 
 	// Pop multiple items from queue
 	for i := 0; i < h.batchSize; i++ {
-		item, err := h.redis.LPop(ctx, service.RedisQueueKey)
+		item, err := h.redis.LPop(ctx, service.RedisQueueKey).Result()
 		if err != nil || item == "" {
 			break // Queue is empty
 		}
