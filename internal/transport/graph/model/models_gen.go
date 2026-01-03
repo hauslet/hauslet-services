@@ -5,7 +5,8 @@ package model
 import (
 	"bytes"
 	"fmt"
-	domain1 "hauslet/internal/modules/payments/domain"
+	domain1 "hauslet/internal/modules/discovery/domain"
+	domain2 "hauslet/internal/modules/payments/domain"
 	"hauslet/internal/modules/property/domain"
 	"io"
 	"strconv"
@@ -59,6 +60,31 @@ type CreateListingPropertyInput struct {
 	FeaturesCommercial []*domain.AmenityGroup    `json:"featuresCommercial,omitempty"`
 }
 
+type DiscoverySearchFilterInput struct {
+	Query         *string                `json:"query,omitempty"`
+	Location      *LocationFilterInput   `json:"location,omitempty"`
+	PriceRange    *PriceRangeFilterInput `json:"priceRange,omitempty"`
+	PropertyTypes []domain.PropertyType  `json:"propertyTypes,omitempty"`
+	Bedrooms      *IntRangeFilterInput   `json:"bedrooms,omitempty"`
+	Bathrooms     *IntRangeFilterInput   `json:"bathrooms,omitempty"`
+	ListingTypes  []domain.ListingType   `json:"listingTypes,omitempty"`
+	City          *string                `json:"city,omitempty"`
+	State         *string                `json:"state,omitempty"`
+	Country       *string                `json:"country,omitempty"`
+	Amenities     []string               `json:"amenities,omitempty"`
+}
+
+type FeedOptionsInput struct {
+	Location          *LocationFilterInput      `json:"location,omitempty"`
+	Limit             *int                      `json:"limit,omitempty"`
+	SectionsToInclude []domain1.FeedSectionType `json:"sectionsToInclude,omitempty"`
+}
+
+type IntRangeFilterInput struct {
+	Min *int `json:"min,omitempty"`
+	Max *int `json:"max,omitempty"`
+}
+
 type ListingConnection struct {
 	Edges      []*ListingEdge `json:"edges"`
 	PageInfo   *PageInfo      `json:"pageInfo"`
@@ -106,6 +132,12 @@ type ListingWithDistance struct {
 	Score          *float64        `json:"score,omitempty"`
 }
 
+type LocationFilterInput struct {
+	Lat      float64 `json:"lat"`
+	Lng      float64 `json:"lng"`
+	RadiusKm float64 `json:"radiusKm"`
+}
+
 type LocationInput struct {
 	Lat float64 `json:"lat"`
 	Lng float64 `json:"lng"`
@@ -130,9 +162,15 @@ type PageInfo struct {
 }
 
 type PaymentInitResponse struct {
-	Payment          *domain1.Payment `json:"payment"`
+	Payment          *domain2.Payment `json:"payment"`
 	AuthorizationURL *string          `json:"authorizationUrl,omitempty"`
 	AccessCode       *string          `json:"accessCode,omitempty"`
+}
+
+type PriceRangeFilterInput struct {
+	Min      *int   `json:"min,omitempty"`
+	Max      *int   `json:"max,omitempty"`
+	Currency string `json:"currency"`
 }
 
 type PropertyFilterExtension struct {
@@ -142,6 +180,13 @@ type PropertyFilterExtension struct {
 }
 
 type Query struct {
+}
+
+type RankingConfigInput struct {
+	SemanticWeight  *float64 `json:"semanticWeight,omitempty"`
+	PromotionWeight *float64 `json:"promotionWeight,omitempty"`
+	RecencyWeight   *float64 `json:"recencyWeight,omitempty"`
+	LocationWeight  *float64 `json:"locationWeight,omitempty"`
 }
 
 type RentalDetailInput struct {
@@ -197,6 +242,12 @@ type ScoredListing struct {
 	Listing *domain.Listing `json:"listing"`
 	Score   *float64        `json:"score,omitempty"`
 	Ranking int             `json:"ranking"`
+}
+
+type SearchOptionsInput struct {
+	Limit           *int                `json:"limit,omitempty"`
+	IncludePromoted *bool               `json:"includePromoted,omitempty"`
+	RankingConfig   *RankingConfigInput `json:"rankingConfig,omitempty"`
 }
 
 type ShortletDetailInput struct {

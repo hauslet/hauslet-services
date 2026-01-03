@@ -22,7 +22,7 @@ help:
 	@echo "Database:"
 	@echo "  make migrate       # Run database migrations (export DATABASE_URL first)"
 	@echo "  make auto-migrate  # Run GORM auto-migrations (cmd/migrate)"
-	@echo "  make reset-db      # Reset public schema (drops all tables except spatial_ref_sys)"
+	@echo "  make reset-db      # Reset public schema (export DATABASE_URL first)"
 	@echo "  make seed          # Seed database with realistic test data"
 	@echo "  make seed-test     # Seed minimal test data (fast)"
 	@echo "  make seed-clear    # Clear all data and reseed"
@@ -88,7 +88,13 @@ migrate-auto:
 	
 .PHONY: reset-db
 reset-db:
-	psql -U hauslet -d hauslet -f db/utils/reset_public_schema.sql
+	@if [ -z "$(DATABASE_URL)" ]; then \
+		echo "DATABASE_URL is required. Example:"; \
+		echo "  export DATABASE_URL=postgres://user:pass@localhost:5432/dbname?sslmode=disable"; \
+		echo "  make reset-db"; \
+		exit 1; \
+	fi
+	psql "$(DATABASE_URL)" -f db/utils/reset_public_schema.sql
 
 .PHONY: seed
 seed:

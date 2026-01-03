@@ -15,6 +15,7 @@ import (
 	businessgraphql "hauslet/internal/modules/business/port/graphql"
 	calendardomain "hauslet/internal/modules/calendar/domain"
 	calendargraphql "hauslet/internal/modules/calendar/port/graphql"
+	domain11 "hauslet/internal/modules/discovery/domain"
 	domain7 "hauslet/internal/modules/finance/domain"
 	graphql2 "hauslet/internal/modules/finance/port/graphql"
 	interactionsgraphql "hauslet/internal/modules/interactions/port/graphql"
@@ -1521,6 +1522,26 @@ func (r *queryResolver) ListingAnalytics(ctx context.Context, listingID uuid.UUI
 // MyInteractionHistory is the resolver for the myInteractionHistory field.
 func (r *queryResolver) MyInteractionHistory(ctx context.Context, limit *int) ([]*interactionsgraphql.InteractionResponse, error) {
 	return r.InteractionsResolver.MyInteractionHistory(ctx, limit)
+}
+
+// Discover is the resolver for the discover field.
+func (r *queryResolver) Discover(ctx context.Context, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) (*domain11.SearchResult, error) {
+	panic(fmt.Errorf("not implemented: Discover - discover"))
+}
+
+// HomeFeed is the resolver for the homeFeed field.
+func (r *queryResolver) HomeFeed(ctx context.Context, options *model.FeedOptionsInput) ([]*domain11.HomeFeedSection, error) {
+	panic(fmt.Errorf("not implemented: HomeFeed - homeFeed"))
+}
+
+// FeaturedListings is the resolver for the featuredListings field.
+func (r *queryResolver) FeaturedListings(ctx context.Context, limit *int) ([]*domain11.RankedListing, error) {
+	panic(fmt.Errorf("not implemented: FeaturedListings - featuredListings"))
+}
+
+// DiscoverSimilar is the resolver for the discoverSimilar field.
+func (r *queryResolver) DiscoverSimilar(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain11.RankedListing, error) {
+	panic(fmt.Errorf("not implemented: DiscoverSimilar - discoverSimilar"))
 }
 
 // OneStar is the resolver for the oneStar field.

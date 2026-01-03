@@ -22,10 +22,15 @@ import (
 	calendarhttp "hauslet/internal/modules/calendar/port/http"
 	calendarrepository "hauslet/internal/modules/calendar/repository"
 	calendarservice "hauslet/internal/modules/calendar/service"
+	discoveryhooks "hauslet/internal/modules/discovery/port/hooks"
+	discoveryrepository "hauslet/internal/modules/discovery/repository"
+	discoveryservice "hauslet/internal/modules/discovery/service"
 	financenotification "hauslet/internal/modules/finance/notification"
 	financehooks "hauslet/internal/modules/finance/port/hooks"
 	financerepository "hauslet/internal/modules/finance/repository"
 	financeservice "hauslet/internal/modules/finance/service"
+	interactionsrepository "hauslet/internal/modules/interactions/repository"
+	interactionsservice "hauslet/internal/modules/interactions/service"
 	leadsrepository "hauslet/internal/modules/leads/repository"
 	leadsservice "hauslet/internal/modules/leads/service"
 	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
@@ -55,8 +60,6 @@ import (
 	reviewservice "hauslet/internal/modules/review/service"
 	wishlistrepository "hauslet/internal/modules/wishlist/repository"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
-	interactionsrepository "hauslet/internal/modules/interactions/repository"
-	interactionsservice "hauslet/internal/modules/interactions/service"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/payment"
@@ -99,26 +102,27 @@ type Container struct {
 	EmbeddingAI   *aiembeddings.Client
 
 	// Module Services
-	AuthSvc         authservice.AuthService
-	ProfileSvc      profileservice.ProfileService
-	BusinessSvc     businessservice.BusinessService
-	PropertySvc     propertyservice.PropertyService
-	BookingSvc      bookingservice.BookingService
-	PaymentsSvc     paymentsservice.PaymentService
-	FinanceSvc      financeservice.FinanceService
-	PayoutSvc       financeservice.PayoutService
-	CalendarSvc     calendarservice.CalendarService
-	PricingSvc      pricingservice.PricingService
-	WishlistSvc     wishlistservice.WishlistService
-	ReviewSvc       reviewservice.ReviewService
-	ModerationSvc   moderationservice.ModerationService
-	PromotionSvc      promotionservice.PromotionService
-	SubscriptionSvc   promotionservice.SubscriptionService
-	UsageSvc          promotionservice.UsageService
-	LeadSvc           leadsservice.LeadService
+	AuthSvc            authservice.AuthService
+	ProfileSvc         profileservice.ProfileService
+	BusinessSvc        businessservice.BusinessService
+	PropertySvc        propertyservice.PropertyService
+	BookingSvc         bookingservice.BookingService
+	PaymentsSvc        paymentsservice.PaymentService
+	FinanceSvc         financeservice.FinanceService
+	PayoutSvc          financeservice.PayoutService
+	CalendarSvc        calendarservice.CalendarService
+	PricingSvc         pricingservice.PricingService
+	WishlistSvc        wishlistservice.WishlistService
+	ReviewSvc          reviewservice.ReviewService
+	ModerationSvc      moderationservice.ModerationService
+	PromotionSvc       promotionservice.PromotionService
+	SubscriptionSvc    promotionservice.SubscriptionService
+	UsageSvc           promotionservice.UsageService
+	LeadSvc            leadsservice.LeadService
 	InteractionTracker interactionsservice.TrackerService
 	InteractionReader  interactionsservice.ReaderService
-	SupplyGate        authorization.SupplyGate
+	DiscoverySvc       discoveryservice.DiscoveryService
+	SupplyGate         authorization.SupplyGate
 
 	// HTTP Handlers
 	AuthHTTP           *authhttp.HTTPHandler
@@ -174,6 +178,10 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 
 	if err := c.initProperty(); err != nil {
 		return nil, fmt.Errorf("failed to initialize property: %w", err)
+	}
+
+	if err := c.initDiscovery(); err != nil {
+		return nil, fmt.Errorf("failed to initialize discovery: %w", err)
 	}
 
 	if err := c.initLeads(); err != nil {
@@ -426,6 +434,27 @@ func (c *Container) initProperty() error {
 		c.BusinessSvc,
 		c.SubscriptionSvc,
 		c.SupplyGate,
+	)
+
+	return nil
+}
+
+// initDiscovery initializes the discovery service
+// initDiscovery initializes the discovery service
+func (c *Container) initDiscovery() error {
+	// Initialize repository
+	discoveryRepo := discoveryrepository.NewDiscoveryRepository(c.DB)
+
+	// Create hook adapters
+	propertyHooks := discoveryhooks.NewPropertyDiscoveryAdapter(c.PropertySvc)
+	promotionHooks := discoveryhooks.NewPromotionDiscoveryAdapter(c.PromotionSvc)
+
+	// Initialize discovery service
+	c.DiscoverySvc = discoveryservice.NewDiscoveryService(
+		discoveryRepo,
+		propertyHooks,
+		promotionHooks,
+		c.Logger,
 	)
 
 	return nil

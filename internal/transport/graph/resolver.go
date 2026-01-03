@@ -14,6 +14,8 @@ import (
 	financeservice "hauslet/internal/modules/finance/service"
 	interactionsgraphql "hauslet/internal/modules/interactions/port/graphql"
 	interactionsservice "hauslet/internal/modules/interactions/service"
+	discoverygraphql "hauslet/internal/modules/discovery/port/graphql"
+	discoveryservice "hauslet/internal/modules/discovery/service"
 	leadsgraphql "hauslet/internal/modules/leads/port/graphql"
 	leadsservice "hauslet/internal/modules/leads/service"
 	paymentsgraphql "hauslet/internal/modules/payments/port/graphql"
@@ -48,6 +50,7 @@ type Resolver struct {
 	PromotionResolver    *promotiongraphql.Resolver
 	LeadResolver         *leadsgraphql.Resolver
 	InteractionsResolver *interactionsgraphql.Resolver
+	DiscoveryResolver    *discoverygraphql.Resolver
 }
 
 func NewResolver(
@@ -68,6 +71,7 @@ func NewResolver(
 	leadSvc leadsservice.LeadService,
 	interactionsTracker interactionsservice.TrackerService,
 	interactionsReader interactionsservice.ReaderService,
+	discoverySvc discoveryservice.DiscoveryService,
 	fxClient xchange.XChange,
 	appCfg *cfg.GlobalConfig,
 	log *slog.Logger,
@@ -87,5 +91,6 @@ func NewResolver(
 		PromotionResolver:    promotiongraphql.NewResolver(promotionSvc, subscriptionSvc, usageSvc, &appCfg.YAML.Promotion, log),
 		LeadResolver:         leadsgraphql.NewResolver(leadSvc, log),
 		InteractionsResolver: interactionsgraphql.NewResolver(interactionsTracker, interactionsReader, log),
+		DiscoveryResolver:    discoverygraphql.NewResolver(discoverySvc, log),
 	}
 }

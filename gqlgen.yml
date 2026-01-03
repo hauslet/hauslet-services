@@ -16,6 +16,7 @@ schema:
   - internal/modules/promotions/port/graphql/*.graphqls
   - internal/modules/leads/port/graphql/*.graphqls
   - internal/modules/interactions/port/graphql/*.graphqls
+  - internal/modules/discovery/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
 exec:
@@ -506,3 +507,19 @@ models:
     model: hauslet/internal/modules/interactions/port/graphql.DeviceTypeInput
   Platform:
     model: hauslet/internal/modules/interactions/port/graphql.PlatformInput
+
+  # --- Discovery Module Bindings ---
+  RankedListing:
+    model: hauslet/internal/modules/discovery/domain.RankedListing
+  RankingScore:
+    model: hauslet/internal/modules/discovery/domain.RankingScore
+  PromotionBoostInfo:
+    model: hauslet/internal/modules/discovery/domain.PromotionBoostInfo
+  HomeFeedSection:
+    model: hauslet/internal/modules/discovery/domain.HomeFeedSection
+  SearchResult:
+    model: hauslet/internal/modules/discovery/domain.SearchResult
+
+  # Discovery Enums
+  FeedSectionType:
+    model: hauslet/internal/modules/discovery/domain.FeedSectionType

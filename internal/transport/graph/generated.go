@@ -15,6 +15,7 @@ import (
 	graphql1 "hauslet/internal/modules/business/port/graphql"
 	domain8 "hauslet/internal/modules/calendar/domain"
 	graphql5 "hauslet/internal/modules/calendar/port/graphql"
+	domain12 "hauslet/internal/modules/discovery/domain"
 	domain6 "hauslet/internal/modules/finance/domain"
 	graphql2 "hauslet/internal/modules/finance/port/graphql"
 	graphql11 "hauslet/internal/modules/interactions/port/graphql"
@@ -428,6 +429,13 @@ type ComplexityRoot struct {
 		Status        func(childComplexity int) int
 		Type          func(childComplexity int) int
 		UpdatedAt     func(childComplexity int) int
+	}
+
+	HomeFeedSection struct {
+		Listings    func(childComplexity int) int
+		SectionType func(childComplexity int) int
+		Title       func(childComplexity int) int
+		TotalCount  func(childComplexity int) int
 	}
 
 	HostStats struct {
@@ -894,6 +902,13 @@ type ComplexityRoot struct {
 		ZipCode                    func(childComplexity int) int
 	}
 
+	PromotionBoostInfo struct {
+		BoostMultiplier func(childComplexity int) int
+		ExpiresAt       func(childComplexity int) int
+		PromotionID     func(childComplexity int) int
+		PromotionType   func(childComplexity int) int
+	}
+
 	Property struct {
 		Address            func(childComplexity int) int
 		Amenities          func(childComplexity int) int
@@ -942,9 +957,12 @@ type ComplexityRoot struct {
 		CanUseIncludedPromotion      func(childComplexity int, promoType domain3.PromotionType) int
 		CheckListingAvailability     func(childComplexity int, listingID uuid.UUID, startTime time.Time, endTime time.Time) int
 		Disbursement                 func(childComplexity int, id uuid.UUID) int
+		Discover                     func(childComplexity int, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) int
+		DiscoverSimilar              func(childComplexity int, listingID uuid.UUID, limit *int) int
 		Dispute                      func(childComplexity int, id uuid.UUID) int
 		DisputeByBooking             func(childComplexity int, bookingID uuid.UUID) int
 		Disputes                     func(childComplexity int, status *domain6.DisputeStatus, limit *int, offset *int) int
+		FeaturedListings             func(childComplexity int, limit *int) int
 		FinanceTransactionHistory    func(childComplexity int, resourceType string, resourceID uuid.UUID) int
 		GetActivePromotionForListing func(childComplexity int, listingID uuid.UUID) int
 		GetCurrentUsage              func(childComplexity int) int
@@ -955,6 +973,7 @@ type ComplexityRoot struct {
 		GetPremiumListings           func(childComplexity int, limit *int) int
 		GetPromotion                 func(childComplexity int, id uuid.UUID) int
 		GetSubscription              func(childComplexity int, id uuid.UUID) int
+		HomeFeed                     func(childComplexity int, options *model.FeedOptionsInput) int
 		HostStats                    func(childComplexity int, hostID uuid.UUID) int
 		IsListingInWishlist          func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID) int
 		LatestReconciliation         func(childComplexity int) int
@@ -1021,6 +1040,22 @@ type ComplexityRoot struct {
 		WalletLedger                 func(childComplexity int, walletID uuid.UUID, limit *int, offset *int) int
 		Wishlist                     func(childComplexity int, id uuid.UUID) int
 		WishlistItems                func(childComplexity int, wishlistID uuid.UUID, limit *int, offset *int) int
+	}
+
+	RankedListing struct {
+		Listing        func(childComplexity int) int
+		PromotionBoost func(childComplexity int) int
+		Ranking        func(childComplexity int) int
+		Score          func(childComplexity int) int
+	}
+
+	RankingScore struct {
+		FinalScore        func(childComplexity int) int
+		LocationScore     func(childComplexity int) int
+		PersonalizedScore func(childComplexity int) int
+		PromotionBoost    func(childComplexity int) int
+		RecencyScore      func(childComplexity int) int
+		SemanticScore     func(childComplexity int) int
 	}
 
 	RatingDistribution struct {
@@ -1124,6 +1159,13 @@ type ComplexityRoot struct {
 		Listing func(childComplexity int) int
 		Ranking func(childComplexity int) int
 		Score   func(childComplexity int) int
+	}
+
+	SearchResult struct {
+		Listings       func(childComplexity int) int
+		ProcessingTime func(childComplexity int) int
+		SearchID       func(childComplexity int) int
+		TotalCount     func(childComplexity int) int
 	}
 
 	ServiceCharge struct {
@@ -1589,6 +1631,10 @@ type QueryResolver interface {
 	LeadHistory(ctx context.Context, leadID string) ([]*domain2.LeadEvent, error)
 	ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*graphql11.ListingAnalyticsResponse, error)
 	MyInteractionHistory(ctx context.Context, limit *int) ([]*graphql11.InteractionResponse, error)
+	Discover(ctx context.Context, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) (*domain12.SearchResult, error)
+	HomeFeed(ctx context.Context, options *model.FeedOptionsInput) ([]*domain12.HomeFeedSection, error)
+	FeaturedListings(ctx context.Context, limit *int) ([]*domain12.RankedListing, error)
+	DiscoverSimilar(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain12.RankedListing, error)
 }
 type RatingDistributionResolver interface {
 	OneStar(ctx context.Context, obj *domain4.RatingDistribution) (int, error)
@@ -3187,6 +3233,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.FinanceTransaction.UpdatedAt(childComplexity), true
+
+	case "HomeFeedSection.listings":
+		if e.complexity.HomeFeedSection.Listings == nil {
+			break
+		}
+
+		return e.complexity.HomeFeedSection.Listings(childComplexity), true
+	case "HomeFeedSection.sectionType":
+		if e.complexity.HomeFeedSection.SectionType == nil {
+			break
+		}
+
+		return e.complexity.HomeFeedSection.SectionType(childComplexity), true
+	case "HomeFeedSection.title":
+		if e.complexity.HomeFeedSection.Title == nil {
+			break
+		}
+
+		return e.complexity.HomeFeedSection.Title(childComplexity), true
+	case "HomeFeedSection.totalCount":
+		if e.complexity.HomeFeedSection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.HomeFeedSection.TotalCount(childComplexity), true
 
 	case "HostStats.averageRating":
 		if e.complexity.HostStats.AverageRating == nil {
@@ -5901,6 +5972,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Profile.ZipCode(childComplexity), true
 
+	case "PromotionBoostInfo.boostMultiplier":
+		if e.complexity.PromotionBoostInfo.BoostMultiplier == nil {
+			break
+		}
+
+		return e.complexity.PromotionBoostInfo.BoostMultiplier(childComplexity), true
+	case "PromotionBoostInfo.expiresAt":
+		if e.complexity.PromotionBoostInfo.ExpiresAt == nil {
+			break
+		}
+
+		return e.complexity.PromotionBoostInfo.ExpiresAt(childComplexity), true
+	case "PromotionBoostInfo.promotionId":
+		if e.complexity.PromotionBoostInfo.PromotionID == nil {
+			break
+		}
+
+		return e.complexity.PromotionBoostInfo.PromotionID(childComplexity), true
+	case "PromotionBoostInfo.promotionType":
+		if e.complexity.PromotionBoostInfo.PromotionType == nil {
+			break
+		}
+
+		return e.complexity.PromotionBoostInfo.PromotionType(childComplexity), true
+
 	case "Property.address":
 		if e.complexity.Property.Address == nil {
 			break
@@ -6241,6 +6337,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Disbursement(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.discover":
+		if e.complexity.Query.Discover == nil {
+			break
+		}
+
+		args, err := ec.field_Query_discover_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Discover(childComplexity, args["filter"].(model.DiscoverySearchFilterInput), args["options"].(*model.SearchOptionsInput)), true
+	case "Query.discoverSimilar":
+		if e.complexity.Query.DiscoverSimilar == nil {
+			break
+		}
+
+		args, err := ec.field_Query_discoverSimilar_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.DiscoverSimilar(childComplexity, args["listingId"].(uuid.UUID), args["limit"].(*int)), true
 	case "Query.dispute":
 		if e.complexity.Query.Dispute == nil {
 			break
@@ -6274,6 +6392,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Disputes(childComplexity, args["status"].(*domain6.DisputeStatus), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.featuredListings":
+		if e.complexity.Query.FeaturedListings == nil {
+			break
+		}
+
+		args, err := ec.field_Query_featuredListings_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FeaturedListings(childComplexity, args["limit"].(*int)), true
 	case "Query.financeTransactionHistory":
 		if e.complexity.Query.FinanceTransactionHistory == nil {
 			break
@@ -6374,6 +6503,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.GetSubscription(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.homeFeed":
+		if e.complexity.Query.HomeFeed == nil {
+			break
+		}
+
+		args, err := ec.field_Query_homeFeed_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.HomeFeed(childComplexity, args["options"].(*model.FeedOptionsInput)), true
 	case "Query.hostStats":
 		if e.complexity.Query.HostStats == nil {
 			break
@@ -7076,6 +7216,68 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.WishlistItems(childComplexity, args["wishlistId"].(uuid.UUID), args["limit"].(*int), args["offset"].(*int)), true
 
+	case "RankedListing.listing":
+		if e.complexity.RankedListing.Listing == nil {
+			break
+		}
+
+		return e.complexity.RankedListing.Listing(childComplexity), true
+	case "RankedListing.promotionBoost":
+		if e.complexity.RankedListing.PromotionBoost == nil {
+			break
+		}
+
+		return e.complexity.RankedListing.PromotionBoost(childComplexity), true
+	case "RankedListing.ranking":
+		if e.complexity.RankedListing.Ranking == nil {
+			break
+		}
+
+		return e.complexity.RankedListing.Ranking(childComplexity), true
+	case "RankedListing.score":
+		if e.complexity.RankedListing.Score == nil {
+			break
+		}
+
+		return e.complexity.RankedListing.Score(childComplexity), true
+
+	case "RankingScore.finalScore":
+		if e.complexity.RankingScore.FinalScore == nil {
+			break
+		}
+
+		return e.complexity.RankingScore.FinalScore(childComplexity), true
+	case "RankingScore.locationScore":
+		if e.complexity.RankingScore.LocationScore == nil {
+			break
+		}
+
+		return e.complexity.RankingScore.LocationScore(childComplexity), true
+	case "RankingScore.personalizedScore":
+		if e.complexity.RankingScore.PersonalizedScore == nil {
+			break
+		}
+
+		return e.complexity.RankingScore.PersonalizedScore(childComplexity), true
+	case "RankingScore.promotionBoost":
+		if e.complexity.RankingScore.PromotionBoost == nil {
+			break
+		}
+
+		return e.complexity.RankingScore.PromotionBoost(childComplexity), true
+	case "RankingScore.recencyScore":
+		if e.complexity.RankingScore.RecencyScore == nil {
+			break
+		}
+
+		return e.complexity.RankingScore.RecencyScore(childComplexity), true
+	case "RankingScore.semanticScore":
+		if e.complexity.RankingScore.SemanticScore == nil {
+			break
+		}
+
+		return e.complexity.RankingScore.SemanticScore(childComplexity), true
+
 	case "RatingDistribution.fiveStar":
 		if e.complexity.RatingDistribution.FiveStar == nil {
 			break
@@ -7540,6 +7742,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ScoredListing.Score(childComplexity), true
+
+	case "SearchResult.listings":
+		if e.complexity.SearchResult.Listings == nil {
+			break
+		}
+
+		return e.complexity.SearchResult.Listings(childComplexity), true
+	case "SearchResult.processingTime":
+		if e.complexity.SearchResult.ProcessingTime == nil {
+			break
+		}
+
+		return e.complexity.SearchResult.ProcessingTime(childComplexity), true
+	case "SearchResult.searchId":
+		if e.complexity.SearchResult.SearchID == nil {
+			break
+		}
+
+		return e.complexity.SearchResult.SearchID(childComplexity), true
+	case "SearchResult.totalCount":
+		if e.complexity.SearchResult.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.SearchResult.TotalCount(childComplexity), true
 
 	case "ServiceCharge.amount":
 		if e.complexity.ServiceCharge.Amount == nil {
@@ -8358,16 +8585,22 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateReviewInput,
 		ec.unmarshalInputCreateSubscriptionInput,
 		ec.unmarshalInputCreateWishlistInput,
+		ec.unmarshalInputDiscoverySearchFilterInput,
+		ec.unmarshalInputFeedOptionsInput,
 		ec.unmarshalInputFileDisputeInput,
+		ec.unmarshalInputIntRangeFilterInput,
 		ec.unmarshalInputInviteMemberInput,
 		ec.unmarshalInputLeadFilterInput,
 		ec.unmarshalInputListingFilterInput,
+		ec.unmarshalInputLocationFilterInput,
 		ec.unmarshalInputLocationInput,
 		ec.unmarshalInputMediaInput,
 		ec.unmarshalInputMemberPermissionsInput,
 		ec.unmarshalInputPageInput,
 		ec.unmarshalInputPayForBookingInput,
+		ec.unmarshalInputPriceRangeFilterInput,
 		ec.unmarshalInputPropertyFilterExtension,
+		ec.unmarshalInputRankingConfigInput,
 		ec.unmarshalInputRefundPaymentInput,
 		ec.unmarshalInputRegisterOpenHouseInput,
 		ec.unmarshalInputRentalDetailInput,
@@ -8382,6 +8615,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputRuleItemInput,
 		ec.unmarshalInputSaleDetailInput,
 		ec.unmarshalInputSaleFilterInput,
+		ec.unmarshalInputSearchOptionsInput,
 		ec.unmarshalInputServiceChargeInput,
 		ec.unmarshalInputShortletDetailInput,
 		ec.unmarshalInputShortletFilterInput,
@@ -11462,6 +11696,136 @@ type AnalyticsPeriod {
   days: Int!
 }
 `, BuiltIn: false},
+	{Name: "../../modules/discovery/port/graphql/schema.graphqls", Input: `# Discovery Module GraphQL Schema
+
+# ===========================
+# TYPES
+# ===========================
+
+type RankedListing {
+  listing: Listing!
+  score: RankingScore!
+  ranking: Int!
+  promotionBoost: PromotionBoostInfo
+}
+
+type RankingScore {
+  finalScore: Float!
+  semanticScore: Float
+  promotionBoost: Float!
+  recencyScore: Float!
+  locationScore: Float
+  personalizedScore: Float
+}
+
+type PromotionBoostInfo {
+  promotionId: UUID!
+  promotionType: String!
+  boostMultiplier: Float!
+  expiresAt: Time!
+}
+
+type HomeFeedSection {
+  sectionType: FeedSectionType!
+  title: String!
+  listings: [RankedListing!]!
+  totalCount: Int!
+}
+
+type SearchResult {
+  listings: [RankedListing!]!
+  totalCount: Int!
+  searchId: UUID!
+  processingTime: Int
+}
+
+# ===========================
+# ENUMS
+# ===========================
+
+enum FeedSectionType {
+  featured
+  premium
+  recent
+  recommended
+  near_you
+}
+
+# ===========================
+# INPUTS
+# ===========================
+
+input DiscoverySearchFilterInput {
+  query: String
+  location: LocationFilterInput
+  priceRange: PriceRangeFilterInput
+  propertyTypes: [PropertyType!]
+  bedrooms: IntRangeFilterInput
+  bathrooms: IntRangeFilterInput
+  listingTypes: [ListingType!]
+  city: String
+  state: String
+  country: String
+  amenities: [String!]
+}
+
+input LocationFilterInput {
+  lat: Float!
+  lng: Float!
+  radiusKm: Float!
+}
+
+input PriceRangeFilterInput {
+  min: Int
+  max: Int
+  currency: String!
+}
+
+input IntRangeFilterInput {
+  min: Int
+  max: Int
+}
+
+input SearchOptionsInput {
+  limit: Int
+  includePromoted: Boolean
+  rankingConfig: RankingConfigInput
+}
+
+input RankingConfigInput {
+  semanticWeight: Float
+  promotionWeight: Float
+  recencyWeight: Float
+  locationWeight: Float
+}
+
+input FeedOptionsInput {
+  location: LocationFilterInput
+  limit: Int
+  sectionsToInclude: [FeedSectionType!]
+}
+
+# ===========================
+# QUERIES
+# ===========================
+
+extend type Query {
+  # Main discovery search endpoint
+  discover(
+    filter: DiscoverySearchFilterInput!
+    options: SearchOptionsInput
+  ): SearchResult!
+
+  # Home feed composition
+  homeFeed(options: FeedOptionsInput): [HomeFeedSection!]!
+
+  # Featured listings (promoted)
+  featuredListings(limit: Int): [RankedListing!]!
+
+  # Similar listings with ranking (use this for discovery with promotion awareness)
+  discoverSimilar(listingId: UUID!, limit: Int): [RankedListing!]!
+}
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -12746,6 +13110,38 @@ func (ec *executionContext) field_Query_disbursement_args(ctx context.Context, r
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_discoverSimilar_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "listingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["listingId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_discover_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalNDiscoverySearchFilterInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscoverySearchFilterInput)
+	if err != nil {
+		return nil, err
+	}
+	args["filter"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "options", ec.unmarshalOSearchOptionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐSearchOptionsInput)
+	if err != nil {
+		return nil, err
+	}
+	args["options"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_disputeByBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -12786,6 +13182,17 @@ func (ec *executionContext) field_Query_disputes_args(ctx context.Context, rawAr
 		return nil, err
 	}
 	args["offset"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_featuredListings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
 	return args, nil
 }
 
@@ -12879,6 +13286,17 @@ func (ec *executionContext) field_Query_getSubscription_args(ctx context.Context
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_homeFeed_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "options", ec.unmarshalOFeedOptionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐFeedOptionsInput)
+	if err != nil {
+		return nil, err
+	}
+	args["options"] = arg0
 	return args, nil
 }
 
@@ -21354,6 +21772,132 @@ func (ec *executionContext) fieldContext_FinanceTransaction_updatedAt(_ context.
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HomeFeedSection_sectionType(ctx context.Context, field graphql.CollectedField, obj *domain12.HomeFeedSection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HomeFeedSection_sectionType,
+		func(ctx context.Context) (any, error) {
+			return obj.SectionType, nil
+		},
+		nil,
+		ec.marshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_HomeFeedSection_sectionType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HomeFeedSection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type FeedSectionType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HomeFeedSection_title(ctx context.Context, field graphql.CollectedField, obj *domain12.HomeFeedSection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HomeFeedSection_title,
+		func(ctx context.Context) (any, error) {
+			return obj.Title, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_HomeFeedSection_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HomeFeedSection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HomeFeedSection_listings(ctx context.Context, field graphql.CollectedField, obj *domain12.HomeFeedSection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HomeFeedSection_listings,
+		func(ctx context.Context) (any, error) {
+			return obj.Listings, nil
+		},
+		nil,
+		ec.marshalNRankedListing2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_HomeFeedSection_listings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HomeFeedSection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "listing":
+				return ec.fieldContext_RankedListing_listing(ctx, field)
+			case "score":
+				return ec.fieldContext_RankedListing_score(ctx, field)
+			case "ranking":
+				return ec.fieldContext_RankedListing_ranking(ctx, field)
+			case "promotionBoost":
+				return ec.fieldContext_RankedListing_promotionBoost(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RankedListing", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HomeFeedSection_totalCount(ctx context.Context, field graphql.CollectedField, obj *domain12.HomeFeedSection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HomeFeedSection_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_HomeFeedSection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HomeFeedSection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -36110,6 +36654,122 @@ func (ec *executionContext) fieldContext_Profile_updatedAt(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _PromotionBoostInfo_promotionId(ctx context.Context, field graphql.CollectedField, obj *domain12.PromotionBoostInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PromotionBoostInfo_promotionId,
+		func(ctx context.Context) (any, error) {
+			return obj.PromotionID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PromotionBoostInfo_promotionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PromotionBoostInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PromotionBoostInfo_promotionType(ctx context.Context, field graphql.CollectedField, obj *domain12.PromotionBoostInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PromotionBoostInfo_promotionType,
+		func(ctx context.Context) (any, error) {
+			return obj.PromotionType, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PromotionBoostInfo_promotionType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PromotionBoostInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PromotionBoostInfo_boostMultiplier(ctx context.Context, field graphql.CollectedField, obj *domain12.PromotionBoostInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PromotionBoostInfo_boostMultiplier,
+		func(ctx context.Context) (any, error) {
+			return obj.BoostMultiplier, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PromotionBoostInfo_boostMultiplier(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PromotionBoostInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PromotionBoostInfo_expiresAt(ctx context.Context, field graphql.CollectedField, obj *domain12.PromotionBoostInfo) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PromotionBoostInfo_expiresAt,
+		func(ctx context.Context) (any, error) {
+			return obj.ExpiresAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PromotionBoostInfo_expiresAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PromotionBoostInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Property_id(ctx context.Context, field graphql.CollectedField, obj *domain10.Property) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -43571,6 +44231,210 @@ func (ec *executionContext) fieldContext_Query_myInteractionHistory(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_discover(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_discover,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Discover(ctx, fc.Args["filter"].(model.DiscoverySearchFilterInput), fc.Args["options"].(*model.SearchOptionsInput))
+		},
+		nil,
+		ec.marshalNSearchResult2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐSearchResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_discover(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "listings":
+				return ec.fieldContext_SearchResult_listings(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_SearchResult_totalCount(ctx, field)
+			case "searchId":
+				return ec.fieldContext_SearchResult_searchId(ctx, field)
+			case "processingTime":
+				return ec.fieldContext_SearchResult_processingTime(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SearchResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_discover_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_homeFeed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_homeFeed,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().HomeFeed(ctx, fc.Args["options"].(*model.FeedOptionsInput))
+		},
+		nil,
+		ec.marshalNHomeFeedSection2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐHomeFeedSectionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_homeFeed(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "sectionType":
+				return ec.fieldContext_HomeFeedSection_sectionType(ctx, field)
+			case "title":
+				return ec.fieldContext_HomeFeedSection_title(ctx, field)
+			case "listings":
+				return ec.fieldContext_HomeFeedSection_listings(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_HomeFeedSection_totalCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type HomeFeedSection", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_homeFeed_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_featuredListings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_featuredListings,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().FeaturedListings(ctx, fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalNRankedListing2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_featuredListings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "listing":
+				return ec.fieldContext_RankedListing_listing(ctx, field)
+			case "score":
+				return ec.fieldContext_RankedListing_score(ctx, field)
+			case "ranking":
+				return ec.fieldContext_RankedListing_ranking(ctx, field)
+			case "promotionBoost":
+				return ec.fieldContext_RankedListing_promotionBoost(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RankedListing", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_featuredListings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_discoverSimilar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_discoverSimilar,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().DiscoverSimilar(ctx, fc.Args["listingId"].(uuid.UUID), fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalNRankedListing2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_discoverSimilar(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "listing":
+				return ec.fieldContext_RankedListing_listing(ctx, field)
+			case "score":
+				return ec.fieldContext_RankedListing_score(ctx, field)
+			case "ranking":
+				return ec.fieldContext_RankedListing_ranking(ctx, field)
+			case "promotionBoost":
+				return ec.fieldContext_RankedListing_promotionBoost(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RankedListing", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_discoverSimilar_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -43674,6 +44538,378 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 				return ec.fieldContext___Schema_directives(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type __Schema", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankedListing_listing(ctx context.Context, field graphql.CollectedField, obj *domain12.RankedListing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankedListing_listing,
+		func(ctx context.Context) (any, error) {
+			return obj.Listing, nil
+		},
+		nil,
+		ec.marshalNListing2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankedListing_listing(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankedListing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Listing_id(ctx, field)
+			case "propertyId":
+				return ec.fieldContext_Listing_propertyId(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_Listing_ownerId(ctx, field)
+			case "ownerType":
+				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
+			case "slug":
+				return ec.fieldContext_Listing_slug(ctx, field)
+			case "title":
+				return ec.fieldContext_Listing_title(ctx, field)
+			case "description":
+				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
+			case "currency":
+				return ec.fieldContext_Listing_currency(ctx, field)
+			case "listingType":
+				return ec.fieldContext_Listing_listingType(ctx, field)
+			case "status":
+				return ec.fieldContext_Listing_status(ctx, field)
+			case "published":
+				return ec.fieldContext_Listing_published(ctx, field)
+			case "publishedAt":
+				return ec.fieldContext_Listing_publishedAt(ctx, field)
+			case "latestReviewStatus":
+				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Listing_createdBy(ctx, field)
+			case "updatedBy":
+				return ec.fieldContext_Listing_updatedBy(ctx, field)
+			case "statusChangedAt":
+				return ec.fieldContext_Listing_statusChangedAt(ctx, field)
+			case "changeReason":
+				return ec.fieldContext_Listing_changeReason(ctx, field)
+			case "hasCalendar":
+				return ec.fieldContext_Listing_hasCalendar(ctx, field)
+			case "shortletDetails":
+				return ec.fieldContext_Listing_shortletDetails(ctx, field)
+			case "rentalDetails":
+				return ec.fieldContext_Listing_rentalDetails(ctx, field)
+			case "saleDetails":
+				return ec.fieldContext_Listing_saleDetails(ctx, field)
+			case "property":
+				return ec.fieldContext_Listing_property(ctx, field)
+			case "media":
+				return ec.fieldContext_Listing_media(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Listing_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Listing_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankedListing_score(ctx context.Context, field graphql.CollectedField, obj *domain12.RankedListing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankedListing_score,
+		func(ctx context.Context) (any, error) {
+			return obj.Score, nil
+		},
+		nil,
+		ec.marshalNRankingScore2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankingScore,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankedListing_score(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankedListing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "finalScore":
+				return ec.fieldContext_RankingScore_finalScore(ctx, field)
+			case "semanticScore":
+				return ec.fieldContext_RankingScore_semanticScore(ctx, field)
+			case "promotionBoost":
+				return ec.fieldContext_RankingScore_promotionBoost(ctx, field)
+			case "recencyScore":
+				return ec.fieldContext_RankingScore_recencyScore(ctx, field)
+			case "locationScore":
+				return ec.fieldContext_RankingScore_locationScore(ctx, field)
+			case "personalizedScore":
+				return ec.fieldContext_RankingScore_personalizedScore(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RankingScore", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankedListing_ranking(ctx context.Context, field graphql.CollectedField, obj *domain12.RankedListing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankedListing_ranking,
+		func(ctx context.Context) (any, error) {
+			return obj.Ranking, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankedListing_ranking(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankedListing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankedListing_promotionBoost(ctx context.Context, field graphql.CollectedField, obj *domain12.RankedListing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankedListing_promotionBoost,
+		func(ctx context.Context) (any, error) {
+			return obj.PromotionBoost, nil
+		},
+		nil,
+		ec.marshalOPromotionBoostInfo2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐPromotionBoostInfo,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankedListing_promotionBoost(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankedListing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "promotionId":
+				return ec.fieldContext_PromotionBoostInfo_promotionId(ctx, field)
+			case "promotionType":
+				return ec.fieldContext_PromotionBoostInfo_promotionType(ctx, field)
+			case "boostMultiplier":
+				return ec.fieldContext_PromotionBoostInfo_boostMultiplier(ctx, field)
+			case "expiresAt":
+				return ec.fieldContext_PromotionBoostInfo_expiresAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PromotionBoostInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankingScore_finalScore(ctx context.Context, field graphql.CollectedField, obj *domain12.RankingScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankingScore_finalScore,
+		func(ctx context.Context) (any, error) {
+			return obj.FinalScore, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankingScore_finalScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankingScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankingScore_semanticScore(ctx context.Context, field graphql.CollectedField, obj *domain12.RankingScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankingScore_semanticScore,
+		func(ctx context.Context) (any, error) {
+			return obj.SemanticScore, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankingScore_semanticScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankingScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankingScore_promotionBoost(ctx context.Context, field graphql.CollectedField, obj *domain12.RankingScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankingScore_promotionBoost,
+		func(ctx context.Context) (any, error) {
+			return obj.PromotionBoost, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankingScore_promotionBoost(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankingScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankingScore_recencyScore(ctx context.Context, field graphql.CollectedField, obj *domain12.RankingScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankingScore_recencyScore,
+		func(ctx context.Context) (any, error) {
+			return obj.RecencyScore, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankingScore_recencyScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankingScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankingScore_locationScore(ctx context.Context, field graphql.CollectedField, obj *domain12.RankingScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankingScore_locationScore,
+		func(ctx context.Context) (any, error) {
+			return obj.LocationScore, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankingScore_locationScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankingScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankingScore_personalizedScore(ctx context.Context, field graphql.CollectedField, obj *domain12.RankingScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankingScore_personalizedScore,
+		func(ctx context.Context) (any, error) {
+			return obj.PersonalizedScore, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankingScore_personalizedScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankingScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
 		},
 	}
 	return fc, nil
@@ -45997,6 +47233,132 @@ func (ec *executionContext) _ScoredListing_ranking(ctx context.Context, field gr
 func (ec *executionContext) fieldContext_ScoredListing_ranking(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ScoredListing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchResult_listings(ctx context.Context, field graphql.CollectedField, obj *domain12.SearchResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SearchResult_listings,
+		func(ctx context.Context) (any, error) {
+			return obj.Listings, nil
+		},
+		nil,
+		ec.marshalNRankedListing2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SearchResult_listings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "listing":
+				return ec.fieldContext_RankedListing_listing(ctx, field)
+			case "score":
+				return ec.fieldContext_RankedListing_score(ctx, field)
+			case "ranking":
+				return ec.fieldContext_RankedListing_ranking(ctx, field)
+			case "promotionBoost":
+				return ec.fieldContext_RankedListing_promotionBoost(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RankedListing", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchResult_totalCount(ctx context.Context, field graphql.CollectedField, obj *domain12.SearchResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SearchResult_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SearchResult_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchResult_searchId(ctx context.Context, field graphql.CollectedField, obj *domain12.SearchResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SearchResult_searchId,
+		func(ctx context.Context) (any, error) {
+			return obj.SearchID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SearchResult_searchId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchResult_processingTime(ctx context.Context, field graphql.CollectedField, obj *domain12.SearchResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SearchResult_processingTime,
+		func(ctx context.Context) (any, error) {
+			return obj.ProcessingTime, nil
+		},
+		nil,
+		ec.marshalOInt2int64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_SearchResult_processingTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchResult",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -52667,6 +54029,144 @@ func (ec *executionContext) unmarshalInputCreateWishlistInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputDiscoverySearchFilterInput(ctx context.Context, obj any) (model.DiscoverySearchFilterInput, error) {
+	var it model.DiscoverySearchFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"query", "location", "priceRange", "propertyTypes", "bedrooms", "bathrooms", "listingTypes", "city", "state", "country", "amenities"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "query":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Query = data
+		case "location":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("location"))
+			data, err := ec.unmarshalOLocationFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLocationFilterInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Location = data
+		case "priceRange":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("priceRange"))
+			data, err := ec.unmarshalOPriceRangeFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPriceRangeFilterInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PriceRange = data
+		case "propertyTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("propertyTypes"))
+			data, err := ec.unmarshalOPropertyType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PropertyTypes = data
+		case "bedrooms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bedrooms"))
+			data, err := ec.unmarshalOIntRangeFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐIntRangeFilterInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Bedrooms = data
+		case "bathrooms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bathrooms"))
+			data, err := ec.unmarshalOIntRangeFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐIntRangeFilterInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Bathrooms = data
+		case "listingTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("listingTypes"))
+			data, err := ec.unmarshalOListingType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ListingTypes = data
+		case "city":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("city"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.City = data
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
+		case "country":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("country"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Country = data
+		case "amenities":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amenities"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Amenities = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputFeedOptionsInput(ctx context.Context, obj any) (model.FeedOptionsInput, error) {
+	var it model.FeedOptionsInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"location", "limit", "sectionsToInclude"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "location":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("location"))
+			data, err := ec.unmarshalOLocationFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLocationFilterInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Location = data
+		case "limit":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Limit = data
+		case "sectionsToInclude":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sectionsToInclude"))
+			data, err := ec.unmarshalOFeedSectionType2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SectionsToInclude = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputFileDisputeInput(ctx context.Context, obj any) (graphql2.FileDisputeInput, error) {
 	var it graphql2.FileDisputeInput
 	asMap := map[string]any{}
@@ -52716,6 +54216,40 @@ func (ec *executionContext) unmarshalInputFileDisputeInput(ctx context.Context, 
 				return it, err
 			}
 			it.Currency = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputIntRangeFilterInput(ctx context.Context, obj any) (model.IntRangeFilterInput, error) {
+	var it model.IntRangeFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"min", "max"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "min":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("min"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Min = data
+		case "max":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("max"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Max = data
 		}
 	}
 
@@ -53041,6 +54575,47 @@ func (ec *executionContext) unmarshalInputListingFilterInput(ctx context.Context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputLocationFilterInput(ctx context.Context, obj any) (model.LocationFilterInput, error) {
+	var it model.LocationFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"lat", "lng", "radiusKm"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "lat":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lat"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lat = data
+		case "lng":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lng"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lng = data
+		case "radiusKm":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("radiusKm"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RadiusKm = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLocationInput(ctx context.Context, obj any) (model.LocationInput, error) {
 	var it model.LocationInput
 	asMap := map[string]any{}
@@ -53281,6 +54856,47 @@ func (ec *executionContext) unmarshalInputPayForBookingInput(ctx context.Context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputPriceRangeFilterInput(ctx context.Context, obj any) (model.PriceRangeFilterInput, error) {
+	var it model.PriceRangeFilterInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"min", "max", "currency"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "min":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("min"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Min = data
+		case "max":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("max"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Max = data
+		case "currency":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currency"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Currency = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPropertyFilterExtension(ctx context.Context, obj any) (model.PropertyFilterExtension, error) {
 	var it model.PropertyFilterExtension
 	asMap := map[string]any{}
@@ -53316,6 +54932,54 @@ func (ec *executionContext) unmarshalInputPropertyFilterExtension(ctx context.Co
 				return it, err
 			}
 			it.Amenities = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputRankingConfigInput(ctx context.Context, obj any) (model.RankingConfigInput, error) {
+	var it model.RankingConfigInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"semanticWeight", "promotionWeight", "recencyWeight", "locationWeight"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "semanticWeight":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("semanticWeight"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SemanticWeight = data
+		case "promotionWeight":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("promotionWeight"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PromotionWeight = data
+		case "recencyWeight":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("recencyWeight"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RecencyWeight = data
+		case "locationWeight":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("locationWeight"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LocationWeight = data
 		}
 	}
 
@@ -54123,6 +55787,47 @@ func (ec *executionContext) unmarshalInputSaleFilterInput(ctx context.Context, o
 				return it, err
 			}
 			it.PaymentPlan = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSearchOptionsInput(ctx context.Context, obj any) (model.SearchOptionsInput, error) {
+	var it model.SearchOptionsInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"limit", "includePromoted", "rankingConfig"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "limit":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Limit = data
+		case "includePromoted":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("includePromoted"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IncludePromoted = data
+		case "rankingConfig":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rankingConfig"))
+			data, err := ec.unmarshalORankingConfigInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRankingConfigInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RankingConfig = data
 		}
 	}
 
@@ -57897,6 +59602,60 @@ func (ec *executionContext) _FinanceTransaction(ctx context.Context, sel ast.Sel
 			out.Values[i] = ec._FinanceTransaction_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var homeFeedSectionImplementors = []string{"HomeFeedSection"}
+
+func (ec *executionContext) _HomeFeedSection(ctx context.Context, sel ast.SelectionSet, obj *domain12.HomeFeedSection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, homeFeedSectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("HomeFeedSection")
+		case "sectionType":
+			out.Values[i] = ec._HomeFeedSection_sectionType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "title":
+			out.Values[i] = ec._HomeFeedSection_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "listings":
+			out.Values[i] = ec._HomeFeedSection_listings(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._HomeFeedSection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -61846,6 +63605,60 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
+var promotionBoostInfoImplementors = []string{"PromotionBoostInfo"}
+
+func (ec *executionContext) _PromotionBoostInfo(ctx context.Context, sel ast.SelectionSet, obj *domain12.PromotionBoostInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, promotionBoostInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PromotionBoostInfo")
+		case "promotionId":
+			out.Values[i] = ec._PromotionBoostInfo_promotionId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "promotionType":
+			out.Values[i] = ec._PromotionBoostInfo_promotionType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "boostMultiplier":
+			out.Values[i] = ec._PromotionBoostInfo_boostMultiplier(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "expiresAt":
+			out.Values[i] = ec._PromotionBoostInfo_expiresAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var propertyImplementors = []string{"Property"}
 
 func (ec *executionContext) _Property(ctx context.Context, sel ast.SelectionSet, obj *domain10.Property) graphql.Marshaler {
@@ -64110,6 +65923,94 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "discover":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_discover(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "homeFeed":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_homeFeed(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "featuredListings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_featuredListings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "discoverSimilar":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_discoverSimilar(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -64118,6 +66019,112 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___schema(ctx, field)
 			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var rankedListingImplementors = []string{"RankedListing"}
+
+func (ec *executionContext) _RankedListing(ctx context.Context, sel ast.SelectionSet, obj *domain12.RankedListing) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rankedListingImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RankedListing")
+		case "listing":
+			out.Values[i] = ec._RankedListing_listing(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "score":
+			out.Values[i] = ec._RankedListing_score(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ranking":
+			out.Values[i] = ec._RankedListing_ranking(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "promotionBoost":
+			out.Values[i] = ec._RankedListing_promotionBoost(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var rankingScoreImplementors = []string{"RankingScore"}
+
+func (ec *executionContext) _RankingScore(ctx context.Context, sel ast.SelectionSet, obj *domain12.RankingScore) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rankingScoreImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RankingScore")
+		case "finalScore":
+			out.Values[i] = ec._RankingScore_finalScore(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "semanticScore":
+			out.Values[i] = ec._RankingScore_semanticScore(ctx, field, obj)
+		case "promotionBoost":
+			out.Values[i] = ec._RankingScore_promotionBoost(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "recencyScore":
+			out.Values[i] = ec._RankingScore_recencyScore(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "locationScore":
+			out.Values[i] = ec._RankingScore_locationScore(ctx, field, obj)
+		case "personalizedScore":
+			out.Values[i] = ec._RankingScore_personalizedScore(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -65055,6 +67062,57 @@ func (ec *executionContext) _ScoredListing(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var searchResultImplementors = []string{"SearchResult"}
+
+func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.SelectionSet, obj *domain12.SearchResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, searchResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SearchResult")
+		case "listings":
+			out.Values[i] = ec._SearchResult_listings(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._SearchResult_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "searchId":
+			out.Values[i] = ec._SearchResult_searchId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "processingTime":
+			out.Values[i] = ec._SearchResult_processingTime(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -67996,6 +70054,11 @@ func (ec *executionContext) marshalNDiscountSnapshot2hausletᚋinternalᚋmodule
 	return ec._DiscountSnapshot(ctx, sel, &v)
 }
 
+func (ec *executionContext) unmarshalNDiscoverySearchFilterInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscoverySearchFilterInput(ctx context.Context, v any) (model.DiscoverySearchFilterInput, error) {
+	res, err := ec.unmarshalInputDiscoverySearchFilterInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNDiscrepancy2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDiscrepancy(ctx context.Context, sel ast.SelectionSet, v domain6.Discrepancy) graphql.Marshaler {
 	return ec._Discrepancy(ctx, sel, &v)
 }
@@ -68368,6 +70431,23 @@ func (ec *executionContext) marshalNFeatureLimitCheckResult2ᚖhausletᚋinterna
 	return ec._FeatureLimitCheckResult(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx context.Context, v any) (domain12.FeedSectionType, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain12.FeedSectionType(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx context.Context, sel ast.SelectionSet, v domain12.FeedSectionType) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNFileDisputeInput2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐFileDisputeInput(ctx context.Context, v any) (graphql2.FileDisputeInput, error) {
 	res, err := ec.unmarshalInputFileDisputeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -68492,6 +70572,60 @@ func (ec *executionContext) marshalNFurnishingType2hausletᚋinternalᚋmodules�
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNHomeFeedSection2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐHomeFeedSectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain12.HomeFeedSection) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNHomeFeedSection2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐHomeFeedSection(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNHomeFeedSection2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐHomeFeedSection(ctx context.Context, sel ast.SelectionSet, v *domain12.HomeFeedSection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._HomeFeedSection(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
@@ -69762,6 +71896,112 @@ func (ec *executionContext) marshalNPropertyType2hausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
+func (ec *executionContext) marshalNRankedListing2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListing(ctx context.Context, sel ast.SelectionSet, v domain12.RankedListing) graphql.Marshaler {
+	return ec._RankedListing(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRankedListing2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ(ctx context.Context, sel ast.SelectionSet, v []domain12.RankedListing) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNRankedListing2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListing(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNRankedListing2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain12.RankedListing) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNRankedListing2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListing(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNRankedListing2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListing(ctx context.Context, sel ast.SelectionSet, v *domain12.RankedListing) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RankedListing(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRankingScore2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankingScore(ctx context.Context, sel ast.SelectionSet, v domain12.RankingScore) graphql.Marshaler {
+	return ec._RankingScore(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNRatingDistribution2hausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐRatingDistribution(ctx context.Context, sel ast.SelectionSet, v domain4.RatingDistribution) graphql.Marshaler {
 	return ec._RatingDistribution(ctx, sel, &v)
 }
@@ -70228,6 +72468,20 @@ func (ec *executionContext) marshalNScoredListing2ᚖhausletᚋinternalᚋtransp
 		return graphql.Null
 	}
 	return ec._ScoredListing(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSearchResult2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐSearchResult(ctx context.Context, sel ast.SelectionSet, v domain12.SearchResult) graphql.Marshaler {
+	return ec._SearchResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSearchResult2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐSearchResult(ctx context.Context, sel ast.SelectionSet, v *domain12.SearchResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SearchResult(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNServiceCharge2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceCharge(ctx context.Context, sel ast.SelectionSet, v *domain10.ServiceCharge) graphql.Marshaler {
@@ -71646,6 +73900,79 @@ func (ec *executionContext) marshalOEventType2ᚕhausletᚋinternalᚋmodulesᚋ
 	return ret
 }
 
+func (ec *executionContext) unmarshalOFeedOptionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐFeedOptionsInput(ctx context.Context, v any) (*model.FeedOptionsInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputFeedOptionsInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOFeedSectionType2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionTypeᚄ(ctx context.Context, v any) ([]domain12.FeedSectionType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]domain12.FeedSectionType, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOFeedSectionType2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain12.FeedSectionType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOFloat2float64(ctx context.Context, v any) (float64, error) {
 	res, err := graphql.UnmarshalFloatContext(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -71795,6 +74122,18 @@ func (ec *executionContext) marshalOInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) unmarshalOInt2int64(ctx context.Context, v any) (int64, error) {
+	res, err := graphql.UnmarshalInt64(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalInt64(v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
 	if v == nil {
 		return nil, nil
@@ -71829,6 +74168,14 @@ func (ec *executionContext) marshalOInt2ᚖint64(ctx context.Context, sel ast.Se
 	_ = ctx
 	res := graphql.MarshalInt64(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOIntRangeFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐIntRangeFilterInput(ctx context.Context, v any) (*model.IntRangeFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputIntRangeFilterInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOLead2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋdomainᚐLead(ctx context.Context, sel ast.SelectionSet, v *domain2.Lead) graphql.Marshaler {
@@ -72168,6 +74515,14 @@ func (ec *executionContext) marshalOLocation2ᚖhausletᚋinternalᚋmodulesᚋp
 	return ec._Location(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOLocationFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLocationFilterInput(ctx context.Context, v any) (*model.LocationFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputLocationFilterInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalOLocationInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLocationInput(ctx context.Context, v any) (*model.LocationInput, error) {
 	if v == nil {
 		return nil, nil
@@ -72484,11 +74839,26 @@ func (ec *executionContext) marshalOPriceBreakdownSnapshot2ᚖhausletᚋinternal
 	return ec._PriceBreakdownSnapshot(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOPriceRangeFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPriceRangeFilterInput(ctx context.Context, v any) (*model.PriceRangeFilterInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputPriceRangeFilterInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain5.Profile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Profile(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOPromotionBoostInfo2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐPromotionBoostInfo(ctx context.Context, sel ast.SelectionSet, v *domain12.PromotionBoostInfo) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._PromotionBoostInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOPropertyClass2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐPropertyClassᚄ(ctx context.Context, v any) ([]domain10.PropertyClass, error) {
@@ -72751,6 +75121,14 @@ func (ec *executionContext) marshalOPropertyType2ᚖhausletᚋinternalᚋmodules
 	return res
 }
 
+func (ec *executionContext) unmarshalORankingConfigInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRankingConfigInput(ctx context.Context, v any) (*model.RankingConfigInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputRankingConfigInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOReconciliationReport2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐReconciliationReport(ctx context.Context, sel ast.SelectionSet, v *domain6.ReconciliationReport) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -72906,6 +75284,14 @@ func (ec *executionContext) unmarshalOSaleFilterInput2ᚖhausletᚋinternalᚋtr
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputSaleFilterInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOSearchOptionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐSearchOptionsInput(ctx context.Context, v any) (*model.SearchOptionsInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputSearchOptionsInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
