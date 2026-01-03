@@ -70,7 +70,7 @@ func (w *BatchWriter) processBatch(ctx context.Context) error {
 	items := make([]string, 0, w.batchSize)
 
 	for i := 0; i < w.batchSize; i++ {
-		item, err := w.redis.LPop(ctx, service.RedisQueueKey)
+		item, err := w.redis.LPop(ctx, service.RedisQueueKey).Result()
 		if err != nil || item == "" {
 			break // Queue is empty or error occurred
 		}
