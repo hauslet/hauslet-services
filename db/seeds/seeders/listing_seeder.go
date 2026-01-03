@@ -145,8 +145,6 @@ func createListing(
 		Published:   published,
 
 		LatestReviewStatus: reviewStatusForListing(status),
-		ViewCount:          utils.RandomInt(0, 500),
-		BoostLevel:         utils.RandomInt(0, 3),
 
 		HasCalendar: listingType == propertySchema.ListingShortLet,
 		CreatedAt:   createdAt,

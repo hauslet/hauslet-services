@@ -8,7 +8,6 @@ import (
 
 	"hauslet/internal/modules/calendar/domain"
 	"hauslet/internal/modules/calendar/service"
-	"hauslet/internal/transport/graph/model"
 	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/google/uuid"
@@ -139,7 +138,7 @@ func (r *Resolver) CheckListingAvailability(ctx context.Context, listingID uuid.
 // ============================================================================
 
 // RequestShowing creates a new showing request for a rent/sale listing.
-func (r *Resolver) RequestShowing(ctx context.Context, input model.RequestShowingInput) (*domain.CalendarEvent, error) {
+func (r *Resolver) RequestShowing(ctx context.Context, input RequestShowingInput) (*domain.CalendarEvent, error) {
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -192,7 +191,7 @@ func (r *Resolver) ConfirmShowing(ctx context.Context, eventID uuid.UUID) (*doma
 }
 
 // CancelShowing cancels a showing (owner or prospect).
-func (r *Resolver) CancelShowing(ctx context.Context, input model.CancelShowingInput) (*domain.CalendarEvent, error) {
+func (r *Resolver) CancelShowing(ctx context.Context, input CancelShowingInput) (*domain.CalendarEvent, error) {
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -218,7 +217,7 @@ func (r *Resolver) CancelShowing(ctx context.Context, input model.CancelShowingI
 }
 
 // RescheduleShowing reschedules a showing to a new time.
-func (r *Resolver) RescheduleShowing(ctx context.Context, input model.RescheduleShowingInput) (*domain.CalendarEvent, error) {
+func (r *Resolver) RescheduleShowing(ctx context.Context, input RescheduleShowingInput) (*domain.CalendarEvent, error) {
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -240,7 +239,7 @@ func (r *Resolver) RescheduleShowing(ctx context.Context, input model.Reschedule
 }
 
 // CreateOpenHouse creates a new open house event.
-func (r *Resolver) CreateOpenHouse(ctx context.Context, input model.CreateOpenHouseInput) (*domain.CalendarEvent, error) {
+func (r *Resolver) CreateOpenHouse(ctx context.Context, input CreateOpenHouseInput) (*domain.CalendarEvent, error) {
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -265,7 +264,7 @@ func (r *Resolver) CreateOpenHouse(ctx context.Context, input model.CreateOpenHo
 }
 
 // RegisterOpenHouse registers an attendee for an open house.
-func (r *Resolver) RegisterOpenHouse(ctx context.Context, input model.RegisterOpenHouseInput) (bool, error) {
+func (r *Resolver) RegisterOpenHouse(ctx context.Context, input RegisterOpenHouseInput) (bool, error) {
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return false, err

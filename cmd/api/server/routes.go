@@ -62,6 +62,8 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		container.SubscriptionSvc,
 		container.UsageSvc,
 		container.LeadSvc,
+		container.InteractionTracker,
+		container.InteractionReader,
 		container.BusinessMW.Auth.WithTenantSlug,
 		container.FXClient,
 		container.Redis,

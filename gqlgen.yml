@@ -61,6 +61,10 @@ models:
   # --- Profile Module Bindings ---
   Profile:
     model: hauslet/internal/modules/profile/domain.Profile
+  UpdateProfileInput:
+    model: hauslet/internal/modules/profile/port/graphql.UpdateProfileInput
+  TravelCompanionInput:
+    model: hauslet/internal/modules/profile/port/graphql.TravelCompanionInput
   
   # TravelCompanion is nested inside Profile
   TravelCompanion:
@@ -78,12 +82,29 @@ models:
   # --- Property Module Bindings ---
   Property:
     model: hauslet/internal/modules/property/domain.Property
+    fields:
+      amenities:
+        resolver: true
+      featuresCommercial:
+        resolver: true
   Listing:
     model: hauslet/internal/modules/property/domain.Listing
   ListingMedia:
     model: hauslet/internal/modules/property/domain.ListingMedia
   Location:
     model: hauslet/internal/modules/property/domain.Location
+  AmenityGroup:
+    model: hauslet/internal/modules/property/domain.AmenityGroup
+  AmenityGroupInput:
+    model: hauslet/internal/modules/property/domain.AmenityGroup
+  RuleItem:
+    model: hauslet/internal/modules/property/domain.RuleItem
+  RuleItemInput:
+    model: hauslet/internal/modules/property/domain.RuleItem
+  RuleGroupInput:
+    model: hauslet/internal/modules/property/domain.RuleGroup
+  ServiceChargeInput:
+    model: hauslet/internal/modules/property/domain.ServiceCharge
   ShortletDetail:
     model: hauslet/internal/modules/property/domain.ShortletDetail
   RentalDetail:
@@ -94,6 +115,9 @@ models:
     model: hauslet/internal/modules/property/domain.AmenityHighlight
   RuleGroup:
     model: hauslet/internal/modules/property/domain.RuleGroup
+    fields:
+      rules:
+        resolver: true
   ServiceCharge:
     model: hauslet/internal/modules/property/domain.ServiceCharge
   ListingCompleteness:
@@ -130,6 +154,8 @@ models:
     model: hauslet/internal/modules/property/domain.AccommodationType
   RuleCategory:
     model: hauslet/internal/modules/property/domain.RuleCategory
+  RuleSubCategory:
+    model: hauslet/internal/modules/property/domain.RuleSubCategory
   MediaType:
     model: hauslet/internal/modules/property/domain.MediaType
 
@@ -144,6 +170,16 @@ models:
     model: hauslet/internal/modules/business/domain.MemberPermissions
   BusinessAddress:
     model: hauslet/internal/modules/business/domain.Address
+  BusinessAddressInput:
+    model: hauslet/internal/modules/business/port/graphql.BusinessAddressInput
+  CreateBusinessInput:
+    model: hauslet/internal/modules/business/port/graphql.CreateBusinessInput
+  UpdateBusinessInput:
+    model: hauslet/internal/modules/business/port/graphql.UpdateBusinessInput
+  InviteMemberInput:
+    model: hauslet/internal/modules/business/port/graphql.InviteMemberInput
+  MemberPermissionsInput:
+    model: hauslet/internal/modules/business/port/graphql.MemberPermissionsInput
 
   # Business Enums
   BusinessType:
@@ -165,6 +201,10 @@ models:
     model: hauslet/internal/modules/wishlist/domain.WishlistItem
   WishlistItemSource:
     model: hauslet/internal/modules/wishlist/domain.WishlistItemSource
+  CreateWishlistInput:
+    model: hauslet/internal/modules/wishlist/port/graphql.CreateWishlistInput
+  UpdateWishlistInput:
+    model: hauslet/internal/modules/wishlist/port/graphql.UpdateWishlistInput
 
   # --- Booking Module Bindings ---
   Booking:
@@ -178,10 +218,17 @@ models:
   DailyRate:
     model: hauslet/internal/modules/booking/domain.DailyRate
 
-  # Booking Input/Output Types - Let gqlgen generate input types
-  # Output types that contain domain data are bound
+  # Booking Input/Output Types
   CompleteBookingPayload:
     model: hauslet/internal/modules/booking/port/graphql.CompleteBookingPayload
+  ReserveBookingInput:
+    model: hauslet/internal/modules/booking/port/graphql.ReserveBookingInput
+  RequestBookingInput:
+    model: hauslet/internal/modules/booking/port/graphql.RequestBookingInput
+  PayForBookingInput:
+    model: hauslet/internal/modules/booking/port/graphql.PayForBookingInput
+  CancelBookingInput:
+    model: hauslet/internal/modules/booking/port/graphql.CancelBookingInput
 
   # Booking Enums
   BookingStatus:
@@ -235,6 +282,8 @@ models:
     model: hauslet/internal/modules/payments/port/graphql.SavePaymentMethodInput
   AddPayoutDetailInput:
     model: hauslet/internal/modules/payments/port/graphql.AddPayoutDetailInput
+  CreatePayoutInput:
+    model: hauslet/internal/modules/payments/port/graphql.CreatePayoutInput
 
   # Payment Enums
   PaymentStatus:
@@ -291,6 +340,12 @@ models:
     model: hauslet/internal/modules/finance/domain.DisputeEvidence
   DisputeResolution:
     model: hauslet/internal/modules/finance/domain.DisputeResolution
+  FileDisputeInput:
+    model: hauslet/internal/modules/finance/port/graphql.FileDisputeInput
+  ResolveDisputeInput:
+    model: hauslet/internal/modules/finance/port/graphql.ResolveDisputeInput
+  AddDisputeEvidenceInput:
+    model: hauslet/internal/modules/finance/port/graphql.AddDisputeEvidenceInput
 
   # Dispute Enums
   DisputeStatus:
@@ -351,6 +406,12 @@ models:
     model: hauslet/internal/modules/promotions/domain.UsageTracking
 
   # Promotion Input/Output Types
+  CreatePromotionInput:
+    model: hauslet/internal/modules/promotions/port/graphql.CreatePromotionInput
+  CreateIncludedPromotionInput:
+    model: hauslet/internal/modules/promotions/port/graphql.CreateIncludedPromotionInput
+  CreateSubscriptionInput:
+    model: hauslet/internal/modules/promotions/port/graphql.CreateSubscriptionInput
   CreatePromotionPayload:
     model: hauslet/internal/modules/promotions/port/graphql.CreatePromotionPayload
   CreateSubscriptionPayload:
@@ -385,6 +446,16 @@ models:
     model: hauslet/internal/modules/calendar/domain.MaintenanceDetail
   BlockDetail:
     model: hauslet/internal/modules/calendar/domain.BlockDetail
+  RequestShowingInput:
+    model: hauslet/internal/modules/calendar/port/graphql.RequestShowingInput
+  CancelShowingInput:
+    model: hauslet/internal/modules/calendar/port/graphql.CancelShowingInput
+  RescheduleShowingInput:
+    model: hauslet/internal/modules/calendar/port/graphql.RescheduleShowingInput
+  CreateOpenHouseInput:
+    model: hauslet/internal/modules/calendar/port/graphql.CreateOpenHouseInput
+  RegisterOpenHouseInput:
+    model: hauslet/internal/modules/calendar/port/graphql.RegisterOpenHouseInput
   EventType:
     model: hauslet/internal/modules/calendar/domain.EventType
   EventStatus:
@@ -395,6 +466,14 @@ models:
     model: hauslet/internal/modules/leads/domain.Lead
   LeadEvent:
     model: hauslet/internal/modules/leads/domain.LeadEvent
+  LeadFilterInput:
+    model: hauslet/internal/modules/leads/port/graphql.LeadFilterInput
+  PageInput:
+    model: hauslet/internal/modules/leads/port/graphql.PageInput
+  LeadConnection:
+    model: hauslet/internal/modules/leads/port/graphql.LeadConnection
+  CreateLeadInput:
+    model: hauslet/internal/modules/leads/port/graphql.CreateLeadInput
 
   # Leads Enums
   LeadStatus:
@@ -407,3 +486,23 @@ models:
     model: hauslet/internal/modules/leads/domain.ActorType
   AssignmentReason:
     model: hauslet/internal/modules/leads/domain.AssignmentReason
+
+  # --- Interactions Module Bindings ---
+  TrackInteractionInput:
+    model: hauslet/internal/modules/interactions/port/graphql.TrackInteractionInput
+  Interaction:
+    model: hauslet/internal/modules/interactions/port/graphql.InteractionResponse
+  ListingAnalytics:
+    model: hauslet/internal/modules/interactions/port/graphql.ListingAnalyticsResponse
+  AnalyticsPeriod:
+    model: hauslet/internal/modules/interactions/port/graphql.PeriodResponse
+
+  # Interactions Enums
+  InteractionType:
+    model: hauslet/internal/modules/interactions/port/graphql.InteractionTypeInput
+  EntityType:
+    model: hauslet/internal/modules/interactions/port/graphql.EntityTypeInput
+  DeviceType:
+    model: hauslet/internal/modules/interactions/port/graphql.DeviceTypeInput
+  Platform:
+    model: hauslet/internal/modules/interactions/port/graphql.PlatformInput

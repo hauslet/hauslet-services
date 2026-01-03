@@ -135,7 +135,6 @@ func mapListingFilterToService(filter *model.ListingFilterInput) service.Listing
 		MinPrice:     filter.MinPrice,
 		MaxPrice:     filter.MaxPrice,
 		Currency:     filter.Currency,
-		MinViewCount: filter.MinViewCount,
 	}
 
 	if len(filter.OwnerTypes) > 0 {
@@ -543,7 +542,7 @@ func mapUpdateSaleInputToDomain(input *model.UpdateSaleDetailInput) map[string]a
 	return updates
 }
 
-func mapRuleGroupInputs(inputs []*model.RuleGroupInput) []domain.RuleGroup {
+func mapRuleGroupInputs(inputs []*domain.RuleGroup) []domain.RuleGroup {
 	if len(inputs) == 0 {
 		return []domain.RuleGroup{}
 	}
@@ -552,32 +551,23 @@ func mapRuleGroupInputs(inputs []*model.RuleGroupInput) []domain.RuleGroup {
 		if input == nil {
 			continue
 		}
-		rules[i] = domain.RuleGroup{
-			Category: domain.RuleCategory(input.Category),
-			Rules:    mapRuleItems(input.Rules),
-		}
+		group := *input
+		group.Rules = mapRuleItems(group.Rules)
+		rules[i] = group
 	}
 	return rules
 }
 
-func mapRuleItems(inputs []*model.RuleItemInput) []domain.RuleItem {
+func mapRuleItems(inputs []domain.RuleItem) []domain.RuleItem {
 	if len(inputs) == 0 {
 		return []domain.RuleItem{}
 	}
 	items := make([]domain.RuleItem, len(inputs))
 	for i, input := range inputs {
-		if input == nil {
-			continue
+		if input.Description == nil {
+			input.Description = map[string]any{}
 		}
-		// Default to empty description if not provided
-		description := map[string]any{}
-		if input.Description != nil {
-			description = input.Description
-		}
-		items[i] = domain.RuleItem{
-			Name:        domain.RuleSubCategory(input.Name),
-			Description: description,
-		}
+		items[i] = input
 	}
 	return items
 }
@@ -600,7 +590,7 @@ func mapAmenityHighlightInputs(inputs []*model.AmenityHighlightInput) []domain.A
 	return highlights
 }
 
-func mapServiceChargeInputs(inputs []*model.ServiceChargeInput) *[]domain.ServiceCharge {
+func mapServiceChargeInputs(inputs []*domain.ServiceCharge) *[]domain.ServiceCharge {
 	if len(inputs) == 0 {
 		return nil
 	}
@@ -609,17 +599,13 @@ func mapServiceChargeInputs(inputs []*model.ServiceChargeInput) *[]domain.Servic
 		if input == nil {
 			continue
 		}
-		charges[i] = domain.ServiceCharge{
-			Name:   input.Name,
-			Period: domain.PaymentPeriod(input.Period),
-			Amount: input.Amount,
-		}
+		charges[i] = *input
 	}
 	return &charges
 }
 
 // mapAmenityGroupInputsToDomain converts AmenityGroupInput slice to domain AmenityGroup slice
-func mapAmenityGroupInputsToDomain(inputs []*model.AmenityGroupInput) []domain.AmenityGroup {
+func mapAmenityGroupInputsToDomain(inputs []*domain.AmenityGroup) []domain.AmenityGroup {
 	if len(inputs) == 0 {
 		return []domain.AmenityGroup{}
 	}
@@ -628,10 +614,7 @@ func mapAmenityGroupInputsToDomain(inputs []*model.AmenityGroupInput) []domain.A
 		if input == nil {
 			continue
 		}
-		groups[i] = domain.AmenityGroup{
-			Group: input.Group,
-			Items: input.Items,
-		}
+		groups[i] = *input
 	}
 	return groups
 }

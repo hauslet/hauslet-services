@@ -54,7 +54,6 @@ const (
 	ListingSortCreatedAt   ListingSortBy = "created_at"
 	ListingSortUpdatedAt   ListingSortBy = "updated_at"
 	ListingSortPublishedAt ListingSortBy = "published_at"
-	ListingSortViewCount   ListingSortBy = "view_count"
 )
 
 // PropertyFilter defines optional criteria for querying properties.
@@ -96,7 +95,6 @@ type ListingFilter struct {
 	PublishedBefore *time.Time
 	CreatedAfter    *time.Time
 	CreatedBefore   *time.Time
-	MinViewCount    *int
 	IncludeDeleted  bool
 	SortBy          ListingSortBy
 	SortOrder       SortOrder
@@ -194,7 +192,6 @@ func mapListingFilterToRepo(filter ListingFilter) repository.ListingFilter {
 		CreatedBefore:   filter.CreatedBefore,
 		PublishedAfter:  filter.PublishedAfter,
 		PublishedBefore: filter.PublishedBefore,
-		MinViewCount:    filter.MinViewCount,
 		City:            filter.City,
 		State:           filter.State,
 		Latitude:        filter.Latitude,
@@ -377,8 +374,6 @@ func mapListingSortBy(sortBy ListingSortBy) repository.ListingSortBy {
 		return repository.ListingSortByUpdatedAt
 	case ListingSortPublishedAt:
 		return repository.ListingSortByPublishedAt
-	case ListingSortViewCount:
-		return repository.ListingSortByViewCount
 	default:
 		return repository.ListingSortByCreatedAt
 	}

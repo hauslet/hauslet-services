@@ -11,7 +11,6 @@ import (
 	"hauslet/internal/modules/profile/domain"
 	profileservice "hauslet/internal/modules/profile/service"
 	"hauslet/internal/transport/graph/loaders"
-	"hauslet/internal/transport/graph/model"
 
 	"hauslet/internal/transport/graph/viewer"
 
@@ -30,7 +29,7 @@ func NewResolver(profileService profileservice.ProfileService, cfg *config.Stora
 }
 
 // UpdateProfile is the resolver for the updateProfile field.
-func (r *Resolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain.Profile, error) {
+func (r *Resolver) UpdateProfile(ctx context.Context, input UpdateProfileInput) (*domain.Profile, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
 		r.log.Warn("Unauthenticated attempt to update profile")
@@ -223,7 +222,7 @@ func (r *Resolver) UploadTravelCompanionPhoto(ctx context.Context, companionID u
 	return uploadResult, nil
 }
 
-func (r *Resolver) AddTravelCompanion(ctx context.Context, userID string, input model.TravelCompanionInput) (bool, error) {
+func (r *Resolver) AddTravelCompanion(ctx context.Context, userID string, input TravelCompanionInput) (bool, error) {
 	companion := domain.TravelCompanion{
 		Name:         input.Name,
 		AgeGroup:     domain.AgeGroup(input.AgeGroup),
@@ -240,7 +239,7 @@ func (r *Resolver) AddTravelCompanion(ctx context.Context, userID string, input 
 	return true, nil
 }
 
-func (r *Resolver) UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input model.TravelCompanionInput) (bool, error) {
+func (r *Resolver) UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input TravelCompanionInput) (bool, error) {
 	companion := domain.TravelCompanion{
 		ID:           uuid.Nil,
 		Name:         input.Name,

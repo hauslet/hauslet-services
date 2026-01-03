@@ -109,12 +109,6 @@ type Listing struct {
 	// Moderation
 	LatestReviewStatus ReviewStatus `json:"latest_review_status"`
 
-	// Metrics
-	ViewCount     int        `json:"view_count"`
-	LastViewedAt  *time.Time `json:"last_viewed_at,omitempty"`
-	FeaturedUntil *time.Time `json:"featured_until,omitempty"`
-	BoostLevel    int        `json:"boost_level"`
-
 	// Embedding metadata
 	EmbeddingModel        *string    `json:"embedding_model,omitempty"`
 	EmbeddingVersion      *string    `json:"embedding_version,omitempty"`
@@ -410,14 +404,6 @@ func (l *Listing) IsActive() bool {
 // CanPublish checks if the listing can be published
 func (l *Listing) CanPublish() bool {
 	return l.Status == StatusActive && l.LatestReviewStatus == ReviewApproved
-}
-
-// IsFeatured checks if the listing is currently featured
-func (l *Listing) IsFeatured() bool {
-	if l.FeaturedUntil == nil {
-		return false
-	}
-	return time.Now().Before(*l.FeaturedUntil)
 }
 
 // GetPrimaryMedia returns the primary media for the listing

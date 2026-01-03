@@ -1,10 +1,10 @@
 package graphql
 
 import (
-	"hauslet/internal/modules/profile/domain"
-	"hauslet/internal/transport/graph/model"
-	"hauslet/internal/transport/graph/viewer"
 	"strings"
+
+	"hauslet/internal/modules/profile/domain"
+	"hauslet/internal/transport/graph/viewer"
 )
 
 func isAdminRole(role string) bool {
@@ -133,7 +133,7 @@ func sanitizeProfilesForViewer(profiles []domain.Profile, v *viewer.Viewer) []*d
 }
 
 // buildProfileUpdates builds a map of updates from the input
-func (r *Resolver) buildProfileUpdates(input model.UpdateProfileInput) map[string]any {
+func (r *Resolver) buildProfileUpdates(input UpdateProfileInput) map[string]any {
 	updates := make(map[string]any)
 
 	// Personal Information

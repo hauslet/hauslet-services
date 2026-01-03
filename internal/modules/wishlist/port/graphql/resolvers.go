@@ -9,7 +9,6 @@ import (
 	"hauslet/internal/modules/wishlist/domain"
 	"hauslet/internal/modules/wishlist/service"
 	"hauslet/internal/transport/graph/loaders"
-	"hauslet/internal/transport/graph/model"
 	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/google/uuid"
@@ -89,7 +88,7 @@ func (r *Resolver) IsListingInWishlist(ctx context.Context, wishlistID uuid.UUID
 // ===========================
 
 // CreateWishlist creates a new wishlist for the authenticated user.
-func (r *Resolver) CreateWishlist(ctx context.Context, input model.CreateWishlistInput) (*domain.Wishlist, error) {
+func (r *Resolver) CreateWishlist(ctx context.Context, input CreateWishlistInput) (*domain.Wishlist, error) {
 	userID, err := r.requireViewerID(ctx)
 	if err != nil {
 		return nil, err
@@ -109,7 +108,7 @@ func (r *Resolver) CreateWishlist(ctx context.Context, input model.CreateWishlis
 }
 
 // UpdateWishlist updates wishlist metadata for the authenticated owner.
-func (r *Resolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input model.UpdateWishlistInput) (*domain.Wishlist, error) {
+func (r *Resolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input UpdateWishlistInput) (*domain.Wishlist, error) {
 	userID, err := r.requireViewerID(ctx)
 	if err != nil {
 		return nil, err

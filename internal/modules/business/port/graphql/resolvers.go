@@ -7,7 +7,6 @@ import (
 
 	"hauslet/internal/modules/business/domain"
 	businessservice "hauslet/internal/modules/business/service"
-	"hauslet/internal/transport/graph/model"
 	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/google/uuid"
@@ -203,7 +202,7 @@ func (r *Resolver) MyBusinessPermissions(ctx context.Context, businessID string)
 // ===========================
 
 // CreateBusiness creates a new business
-func (r *Resolver) CreateBusiness(ctx context.Context, input model.CreateBusinessInput) (*domain.Business, error) {
+func (r *Resolver) CreateBusiness(ctx context.Context, input CreateBusinessInput) (*domain.Business, error) {
 	creatorID, err := r.getAuthenticatedUserID(ctx, "create business")
 	if err != nil {
 		return nil, err
@@ -223,7 +222,7 @@ func (r *Resolver) CreateBusiness(ctx context.Context, input model.CreateBusines
 }
 
 // UpdateBusiness updates an existing business
-func (r *Resolver) UpdateBusiness(ctx context.Context, id string, input model.UpdateBusinessInput) (*domain.Business, error) {
+func (r *Resolver) UpdateBusiness(ctx context.Context, id string, input UpdateBusinessInput) (*domain.Business, error) {
 	updaterID, err := r.getAuthenticatedUserID(ctx, "update business")
 	if err != nil {
 		return nil, err
@@ -267,7 +266,7 @@ func (r *Resolver) DeleteBusiness(ctx context.Context, id string) (bool, error) 
 }
 
 // AddBusinessMember adds a member to a business
-func (r *Resolver) AddBusinessMember(ctx context.Context, businessID, userID string, role domain.MemberRole, customPermissions *model.MemberPermissionsInput) (*domain.BusinessMember, error) {
+func (r *Resolver) AddBusinessMember(ctx context.Context, businessID, userID string, role domain.MemberRole, customPermissions *MemberPermissionsInput) (*domain.BusinessMember, error) {
 	inviterID, err := r.getAuthenticatedUserID(ctx, "add business member")
 	if err != nil {
 		return nil, err
@@ -325,7 +324,7 @@ func (r *Resolver) UpdateMemberRole(ctx context.Context, businessID, memberID st
 }
 
 // UpdateMemberPermissions updates a member's permissions
-func (r *Resolver) UpdateMemberPermissions(ctx context.Context, businessID, memberID string, permissions model.MemberPermissionsInput) (*domain.BusinessMember, error) {
+func (r *Resolver) UpdateMemberPermissions(ctx context.Context, businessID, memberID string, permissions MemberPermissionsInput) (*domain.BusinessMember, error) {
 	updaterID, err := r.getAuthenticatedUserID(ctx, "update member permissions")
 	if err != nil {
 		return nil, err
@@ -378,7 +377,7 @@ func (r *Resolver) RemoveMember(ctx context.Context, businessID, memberID string
 }
 
 // InviteMember creates an invitation for a user to join a business
-func (r *Resolver) InviteMember(ctx context.Context, businessID string, input model.InviteMemberInput) (*domain.BusinessInvitation, error) {
+func (r *Resolver) InviteMember(ctx context.Context, businessID string, input InviteMemberInput) (*domain.BusinessInvitation, error) {
 	inviterID, err := r.getAuthenticatedUserID(ctx, "invite member")
 	if err != nil {
 		return nil, err
@@ -487,7 +486,7 @@ func parseUUID(id string, entityType string) (uuid.UUID, error) {
 
 // Input Conversion Helpers
 
-func convertCreateBusinessInput(input model.CreateBusinessInput) domain.CreateBusinessInput {
+func convertCreateBusinessInput(input CreateBusinessInput) domain.CreateBusinessInput {
 	domainInput := domain.CreateBusinessInput{
 		Name:               input.Name,
 		DisplayName:        input.DisplayName,
@@ -533,7 +532,7 @@ func convertCreateBusinessInput(input model.CreateBusinessInput) domain.CreateBu
 	return domainInput
 }
 
-func convertUpdateBusinessInput(input model.UpdateBusinessInput) domain.UpdateBusinessInput {
+func convertUpdateBusinessInput(input UpdateBusinessInput) domain.UpdateBusinessInput {
 	domainInput := domain.UpdateBusinessInput{
 		DisplayName:   input.DisplayName,
 		Description:   input.Description,
@@ -574,7 +573,7 @@ func convertUpdateBusinessInput(input model.UpdateBusinessInput) domain.UpdateBu
 	return domainInput
 }
 
-func convertMemberPermissionsInput(input *model.MemberPermissionsInput) *domain.MemberPermissions {
+func convertMemberPermissionsInput(input *MemberPermissionsInput) *domain.MemberPermissions {
 	if input == nil {
 		return nil
 	}

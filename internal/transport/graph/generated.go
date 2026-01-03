@@ -10,21 +10,27 @@ import (
 	"fmt"
 	domain11 "hauslet/internal/modules/auth/domain"
 	domain7 "hauslet/internal/modules/booking/domain"
-	graphql3 "hauslet/internal/modules/booking/port/graphql"
+	graphql4 "hauslet/internal/modules/booking/port/graphql"
 	"hauslet/internal/modules/business/domain"
+	graphql1 "hauslet/internal/modules/business/port/graphql"
 	domain8 "hauslet/internal/modules/calendar/domain"
+	graphql5 "hauslet/internal/modules/calendar/port/graphql"
 	domain6 "hauslet/internal/modules/finance/domain"
-	graphql5 "hauslet/internal/modules/finance/port/graphql"
+	graphql2 "hauslet/internal/modules/finance/port/graphql"
+	graphql11 "hauslet/internal/modules/interactions/port/graphql"
 	domain2 "hauslet/internal/modules/leads/domain"
+	graphql7 "hauslet/internal/modules/leads/port/graphql"
 	domain9 "hauslet/internal/modules/payments/domain"
-	graphql1 "hauslet/internal/modules/payments/port/graphql"
+	graphql8 "hauslet/internal/modules/payments/port/graphql"
 	domain5 "hauslet/internal/modules/profile/domain"
+	graphql3 "hauslet/internal/modules/profile/port/graphql"
 	domain3 "hauslet/internal/modules/promotions/domain"
-	graphql4 "hauslet/internal/modules/promotions/port/graphql"
+	graphql6 "hauslet/internal/modules/promotions/port/graphql"
 	domain10 "hauslet/internal/modules/property/domain"
 	domain4 "hauslet/internal/modules/review/domain"
-	graphql2 "hauslet/internal/modules/review/port/graphql"
+	graphql9 "hauslet/internal/modules/review/port/graphql"
 	domain1 "hauslet/internal/modules/wishlist/domain"
+	graphql10 "hauslet/internal/modules/wishlist/port/graphql"
 	"hauslet/internal/transport/graph/model"
 	"strconv"
 	"sync"
@@ -93,6 +99,7 @@ type ResolverRoot interface {
 	AddPayoutDetailInput() AddPayoutDetailInputResolver
 	CreatePaymentInput() CreatePaymentInputResolver
 	CreatePaymentMethodInput() CreatePaymentMethodInputResolver
+	CreatePayoutInput() CreatePayoutInputResolver
 	CreateReviewInput() CreateReviewInputResolver
 	RefundPaymentInput() RefundPaymentInputResolver
 }
@@ -498,7 +505,6 @@ type ComplexityRoot struct {
 	}
 
 	Listing struct {
-		BoostLevel         func(childComplexity int) int
 		ChangeReason       func(childComplexity int) int
 		CreatedAt          func(childComplexity int) int
 		CreatedBy          func(childComplexity int) int
@@ -506,10 +512,8 @@ type ComplexityRoot struct {
 		DeletedAt          func(childComplexity int) int
 		Description        func(childComplexity int) int
 		ExtraDescription   func(childComplexity int) int
-		FeaturedUntil      func(childComplexity int) int
 		HasCalendar        func(childComplexity int) int
 		ID                 func(childComplexity int) int
-		LastViewedAt       func(childComplexity int) int
 		LatestReviewStatus func(childComplexity int) int
 		ListingType        func(childComplexity int) int
 		Media              func(childComplexity int, first *int) int
@@ -529,7 +533,6 @@ type ComplexityRoot struct {
 		Title              func(childComplexity int) int
 		UpdatedAt          func(childComplexity int) int
 		UpdatedBy          func(childComplexity int) int
-		ViewCount          func(childComplexity int) int
 	}
 
 	ListingAnalytics struct {
@@ -663,33 +666,33 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AcceptInvitation        func(childComplexity int, token string) int
-		AddBusinessMember       func(childComplexity int, businessID uuid.UUID, userID uuid.UUID, role domain.MemberRole, customPermissions *model.MemberPermissionsInput) int
-		AddDisputeEvidence      func(childComplexity int, input model.AddDisputeEvidenceInput) int
-		AddTravelCompanion      func(childComplexity int, userID string, input model.TravelCompanionInput) int
+		AddBusinessMember       func(childComplexity int, businessID uuid.UUID, userID uuid.UUID, role domain.MemberRole, customPermissions *graphql1.MemberPermissionsInput) int
+		AddDisputeEvidence      func(childComplexity int, input graphql2.AddDisputeEvidenceInput) int
+		AddTravelCompanion      func(childComplexity int, userID string, input graphql3.TravelCompanionInput) int
 		AddWishlistItem         func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID, source *domain1.WishlistItemSource) int
 		AssignLead              func(childComplexity int, leadID string, assigneeID string, reason domain2.AssignmentReason) int
-		CancelBooking           func(childComplexity int, input model.CancelBookingInput) int
+		CancelBooking           func(childComplexity int, input graphql4.CancelBookingInput) int
 		CancelDispute           func(childComplexity int, disputeID uuid.UUID) int
 		CancelPromotion         func(childComplexity int, id uuid.UUID) int
-		CancelShowing           func(childComplexity int, input model.CancelShowingInput) int
+		CancelShowing           func(childComplexity int, input graphql5.CancelShowingInput) int
 		CancelSubscription      func(childComplexity int, subscriptionID uuid.UUID) int
 		CheckInBooking          func(childComplexity int, bookingID uuid.UUID) int
 		CheckOutBooking         func(childComplexity int, bookingID uuid.UUID) int
 		ConfirmBooking          func(childComplexity int, bookingID uuid.UUID) int
 		ConfirmShowing          func(childComplexity int, eventID uuid.UUID) int
-		CreateBusiness          func(childComplexity int, input model.CreateBusinessInput) int
-		CreateIncludedPromotion func(childComplexity int, input model.CreateIncludedPromotionInput) int
-		CreateLead              func(childComplexity int, input model.CreateLeadInput) int
+		CreateBusiness          func(childComplexity int, input graphql1.CreateBusinessInput) int
+		CreateIncludedPromotion func(childComplexity int, input graphql6.CreateIncludedPromotionInput) int
+		CreateLead              func(childComplexity int, input graphql7.CreateLeadInput) int
 		CreateListing           func(childComplexity int, input model.CreateListingInput) int
-		CreateOpenHouse         func(childComplexity int, input model.CreateOpenHouseInput) int
-		CreatePayment           func(childComplexity int, input graphql1.CreatePaymentInput) int
-		CreatePayout            func(childComplexity int, input model.CreatePayoutInput) int
-		CreatePayoutDetail      func(childComplexity int, input graphql1.AddPayoutDetailInput) int
-		CreatePromotion         func(childComplexity int, input model.CreatePromotionInput) int
+		CreateOpenHouse         func(childComplexity int, input graphql5.CreateOpenHouseInput) int
+		CreatePayment           func(childComplexity int, input graphql8.CreatePaymentInput) int
+		CreatePayout            func(childComplexity int, input graphql8.CreatePayoutInput) int
+		CreatePayoutDetail      func(childComplexity int, input graphql8.AddPayoutDetailInput) int
+		CreatePromotion         func(childComplexity int, input graphql6.CreatePromotionInput) int
 		CreateResponse          func(childComplexity int, reviewID uuid.UUID, body string) int
-		CreateReview            func(childComplexity int, input graphql2.CreateReviewInput) int
-		CreateSubscription      func(childComplexity int, input model.CreateSubscriptionInput) int
-		CreateWishlist          func(childComplexity int, input model.CreateWishlistInput) int
+		CreateReview            func(childComplexity int, input graphql9.CreateReviewInput) int
+		CreateSubscription      func(childComplexity int, input graphql6.CreateSubscriptionInput) int
+		CreateWishlist          func(childComplexity int, input graphql10.CreateWishlistInput) int
 		DeactivatePayoutDetail  func(childComplexity int, id uuid.UUID) int
 		DeclineInvitation       func(childComplexity int, token string) int
 		DeleteBusiness          func(childComplexity int, id uuid.UUID) int
@@ -702,44 +705,44 @@ type ComplexityRoot struct {
 		DeleteTravelCompanion   func(childComplexity int, userID string, companionID string) int
 		DeleteWishlist          func(childComplexity int, id uuid.UUID) int
 		DowngradeSubscription   func(childComplexity int, subscriptionID uuid.UUID, newPlan domain3.PlanType) int
-		FileDispute             func(childComplexity int, input model.FileDisputeInput) int
+		FileDispute             func(childComplexity int, input graphql2.FileDisputeInput) int
 		HideReview              func(childComplexity int, reviewID uuid.UUID, reason domain4.ModerationReason) int
 		ImportWishlist          func(childComplexity int, sourceWishlistID uuid.UUID, newName *string) int
 		InvestigateDispute      func(childComplexity int, disputeID uuid.UUID) int
-		InviteMember            func(childComplexity int, businessID uuid.UUID, input model.InviteMemberInput) int
+		InviteMember            func(childComplexity int, businessID uuid.UUID, input graphql1.InviteMemberInput) int
 		MarkLeadAsSpam          func(childComplexity int, leadID string) int
-		PayForBooking           func(childComplexity int, input model.PayForBookingInput) int
+		PayForBooking           func(childComplexity int, input graphql4.PayForBookingInput) int
 		Ping                    func(childComplexity int) int
 		PublishListing          func(childComplexity int, id uuid.UUID) int
 		PublishReview           func(childComplexity int, reviewID uuid.UUID) int
-		RefundPayment           func(childComplexity int, input graphql1.RefundPaymentInput) int
-		RegisterOpenHouse       func(childComplexity int, input model.RegisterOpenHouseInput) int
+		RefundPayment           func(childComplexity int, input graphql8.RefundPaymentInput) int
+		RegisterOpenHouse       func(childComplexity int, input graphql5.RegisterOpenHouseInput) int
 		RemoveMember            func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID) int
 		RemoveOpenHouseAttendee func(childComplexity int, eventID uuid.UUID, attendeeID uuid.UUID) int
 		RemoveWishlistItem      func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID) int
 		ReportReview            func(childComplexity int, reviewID uuid.UUID, reason string) int
-		RequestBooking          func(childComplexity int, input model.RequestBookingInput) int
-		RequestShowing          func(childComplexity int, input model.RequestShowingInput) int
-		RescheduleShowing       func(childComplexity int, input model.RescheduleShowingInput) int
-		ReserveBooking          func(childComplexity int, input model.ReserveBookingInput) int
-		ResolveDispute          func(childComplexity int, input model.ResolveDisputeInput) int
+		RequestBooking          func(childComplexity int, input graphql4.RequestBookingInput) int
+		RequestShowing          func(childComplexity int, input graphql5.RequestShowingInput) int
+		RescheduleShowing       func(childComplexity int, input graphql5.RescheduleShowingInput) int
+		ReserveBooking          func(childComplexity int, input graphql4.ReserveBookingInput) int
+		ResolveDispute          func(childComplexity int, input graphql2.ResolveDisputeInput) int
 		RevokeInvitation        func(childComplexity int, invitationID uuid.UUID) int
-		SavePaymentMethod       func(childComplexity int, input graphql1.SavePaymentMethodInput) int
+		SavePaymentMethod       func(childComplexity int, input graphql8.SavePaymentMethodInput) int
 		SelectSupplyRoles       func(childComplexity int, userTypes []domain5.UserType) int
 		SetDefaultPaymentMethod func(childComplexity int, id uuid.UUID) int
-		TrackInteraction        func(childComplexity int, input model.TrackInteractionInput) int
+		TrackInteraction        func(childComplexity int, input graphql11.TrackInteractionInput) int
 		UnhideReview            func(childComplexity int, reviewID uuid.UUID) int
 		UnpublishListing        func(childComplexity int, id uuid.UUID) int
-		UpdateBusiness          func(childComplexity int, id uuid.UUID, input model.UpdateBusinessInput) int
+		UpdateBusiness          func(childComplexity int, id uuid.UUID, input graphql1.UpdateBusinessInput) int
 		UpdateLeadStatus        func(childComplexity int, leadID string, status domain2.LeadStatus, notes *string) int
 		UpdateListing           func(childComplexity int, id uuid.UUID, input model.UpdateListingInput) int
-		UpdateMemberPermissions func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID, permissions model.MemberPermissionsInput) int
+		UpdateMemberPermissions func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID, permissions graphql1.MemberPermissionsInput) int
 		UpdateMemberRole        func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID, role domain.MemberRole) int
-		UpdateProfile           func(childComplexity int, input model.UpdateProfileInput) int
+		UpdateProfile           func(childComplexity int, input graphql3.UpdateProfileInput) int
 		UpdateResponse          func(childComplexity int, responseID uuid.UUID, body string) int
-		UpdateReview            func(childComplexity int, reviewID uuid.UUID, input graphql2.UpdateReviewInput) int
-		UpdateTravelCompanion   func(childComplexity int, userID string, companionID string, input model.TravelCompanionInput) int
-		UpdateWishlist          func(childComplexity int, id uuid.UUID, input model.UpdateWishlistInput) int
+		UpdateReview            func(childComplexity int, reviewID uuid.UUID, input graphql9.UpdateReviewInput) int
+		UpdateTravelCompanion   func(childComplexity int, userID string, companionID string, input graphql3.TravelCompanionInput) int
+		UpdateWishlist          func(childComplexity int, id uuid.UUID, input graphql10.UpdateWishlistInput) int
 		UpgradeSubscription     func(childComplexity int, subscriptionID uuid.UUID, newPlan domain3.PlanType) int
 		UseIncludedPromotion    func(childComplexity int, promoType domain3.PromotionType) int
 		UseOpenHouse            func(childComplexity int) int
@@ -957,8 +960,8 @@ type ComplexityRoot struct {
 		LatestReconciliation         func(childComplexity int) int
 		Lead                         func(childComplexity int, id string) int
 		LeadHistory                  func(childComplexity int, leadID string) int
-		LeadsByBusiness              func(childComplexity int, businessID string, filter *model.LeadFilterInput, page *model.PageInput) int
-		LeadsByListing               func(childComplexity int, listingID string, filter *model.LeadFilterInput, page *model.PageInput) int
+		LeadsByBusiness              func(childComplexity int, businessID string, filter *graphql7.LeadFilterInput, page *graphql7.PageInput) int
+		LeadsByListing               func(childComplexity int, listingID string, filter *graphql7.LeadFilterInput, page *graphql7.PageInput) int
 		ListMyPromotions             func(childComplexity int, limit *int, offset *int) int
 		Listing                      func(childComplexity int, id uuid.UUID) int
 		ListingAnalytics             func(childComplexity int, listingID uuid.UUID, days int) int
@@ -980,7 +983,7 @@ type ComplexityRoot struct {
 		MyIndividualListings         func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		MyInteractionHistory         func(childComplexity int, limit *int) int
 		MyInvitations                func(childComplexity int, email string) int
-		MyLeads                      func(childComplexity int, filter *model.LeadFilterInput, page *model.PageInput) int
+		MyLeads                      func(childComplexity int, filter *graphql7.LeadFilterInput, page *graphql7.PageInput) int
 		MyListings                   func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		MyMemberships                func(childComplexity int) int
 		MyProfile                    func(childComplexity int) int
@@ -1002,7 +1005,7 @@ type ComplexityRoot struct {
 		Review                       func(childComplexity int, id uuid.UUID) int
 		ReviewForBooking             func(childComplexity int, bookingID uuid.UUID) int
 		ReviewResponse               func(childComplexity int, reviewID uuid.UUID) int
-		Reviews                      func(childComplexity int, targetType domain4.ReviewTargetType, targetID uuid.UUID, filter *graphql2.ReviewFilterInput) int
+		Reviews                      func(childComplexity int, targetType domain4.ReviewTargetType, targetID uuid.UUID, filter *graphql9.ReviewFilterInput) int
 		SearchBusinesses             func(childComplexity int, query string, limit *int, offset *int) int
 		SearchListings               func(childComplexity int, filter *model.ListingFilterInput, limit *int) int
 		SearchProfiles               func(childComplexity int, query string, limit *int, offset *int) int
@@ -1315,7 +1318,7 @@ type BusinessResolver interface {
 	Members(ctx context.Context, obj *domain.Business) ([]*domain.BusinessMember, error)
 }
 type CompleteBookingPayloadResolver interface {
-	PaymentID(ctx context.Context, obj *graphql3.CompleteBookingPayload) (uuid.UUID, error)
+	PaymentID(ctx context.Context, obj *graphql4.CompleteBookingPayload) (uuid.UUID, error)
 }
 type DisbursementResolver interface {
 	TransferCode(ctx context.Context, obj *domain6.Disbursement) (*string, error)
@@ -1384,10 +1387,10 @@ type MaintenanceDetailResolver interface {
 }
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
-	UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain5.Profile, error)
+	UpdateProfile(ctx context.Context, input graphql3.UpdateProfileInput) (*domain5.Profile, error)
 	SelectSupplyRoles(ctx context.Context, userTypes []domain5.UserType) (*domain5.Profile, error)
-	AddTravelCompanion(ctx context.Context, userID string, input model.TravelCompanionInput) (bool, error)
-	UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input model.TravelCompanionInput) (bool, error)
+	AddTravelCompanion(ctx context.Context, userID string, input graphql3.TravelCompanionInput) (bool, error)
+	UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input graphql3.TravelCompanionInput) (bool, error)
 	DeleteTravelCompanion(ctx context.Context, userID string, companionID string) (bool, error)
 	DeleteProfile(ctx context.Context, userID string) (bool, error)
 	CreateListing(ctx context.Context, input model.CreateListingInput) (*domain10.Listing, error)
@@ -1395,53 +1398,53 @@ type MutationResolver interface {
 	DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error)
 	PublishListing(ctx context.Context, id uuid.UUID) (*domain10.Listing, error)
 	UnpublishListing(ctx context.Context, id uuid.UUID) (*domain10.Listing, error)
-	CreateBusiness(ctx context.Context, input model.CreateBusinessInput) (*domain.Business, error)
-	UpdateBusiness(ctx context.Context, id uuid.UUID, input model.UpdateBusinessInput) (*domain.Business, error)
+	CreateBusiness(ctx context.Context, input graphql1.CreateBusinessInput) (*domain.Business, error)
+	UpdateBusiness(ctx context.Context, id uuid.UUID, input graphql1.UpdateBusinessInput) (*domain.Business, error)
 	DeleteBusiness(ctx context.Context, id uuid.UUID) (bool, error)
-	AddBusinessMember(ctx context.Context, businessID uuid.UUID, userID uuid.UUID, role domain.MemberRole, customPermissions *model.MemberPermissionsInput) (*domain.BusinessMember, error)
+	AddBusinessMember(ctx context.Context, businessID uuid.UUID, userID uuid.UUID, role domain.MemberRole, customPermissions *graphql1.MemberPermissionsInput) (*domain.BusinessMember, error)
 	UpdateMemberRole(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, role domain.MemberRole) (*domain.BusinessMember, error)
-	UpdateMemberPermissions(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, permissions model.MemberPermissionsInput) (*domain.BusinessMember, error)
+	UpdateMemberPermissions(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, permissions graphql1.MemberPermissionsInput) (*domain.BusinessMember, error)
 	RemoveMember(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID) (bool, error)
-	InviteMember(ctx context.Context, businessID uuid.UUID, input model.InviteMemberInput) (*domain.BusinessInvitation, error)
+	InviteMember(ctx context.Context, businessID uuid.UUID, input graphql1.InviteMemberInput) (*domain.BusinessInvitation, error)
 	AcceptInvitation(ctx context.Context, token string) (*domain.BusinessMember, error)
 	DeclineInvitation(ctx context.Context, token string) (bool, error)
 	RevokeInvitation(ctx context.Context, invitationID uuid.UUID) (bool, error)
-	ReserveBooking(ctx context.Context, input model.ReserveBookingInput) (*graphql3.CompleteBookingPayload, error)
-	RequestBooking(ctx context.Context, input model.RequestBookingInput) (*domain7.Booking, error)
-	PayForBooking(ctx context.Context, input model.PayForBookingInput) (*graphql3.CompleteBookingPayload, error)
+	ReserveBooking(ctx context.Context, input graphql4.ReserveBookingInput) (*graphql4.CompleteBookingPayload, error)
+	RequestBooking(ctx context.Context, input graphql4.RequestBookingInput) (*domain7.Booking, error)
+	PayForBooking(ctx context.Context, input graphql4.PayForBookingInput) (*graphql4.CompleteBookingPayload, error)
 	ConfirmBooking(ctx context.Context, bookingID uuid.UUID) (*domain7.Booking, error)
-	CancelBooking(ctx context.Context, input model.CancelBookingInput) (*domain7.Booking, error)
+	CancelBooking(ctx context.Context, input graphql4.CancelBookingInput) (*domain7.Booking, error)
 	CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*domain7.Booking, error)
 	CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*domain7.Booking, error)
-	RequestShowing(ctx context.Context, input model.RequestShowingInput) (*domain8.CalendarEvent, error)
+	RequestShowing(ctx context.Context, input graphql5.RequestShowingInput) (*domain8.CalendarEvent, error)
 	ConfirmShowing(ctx context.Context, eventID uuid.UUID) (*domain8.CalendarEvent, error)
-	CancelShowing(ctx context.Context, input model.CancelShowingInput) (*domain8.CalendarEvent, error)
-	RescheduleShowing(ctx context.Context, input model.RescheduleShowingInput) (*domain8.CalendarEvent, error)
-	CreateOpenHouse(ctx context.Context, input model.CreateOpenHouseInput) (*domain8.CalendarEvent, error)
-	RegisterOpenHouse(ctx context.Context, input model.RegisterOpenHouseInput) (bool, error)
+	CancelShowing(ctx context.Context, input graphql5.CancelShowingInput) (*domain8.CalendarEvent, error)
+	RescheduleShowing(ctx context.Context, input graphql5.RescheduleShowingInput) (*domain8.CalendarEvent, error)
+	CreateOpenHouse(ctx context.Context, input graphql5.CreateOpenHouseInput) (*domain8.CalendarEvent, error)
+	RegisterOpenHouse(ctx context.Context, input graphql5.RegisterOpenHouseInput) (bool, error)
 	RemoveOpenHouseAttendee(ctx context.Context, eventID uuid.UUID, attendeeID uuid.UUID) (bool, error)
-	CreatePayment(ctx context.Context, input graphql1.CreatePaymentInput) (*model.PaymentInitResponse, error)
+	CreatePayment(ctx context.Context, input graphql8.CreatePaymentInput) (*model.PaymentInitResponse, error)
 	VerifyPayment(ctx context.Context, reference string) (*domain9.Payment, error)
-	RefundPayment(ctx context.Context, input graphql1.RefundPaymentInput) (*domain9.Payment, error)
-	SavePaymentMethod(ctx context.Context, input graphql1.SavePaymentMethodInput) (*domain9.PaymentMethod, error)
+	RefundPayment(ctx context.Context, input graphql8.RefundPaymentInput) (*domain9.Payment, error)
+	SavePaymentMethod(ctx context.Context, input graphql8.SavePaymentMethodInput) (*domain9.PaymentMethod, error)
 	SetDefaultPaymentMethod(ctx context.Context, id uuid.UUID) (*domain9.PaymentMethod, error)
 	DeletePaymentMethod(ctx context.Context, id uuid.UUID) (bool, error)
-	CreatePayoutDetail(ctx context.Context, input graphql1.AddPayoutDetailInput) (*domain9.PayoutDetail, error)
+	CreatePayoutDetail(ctx context.Context, input graphql8.AddPayoutDetailInput) (*domain9.PayoutDetail, error)
 	DeactivatePayoutDetail(ctx context.Context, id uuid.UUID) (*domain9.PayoutDetail, error)
-	CreatePayout(ctx context.Context, input model.CreatePayoutInput) (*domain9.Transaction, error)
-	FileDispute(ctx context.Context, input model.FileDisputeInput) (*domain6.Dispute, error)
+	CreatePayout(ctx context.Context, input graphql8.CreatePayoutInput) (*domain9.Transaction, error)
+	FileDispute(ctx context.Context, input graphql2.FileDisputeInput) (*domain6.Dispute, error)
 	InvestigateDispute(ctx context.Context, disputeID uuid.UUID) (*domain6.Dispute, error)
-	ResolveDispute(ctx context.Context, input model.ResolveDisputeInput) (*domain6.Dispute, error)
+	ResolveDispute(ctx context.Context, input graphql2.ResolveDisputeInput) (*domain6.Dispute, error)
 	CancelDispute(ctx context.Context, disputeID uuid.UUID) (*domain6.Dispute, error)
-	AddDisputeEvidence(ctx context.Context, input model.AddDisputeEvidenceInput) (*domain6.Dispute, error)
-	CreateWishlist(ctx context.Context, input model.CreateWishlistInput) (*domain1.Wishlist, error)
-	UpdateWishlist(ctx context.Context, id uuid.UUID, input model.UpdateWishlistInput) (*domain1.Wishlist, error)
+	AddDisputeEvidence(ctx context.Context, input graphql2.AddDisputeEvidenceInput) (*domain6.Dispute, error)
+	CreateWishlist(ctx context.Context, input graphql10.CreateWishlistInput) (*domain1.Wishlist, error)
+	UpdateWishlist(ctx context.Context, id uuid.UUID, input graphql10.UpdateWishlistInput) (*domain1.Wishlist, error)
 	DeleteWishlist(ctx context.Context, id uuid.UUID) (bool, error)
 	AddWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID, source *domain1.WishlistItemSource) (*domain1.WishlistItem, error)
 	RemoveWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID) (bool, error)
 	ImportWishlist(ctx context.Context, sourceWishlistID uuid.UUID, newName *string) (*domain1.Wishlist, error)
-	CreateReview(ctx context.Context, input graphql2.CreateReviewInput) (*domain4.Review, error)
-	UpdateReview(ctx context.Context, reviewID uuid.UUID, input graphql2.UpdateReviewInput) (*domain4.Review, error)
+	CreateReview(ctx context.Context, input graphql9.CreateReviewInput) (*domain4.Review, error)
+	UpdateReview(ctx context.Context, reviewID uuid.UUID, input graphql9.UpdateReviewInput) (*domain4.Review, error)
 	DeleteReview(ctx context.Context, reviewID uuid.UUID) (bool, error)
 	PublishReview(ctx context.Context, reviewID uuid.UUID) (*domain4.Review, error)
 	HideReview(ctx context.Context, reviewID uuid.UUID, reason domain4.ModerationReason) (*domain4.Review, error)
@@ -1450,22 +1453,22 @@ type MutationResolver interface {
 	CreateResponse(ctx context.Context, reviewID uuid.UUID, body string) (*domain4.ReviewResponse, error)
 	UpdateResponse(ctx context.Context, responseID uuid.UUID, body string) (*domain4.ReviewResponse, error)
 	DeleteResponse(ctx context.Context, responseID uuid.UUID) (bool, error)
-	CreatePromotion(ctx context.Context, input model.CreatePromotionInput) (*graphql4.CreatePromotionPayload, error)
-	CreateIncludedPromotion(ctx context.Context, input model.CreateIncludedPromotionInput) (*domain3.ListingPromotion, error)
+	CreatePromotion(ctx context.Context, input graphql6.CreatePromotionInput) (*graphql6.CreatePromotionPayload, error)
+	CreateIncludedPromotion(ctx context.Context, input graphql6.CreateIncludedPromotionInput) (*domain3.ListingPromotion, error)
 	CancelPromotion(ctx context.Context, id uuid.UUID) (*domain3.ListingPromotion, error)
-	CreateSubscription(ctx context.Context, input model.CreateSubscriptionInput) (*graphql4.CreateSubscriptionPayload, error)
+	CreateSubscription(ctx context.Context, input graphql6.CreateSubscriptionInput) (*graphql6.CreateSubscriptionPayload, error)
 	UpgradeSubscription(ctx context.Context, subscriptionID uuid.UUID, newPlan domain3.PlanType) (*domain3.AgentSubscription, error)
 	DowngradeSubscription(ctx context.Context, subscriptionID uuid.UUID, newPlan domain3.PlanType) (*domain3.AgentSubscription, error)
 	CancelSubscription(ctx context.Context, subscriptionID uuid.UUID) (*domain3.AgentSubscription, error)
 	UseIncludedPromotion(ctx context.Context, promoType domain3.PromotionType) (bool, error)
 	UseOpenHouse(ctx context.Context) (bool, error)
 	UsePrivateShowing(ctx context.Context) (bool, error)
-	CreateLead(ctx context.Context, input model.CreateLeadInput) (*domain2.Lead, error)
+	CreateLead(ctx context.Context, input graphql7.CreateLeadInput) (*domain2.Lead, error)
 	UpdateLeadStatus(ctx context.Context, leadID string, status domain2.LeadStatus, notes *string) (*domain2.Lead, error)
 	AssignLead(ctx context.Context, leadID string, assigneeID string, reason domain2.AssignmentReason) (*domain2.Lead, error)
 	MarkLeadAsSpam(ctx context.Context, leadID string) (bool, error)
 	DeleteLead(ctx context.Context, leadID string) (bool, error)
-	TrackInteraction(ctx context.Context, input model.TrackInteractionInput) (bool, error)
+	TrackInteraction(ctx context.Context, input graphql11.TrackInteractionInput) (bool, error)
 }
 type PaymentResolver interface {
 	Currency(ctx context.Context, obj *domain9.Payment) (string, error)
@@ -1485,8 +1488,8 @@ type ProfileResolver interface {
 	Gender(ctx context.Context, obj *domain5.Profile) (*string, error)
 }
 type PropertyResolver interface {
-	Amenities(ctx context.Context, obj *domain10.Property) ([]*model.AmenityGroup, error)
-	FeaturesCommercial(ctx context.Context, obj *domain10.Property) ([]*model.AmenityGroup, error)
+	Amenities(ctx context.Context, obj *domain10.Property) ([]*domain10.AmenityGroup, error)
+	FeaturesCommercial(ctx context.Context, obj *domain10.Property) ([]*domain10.AmenityGroup, error)
 	Listings(ctx context.Context, obj *domain10.Property, first *int, after *string) (*model.ListingConnection, error)
 }
 type QueryResolver interface {
@@ -1543,7 +1546,7 @@ type QueryResolver interface {
 	FinanceTransactionHistory(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*domain6.Transaction, error)
 	WalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain6.LedgerEntry, error)
 	Disbursement(ctx context.Context, id uuid.UUID) (*domain6.Disbursement, error)
-	MyEarnings(ctx context.Context) (*graphql5.EarningsSummary, error)
+	MyEarnings(ctx context.Context) (*graphql2.EarningsSummary, error)
 	Dispute(ctx context.Context, id uuid.UUID) (*domain6.Dispute, error)
 	DisputeByBooking(ctx context.Context, bookingID uuid.UUID) (*domain6.Dispute, error)
 	Disputes(ctx context.Context, status *domain6.DisputeStatus, limit *int, offset *int) ([]*domain6.Dispute, error)
@@ -1558,7 +1561,7 @@ type QueryResolver interface {
 	IsListingInWishlist(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID) (bool, error)
 	Review(ctx context.Context, id uuid.UUID) (*domain4.Review, error)
 	ReviewForBooking(ctx context.Context, bookingID uuid.UUID) (*domain4.Review, error)
-	Reviews(ctx context.Context, targetType domain4.ReviewTargetType, targetID uuid.UUID, filter *graphql2.ReviewFilterInput) ([]*domain4.Review, error)
+	Reviews(ctx context.Context, targetType domain4.ReviewTargetType, targetID uuid.UUID, filter *graphql9.ReviewFilterInput) ([]*domain4.Review, error)
 	UserReviews(ctx context.Context, userID uuid.UUID, limit *int, offset *int) ([]*domain4.Review, error)
 	ListingStats(ctx context.Context, listingID uuid.UUID) (*domain4.ListingStats, error)
 	HostStats(ctx context.Context, hostID uuid.UUID) (*domain4.HostStats, error)
@@ -1574,18 +1577,18 @@ type QueryResolver interface {
 	CanAddPhotos(ctx context.Context, listingID uuid.UUID, photoCount int) (bool, error)
 	CanUseFeature(ctx context.Context, feature string) (bool, error)
 	CanUseIncludedPromotion(ctx context.Context, promoType domain3.PromotionType) (bool, error)
-	CanCreateOpenHouse(ctx context.Context) (*graphql4.FeatureLimitCheckResult, error)
-	CanCreatePrivateShowing(ctx context.Context) (*graphql4.FeatureLimitCheckResult, error)
+	CanCreateOpenHouse(ctx context.Context) (*graphql6.FeatureLimitCheckResult, error)
+	CanCreatePrivateShowing(ctx context.Context) (*graphql6.FeatureLimitCheckResult, error)
 	GetFeatureLimit(ctx context.Context, feature string) (int, error)
-	GetPlanLimits(ctx context.Context, planType domain3.PlanType) (*graphql4.PlanLimits, error)
+	GetPlanLimits(ctx context.Context, planType domain3.PlanType) (*graphql6.PlanLimits, error)
 	GetCurrentUsage(ctx context.Context) (*domain3.UsageTracking, error)
 	Lead(ctx context.Context, id string) (*domain2.Lead, error)
-	LeadsByListing(ctx context.Context, listingID string, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error)
-	LeadsByBusiness(ctx context.Context, businessID string, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error)
-	MyLeads(ctx context.Context, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error)
+	LeadsByListing(ctx context.Context, listingID string, filter *graphql7.LeadFilterInput, page *graphql7.PageInput) (*graphql7.LeadConnection, error)
+	LeadsByBusiness(ctx context.Context, businessID string, filter *graphql7.LeadFilterInput, page *graphql7.PageInput) (*graphql7.LeadConnection, error)
+	MyLeads(ctx context.Context, filter *graphql7.LeadFilterInput, page *graphql7.PageInput) (*graphql7.LeadConnection, error)
 	LeadHistory(ctx context.Context, leadID string) ([]*domain2.LeadEvent, error)
-	ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*model.ListingAnalytics, error)
-	MyInteractionHistory(ctx context.Context, limit *int) ([]*model.Interaction, error)
+	ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*graphql11.ListingAnalyticsResponse, error)
+	MyInteractionHistory(ctx context.Context, limit *int) ([]*graphql11.InteractionResponse, error)
 }
 type RatingDistributionResolver interface {
 	OneStar(ctx context.Context, obj *domain4.RatingDistribution) (int, error)
@@ -1605,7 +1608,7 @@ type ReviewResolver interface {
 	HiddenAt(ctx context.Context, obj *domain4.Review) (*time.Time, error)
 }
 type RuleGroupResolver interface {
-	Rules(ctx context.Context, obj *domain10.RuleGroup) ([]*model.RuleItem, error)
+	Rules(ctx context.Context, obj *domain10.RuleGroup) ([]*domain10.RuleItem, error)
 }
 type SaleDetailResolver interface {
 	ServiceCharges(ctx context.Context, obj *domain10.SaleDetail) ([]*domain10.ServiceCharge, error)
@@ -1647,30 +1650,33 @@ type WishlistItemResolver interface {
 }
 
 type AddPayoutDetailInputResolver interface {
-	BusinessID(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data *uuid.UUID) error
+	BusinessID(ctx context.Context, obj *graphql8.AddPayoutDetailInput, data *uuid.UUID) error
 
-	Currency(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data string) error
+	Currency(ctx context.Context, obj *graphql8.AddPayoutDetailInput, data string) error
 }
 type CreatePaymentInputResolver interface {
-	BookingID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error
-	BusinessID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error
+	BookingID(ctx context.Context, obj *graphql8.CreatePaymentInput, data *uuid.UUID) error
+	BusinessID(ctx context.Context, obj *graphql8.CreatePaymentInput, data *uuid.UUID) error
 
-	Currency(ctx context.Context, obj *graphql1.CreatePaymentInput, data string) error
+	Currency(ctx context.Context, obj *graphql8.CreatePaymentInput, data string) error
 
-	Metadata(ctx context.Context, obj *graphql1.CreatePaymentInput, data map[string]any) error
+	Metadata(ctx context.Context, obj *graphql8.CreatePaymentInput, data map[string]any) error
 
-	PaymentMethodID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error
+	PaymentMethodID(ctx context.Context, obj *graphql8.CreatePaymentInput, data *uuid.UUID) error
 }
 type CreatePaymentMethodInputResolver interface {
-	IsDefault(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data *bool) error
+	IsDefault(ctx context.Context, obj *graphql8.SavePaymentMethodInput, data *bool) error
+}
+type CreatePayoutInputResolver interface {
+	Currency(ctx context.Context, obj *graphql8.CreatePayoutInput, data string) error
 }
 type CreateReviewInputResolver interface {
-	BookingID(ctx context.Context, obj *graphql2.CreateReviewInput, data uuid.UUID) error
+	BookingID(ctx context.Context, obj *graphql9.CreateReviewInput, data uuid.UUID) error
 
-	TargetID(ctx context.Context, obj *graphql2.CreateReviewInput, data uuid.UUID) error
+	TargetID(ctx context.Context, obj *graphql9.CreateReviewInput, data uuid.UUID) error
 }
 type RefundPaymentInputResolver interface {
-	PaymentID(ctx context.Context, obj *graphql1.RefundPaymentInput, data uuid.UUID) error
+	PaymentID(ctx context.Context, obj *graphql8.RefundPaymentInput, data uuid.UUID) error
 }
 
 type executableSchema struct {
@@ -3524,12 +3530,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.LedgerEntry.TransactionID(childComplexity), true
 
-	case "Listing.boostLevel":
-		if e.complexity.Listing.BoostLevel == nil {
-			break
-		}
-
-		return e.complexity.Listing.BoostLevel(childComplexity), true
 	case "Listing.changeReason":
 		if e.complexity.Listing.ChangeReason == nil {
 			break
@@ -3572,12 +3572,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Listing.ExtraDescription(childComplexity), true
-	case "Listing.featuredUntil":
-		if e.complexity.Listing.FeaturedUntil == nil {
-			break
-		}
-
-		return e.complexity.Listing.FeaturedUntil(childComplexity), true
 	case "Listing.hasCalendar":
 		if e.complexity.Listing.HasCalendar == nil {
 			break
@@ -3590,12 +3584,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Listing.ID(childComplexity), true
-	case "Listing.lastViewedAt":
-		if e.complexity.Listing.LastViewedAt == nil {
-			break
-		}
-
-		return e.complexity.Listing.LastViewedAt(childComplexity), true
 	case "Listing.latestReviewStatus":
 		if e.complexity.Listing.LatestReviewStatus == nil {
 			break
@@ -3715,12 +3703,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Listing.UpdatedBy(childComplexity), true
-	case "Listing.viewCount":
-		if e.complexity.Listing.ViewCount == nil {
-			break
-		}
-
-		return e.complexity.Listing.ViewCount(childComplexity), true
 
 	case "ListingAnalytics.avgTimeOnPage":
 		if e.complexity.ListingAnalytics.AvgTimeOnPage == nil {
@@ -4330,7 +4312,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddBusinessMember(childComplexity, args["businessID"].(uuid.UUID), args["userID"].(uuid.UUID), args["role"].(domain.MemberRole), args["customPermissions"].(*model.MemberPermissionsInput)), true
+		return e.complexity.Mutation.AddBusinessMember(childComplexity, args["businessID"].(uuid.UUID), args["userID"].(uuid.UUID), args["role"].(domain.MemberRole), args["customPermissions"].(*graphql1.MemberPermissionsInput)), true
 	case "Mutation.addDisputeEvidence":
 		if e.complexity.Mutation.AddDisputeEvidence == nil {
 			break
@@ -4341,7 +4323,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddDisputeEvidence(childComplexity, args["input"].(model.AddDisputeEvidenceInput)), true
+		return e.complexity.Mutation.AddDisputeEvidence(childComplexity, args["input"].(graphql2.AddDisputeEvidenceInput)), true
 	case "Mutation.addTravelCompanion":
 		if e.complexity.Mutation.AddTravelCompanion == nil {
 			break
@@ -4352,7 +4334,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddTravelCompanion(childComplexity, args["userId"].(string), args["input"].(model.TravelCompanionInput)), true
+		return e.complexity.Mutation.AddTravelCompanion(childComplexity, args["userId"].(string), args["input"].(graphql3.TravelCompanionInput)), true
 	case "Mutation.addWishlistItem":
 		if e.complexity.Mutation.AddWishlistItem == nil {
 			break
@@ -4385,7 +4367,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CancelBooking(childComplexity, args["input"].(model.CancelBookingInput)), true
+		return e.complexity.Mutation.CancelBooking(childComplexity, args["input"].(graphql4.CancelBookingInput)), true
 	case "Mutation.cancelDispute":
 		if e.complexity.Mutation.CancelDispute == nil {
 			break
@@ -4418,7 +4400,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CancelShowing(childComplexity, args["input"].(model.CancelShowingInput)), true
+		return e.complexity.Mutation.CancelShowing(childComplexity, args["input"].(graphql5.CancelShowingInput)), true
 	case "Mutation.cancelSubscription":
 		if e.complexity.Mutation.CancelSubscription == nil {
 			break
@@ -4484,7 +4466,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateBusiness(childComplexity, args["input"].(model.CreateBusinessInput)), true
+		return e.complexity.Mutation.CreateBusiness(childComplexity, args["input"].(graphql1.CreateBusinessInput)), true
 	case "Mutation.createIncludedPromotion":
 		if e.complexity.Mutation.CreateIncludedPromotion == nil {
 			break
@@ -4495,7 +4477,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateIncludedPromotion(childComplexity, args["input"].(model.CreateIncludedPromotionInput)), true
+		return e.complexity.Mutation.CreateIncludedPromotion(childComplexity, args["input"].(graphql6.CreateIncludedPromotionInput)), true
 	case "Mutation.createLead":
 		if e.complexity.Mutation.CreateLead == nil {
 			break
@@ -4506,7 +4488,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateLead(childComplexity, args["input"].(model.CreateLeadInput)), true
+		return e.complexity.Mutation.CreateLead(childComplexity, args["input"].(graphql7.CreateLeadInput)), true
 	case "Mutation.createListing":
 		if e.complexity.Mutation.CreateListing == nil {
 			break
@@ -4528,7 +4510,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateOpenHouse(childComplexity, args["input"].(model.CreateOpenHouseInput)), true
+		return e.complexity.Mutation.CreateOpenHouse(childComplexity, args["input"].(graphql5.CreateOpenHouseInput)), true
 	case "Mutation.createPayment":
 		if e.complexity.Mutation.CreatePayment == nil {
 			break
@@ -4539,7 +4521,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePayment(childComplexity, args["input"].(graphql1.CreatePaymentInput)), true
+		return e.complexity.Mutation.CreatePayment(childComplexity, args["input"].(graphql8.CreatePaymentInput)), true
 	case "Mutation.createPayout":
 		if e.complexity.Mutation.CreatePayout == nil {
 			break
@@ -4550,7 +4532,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePayout(childComplexity, args["input"].(model.CreatePayoutInput)), true
+		return e.complexity.Mutation.CreatePayout(childComplexity, args["input"].(graphql8.CreatePayoutInput)), true
 	case "Mutation.createPayoutDetail":
 		if e.complexity.Mutation.CreatePayoutDetail == nil {
 			break
@@ -4561,7 +4543,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePayoutDetail(childComplexity, args["input"].(graphql1.AddPayoutDetailInput)), true
+		return e.complexity.Mutation.CreatePayoutDetail(childComplexity, args["input"].(graphql8.AddPayoutDetailInput)), true
 	case "Mutation.createPromotion":
 		if e.complexity.Mutation.CreatePromotion == nil {
 			break
@@ -4572,7 +4554,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePromotion(childComplexity, args["input"].(model.CreatePromotionInput)), true
+		return e.complexity.Mutation.CreatePromotion(childComplexity, args["input"].(graphql6.CreatePromotionInput)), true
 	case "Mutation.createResponse":
 		if e.complexity.Mutation.CreateResponse == nil {
 			break
@@ -4594,7 +4576,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateReview(childComplexity, args["input"].(graphql2.CreateReviewInput)), true
+		return e.complexity.Mutation.CreateReview(childComplexity, args["input"].(graphql9.CreateReviewInput)), true
 	case "Mutation.createSubscription":
 		if e.complexity.Mutation.CreateSubscription == nil {
 			break
@@ -4605,7 +4587,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateSubscription(childComplexity, args["input"].(model.CreateSubscriptionInput)), true
+		return e.complexity.Mutation.CreateSubscription(childComplexity, args["input"].(graphql6.CreateSubscriptionInput)), true
 	case "Mutation.createWishlist":
 		if e.complexity.Mutation.CreateWishlist == nil {
 			break
@@ -4616,7 +4598,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateWishlist(childComplexity, args["input"].(model.CreateWishlistInput)), true
+		return e.complexity.Mutation.CreateWishlist(childComplexity, args["input"].(graphql10.CreateWishlistInput)), true
 	case "Mutation.deactivatePayoutDetail":
 		if e.complexity.Mutation.DeactivatePayoutDetail == nil {
 			break
@@ -4759,7 +4741,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.FileDispute(childComplexity, args["input"].(model.FileDisputeInput)), true
+		return e.complexity.Mutation.FileDispute(childComplexity, args["input"].(graphql2.FileDisputeInput)), true
 	case "Mutation.hideReview":
 		if e.complexity.Mutation.HideReview == nil {
 			break
@@ -4803,7 +4785,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.InviteMember(childComplexity, args["businessID"].(uuid.UUID), args["input"].(model.InviteMemberInput)), true
+		return e.complexity.Mutation.InviteMember(childComplexity, args["businessID"].(uuid.UUID), args["input"].(graphql1.InviteMemberInput)), true
 	case "Mutation.markLeadAsSpam":
 		if e.complexity.Mutation.MarkLeadAsSpam == nil {
 			break
@@ -4825,7 +4807,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.PayForBooking(childComplexity, args["input"].(model.PayForBookingInput)), true
+		return e.complexity.Mutation.PayForBooking(childComplexity, args["input"].(graphql4.PayForBookingInput)), true
 	case "Mutation.ping":
 		if e.complexity.Mutation.Ping == nil {
 			break
@@ -4864,7 +4846,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RefundPayment(childComplexity, args["input"].(graphql1.RefundPaymentInput)), true
+		return e.complexity.Mutation.RefundPayment(childComplexity, args["input"].(graphql8.RefundPaymentInput)), true
 	case "Mutation.registerOpenHouse":
 		if e.complexity.Mutation.RegisterOpenHouse == nil {
 			break
@@ -4875,7 +4857,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RegisterOpenHouse(childComplexity, args["input"].(model.RegisterOpenHouseInput)), true
+		return e.complexity.Mutation.RegisterOpenHouse(childComplexity, args["input"].(graphql5.RegisterOpenHouseInput)), true
 	case "Mutation.removeMember":
 		if e.complexity.Mutation.RemoveMember == nil {
 			break
@@ -4930,7 +4912,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RequestBooking(childComplexity, args["input"].(model.RequestBookingInput)), true
+		return e.complexity.Mutation.RequestBooking(childComplexity, args["input"].(graphql4.RequestBookingInput)), true
 	case "Mutation.requestShowing":
 		if e.complexity.Mutation.RequestShowing == nil {
 			break
@@ -4941,7 +4923,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RequestShowing(childComplexity, args["input"].(model.RequestShowingInput)), true
+		return e.complexity.Mutation.RequestShowing(childComplexity, args["input"].(graphql5.RequestShowingInput)), true
 	case "Mutation.rescheduleShowing":
 		if e.complexity.Mutation.RescheduleShowing == nil {
 			break
@@ -4952,7 +4934,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RescheduleShowing(childComplexity, args["input"].(model.RescheduleShowingInput)), true
+		return e.complexity.Mutation.RescheduleShowing(childComplexity, args["input"].(graphql5.RescheduleShowingInput)), true
 	case "Mutation.reserveBooking":
 		if e.complexity.Mutation.ReserveBooking == nil {
 			break
@@ -4963,7 +4945,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ReserveBooking(childComplexity, args["input"].(model.ReserveBookingInput)), true
+		return e.complexity.Mutation.ReserveBooking(childComplexity, args["input"].(graphql4.ReserveBookingInput)), true
 	case "Mutation.resolveDispute":
 		if e.complexity.Mutation.ResolveDispute == nil {
 			break
@@ -4974,7 +4956,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ResolveDispute(childComplexity, args["input"].(model.ResolveDisputeInput)), true
+		return e.complexity.Mutation.ResolveDispute(childComplexity, args["input"].(graphql2.ResolveDisputeInput)), true
 	case "Mutation.revokeInvitation":
 		if e.complexity.Mutation.RevokeInvitation == nil {
 			break
@@ -4996,7 +4978,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SavePaymentMethod(childComplexity, args["input"].(graphql1.SavePaymentMethodInput)), true
+		return e.complexity.Mutation.SavePaymentMethod(childComplexity, args["input"].(graphql8.SavePaymentMethodInput)), true
 	case "Mutation.selectSupplyRoles":
 		if e.complexity.Mutation.SelectSupplyRoles == nil {
 			break
@@ -5029,7 +5011,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.TrackInteraction(childComplexity, args["input"].(model.TrackInteractionInput)), true
+		return e.complexity.Mutation.TrackInteraction(childComplexity, args["input"].(graphql11.TrackInteractionInput)), true
 	case "Mutation.unhideReview":
 		if e.complexity.Mutation.UnhideReview == nil {
 			break
@@ -5062,7 +5044,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateBusiness(childComplexity, args["id"].(uuid.UUID), args["input"].(model.UpdateBusinessInput)), true
+		return e.complexity.Mutation.UpdateBusiness(childComplexity, args["id"].(uuid.UUID), args["input"].(graphql1.UpdateBusinessInput)), true
 	case "Mutation.updateLeadStatus":
 		if e.complexity.Mutation.UpdateLeadStatus == nil {
 			break
@@ -5095,7 +5077,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateMemberPermissions(childComplexity, args["businessID"].(uuid.UUID), args["memberID"].(uuid.UUID), args["permissions"].(model.MemberPermissionsInput)), true
+		return e.complexity.Mutation.UpdateMemberPermissions(childComplexity, args["businessID"].(uuid.UUID), args["memberID"].(uuid.UUID), args["permissions"].(graphql1.MemberPermissionsInput)), true
 	case "Mutation.updateMemberRole":
 		if e.complexity.Mutation.UpdateMemberRole == nil {
 			break
@@ -5117,7 +5099,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateProfile(childComplexity, args["input"].(model.UpdateProfileInput)), true
+		return e.complexity.Mutation.UpdateProfile(childComplexity, args["input"].(graphql3.UpdateProfileInput)), true
 	case "Mutation.updateResponse":
 		if e.complexity.Mutation.UpdateResponse == nil {
 			break
@@ -5139,7 +5121,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateReview(childComplexity, args["reviewId"].(uuid.UUID), args["input"].(graphql2.UpdateReviewInput)), true
+		return e.complexity.Mutation.UpdateReview(childComplexity, args["reviewId"].(uuid.UUID), args["input"].(graphql9.UpdateReviewInput)), true
 	case "Mutation.updateTravelCompanion":
 		if e.complexity.Mutation.UpdateTravelCompanion == nil {
 			break
@@ -5150,7 +5132,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateTravelCompanion(childComplexity, args["userId"].(string), args["companionId"].(string), args["input"].(model.TravelCompanionInput)), true
+		return e.complexity.Mutation.UpdateTravelCompanion(childComplexity, args["userId"].(string), args["companionId"].(string), args["input"].(graphql3.TravelCompanionInput)), true
 	case "Mutation.updateWishlist":
 		if e.complexity.Mutation.UpdateWishlist == nil {
 			break
@@ -5161,7 +5143,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateWishlist(childComplexity, args["id"].(uuid.UUID), args["input"].(model.UpdateWishlistInput)), true
+		return e.complexity.Mutation.UpdateWishlist(childComplexity, args["id"].(uuid.UUID), args["input"].(graphql10.UpdateWishlistInput)), true
 	case "Mutation.upgradeSubscription":
 		if e.complexity.Mutation.UpgradeSubscription == nil {
 			break
@@ -6452,7 +6434,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.LeadsByBusiness(childComplexity, args["businessId"].(string), args["filter"].(*model.LeadFilterInput), args["page"].(*model.PageInput)), true
+		return e.complexity.Query.LeadsByBusiness(childComplexity, args["businessId"].(string), args["filter"].(*graphql7.LeadFilterInput), args["page"].(*graphql7.PageInput)), true
 	case "Query.leadsByListing":
 		if e.complexity.Query.LeadsByListing == nil {
 			break
@@ -6463,7 +6445,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.LeadsByListing(childComplexity, args["listingId"].(string), args["filter"].(*model.LeadFilterInput), args["page"].(*model.PageInput)), true
+		return e.complexity.Query.LeadsByListing(childComplexity, args["listingId"].(string), args["filter"].(*graphql7.LeadFilterInput), args["page"].(*graphql7.PageInput)), true
 	case "Query.listMyPromotions":
 		if e.complexity.Query.ListMyPromotions == nil {
 			break
@@ -6695,7 +6677,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.MyLeads(childComplexity, args["filter"].(*model.LeadFilterInput), args["page"].(*model.PageInput)), true
+		return e.complexity.Query.MyLeads(childComplexity, args["filter"].(*graphql7.LeadFilterInput), args["page"].(*graphql7.PageInput)), true
 	case "Query.myListings":
 		if e.complexity.Query.MyListings == nil {
 			break
@@ -6927,7 +6909,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Reviews(childComplexity, args["targetType"].(domain4.ReviewTargetType), args["targetId"].(uuid.UUID), args["filter"].(*graphql2.ReviewFilterInput)), true
+		return e.complexity.Query.Reviews(childComplexity, args["targetType"].(domain4.ReviewTargetType), args["targetId"].(uuid.UUID), args["filter"].(*graphql9.ReviewFilterInput)), true
 	case "Query.searchBusinesses":
 		if e.complexity.Query.SearchBusinesses == nil {
 			break
@@ -8937,11 +8919,6 @@ type Listing {
 
   latestReviewStatus: ReviewStatus!
 
-  viewCount: Int!
-  lastViewedAt: Time
-  featuredUntil: Time
-  boostLevel: Int!
-
   createdBy: UUID
   updatedBy: UUID
   statusChangedAt: Time
@@ -9487,7 +9464,6 @@ input ListingFilterInput {
   maxBedrooms: Int
   minBathrooms: Int
   maxBathrooms: Int
-  minViewCount: Int
 
   # Type-specific filters
   shortletFilter: ShortletFilterInput
@@ -11533,7 +11509,7 @@ func (ec *executionContext) field_Mutation_addBusinessMember_args(ctx context.Co
 		return nil, err
 	}
 	args["role"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "customPermissions", ec.unmarshalOMemberPermissionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput)
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "customPermissions", ec.unmarshalOMemberPermissionsInput2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐMemberPermissionsInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11544,7 +11520,7 @@ func (ec *executionContext) field_Mutation_addBusinessMember_args(ctx context.Co
 func (ec *executionContext) field_Mutation_addDisputeEvidence_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNAddDisputeEvidenceInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAddDisputeEvidenceInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNAddDisputeEvidenceInput2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐAddDisputeEvidenceInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11560,7 +11536,7 @@ func (ec *executionContext) field_Mutation_addTravelCompanion_args(ctx context.C
 		return nil, err
 	}
 	args["userId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNTravelCompanionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNTravelCompanionInput2hausletᚋinternalᚋmodulesᚋprofileᚋportᚋgraphqlᚐTravelCompanionInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11613,7 +11589,7 @@ func (ec *executionContext) field_Mutation_assignLead_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_cancelBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCancelBookingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCancelBookingInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCancelBookingInput2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐCancelBookingInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11646,7 +11622,7 @@ func (ec *executionContext) field_Mutation_cancelPromotion_args(ctx context.Cont
 func (ec *executionContext) field_Mutation_cancelShowing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCancelShowingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCancelShowingInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCancelShowingInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐCancelShowingInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11712,7 +11688,7 @@ func (ec *executionContext) field_Mutation_confirmShowing_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_createBusiness_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateBusinessInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateBusinessInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateBusinessInput2hausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐCreateBusinessInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11723,7 +11699,7 @@ func (ec *executionContext) field_Mutation_createBusiness_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_createIncludedPromotion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateIncludedPromotionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateIncludedPromotionInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateIncludedPromotionInput2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreateIncludedPromotionInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11734,7 +11710,7 @@ func (ec *executionContext) field_Mutation_createIncludedPromotion_args(ctx cont
 func (ec *executionContext) field_Mutation_createLead_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateLeadInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateLeadInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateLeadInput2hausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐCreateLeadInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11756,7 +11732,7 @@ func (ec *executionContext) field_Mutation_createListing_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_createOpenHouse_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateOpenHouseInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateOpenHouseInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateOpenHouseInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐCreateOpenHouseInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11789,7 +11765,7 @@ func (ec *executionContext) field_Mutation_createPayoutDetail_args(ctx context.C
 func (ec *executionContext) field_Mutation_createPayout_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreatePayoutInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreatePayoutInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreatePayoutInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐCreatePayoutInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11800,7 +11776,7 @@ func (ec *executionContext) field_Mutation_createPayout_args(ctx context.Context
 func (ec *executionContext) field_Mutation_createPromotion_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreatePromotionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreatePromotionInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreatePromotionInput2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreatePromotionInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11838,7 +11814,7 @@ func (ec *executionContext) field_Mutation_createReview_args(ctx context.Context
 func (ec *executionContext) field_Mutation_createSubscription_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateSubscriptionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateSubscriptionInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateSubscriptionInput2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreateSubscriptionInput)
 	if err != nil {
 		return nil, err
 	}
@@ -11849,7 +11825,7 @@ func (ec *executionContext) field_Mutation_createSubscription_args(ctx context.C
 func (ec *executionContext) field_Mutation_createWishlist_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateWishlistInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateWishlistInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateWishlistInput2hausletᚋinternalᚋmodulesᚋwishlistᚋportᚋgraphqlᚐCreateWishlistInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12007,7 +11983,7 @@ func (ec *executionContext) field_Mutation_downgradeSubscription_args(ctx contex
 func (ec *executionContext) field_Mutation_fileDispute_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNFileDisputeInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐFileDisputeInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNFileDisputeInput2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐFileDisputeInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12066,7 +12042,7 @@ func (ec *executionContext) field_Mutation_inviteMember_args(ctx context.Context
 		return nil, err
 	}
 	args["businessID"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNInviteMemberInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInviteMemberInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNInviteMemberInput2hausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐInviteMemberInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12088,7 +12064,7 @@ func (ec *executionContext) field_Mutation_markLeadAsSpam_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_payForBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNPayForBookingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPayForBookingInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNPayForBookingInput2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐPayForBookingInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12132,7 +12108,7 @@ func (ec *executionContext) field_Mutation_refundPayment_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_registerOpenHouse_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRegisterOpenHouseInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRegisterOpenHouseInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRegisterOpenHouseInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐRegisterOpenHouseInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12207,7 +12183,7 @@ func (ec *executionContext) field_Mutation_reportReview_args(ctx context.Context
 func (ec *executionContext) field_Mutation_requestBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRequestBookingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRequestBookingInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRequestBookingInput2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐRequestBookingInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12218,7 +12194,7 @@ func (ec *executionContext) field_Mutation_requestBooking_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_requestShowing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRequestShowingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRequestShowingInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRequestShowingInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐRequestShowingInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12229,7 +12205,7 @@ func (ec *executionContext) field_Mutation_requestShowing_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_rescheduleShowing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRescheduleShowingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRescheduleShowingInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRescheduleShowingInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐRescheduleShowingInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12240,7 +12216,7 @@ func (ec *executionContext) field_Mutation_rescheduleShowing_args(ctx context.Co
 func (ec *executionContext) field_Mutation_reserveBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNReserveBookingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐReserveBookingInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNReserveBookingInput2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐReserveBookingInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12251,7 +12227,7 @@ func (ec *executionContext) field_Mutation_reserveBooking_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_resolveDispute_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNResolveDisputeInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐResolveDisputeInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNResolveDisputeInput2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐResolveDisputeInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12306,7 +12282,7 @@ func (ec *executionContext) field_Mutation_setDefaultPaymentMethod_args(ctx cont
 func (ec *executionContext) field_Mutation_trackInteraction_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNTrackInteractionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTrackInteractionInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNTrackInteractionInput2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐTrackInteractionInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12344,7 +12320,7 @@ func (ec *executionContext) field_Mutation_updateBusiness_args(ctx context.Conte
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateBusinessInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateBusinessInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateBusinessInput2hausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐUpdateBusinessInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12402,7 +12378,7 @@ func (ec *executionContext) field_Mutation_updateMemberPermissions_args(ctx cont
 		return nil, err
 	}
 	args["memberID"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "permissions", ec.unmarshalNMemberPermissionsInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "permissions", ec.unmarshalNMemberPermissionsInput2hausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐMemberPermissionsInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12434,7 +12410,7 @@ func (ec *executionContext) field_Mutation_updateMemberRole_args(ctx context.Con
 func (ec *executionContext) field_Mutation_updateProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateProfileInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateProfileInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateProfileInput2hausletᚋinternalᚋmodulesᚋprofileᚋportᚋgraphqlᚐUpdateProfileInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12487,7 +12463,7 @@ func (ec *executionContext) field_Mutation_updateTravelCompanion_args(ctx contex
 		return nil, err
 	}
 	args["companionId"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNTravelCompanionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNTravelCompanionInput2hausletᚋinternalᚋmodulesᚋprofileᚋportᚋgraphqlᚐTravelCompanionInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12503,7 +12479,7 @@ func (ec *executionContext) field_Mutation_updateWishlist_args(ctx context.Conte
 		return nil, err
 	}
 	args["id"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateWishlistInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateWishlistInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateWishlistInput2hausletᚋinternalᚋmodulesᚋwishlistᚋportᚋgraphqlᚐUpdateWishlistInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12963,12 +12939,12 @@ func (ec *executionContext) field_Query_leadsByBusiness_args(ctx context.Context
 		return nil, err
 	}
 	args["businessId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOLeadFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLeadFilterInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOLeadFilterInput2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐLeadFilterInput)
 	if err != nil {
 		return nil, err
 	}
 	args["filter"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOPageInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPageInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOPageInput2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐPageInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12984,12 +12960,12 @@ func (ec *executionContext) field_Query_leadsByListing_args(ctx context.Context,
 		return nil, err
 	}
 	args["listingId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOLeadFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLeadFilterInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOLeadFilterInput2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐLeadFilterInput)
 	if err != nil {
 		return nil, err
 	}
 	args["filter"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOPageInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPageInput)
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOPageInput2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐPageInput)
 	if err != nil {
 		return nil, err
 	}
@@ -13314,12 +13290,12 @@ func (ec *executionContext) field_Query_myInvitations_args(ctx context.Context, 
 func (ec *executionContext) field_Query_myLeads_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOLeadFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLeadFilterInput)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOLeadFilterInput2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐLeadFilterInput)
 	if err != nil {
 		return nil, err
 	}
 	args["filter"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOPageInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPageInput)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOPageInput2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐPageInput)
 	if err != nil {
 		return nil, err
 	}
@@ -14400,7 +14376,7 @@ func (ec *executionContext) fieldContext_AgentSubscription_updatedAt(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _AmenityGroup_group(ctx context.Context, field graphql.CollectedField, obj *model.AmenityGroup) (ret graphql.Marshaler) {
+func (ec *executionContext) _AmenityGroup_group(ctx context.Context, field graphql.CollectedField, obj *domain10.AmenityGroup) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -14429,7 +14405,7 @@ func (ec *executionContext) fieldContext_AmenityGroup_group(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _AmenityGroup_items(ctx context.Context, field graphql.CollectedField, obj *model.AmenityGroup) (ret graphql.Marshaler) {
+func (ec *executionContext) _AmenityGroup_items(ctx context.Context, field graphql.CollectedField, obj *domain10.AmenityGroup) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -14545,7 +14521,7 @@ func (ec *executionContext) fieldContext_AmenityHighlight_icon(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _AnalyticsPeriod_startDate(ctx context.Context, field graphql.CollectedField, obj *model.AnalyticsPeriod) (ret graphql.Marshaler) {
+func (ec *executionContext) _AnalyticsPeriod_startDate(ctx context.Context, field graphql.CollectedField, obj *graphql11.PeriodResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -14574,7 +14550,7 @@ func (ec *executionContext) fieldContext_AnalyticsPeriod_startDate(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _AnalyticsPeriod_endDate(ctx context.Context, field graphql.CollectedField, obj *model.AnalyticsPeriod) (ret graphql.Marshaler) {
+func (ec *executionContext) _AnalyticsPeriod_endDate(ctx context.Context, field graphql.CollectedField, obj *graphql11.PeriodResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -14603,7 +14579,7 @@ func (ec *executionContext) fieldContext_AnalyticsPeriod_endDate(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _AnalyticsPeriod_days(ctx context.Context, field graphql.CollectedField, obj *model.AnalyticsPeriod) (ret graphql.Marshaler) {
+func (ec *executionContext) _AnalyticsPeriod_days(ctx context.Context, field graphql.CollectedField, obj *graphql11.PeriodResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18539,7 +18515,7 @@ func (ec *executionContext) fieldContext_CalendarEvent_deletedAt(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _CompleteBookingPayload_booking(ctx context.Context, field graphql.CollectedField, obj *graphql3.CompleteBookingPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CompleteBookingPayload_booking(ctx context.Context, field graphql.CollectedField, obj *graphql4.CompleteBookingPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18632,7 +18608,7 @@ func (ec *executionContext) fieldContext_CompleteBookingPayload_booking(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _CompleteBookingPayload_paymentId(ctx context.Context, field graphql.CollectedField, obj *graphql3.CompleteBookingPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CompleteBookingPayload_paymentId(ctx context.Context, field graphql.CollectedField, obj *graphql4.CompleteBookingPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18661,7 +18637,7 @@ func (ec *executionContext) fieldContext_CompleteBookingPayload_paymentId(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _CompleteBookingPayload_paymentStatus(ctx context.Context, field graphql.CollectedField, obj *graphql3.CompleteBookingPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CompleteBookingPayload_paymentStatus(ctx context.Context, field graphql.CollectedField, obj *graphql4.CompleteBookingPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18690,7 +18666,7 @@ func (ec *executionContext) fieldContext_CompleteBookingPayload_paymentStatus(_ 
 	return fc, nil
 }
 
-func (ec *executionContext) _CompleteBookingPayload_paymentReference(ctx context.Context, field graphql.CollectedField, obj *graphql3.CompleteBookingPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CompleteBookingPayload_paymentReference(ctx context.Context, field graphql.CollectedField, obj *graphql4.CompleteBookingPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18719,7 +18695,7 @@ func (ec *executionContext) fieldContext_CompleteBookingPayload_paymentReference
 	return fc, nil
 }
 
-func (ec *executionContext) _CompleteBookingPayload_authorizationUrl(ctx context.Context, field graphql.CollectedField, obj *graphql3.CompleteBookingPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CompleteBookingPayload_authorizationUrl(ctx context.Context, field graphql.CollectedField, obj *graphql4.CompleteBookingPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18748,7 +18724,7 @@ func (ec *executionContext) fieldContext_CompleteBookingPayload_authorizationUrl
 	return fc, nil
 }
 
-func (ec *executionContext) _CompleteBookingPayload_requiresAuthorization(ctx context.Context, field graphql.CollectedField, obj *graphql3.CompleteBookingPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CompleteBookingPayload_requiresAuthorization(ctx context.Context, field graphql.CollectedField, obj *graphql4.CompleteBookingPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18777,7 +18753,7 @@ func (ec *executionContext) fieldContext_CompleteBookingPayload_requiresAuthoriz
 	return fc, nil
 }
 
-func (ec *executionContext) _CreatePromotionPayload_promotion(ctx context.Context, field graphql.CollectedField, obj *graphql4.CreatePromotionPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CreatePromotionPayload_promotion(ctx context.Context, field graphql.CollectedField, obj *graphql6.CreatePromotionPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18838,7 +18814,7 @@ func (ec *executionContext) fieldContext_CreatePromotionPayload_promotion(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _CreatePromotionPayload_paymentURL(ctx context.Context, field graphql.CollectedField, obj *graphql4.CreatePromotionPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CreatePromotionPayload_paymentURL(ctx context.Context, field graphql.CollectedField, obj *graphql6.CreatePromotionPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18867,7 +18843,7 @@ func (ec *executionContext) fieldContext_CreatePromotionPayload_paymentURL(_ con
 	return fc, nil
 }
 
-func (ec *executionContext) _CreatePromotionPayload_paymentID(ctx context.Context, field graphql.CollectedField, obj *graphql4.CreatePromotionPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CreatePromotionPayload_paymentID(ctx context.Context, field graphql.CollectedField, obj *graphql6.CreatePromotionPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18896,7 +18872,7 @@ func (ec *executionContext) fieldContext_CreatePromotionPayload_paymentID(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _CreateSubscriptionPayload_subscription(ctx context.Context, field graphql.CollectedField, obj *graphql4.CreateSubscriptionPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CreateSubscriptionPayload_subscription(ctx context.Context, field graphql.CollectedField, obj *graphql6.CreateSubscriptionPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18957,7 +18933,7 @@ func (ec *executionContext) fieldContext_CreateSubscriptionPayload_subscription(
 	return fc, nil
 }
 
-func (ec *executionContext) _CreateSubscriptionPayload_paymentURL(ctx context.Context, field graphql.CollectedField, obj *graphql4.CreateSubscriptionPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CreateSubscriptionPayload_paymentURL(ctx context.Context, field graphql.CollectedField, obj *graphql6.CreateSubscriptionPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -18986,7 +18962,7 @@ func (ec *executionContext) fieldContext_CreateSubscriptionPayload_paymentURL(_ 
 	return fc, nil
 }
 
-func (ec *executionContext) _CreateSubscriptionPayload_paymentID(ctx context.Context, field graphql.CollectedField, obj *graphql4.CreateSubscriptionPayload) (ret graphql.Marshaler) {
+func (ec *executionContext) _CreateSubscriptionPayload_paymentID(ctx context.Context, field graphql.CollectedField, obj *graphql6.CreateSubscriptionPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -20779,7 +20755,7 @@ func (ec *executionContext) fieldContext_DisputeResolution_resolvedAt(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _EarningsSummary_totalEarned(ctx context.Context, field graphql.CollectedField, obj *graphql5.EarningsSummary) (ret graphql.Marshaler) {
+func (ec *executionContext) _EarningsSummary_totalEarned(ctx context.Context, field graphql.CollectedField, obj *graphql2.EarningsSummary) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -20808,7 +20784,7 @@ func (ec *executionContext) fieldContext_EarningsSummary_totalEarned(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _EarningsSummary_availableBalance(ctx context.Context, field graphql.CollectedField, obj *graphql5.EarningsSummary) (ret graphql.Marshaler) {
+func (ec *executionContext) _EarningsSummary_availableBalance(ctx context.Context, field graphql.CollectedField, obj *graphql2.EarningsSummary) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -20837,7 +20813,7 @@ func (ec *executionContext) fieldContext_EarningsSummary_availableBalance(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _EarningsSummary_pendingPayouts(ctx context.Context, field graphql.CollectedField, obj *graphql5.EarningsSummary) (ret graphql.Marshaler) {
+func (ec *executionContext) _EarningsSummary_pendingPayouts(ctx context.Context, field graphql.CollectedField, obj *graphql2.EarningsSummary) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -20866,7 +20842,7 @@ func (ec *executionContext) fieldContext_EarningsSummary_pendingPayouts(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _EarningsSummary_currency(ctx context.Context, field graphql.CollectedField, obj *graphql5.EarningsSummary) (ret graphql.Marshaler) {
+func (ec *executionContext) _EarningsSummary_currency(ctx context.Context, field graphql.CollectedField, obj *graphql2.EarningsSummary) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -20895,7 +20871,7 @@ func (ec *executionContext) fieldContext_EarningsSummary_currency(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _FeatureLimitCheckResult_allowed(ctx context.Context, field graphql.CollectedField, obj *graphql4.FeatureLimitCheckResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeatureLimitCheckResult_allowed(ctx context.Context, field graphql.CollectedField, obj *graphql6.FeatureLimitCheckResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -20924,7 +20900,7 @@ func (ec *executionContext) fieldContext_FeatureLimitCheckResult_allowed(_ conte
 	return fc, nil
 }
 
-func (ec *executionContext) _FeatureLimitCheckResult_limit(ctx context.Context, field graphql.CollectedField, obj *graphql4.FeatureLimitCheckResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeatureLimitCheckResult_limit(ctx context.Context, field graphql.CollectedField, obj *graphql6.FeatureLimitCheckResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -20953,7 +20929,7 @@ func (ec *executionContext) fieldContext_FeatureLimitCheckResult_limit(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _FeatureLimitCheckResult_used(ctx context.Context, field graphql.CollectedField, obj *graphql4.FeatureLimitCheckResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeatureLimitCheckResult_used(ctx context.Context, field graphql.CollectedField, obj *graphql6.FeatureLimitCheckResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -20982,7 +20958,7 @@ func (ec *executionContext) fieldContext_FeatureLimitCheckResult_used(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _FeatureLimitCheckResult_remaining(ctx context.Context, field graphql.CollectedField, obj *graphql4.FeatureLimitCheckResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeatureLimitCheckResult_remaining(ctx context.Context, field graphql.CollectedField, obj *graphql6.FeatureLimitCheckResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -21540,7 +21516,7 @@ func (ec *executionContext) fieldContext_HostStats_updatedAt(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_id(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_id(ctx context.Context, field graphql.CollectedField, obj *graphql11.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -21569,7 +21545,7 @@ func (ec *executionContext) fieldContext_Interaction_id(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_userId(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_userId(ctx context.Context, field graphql.CollectedField, obj *graphql11.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -21598,7 +21574,7 @@ func (ec *executionContext) fieldContext_Interaction_userId(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_sessionId(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_sessionId(ctx context.Context, field graphql.CollectedField, obj *graphql11.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -21627,7 +21603,7 @@ func (ec *executionContext) fieldContext_Interaction_sessionId(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_type(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_type(ctx context.Context, field graphql.CollectedField, obj *graphql11.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -21637,7 +21613,7 @@ func (ec *executionContext) _Interaction_type(ctx context.Context, field graphql
 			return obj.Type, nil
 		},
 		nil,
-		ec.marshalNInteractionType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionType,
+		ec.marshalNInteractionType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionTypeInput,
 		true,
 		true,
 	)
@@ -21656,7 +21632,7 @@ func (ec *executionContext) fieldContext_Interaction_type(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_entityType(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_entityType(ctx context.Context, field graphql.CollectedField, obj *graphql11.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -21666,7 +21642,7 @@ func (ec *executionContext) _Interaction_entityType(ctx context.Context, field g
 			return obj.EntityType, nil
 		},
 		nil,
-		ec.marshalNEntityType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐEntityType,
+		ec.marshalNEntityType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐEntityTypeInput,
 		true,
 		true,
 	)
@@ -21685,7 +21661,7 @@ func (ec *executionContext) fieldContext_Interaction_entityType(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_entityId(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_entityId(ctx context.Context, field graphql.CollectedField, obj *graphql11.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -21714,7 +21690,7 @@ func (ec *executionContext) fieldContext_Interaction_entityId(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_context(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_context(ctx context.Context, field graphql.CollectedField, obj *graphql11.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -21743,7 +21719,7 @@ func (ec *executionContext) fieldContext_Interaction_context(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_isBot(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_isBot(ctx context.Context, field graphql.CollectedField, obj *graphql11.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -21772,7 +21748,7 @@ func (ec *executionContext) fieldContext_Interaction_isBot(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Interaction) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *graphql11.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -22352,7 +22328,7 @@ func (ec *executionContext) fieldContext_Lead_updatedAt(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _LeadConnection_items(ctx context.Context, field graphql.CollectedField, obj *model.LeadConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _LeadConnection_items(ctx context.Context, field graphql.CollectedField, obj *graphql7.LeadConnection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -22421,7 +22397,7 @@ func (ec *executionContext) fieldContext_LeadConnection_items(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _LeadConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *model.LeadConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _LeadConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *graphql7.LeadConnection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -22450,7 +22426,7 @@ func (ec *executionContext) fieldContext_LeadConnection_totalCount(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _LeadConnection_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *model.LeadConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _LeadConnection_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *graphql7.LeadConnection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23584,122 +23560,6 @@ func (ec *executionContext) fieldContext_Listing_latestReviewStatus(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _Listing_viewCount(ctx context.Context, field graphql.CollectedField, obj *domain10.Listing) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Listing_viewCount,
-		func(ctx context.Context) (any, error) {
-			return obj.ViewCount, nil
-		},
-		nil,
-		ec.marshalNInt2int,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Listing_viewCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Listing",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Listing_lastViewedAt(ctx context.Context, field graphql.CollectedField, obj *domain10.Listing) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Listing_lastViewedAt,
-		func(ctx context.Context) (any, error) {
-			return obj.LastViewedAt, nil
-		},
-		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Listing_lastViewedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Listing",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Listing_featuredUntil(ctx context.Context, field graphql.CollectedField, obj *domain10.Listing) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Listing_featuredUntil,
-		func(ctx context.Context) (any, error) {
-			return obj.FeaturedUntil, nil
-		},
-		nil,
-		ec.marshalOTime2ᚖtimeᚐTime,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Listing_featuredUntil(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Listing",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Listing_boostLevel(ctx context.Context, field graphql.CollectedField, obj *domain10.Listing) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Listing_boostLevel,
-		func(ctx context.Context) (any, error) {
-			return obj.BoostLevel, nil
-		},
-		nil,
-		ec.marshalNInt2int,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Listing_boostLevel(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Listing",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Listing_createdBy(ctx context.Context, field graphql.CollectedField, obj *domain10.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -24272,7 +24132,7 @@ func (ec *executionContext) fieldContext_Listing_deletedAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_listingId(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_listingId(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24301,7 +24161,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_listingId(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_period(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_period(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24311,7 +24171,7 @@ func (ec *executionContext) _ListingAnalytics_period(ctx context.Context, field 
 			return obj.Period, nil
 		},
 		nil,
-		ec.marshalNAnalyticsPeriod2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAnalyticsPeriod,
+		ec.marshalNAnalyticsPeriod2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPeriodResponse,
 		true,
 		true,
 	)
@@ -24338,7 +24198,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_period(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_totalViews(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_totalViews(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24367,7 +24227,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_totalViews(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_uniqueViews(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_uniqueViews(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24396,7 +24256,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_uniqueViews(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_mediaViews(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_mediaViews(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24425,7 +24285,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_mediaViews(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_mapViews(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_mapViews(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24454,7 +24314,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_mapViews(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_totalSaves(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_totalSaves(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24483,7 +24343,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_totalSaves(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_netSaves(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_netSaves(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24512,7 +24372,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_netSaves(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_totalShares(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_totalShares(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24541,7 +24401,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_totalShares(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_totalContacts(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_totalContacts(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24570,7 +24430,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_totalContacts(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_bookingRequests(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_bookingRequests(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24599,7 +24459,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_bookingRequests(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_conversionRate(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_conversionRate(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24628,7 +24488,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_conversionRate(_ conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_engagementRate(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_engagementRate(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24657,7 +24517,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_engagementRate(_ conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_avgTimeOnPage(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_avgTimeOnPage(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24686,7 +24546,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_avgTimeOnPage(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_viewsTrend(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_viewsTrend(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24715,7 +24575,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_viewsTrend(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_savesTrend(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_savesTrend(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -24744,7 +24604,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_savesTrend(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_engagementTrend(ctx context.Context, field graphql.CollectedField, obj *model.ListingAnalytics) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_engagementTrend(ctx context.Context, field graphql.CollectedField, obj *graphql11.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25249,14 +25109,6 @@ func (ec *executionContext) fieldContext_ListingEdge_node(_ context.Context, fie
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -26590,14 +26442,6 @@ func (ec *executionContext) fieldContext_ListingWithDistance_listing(_ context.C
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -27277,7 +27121,7 @@ func (ec *executionContext) _Mutation_updateProfile(ctx context.Context, field g
 		ec.fieldContext_Mutation_updateProfile,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateProfile(ctx, fc.Args["input"].(model.UpdateProfileInput))
+			return ec.resolvers.Mutation().UpdateProfile(ctx, fc.Args["input"].(graphql3.UpdateProfileInput))
 		},
 		nil,
 		ec.marshalNProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile,
@@ -27539,7 +27383,7 @@ func (ec *executionContext) _Mutation_addTravelCompanion(ctx context.Context, fi
 		ec.fieldContext_Mutation_addTravelCompanion,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AddTravelCompanion(ctx, fc.Args["userId"].(string), fc.Args["input"].(model.TravelCompanionInput))
+			return ec.resolvers.Mutation().AddTravelCompanion(ctx, fc.Args["userId"].(string), fc.Args["input"].(graphql3.TravelCompanionInput))
 		},
 		nil,
 		ec.marshalNBoolean2bool,
@@ -27580,7 +27424,7 @@ func (ec *executionContext) _Mutation_updateTravelCompanion(ctx context.Context,
 		ec.fieldContext_Mutation_updateTravelCompanion,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateTravelCompanion(ctx, fc.Args["userId"].(string), fc.Args["companionId"].(string), fc.Args["input"].(model.TravelCompanionInput))
+			return ec.resolvers.Mutation().UpdateTravelCompanion(ctx, fc.Args["userId"].(string), fc.Args["companionId"].(string), fc.Args["input"].(graphql3.TravelCompanionInput))
 		},
 		nil,
 		ec.marshalNBoolean2bool,
@@ -27750,14 +27594,6 @@ func (ec *executionContext) fieldContext_Mutation_createListing(ctx context.Cont
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -27857,14 +27693,6 @@ func (ec *executionContext) fieldContext_Mutation_updateListing(ctx context.Cont
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -28005,14 +27833,6 @@ func (ec *executionContext) fieldContext_Mutation_publishListing(ctx context.Con
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -28112,14 +27932,6 @@ func (ec *executionContext) fieldContext_Mutation_unpublishListing(ctx context.C
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -28172,7 +27984,7 @@ func (ec *executionContext) _Mutation_createBusiness(ctx context.Context, field 
 		ec.fieldContext_Mutation_createBusiness,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateBusiness(ctx, fc.Args["input"].(model.CreateBusinessInput))
+			return ec.resolvers.Mutation().CreateBusiness(ctx, fc.Args["input"].(graphql1.CreateBusinessInput))
 		},
 		nil,
 		ec.marshalNBusiness2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness,
@@ -28271,7 +28083,7 @@ func (ec *executionContext) _Mutation_updateBusiness(ctx context.Context, field 
 		ec.fieldContext_Mutation_updateBusiness,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateBusiness(ctx, fc.Args["id"].(uuid.UUID), fc.Args["input"].(model.UpdateBusinessInput))
+			return ec.resolvers.Mutation().UpdateBusiness(ctx, fc.Args["id"].(uuid.UUID), fc.Args["input"].(graphql1.UpdateBusinessInput))
 		},
 		nil,
 		ec.marshalNBusiness2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusiness,
@@ -28411,7 +28223,7 @@ func (ec *executionContext) _Mutation_addBusinessMember(ctx context.Context, fie
 		ec.fieldContext_Mutation_addBusinessMember,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AddBusinessMember(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["userID"].(uuid.UUID), fc.Args["role"].(domain.MemberRole), fc.Args["customPermissions"].(*model.MemberPermissionsInput))
+			return ec.resolvers.Mutation().AddBusinessMember(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["userID"].(uuid.UUID), fc.Args["role"].(domain.MemberRole), fc.Args["customPermissions"].(*graphql1.MemberPermissionsInput))
 		},
 		nil,
 		ec.marshalNBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember,
@@ -28533,7 +28345,7 @@ func (ec *executionContext) _Mutation_updateMemberPermissions(ctx context.Contex
 		ec.fieldContext_Mutation_updateMemberPermissions,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateMemberPermissions(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["memberID"].(uuid.UUID), fc.Args["permissions"].(model.MemberPermissionsInput))
+			return ec.resolvers.Mutation().UpdateMemberPermissions(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["memberID"].(uuid.UUID), fc.Args["permissions"].(graphql1.MemberPermissionsInput))
 		},
 		nil,
 		ec.marshalNBusinessMember2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessMember,
@@ -28635,7 +28447,7 @@ func (ec *executionContext) _Mutation_inviteMember(ctx context.Context, field gr
 		ec.fieldContext_Mutation_inviteMember,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().InviteMember(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["input"].(model.InviteMemberInput))
+			return ec.resolvers.Mutation().InviteMember(ctx, fc.Args["businessID"].(uuid.UUID), fc.Args["input"].(graphql1.InviteMemberInput))
 		},
 		nil,
 		ec.marshalNBusinessInvitation2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐBusinessInvitation,
@@ -28835,7 +28647,7 @@ func (ec *executionContext) _Mutation_reserveBooking(ctx context.Context, field 
 		ec.fieldContext_Mutation_reserveBooking,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().ReserveBooking(ctx, fc.Args["input"].(model.ReserveBookingInput))
+			return ec.resolvers.Mutation().ReserveBooking(ctx, fc.Args["input"].(graphql4.ReserveBookingInput))
 		},
 		nil,
 		ec.marshalNCompleteBookingPayload2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐCompleteBookingPayload,
@@ -28890,7 +28702,7 @@ func (ec *executionContext) _Mutation_requestBooking(ctx context.Context, field 
 		ec.fieldContext_Mutation_requestBooking,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RequestBooking(ctx, fc.Args["input"].(model.RequestBookingInput))
+			return ec.resolvers.Mutation().RequestBooking(ctx, fc.Args["input"].(graphql4.RequestBookingInput))
 		},
 		nil,
 		ec.marshalNBooking2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBooking,
@@ -28995,7 +28807,7 @@ func (ec *executionContext) _Mutation_payForBooking(ctx context.Context, field g
 		ec.fieldContext_Mutation_payForBooking,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().PayForBooking(ctx, fc.Args["input"].(model.PayForBookingInput))
+			return ec.resolvers.Mutation().PayForBooking(ctx, fc.Args["input"].(graphql4.PayForBookingInput))
 		},
 		nil,
 		ec.marshalNCompleteBookingPayload2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐCompleteBookingPayload,
@@ -29155,7 +28967,7 @@ func (ec *executionContext) _Mutation_cancelBooking(ctx context.Context, field g
 		ec.fieldContext_Mutation_cancelBooking,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CancelBooking(ctx, fc.Args["input"].(model.CancelBookingInput))
+			return ec.resolvers.Mutation().CancelBooking(ctx, fc.Args["input"].(graphql4.CancelBookingInput))
 		},
 		nil,
 		ec.marshalNBooking2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBooking,
@@ -29470,7 +29282,7 @@ func (ec *executionContext) _Mutation_requestShowing(ctx context.Context, field 
 		ec.fieldContext_Mutation_requestShowing,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RequestShowing(ctx, fc.Args["input"].(model.RequestShowingInput))
+			return ec.resolvers.Mutation().RequestShowing(ctx, fc.Args["input"].(graphql5.RequestShowingInput))
 		},
 		nil,
 		ec.marshalNCalendarEvent2ᚖhausletᚋinternalᚋmodulesᚋcalendarᚋdomainᚐCalendarEvent,
@@ -29632,7 +29444,7 @@ func (ec *executionContext) _Mutation_cancelShowing(ctx context.Context, field g
 		ec.fieldContext_Mutation_cancelShowing,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CancelShowing(ctx, fc.Args["input"].(model.CancelShowingInput))
+			return ec.resolvers.Mutation().CancelShowing(ctx, fc.Args["input"].(graphql5.CancelShowingInput))
 		},
 		nil,
 		ec.marshalNCalendarEvent2ᚖhausletᚋinternalᚋmodulesᚋcalendarᚋdomainᚐCalendarEvent,
@@ -29713,7 +29525,7 @@ func (ec *executionContext) _Mutation_rescheduleShowing(ctx context.Context, fie
 		ec.fieldContext_Mutation_rescheduleShowing,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RescheduleShowing(ctx, fc.Args["input"].(model.RescheduleShowingInput))
+			return ec.resolvers.Mutation().RescheduleShowing(ctx, fc.Args["input"].(graphql5.RescheduleShowingInput))
 		},
 		nil,
 		ec.marshalNCalendarEvent2ᚖhausletᚋinternalᚋmodulesᚋcalendarᚋdomainᚐCalendarEvent,
@@ -29794,7 +29606,7 @@ func (ec *executionContext) _Mutation_createOpenHouse(ctx context.Context, field
 		ec.fieldContext_Mutation_createOpenHouse,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateOpenHouse(ctx, fc.Args["input"].(model.CreateOpenHouseInput))
+			return ec.resolvers.Mutation().CreateOpenHouse(ctx, fc.Args["input"].(graphql5.CreateOpenHouseInput))
 		},
 		nil,
 		ec.marshalNCalendarEvent2ᚖhausletᚋinternalᚋmodulesᚋcalendarᚋdomainᚐCalendarEvent,
@@ -29875,7 +29687,7 @@ func (ec *executionContext) _Mutation_registerOpenHouse(ctx context.Context, fie
 		ec.fieldContext_Mutation_registerOpenHouse,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RegisterOpenHouse(ctx, fc.Args["input"].(model.RegisterOpenHouseInput))
+			return ec.resolvers.Mutation().RegisterOpenHouse(ctx, fc.Args["input"].(graphql5.RegisterOpenHouseInput))
 		},
 		nil,
 		ec.marshalNBoolean2bool,
@@ -29957,7 +29769,7 @@ func (ec *executionContext) _Mutation_createPayment(ctx context.Context, field g
 		ec.fieldContext_Mutation_createPayment,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreatePayment(ctx, fc.Args["input"].(graphql1.CreatePaymentInput))
+			return ec.resolvers.Mutation().CreatePayment(ctx, fc.Args["input"].(graphql8.CreatePaymentInput))
 		},
 		nil,
 		ec.marshalNPaymentInitResponse2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentInitResponse,
@@ -30085,7 +29897,7 @@ func (ec *executionContext) _Mutation_refundPayment(ctx context.Context, field g
 		ec.fieldContext_Mutation_refundPayment,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().RefundPayment(ctx, fc.Args["input"].(graphql1.RefundPaymentInput))
+			return ec.resolvers.Mutation().RefundPayment(ctx, fc.Args["input"].(graphql8.RefundPaymentInput))
 		},
 		nil,
 		ec.marshalNPayment2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPayment,
@@ -30164,7 +29976,7 @@ func (ec *executionContext) _Mutation_savePaymentMethod(ctx context.Context, fie
 		ec.fieldContext_Mutation_savePaymentMethod,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().SavePaymentMethod(ctx, fc.Args["input"].(graphql1.SavePaymentMethodInput))
+			return ec.resolvers.Mutation().SavePaymentMethod(ctx, fc.Args["input"].(graphql8.SavePaymentMethodInput))
 		},
 		nil,
 		ec.marshalNPaymentMethod2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPaymentMethod,
@@ -30351,7 +30163,7 @@ func (ec *executionContext) _Mutation_createPayoutDetail(ctx context.Context, fi
 		ec.fieldContext_Mutation_createPayoutDetail,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreatePayoutDetail(ctx, fc.Args["input"].(graphql1.AddPayoutDetailInput))
+			return ec.resolvers.Mutation().CreatePayoutDetail(ctx, fc.Args["input"].(graphql8.AddPayoutDetailInput))
 		},
 		nil,
 		ec.marshalNPayoutDetail2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPayoutDetail,
@@ -30481,7 +30293,7 @@ func (ec *executionContext) _Mutation_createPayout(ctx context.Context, field gr
 		ec.fieldContext_Mutation_createPayout,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreatePayout(ctx, fc.Args["input"].(model.CreatePayoutInput))
+			return ec.resolvers.Mutation().CreatePayout(ctx, fc.Args["input"].(graphql8.CreatePayoutInput))
 		},
 		nil,
 		ec.marshalNTransaction2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐTransaction,
@@ -30550,7 +30362,7 @@ func (ec *executionContext) _Mutation_fileDispute(ctx context.Context, field gra
 		ec.fieldContext_Mutation_fileDispute,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().FileDispute(ctx, fc.Args["input"].(model.FileDisputeInput))
+			return ec.resolvers.Mutation().FileDispute(ctx, fc.Args["input"].(graphql2.FileDisputeInput))
 		},
 		nil,
 		ec.marshalNDispute2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDispute,
@@ -30712,7 +30524,7 @@ func (ec *executionContext) _Mutation_resolveDispute(ctx context.Context, field 
 		ec.fieldContext_Mutation_resolveDispute,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().ResolveDispute(ctx, fc.Args["input"].(model.ResolveDisputeInput))
+			return ec.resolvers.Mutation().ResolveDispute(ctx, fc.Args["input"].(graphql2.ResolveDisputeInput))
 		},
 		nil,
 		ec.marshalNDispute2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDispute,
@@ -30874,7 +30686,7 @@ func (ec *executionContext) _Mutation_addDisputeEvidence(ctx context.Context, fi
 		ec.fieldContext_Mutation_addDisputeEvidence,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().AddDisputeEvidence(ctx, fc.Args["input"].(model.AddDisputeEvidenceInput))
+			return ec.resolvers.Mutation().AddDisputeEvidence(ctx, fc.Args["input"].(graphql2.AddDisputeEvidenceInput))
 		},
 		nil,
 		ec.marshalNDispute2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDispute,
@@ -30955,7 +30767,7 @@ func (ec *executionContext) _Mutation_createWishlist(ctx context.Context, field 
 		ec.fieldContext_Mutation_createWishlist,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateWishlist(ctx, fc.Args["input"].(model.CreateWishlistInput))
+			return ec.resolvers.Mutation().CreateWishlist(ctx, fc.Args["input"].(graphql10.CreateWishlistInput))
 		},
 		nil,
 		ec.marshalNWishlist2ᚖhausletᚋinternalᚋmodulesᚋwishlistᚋdomainᚐWishlist,
@@ -31016,7 +30828,7 @@ func (ec *executionContext) _Mutation_updateWishlist(ctx context.Context, field 
 		ec.fieldContext_Mutation_updateWishlist,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateWishlist(ctx, fc.Args["id"].(uuid.UUID), fc.Args["input"].(model.UpdateWishlistInput))
+			return ec.resolvers.Mutation().UpdateWishlist(ctx, fc.Args["id"].(uuid.UUID), fc.Args["input"].(graphql10.UpdateWishlistInput))
 		},
 		nil,
 		ec.marshalNWishlist2ᚖhausletᚋinternalᚋmodulesᚋwishlistᚋdomainᚐWishlist,
@@ -31275,7 +31087,7 @@ func (ec *executionContext) _Mutation_createReview(ctx context.Context, field gr
 		ec.fieldContext_Mutation_createReview,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateReview(ctx, fc.Args["input"].(graphql2.CreateReviewInput))
+			return ec.resolvers.Mutation().CreateReview(ctx, fc.Args["input"].(graphql9.CreateReviewInput))
 		},
 		nil,
 		ec.marshalNReview2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐReview,
@@ -31354,7 +31166,7 @@ func (ec *executionContext) _Mutation_updateReview(ctx context.Context, field gr
 		ec.fieldContext_Mutation_updateReview,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateReview(ctx, fc.Args["reviewId"].(uuid.UUID), fc.Args["input"].(graphql2.UpdateReviewInput))
+			return ec.resolvers.Mutation().UpdateReview(ctx, fc.Args["reviewId"].(uuid.UUID), fc.Args["input"].(graphql9.UpdateReviewInput))
 		},
 		nil,
 		ec.marshalNReview2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐReview,
@@ -31903,7 +31715,7 @@ func (ec *executionContext) _Mutation_createPromotion(ctx context.Context, field
 		ec.fieldContext_Mutation_createPromotion,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreatePromotion(ctx, fc.Args["input"].(model.CreatePromotionInput))
+			return ec.resolvers.Mutation().CreatePromotion(ctx, fc.Args["input"].(graphql6.CreatePromotionInput))
 		},
 		nil,
 		ec.marshalNCreatePromotionPayload2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreatePromotionPayload,
@@ -31952,7 +31764,7 @@ func (ec *executionContext) _Mutation_createIncludedPromotion(ctx context.Contex
 		ec.fieldContext_Mutation_createIncludedPromotion,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateIncludedPromotion(ctx, fc.Args["input"].(model.CreateIncludedPromotionInput))
+			return ec.resolvers.Mutation().CreateIncludedPromotion(ctx, fc.Args["input"].(graphql6.CreateIncludedPromotionInput))
 		},
 		nil,
 		ec.marshalNListingPromotion2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋdomainᚐListingPromotion,
@@ -32098,7 +31910,7 @@ func (ec *executionContext) _Mutation_createSubscription(ctx context.Context, fi
 		ec.fieldContext_Mutation_createSubscription,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateSubscription(ctx, fc.Args["input"].(model.CreateSubscriptionInput))
+			return ec.resolvers.Mutation().CreateSubscription(ctx, fc.Args["input"].(graphql6.CreateSubscriptionInput))
 		},
 		nil,
 		ec.marshalNCreateSubscriptionPayload2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreateSubscriptionPayload,
@@ -32465,7 +32277,7 @@ func (ec *executionContext) _Mutation_createLead(ctx context.Context, field grap
 		ec.fieldContext_Mutation_createLead,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateLead(ctx, fc.Args["input"].(model.CreateLeadInput))
+			return ec.resolvers.Mutation().CreateLead(ctx, fc.Args["input"].(graphql7.CreateLeadInput))
 		},
 		nil,
 		ec.marshalNLead2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋdomainᚐLead,
@@ -32790,7 +32602,7 @@ func (ec *executionContext) _Mutation_trackInteraction(ctx context.Context, fiel
 		ec.fieldContext_Mutation_trackInteraction,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().TrackInteraction(ctx, fc.Args["input"].(model.TrackInteractionInput))
+			return ec.resolvers.Mutation().TrackInteraction(ctx, fc.Args["input"].(graphql11.TrackInteractionInput))
 		},
 		nil,
 		ec.marshalNBoolean2bool,
@@ -34501,7 +34313,7 @@ func (ec *executionContext) fieldContext_PayoutDetail_updatedAt(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _PlanLimits_maxListings(ctx context.Context, field graphql.CollectedField, obj *graphql4.PlanLimits) (ret graphql.Marshaler) {
+func (ec *executionContext) _PlanLimits_maxListings(ctx context.Context, field graphql.CollectedField, obj *graphql6.PlanLimits) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -34530,7 +34342,7 @@ func (ec *executionContext) fieldContext_PlanLimits_maxListings(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _PlanLimits_maxPhotosPerListing(ctx context.Context, field graphql.CollectedField, obj *graphql4.PlanLimits) (ret graphql.Marshaler) {
+func (ec *executionContext) _PlanLimits_maxPhotosPerListing(ctx context.Context, field graphql.CollectedField, obj *graphql6.PlanLimits) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -34559,7 +34371,7 @@ func (ec *executionContext) fieldContext_PlanLimits_maxPhotosPerListing(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _PlanLimits_maxVideosPerListing(ctx context.Context, field graphql.CollectedField, obj *graphql4.PlanLimits) (ret graphql.Marshaler) {
+func (ec *executionContext) _PlanLimits_maxVideosPerListing(ctx context.Context, field graphql.CollectedField, obj *graphql6.PlanLimits) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -34588,7 +34400,7 @@ func (ec *executionContext) fieldContext_PlanLimits_maxVideosPerListing(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _PlanLimits_featuredPromotionsPerMonth(ctx context.Context, field graphql.CollectedField, obj *graphql4.PlanLimits) (ret graphql.Marshaler) {
+func (ec *executionContext) _PlanLimits_featuredPromotionsPerMonth(ctx context.Context, field graphql.CollectedField, obj *graphql6.PlanLimits) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -34617,7 +34429,7 @@ func (ec *executionContext) fieldContext_PlanLimits_featuredPromotionsPerMonth(_
 	return fc, nil
 }
 
-func (ec *executionContext) _PlanLimits_premiumPromotionsPerMonth(ctx context.Context, field graphql.CollectedField, obj *graphql4.PlanLimits) (ret graphql.Marshaler) {
+func (ec *executionContext) _PlanLimits_premiumPromotionsPerMonth(ctx context.Context, field graphql.CollectedField, obj *graphql6.PlanLimits) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -34646,7 +34458,7 @@ func (ec *executionContext) fieldContext_PlanLimits_premiumPromotionsPerMonth(_ 
 	return fc, nil
 }
 
-func (ec *executionContext) _PlanLimits_openHousesPerMonth(ctx context.Context, field graphql.CollectedField, obj *graphql4.PlanLimits) (ret graphql.Marshaler) {
+func (ec *executionContext) _PlanLimits_openHousesPerMonth(ctx context.Context, field graphql.CollectedField, obj *graphql6.PlanLimits) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -34675,7 +34487,7 @@ func (ec *executionContext) fieldContext_PlanLimits_openHousesPerMonth(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _PlanLimits_privateShowingsPerMonth(ctx context.Context, field graphql.CollectedField, obj *graphql4.PlanLimits) (ret graphql.Marshaler) {
+func (ec *executionContext) _PlanLimits_privateShowingsPerMonth(ctx context.Context, field graphql.CollectedField, obj *graphql6.PlanLimits) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -34704,7 +34516,7 @@ func (ec *executionContext) fieldContext_PlanLimits_privateShowingsPerMonth(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _PlanLimits_features(ctx context.Context, field graphql.CollectedField, obj *graphql4.PlanLimits) (ret graphql.Marshaler) {
+func (ec *executionContext) _PlanLimits_features(ctx context.Context, field graphql.CollectedField, obj *graphql6.PlanLimits) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -36954,7 +36766,7 @@ func (ec *executionContext) _Property_amenities(ctx context.Context, field graph
 			return ec.resolvers.Property().Amenities(ctx, obj)
 		},
 		nil,
-		ec.marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupᚄ,
+		ec.marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroupᚄ,
 		true,
 		true,
 	)
@@ -36989,7 +36801,7 @@ func (ec *executionContext) _Property_featuresCommercial(ctx context.Context, fi
 			return ec.resolvers.Property().FeaturesCommercial(ctx, obj)
 		},
 		nil,
-		ec.marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupᚄ,
+		ec.marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroupᚄ,
 		true,
 		true,
 	)
@@ -37976,14 +37788,6 @@ func (ec *executionContext) fieldContext_Query_listing(ctx context.Context, fiel
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -38083,14 +37887,6 @@ func (ec *executionContext) fieldContext_Query_listingByPublicId(ctx context.Con
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -38190,14 +37986,6 @@ func (ec *executionContext) fieldContext_Query_listingBySlug(ctx context.Context
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -42151,7 +41939,7 @@ func (ec *executionContext) _Query_reviews(ctx context.Context, field graphql.Co
 		ec.fieldContext_Query_reviews,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Reviews(ctx, fc.Args["targetType"].(domain4.ReviewTargetType), fc.Args["targetId"].(uuid.UUID), fc.Args["filter"].(*graphql2.ReviewFilterInput))
+			return ec.resolvers.Query().Reviews(ctx, fc.Args["targetType"].(domain4.ReviewTargetType), fc.Args["targetId"].(uuid.UUID), fc.Args["filter"].(*graphql9.ReviewFilterInput))
 		},
 		nil,
 		ec.marshalNReview2ᚕᚖhausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐReviewᚄ,
@@ -43445,10 +43233,10 @@ func (ec *executionContext) _Query_leadsByListing(ctx context.Context, field gra
 		ec.fieldContext_Query_leadsByListing,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().LeadsByListing(ctx, fc.Args["listingId"].(string), fc.Args["filter"].(*model.LeadFilterInput), fc.Args["page"].(*model.PageInput))
+			return ec.resolvers.Query().LeadsByListing(ctx, fc.Args["listingId"].(string), fc.Args["filter"].(*graphql7.LeadFilterInput), fc.Args["page"].(*graphql7.PageInput))
 		},
 		nil,
-		ec.marshalNLeadConnection2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLeadConnection,
+		ec.marshalNLeadConnection2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐLeadConnection,
 		true,
 		true,
 	)
@@ -43494,10 +43282,10 @@ func (ec *executionContext) _Query_leadsByBusiness(ctx context.Context, field gr
 		ec.fieldContext_Query_leadsByBusiness,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().LeadsByBusiness(ctx, fc.Args["businessId"].(string), fc.Args["filter"].(*model.LeadFilterInput), fc.Args["page"].(*model.PageInput))
+			return ec.resolvers.Query().LeadsByBusiness(ctx, fc.Args["businessId"].(string), fc.Args["filter"].(*graphql7.LeadFilterInput), fc.Args["page"].(*graphql7.PageInput))
 		},
 		nil,
-		ec.marshalNLeadConnection2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLeadConnection,
+		ec.marshalNLeadConnection2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐLeadConnection,
 		true,
 		true,
 	)
@@ -43543,10 +43331,10 @@ func (ec *executionContext) _Query_myLeads(ctx context.Context, field graphql.Co
 		ec.fieldContext_Query_myLeads,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().MyLeads(ctx, fc.Args["filter"].(*model.LeadFilterInput), fc.Args["page"].(*model.PageInput))
+			return ec.resolvers.Query().MyLeads(ctx, fc.Args["filter"].(*graphql7.LeadFilterInput), fc.Args["page"].(*graphql7.PageInput))
 		},
 		nil,
-		ec.marshalNLeadConnection2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLeadConnection,
+		ec.marshalNLeadConnection2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐLeadConnection,
 		true,
 		true,
 	)
@@ -43656,7 +43444,7 @@ func (ec *executionContext) _Query_listingAnalytics(ctx context.Context, field g
 			return ec.resolvers.Query().ListingAnalytics(ctx, fc.Args["listingId"].(uuid.UUID), fc.Args["days"].(int))
 		},
 		nil,
-		ec.marshalNListingAnalytics2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingAnalytics,
+		ec.marshalNListingAnalytics2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐListingAnalyticsResponse,
 		true,
 		true,
 	)
@@ -43733,7 +43521,7 @@ func (ec *executionContext) _Query_myInteractionHistory(ctx context.Context, fie
 			return ec.resolvers.Query().MyInteractionHistory(ctx, fc.Args["limit"].(*int))
 		},
 		nil,
-		ec.marshalNInteraction2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionᚄ,
+		ec.marshalNInteraction2ᚕᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionResponseᚄ,
 		true,
 		true,
 	)
@@ -45548,7 +45336,7 @@ func (ec *executionContext) _RuleGroup_rules(ctx context.Context, field graphql.
 			return ec.resolvers.RuleGroup().Rules(ctx, obj)
 		},
 		nil,
-		ec.marshalNRuleItem2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemᚄ,
+		ec.marshalNRuleItem2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleItemᚄ,
 		true,
 		true,
 	)
@@ -45573,7 +45361,7 @@ func (ec *executionContext) fieldContext_RuleGroup_rules(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _RuleItem_name(ctx context.Context, field graphql.CollectedField, obj *model.RuleItem) (ret graphql.Marshaler) {
+func (ec *executionContext) _RuleItem_name(ctx context.Context, field graphql.CollectedField, obj *domain10.RuleItem) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -45583,7 +45371,7 @@ func (ec *executionContext) _RuleItem_name(ctx context.Context, field graphql.Co
 			return obj.Name, nil
 		},
 		nil,
-		ec.marshalNRuleSubCategory2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleSubCategory,
+		ec.marshalNRuleSubCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleSubCategory,
 		true,
 		true,
 	)
@@ -45602,7 +45390,7 @@ func (ec *executionContext) fieldContext_RuleItem_name(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _RuleItem_description(ctx context.Context, field graphql.CollectedField, obj *model.RuleItem) (ret graphql.Marshaler) {
+func (ec *executionContext) _RuleItem_description(ctx context.Context, field graphql.CollectedField, obj *domain10.RuleItem) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46128,14 +45916,6 @@ func (ec *executionContext) fieldContext_ScoredListing_listing(_ context.Context
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -49962,14 +49742,6 @@ func (ec *executionContext) fieldContext_WishlistItem_listing(_ context.Context,
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
-			case "viewCount":
-				return ec.fieldContext_Listing_viewCount(ctx, field)
-			case "lastViewedAt":
-				return ec.fieldContext_Listing_lastViewedAt(ctx, field)
-			case "featuredUntil":
-				return ec.fieldContext_Listing_featuredUntil(ctx, field)
-			case "boostLevel":
-				return ec.fieldContext_Listing_boostLevel(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -51507,8 +51279,8 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputAddDisputeEvidenceInput(ctx context.Context, obj any) (model.AddDisputeEvidenceInput, error) {
-	var it model.AddDisputeEvidenceInput
+func (ec *executionContext) unmarshalInputAddDisputeEvidenceInput(ctx context.Context, obj any) (graphql2.AddDisputeEvidenceInput, error) {
+	var it graphql2.AddDisputeEvidenceInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -51555,8 +51327,8 @@ func (ec *executionContext) unmarshalInputAddDisputeEvidenceInput(ctx context.Co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputAddPayoutDetailInput(ctx context.Context, obj any) (graphql1.AddPayoutDetailInput, error) {
-	var it graphql1.AddPayoutDetailInput
+func (ec *executionContext) unmarshalInputAddPayoutDetailInput(ctx context.Context, obj any) (graphql8.AddPayoutDetailInput, error) {
+	var it graphql8.AddPayoutDetailInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -51628,8 +51400,8 @@ func (ec *executionContext) unmarshalInputAddPayoutDetailInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputAmenityGroupInput(ctx context.Context, obj any) (model.AmenityGroupInput, error) {
-	var it model.AmenityGroupInput
+func (ec *executionContext) unmarshalInputAmenityGroupInput(ctx context.Context, obj any) (domain10.AmenityGroup, error) {
+	var it domain10.AmenityGroup
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -51703,8 +51475,8 @@ func (ec *executionContext) unmarshalInputAmenityHighlightInput(ctx context.Cont
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputBusinessAddressInput(ctx context.Context, obj any) (model.BusinessAddressInput, error) {
-	var it model.BusinessAddressInput
+func (ec *executionContext) unmarshalInputBusinessAddressInput(ctx context.Context, obj any) (graphql1.BusinessAddressInput, error) {
+	var it graphql1.BusinessAddressInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -51793,8 +51565,8 @@ func (ec *executionContext) unmarshalInputBusinessAddressInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCancelBookingInput(ctx context.Context, obj any) (model.CancelBookingInput, error) {
-	var it model.CancelBookingInput
+func (ec *executionContext) unmarshalInputCancelBookingInput(ctx context.Context, obj any) (graphql4.CancelBookingInput, error) {
+	var it graphql4.CancelBookingInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -51827,8 +51599,8 @@ func (ec *executionContext) unmarshalInputCancelBookingInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCancelShowingInput(ctx context.Context, obj any) (model.CancelShowingInput, error) {
-	var it model.CancelShowingInput
+func (ec *executionContext) unmarshalInputCancelShowingInput(ctx context.Context, obj any) (graphql5.CancelShowingInput, error) {
+	var it graphql5.CancelShowingInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -51861,8 +51633,8 @@ func (ec *executionContext) unmarshalInputCancelShowingInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateBusinessInput(ctx context.Context, obj any) (model.CreateBusinessInput, error) {
-	var it model.CreateBusinessInput
+func (ec *executionContext) unmarshalInputCreateBusinessInput(ctx context.Context, obj any) (graphql1.CreateBusinessInput, error) {
+	var it graphql1.CreateBusinessInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -51947,7 +51719,7 @@ func (ec *executionContext) unmarshalInputCreateBusinessInput(ctx context.Contex
 			it.Website = data
 		case "address":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
-			data, err := ec.unmarshalNBusinessAddressInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBusinessAddressInput(ctx, v)
+			data, err := ec.unmarshalNBusinessAddressInput2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐBusinessAddressInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -51993,8 +51765,8 @@ func (ec *executionContext) unmarshalInputCreateBusinessInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateIncludedPromotionInput(ctx context.Context, obj any) (model.CreateIncludedPromotionInput, error) {
-	var it model.CreateIncludedPromotionInput
+func (ec *executionContext) unmarshalInputCreateIncludedPromotionInput(ctx context.Context, obj any) (graphql6.CreateIncludedPromotionInput, error) {
+	var it graphql6.CreateIncludedPromotionInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52034,8 +51806,8 @@ func (ec *executionContext) unmarshalInputCreateIncludedPromotionInput(ctx conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateLeadInput(ctx context.Context, obj any) (model.CreateLeadInput, error) {
-	var it model.CreateLeadInput
+func (ec *executionContext) unmarshalInputCreateLeadInput(ctx context.Context, obj any) (graphql7.CreateLeadInput, error) {
+	var it graphql7.CreateLeadInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52356,14 +52128,14 @@ func (ec *executionContext) unmarshalInputCreateListingPropertyInput(ctx context
 			it.FloorArea = data
 		case "amenities":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amenities"))
-			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx, v)
+			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroupᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Amenities = data
 		case "featuresCommercial":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("featuresCommercial"))
-			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx, v)
+			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroupᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -52374,8 +52146,8 @@ func (ec *executionContext) unmarshalInputCreateListingPropertyInput(ctx context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateOpenHouseInput(ctx context.Context, obj any) (model.CreateOpenHouseInput, error) {
-	var it model.CreateOpenHouseInput
+func (ec *executionContext) unmarshalInputCreateOpenHouseInput(ctx context.Context, obj any) (graphql5.CreateOpenHouseInput, error) {
+	var it graphql5.CreateOpenHouseInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52443,8 +52215,8 @@ func (ec *executionContext) unmarshalInputCreateOpenHouseInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreatePaymentInput(ctx context.Context, obj any) (graphql1.CreatePaymentInput, error) {
-	var it graphql1.CreatePaymentInput
+func (ec *executionContext) unmarshalInputCreatePaymentInput(ctx context.Context, obj any) (graphql8.CreatePaymentInput, error) {
+	var it graphql8.CreatePaymentInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52550,8 +52322,8 @@ func (ec *executionContext) unmarshalInputCreatePaymentInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreatePaymentMethodInput(ctx context.Context, obj any) (graphql1.SavePaymentMethodInput, error) {
-	var it graphql1.SavePaymentMethodInput
+func (ec *executionContext) unmarshalInputCreatePaymentMethodInput(ctx context.Context, obj any) (graphql8.SavePaymentMethodInput, error) {
+	var it graphql8.SavePaymentMethodInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52593,8 +52365,8 @@ func (ec *executionContext) unmarshalInputCreatePaymentMethodInput(ctx context.C
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreatePayoutInput(ctx context.Context, obj any) (model.CreatePayoutInput, error) {
-	var it model.CreatePayoutInput
+func (ec *executionContext) unmarshalInputCreatePayoutInput(ctx context.Context, obj any) (graphql8.CreatePayoutInput, error) {
+	var it graphql8.CreatePayoutInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52616,7 +52388,7 @@ func (ec *executionContext) unmarshalInputCreatePayoutInput(ctx context.Context,
 			it.BusinessID = data
 		case "amount":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amount"))
-			data, err := ec.unmarshalNInt2int(ctx, v)
+			data, err := ec.unmarshalNInt2int64(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -52627,10 +52399,12 @@ func (ec *executionContext) unmarshalInputCreatePayoutInput(ctx context.Context,
 			if err != nil {
 				return it, err
 			}
-			it.Currency = data
+			if err = ec.resolvers.CreatePayoutInput().Currency(ctx, &it, data); err != nil {
+				return it, err
+			}
 		case "description":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			data, err := ec.unmarshalOString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -52648,8 +52422,8 @@ func (ec *executionContext) unmarshalInputCreatePayoutInput(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreatePromotionInput(ctx context.Context, obj any) (model.CreatePromotionInput, error) {
-	var it model.CreatePromotionInput
+func (ec *executionContext) unmarshalInputCreatePromotionInput(ctx context.Context, obj any) (graphql6.CreatePromotionInput, error) {
+	var it graphql6.CreatePromotionInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52689,8 +52463,8 @@ func (ec *executionContext) unmarshalInputCreatePromotionInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateReviewInput(ctx context.Context, obj any) (graphql2.CreateReviewInput, error) {
-	var it graphql2.CreateReviewInput
+func (ec *executionContext) unmarshalInputCreateReviewInput(ctx context.Context, obj any) (graphql9.CreateReviewInput, error) {
+	var it graphql9.CreateReviewInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52811,8 +52585,8 @@ func (ec *executionContext) unmarshalInputCreateReviewInput(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateSubscriptionInput(ctx context.Context, obj any) (model.CreateSubscriptionInput, error) {
-	var it model.CreateSubscriptionInput
+func (ec *executionContext) unmarshalInputCreateSubscriptionInput(ctx context.Context, obj any) (graphql6.CreateSubscriptionInput, error) {
+	var it graphql6.CreateSubscriptionInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52852,8 +52626,8 @@ func (ec *executionContext) unmarshalInputCreateSubscriptionInput(ctx context.Co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateWishlistInput(ctx context.Context, obj any) (model.CreateWishlistInput, error) {
-	var it model.CreateWishlistInput
+func (ec *executionContext) unmarshalInputCreateWishlistInput(ctx context.Context, obj any) (graphql10.CreateWishlistInput, error) {
+	var it graphql10.CreateWishlistInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52893,8 +52667,8 @@ func (ec *executionContext) unmarshalInputCreateWishlistInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputFileDisputeInput(ctx context.Context, obj any) (model.FileDisputeInput, error) {
-	var it model.FileDisputeInput
+func (ec *executionContext) unmarshalInputFileDisputeInput(ctx context.Context, obj any) (graphql2.FileDisputeInput, error) {
+	var it graphql2.FileDisputeInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52930,7 +52704,7 @@ func (ec *executionContext) unmarshalInputFileDisputeInput(ctx context.Context, 
 			it.Description = data
 		case "amount":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amount"))
-			data, err := ec.unmarshalNInt2int(ctx, v)
+			data, err := ec.unmarshalNInt2int64(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -52948,8 +52722,8 @@ func (ec *executionContext) unmarshalInputFileDisputeInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context, obj any) (model.InviteMemberInput, error) {
-	var it model.InviteMemberInput
+func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context, obj any) (graphql1.InviteMemberInput, error) {
+	var it graphql1.InviteMemberInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -52978,7 +52752,7 @@ func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context,
 			it.Role = data
 		case "customPermissions":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("customPermissions"))
-			data, err := ec.unmarshalOMemberPermissionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput(ctx, v)
+			data, err := ec.unmarshalOMemberPermissionsInput2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐMemberPermissionsInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -52989,8 +52763,8 @@ func (ec *executionContext) unmarshalInputInviteMemberInput(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputLeadFilterInput(ctx context.Context, obj any) (model.LeadFilterInput, error) {
-	var it model.LeadFilterInput
+func (ec *executionContext) unmarshalInputLeadFilterInput(ctx context.Context, obj any) (graphql7.LeadFilterInput, error) {
+	var it graphql7.LeadFilterInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -53065,7 +52839,7 @@ func (ec *executionContext) unmarshalInputListingFilterInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"query", "ownerId", "propertyId", "ownerTypes", "listingTypes", "statuses", "reviewStatuses", "hasCalendar", "city", "state", "country", "latitude", "longitude", "radiusMeters", "propertyTypes", "furnishingTypes", "minPrice", "maxPrice", "currency", "minBedrooms", "maxBedrooms", "minBathrooms", "maxBathrooms", "minViewCount", "shortletFilter", "rentalFilter", "saleFilter", "propertyExtension"}
+	fieldsInOrder := [...]string{"query", "ownerId", "propertyId", "ownerTypes", "listingTypes", "statuses", "reviewStatuses", "hasCalendar", "city", "state", "country", "latitude", "longitude", "radiusMeters", "propertyTypes", "furnishingTypes", "minPrice", "maxPrice", "currency", "minBedrooms", "maxBedrooms", "minBathrooms", "maxBathrooms", "shortletFilter", "rentalFilter", "saleFilter", "propertyExtension"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -53233,13 +53007,6 @@ func (ec *executionContext) unmarshalInputListingFilterInput(ctx context.Context
 				return it, err
 			}
 			it.MaxBathrooms = data
-		case "minViewCount":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minViewCount"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.MinViewCount = data
 		case "shortletFilter":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shortletFilter"))
 			data, err := ec.unmarshalOShortletFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShortletFilterInput(ctx, v)
@@ -53363,8 +53130,8 @@ func (ec *executionContext) unmarshalInputMediaInput(ctx context.Context, obj an
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputMemberPermissionsInput(ctx context.Context, obj any) (model.MemberPermissionsInput, error) {
-	var it model.MemberPermissionsInput
+func (ec *executionContext) unmarshalInputMemberPermissionsInput(ctx context.Context, obj any) (graphql1.MemberPermissionsInput, error) {
+	var it graphql1.MemberPermissionsInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -53446,8 +53213,8 @@ func (ec *executionContext) unmarshalInputMemberPermissionsInput(ctx context.Con
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputPageInput(ctx context.Context, obj any) (model.PageInput, error) {
-	var it model.PageInput
+func (ec *executionContext) unmarshalInputPageInput(ctx context.Context, obj any) (graphql7.PageInput, error) {
+	var it graphql7.PageInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -53480,8 +53247,8 @@ func (ec *executionContext) unmarshalInputPageInput(ctx context.Context, obj any
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputPayForBookingInput(ctx context.Context, obj any) (model.PayForBookingInput, error) {
-	var it model.PayForBookingInput
+func (ec *executionContext) unmarshalInputPayForBookingInput(ctx context.Context, obj any) (graphql4.PayForBookingInput, error) {
+	var it graphql4.PayForBookingInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -53555,8 +53322,8 @@ func (ec *executionContext) unmarshalInputPropertyFilterExtension(ctx context.Co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRefundPaymentInput(ctx context.Context, obj any) (graphql1.RefundPaymentInput, error) {
-	var it graphql1.RefundPaymentInput
+func (ec *executionContext) unmarshalInputRefundPaymentInput(ctx context.Context, obj any) (graphql8.RefundPaymentInput, error) {
+	var it graphql8.RefundPaymentInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -53598,8 +53365,8 @@ func (ec *executionContext) unmarshalInputRefundPaymentInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRegisterOpenHouseInput(ctx context.Context, obj any) (model.RegisterOpenHouseInput, error) {
-	var it model.RegisterOpenHouseInput
+func (ec *executionContext) unmarshalInputRegisterOpenHouseInput(ctx context.Context, obj any) (graphql5.RegisterOpenHouseInput, error) {
+	var it graphql5.RegisterOpenHouseInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -53690,7 +53457,7 @@ func (ec *executionContext) unmarshalInputRentalDetailInput(ctx context.Context,
 			it.ServiceCharge = data
 		case "serviceCharges":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
-			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐServiceChargeInputᚄ(ctx, v)
+			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -53725,7 +53492,7 @@ func (ec *executionContext) unmarshalInputRentalDetailInput(ctx context.Context,
 			it.RentalTerms = data
 		case "rentalRules":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalRules"))
-			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInputᚄ(ctx, v)
+			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroupᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -53805,8 +53572,8 @@ func (ec *executionContext) unmarshalInputRentalFilterInput(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRequestBookingInput(ctx context.Context, obj any) (model.RequestBookingInput, error) {
-	var it model.RequestBookingInput
+func (ec *executionContext) unmarshalInputRequestBookingInput(ctx context.Context, obj any) (graphql4.RequestBookingInput, error) {
+	var it graphql4.RequestBookingInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -53860,8 +53627,8 @@ func (ec *executionContext) unmarshalInputRequestBookingInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRequestShowingInput(ctx context.Context, obj any) (model.RequestShowingInput, error) {
-	var it model.RequestShowingInput
+func (ec *executionContext) unmarshalInputRequestShowingInput(ctx context.Context, obj any) (graphql5.RequestShowingInput, error) {
+	var it graphql5.RequestShowingInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -53908,8 +53675,8 @@ func (ec *executionContext) unmarshalInputRequestShowingInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRescheduleShowingInput(ctx context.Context, obj any) (model.RescheduleShowingInput, error) {
-	var it model.RescheduleShowingInput
+func (ec *executionContext) unmarshalInputRescheduleShowingInput(ctx context.Context, obj any) (graphql5.RescheduleShowingInput, error) {
+	var it graphql5.RescheduleShowingInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -53956,8 +53723,8 @@ func (ec *executionContext) unmarshalInputRescheduleShowingInput(ctx context.Con
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputReserveBookingInput(ctx context.Context, obj any) (model.ReserveBookingInput, error) {
-	var it model.ReserveBookingInput
+func (ec *executionContext) unmarshalInputReserveBookingInput(ctx context.Context, obj any) (graphql4.ReserveBookingInput, error) {
+	var it graphql4.ReserveBookingInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -54018,8 +53785,8 @@ func (ec *executionContext) unmarshalInputReserveBookingInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputResolveDisputeInput(ctx context.Context, obj any) (model.ResolveDisputeInput, error) {
-	var it model.ResolveDisputeInput
+func (ec *executionContext) unmarshalInputResolveDisputeInput(ctx context.Context, obj any) (graphql2.ResolveDisputeInput, error) {
+	var it graphql2.ResolveDisputeInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -54048,7 +53815,7 @@ func (ec *executionContext) unmarshalInputResolveDisputeInput(ctx context.Contex
 			it.Outcome = data
 		case "refundAmount":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refundAmount"))
-			data, err := ec.unmarshalNInt2int(ctx, v)
+			data, err := ec.unmarshalNInt2int64(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -54073,8 +53840,8 @@ func (ec *executionContext) unmarshalInputResolveDisputeInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputReviewFilterInput(ctx context.Context, obj any) (graphql2.ReviewFilterInput, error) {
-	var it graphql2.ReviewFilterInput
+func (ec *executionContext) unmarshalInputReviewFilterInput(ctx context.Context, obj any) (graphql9.ReviewFilterInput, error) {
+	var it graphql9.ReviewFilterInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -54135,8 +53902,8 @@ func (ec *executionContext) unmarshalInputReviewFilterInput(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRuleGroupInput(ctx context.Context, obj any) (model.RuleGroupInput, error) {
-	var it model.RuleGroupInput
+func (ec *executionContext) unmarshalInputRuleGroupInput(ctx context.Context, obj any) (domain10.RuleGroup, error) {
+	var it domain10.RuleGroup
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -54158,7 +53925,7 @@ func (ec *executionContext) unmarshalInputRuleGroupInput(ctx context.Context, ob
 			it.Category = data
 		case "rules":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rules"))
-			data, err := ec.unmarshalNRuleItemInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemInputᚄ(ctx, v)
+			data, err := ec.unmarshalNRuleItemInput2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleItemᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -54169,8 +53936,8 @@ func (ec *executionContext) unmarshalInputRuleGroupInput(ctx context.Context, ob
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRuleItemInput(ctx context.Context, obj any) (model.RuleItemInput, error) {
-	var it model.RuleItemInput
+func (ec *executionContext) unmarshalInputRuleItemInput(ctx context.Context, obj any) (domain10.RuleItem, error) {
+	var it domain10.RuleItem
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -54185,7 +53952,7 @@ func (ec *executionContext) unmarshalInputRuleItemInput(ctx context.Context, obj
 		switch k {
 		case "name":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			data, err := ec.unmarshalNRuleSubCategory2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleSubCategory(ctx, v)
+			data, err := ec.unmarshalNRuleSubCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleSubCategory(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -54303,7 +54070,7 @@ func (ec *executionContext) unmarshalInputSaleDetailInput(ctx context.Context, o
 			it.ServiceCharge = data
 		case "serviceCharges":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
-			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐServiceChargeInputᚄ(ctx, v)
+			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -54362,8 +54129,8 @@ func (ec *executionContext) unmarshalInputSaleFilterInput(ctx context.Context, o
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputServiceChargeInput(ctx context.Context, obj any) (model.ServiceChargeInput, error) {
-	var it model.ServiceChargeInput
+func (ec *executionContext) unmarshalInputServiceChargeInput(ctx context.Context, obj any) (domain10.ServiceCharge, error) {
+	var it domain10.ServiceCharge
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -54524,7 +54291,7 @@ func (ec *executionContext) unmarshalInputShortletDetailInput(ctx context.Contex
 			it.AutoGenerateCalendar = data
 		case "rules":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rules"))
-			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInputᚄ(ctx, v)
+			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroupᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -54653,8 +54420,8 @@ func (ec *executionContext) unmarshalInputShortletFilterInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputTrackInteractionInput(ctx context.Context, obj any) (model.TrackInteractionInput, error) {
-	var it model.TrackInteractionInput
+func (ec *executionContext) unmarshalInputTrackInteractionInput(ctx context.Context, obj any) (graphql11.TrackInteractionInput, error) {
+	var it graphql11.TrackInteractionInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -54669,14 +54436,14 @@ func (ec *executionContext) unmarshalInputTrackInteractionInput(ctx context.Cont
 		switch k {
 		case "type":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
-			data, err := ec.unmarshalNInteractionType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionType(ctx, v)
+			data, err := ec.unmarshalNInteractionType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionTypeInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Type = data
 		case "entityType":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("entityType"))
-			data, err := ec.unmarshalNEntityType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐEntityType(ctx, v)
+			data, err := ec.unmarshalNEntityType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐEntityTypeInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -54697,14 +54464,14 @@ func (ec *executionContext) unmarshalInputTrackInteractionInput(ctx context.Cont
 			it.Context = data
 		case "deviceType":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("deviceType"))
-			data, err := ec.unmarshalODeviceType2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDeviceType(ctx, v)
+			data, err := ec.unmarshalODeviceType2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐDeviceTypeInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.DeviceType = data
 		case "platform":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("platform"))
-			data, err := ec.unmarshalOPlatform2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPlatform(ctx, v)
+			data, err := ec.unmarshalOPlatform2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPlatformInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -54722,8 +54489,8 @@ func (ec *executionContext) unmarshalInputTrackInteractionInput(ctx context.Cont
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputTravelCompanionInput(ctx context.Context, obj any) (model.TravelCompanionInput, error) {
-	var it model.TravelCompanionInput
+func (ec *executionContext) unmarshalInputTravelCompanionInput(ctx context.Context, obj any) (graphql3.TravelCompanionInput, error) {
+	var it graphql3.TravelCompanionInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -54777,8 +54544,8 @@ func (ec *executionContext) unmarshalInputTravelCompanionInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateBusinessInput(ctx context.Context, obj any) (model.UpdateBusinessInput, error) {
-	var it model.UpdateBusinessInput
+func (ec *executionContext) unmarshalInputUpdateBusinessInput(ctx context.Context, obj any) (graphql1.UpdateBusinessInput, error) {
+	var it graphql1.UpdateBusinessInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -54828,7 +54595,7 @@ func (ec *executionContext) unmarshalInputUpdateBusinessInput(ctx context.Contex
 			it.Website = data
 		case "address":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
-			data, err := ec.unmarshalOBusinessAddressInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBusinessAddressInput(ctx, v)
+			data, err := ec.unmarshalOBusinessAddressInput2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐBusinessAddressInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -55113,14 +54880,14 @@ func (ec *executionContext) unmarshalInputUpdateListingPropertyInput(ctx context
 			it.FloorArea = data
 		case "amenities":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amenities"))
-			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx, v)
+			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroupᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.Amenities = data
 		case "featuresCommercial":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("featuresCommercial"))
-			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx, v)
+			data, err := ec.unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroupᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -55131,8 +54898,8 @@ func (ec *executionContext) unmarshalInputUpdateListingPropertyInput(ctx context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context, obj any) (model.UpdateProfileInput, error) {
-	var it model.UpdateProfileInput
+func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context, obj any) (graphql3.UpdateProfileInput, error) {
+	var it graphql3.UpdateProfileInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -55426,7 +55193,7 @@ func (ec *executionContext) unmarshalInputUpdateRentalDetailInput(ctx context.Co
 			it.ServiceCharge = data
 		case "serviceCharges":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
-			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐServiceChargeInputᚄ(ctx, v)
+			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -55461,7 +55228,7 @@ func (ec *executionContext) unmarshalInputUpdateRentalDetailInput(ctx context.Co
 			it.RentalTerms = data
 		case "rentalRules":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rentalRules"))
-			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInputᚄ(ctx, v)
+			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroupᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -55472,8 +55239,8 @@ func (ec *executionContext) unmarshalInputUpdateRentalDetailInput(ctx context.Co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateReviewInput(ctx context.Context, obj any) (graphql2.UpdateReviewInput, error) {
-	var it graphql2.UpdateReviewInput
+func (ec *executionContext) unmarshalInputUpdateReviewInput(ctx context.Context, obj any) (graphql9.UpdateReviewInput, error) {
+	var it graphql9.UpdateReviewInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -55655,7 +55422,7 @@ func (ec *executionContext) unmarshalInputUpdateSaleDetailInput(ctx context.Cont
 			it.ServiceCharge = data
 		case "serviceCharges":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
-			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐServiceChargeInputᚄ(ctx, v)
+			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -55801,7 +55568,7 @@ func (ec *executionContext) unmarshalInputUpdateShortletDetailInput(ctx context.
 			it.AutoGenerateCalendar = data
 		case "rules":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rules"))
-			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInputᚄ(ctx, v)
+			data, err := ec.unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroupᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -55819,8 +55586,8 @@ func (ec *executionContext) unmarshalInputUpdateShortletDetailInput(ctx context.
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateWishlistInput(ctx context.Context, obj any) (model.UpdateWishlistInput, error) {
-	var it model.UpdateWishlistInput
+func (ec *executionContext) unmarshalInputUpdateWishlistInput(ctx context.Context, obj any) (graphql10.UpdateWishlistInput, error) {
+	var it graphql10.UpdateWishlistInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -56119,7 +55886,7 @@ func (ec *executionContext) _AgentSubscription(ctx context.Context, sel ast.Sele
 
 var amenityGroupImplementors = []string{"AmenityGroup"}
 
-func (ec *executionContext) _AmenityGroup(ctx context.Context, sel ast.SelectionSet, obj *model.AmenityGroup) graphql.Marshaler {
+func (ec *executionContext) _AmenityGroup(ctx context.Context, sel ast.SelectionSet, obj *domain10.AmenityGroup) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, amenityGroupImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -56212,7 +55979,7 @@ func (ec *executionContext) _AmenityHighlight(ctx context.Context, sel ast.Selec
 
 var analyticsPeriodImplementors = []string{"AnalyticsPeriod"}
 
-func (ec *executionContext) _AnalyticsPeriod(ctx context.Context, sel ast.SelectionSet, obj *model.AnalyticsPeriod) graphql.Marshaler {
+func (ec *executionContext) _AnalyticsPeriod(ctx context.Context, sel ast.SelectionSet, obj *graphql11.PeriodResponse) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, analyticsPeriodImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -57097,7 +56864,7 @@ func (ec *executionContext) _CalendarEvent(ctx context.Context, sel ast.Selectio
 
 var completeBookingPayloadImplementors = []string{"CompleteBookingPayload"}
 
-func (ec *executionContext) _CompleteBookingPayload(ctx context.Context, sel ast.SelectionSet, obj *graphql3.CompleteBookingPayload) graphql.Marshaler {
+func (ec *executionContext) _CompleteBookingPayload(ctx context.Context, sel ast.SelectionSet, obj *graphql4.CompleteBookingPayload) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, completeBookingPayloadImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -57189,7 +56956,7 @@ func (ec *executionContext) _CompleteBookingPayload(ctx context.Context, sel ast
 
 var createPromotionPayloadImplementors = []string{"CreatePromotionPayload"}
 
-func (ec *executionContext) _CreatePromotionPayload(ctx context.Context, sel ast.SelectionSet, obj *graphql4.CreatePromotionPayload) graphql.Marshaler {
+func (ec *executionContext) _CreatePromotionPayload(ctx context.Context, sel ast.SelectionSet, obj *graphql6.CreatePromotionPayload) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, createPromotionPayloadImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -57238,7 +57005,7 @@ func (ec *executionContext) _CreatePromotionPayload(ctx context.Context, sel ast
 
 var createSubscriptionPayloadImplementors = []string{"CreateSubscriptionPayload"}
 
-func (ec *executionContext) _CreateSubscriptionPayload(ctx context.Context, sel ast.SelectionSet, obj *graphql4.CreateSubscriptionPayload) graphql.Marshaler {
+func (ec *executionContext) _CreateSubscriptionPayload(ctx context.Context, sel ast.SelectionSet, obj *graphql6.CreateSubscriptionPayload) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, createSubscriptionPayloadImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -57898,7 +57665,7 @@ func (ec *executionContext) _DisputeResolution(ctx context.Context, sel ast.Sele
 
 var earningsSummaryImplementors = []string{"EarningsSummary"}
 
-func (ec *executionContext) _EarningsSummary(ctx context.Context, sel ast.SelectionSet, obj *graphql5.EarningsSummary) graphql.Marshaler {
+func (ec *executionContext) _EarningsSummary(ctx context.Context, sel ast.SelectionSet, obj *graphql2.EarningsSummary) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, earningsSummaryImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -57952,7 +57719,7 @@ func (ec *executionContext) _EarningsSummary(ctx context.Context, sel ast.Select
 
 var featureLimitCheckResultImplementors = []string{"FeatureLimitCheckResult"}
 
-func (ec *executionContext) _FeatureLimitCheckResult(ctx context.Context, sel ast.SelectionSet, obj *graphql4.FeatureLimitCheckResult) graphql.Marshaler {
+func (ec *executionContext) _FeatureLimitCheckResult(ctx context.Context, sel ast.SelectionSet, obj *graphql6.FeatureLimitCheckResult) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, featureLimitCheckResultImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -58339,7 +58106,7 @@ func (ec *executionContext) _HostStats(ctx context.Context, sel ast.SelectionSet
 
 var interactionImplementors = []string{"Interaction"}
 
-func (ec *executionContext) _Interaction(ctx context.Context, sel ast.SelectionSet, obj *model.Interaction) graphql.Marshaler {
+func (ec *executionContext) _Interaction(ctx context.Context, sel ast.SelectionSet, obj *graphql11.InteractionResponse) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, interactionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -58644,7 +58411,7 @@ func (ec *executionContext) _Lead(ctx context.Context, sel ast.SelectionSet, obj
 
 var leadConnectionImplementors = []string{"LeadConnection"}
 
-func (ec *executionContext) _LeadConnection(ctx context.Context, sel ast.SelectionSet, obj *model.LeadConnection) graphql.Marshaler {
+func (ec *executionContext) _LeadConnection(ctx context.Context, sel ast.SelectionSet, obj *graphql7.LeadConnection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, leadConnectionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -59073,20 +58840,6 @@ func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
-		case "viewCount":
-			out.Values[i] = ec._Listing_viewCount(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
-			}
-		case "lastViewedAt":
-			out.Values[i] = ec._Listing_lastViewedAt(ctx, field, obj)
-		case "featuredUntil":
-			out.Values[i] = ec._Listing_featuredUntil(ctx, field, obj)
-		case "boostLevel":
-			out.Values[i] = ec._Listing_boostLevel(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
-			}
 		case "createdBy":
 			out.Values[i] = ec._Listing_createdBy(ctx, field, obj)
 		case "updatedBy":
@@ -59184,7 +58937,7 @@ func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, 
 
 var listingAnalyticsImplementors = []string{"ListingAnalytics"}
 
-func (ec *executionContext) _ListingAnalytics(ctx context.Context, sel ast.SelectionSet, obj *model.ListingAnalytics) graphql.Marshaler {
+func (ec *executionContext) _ListingAnalytics(ctx context.Context, sel ast.SelectionSet, obj *graphql11.ListingAnalyticsResponse) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, listingAnalyticsImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -61735,7 +61488,7 @@ func (ec *executionContext) _PayoutDetail(ctx context.Context, sel ast.Selection
 
 var planLimitsImplementors = []string{"PlanLimits"}
 
-func (ec *executionContext) _PlanLimits(ctx context.Context, sel ast.SelectionSet, obj *graphql4.PlanLimits) graphql.Marshaler {
+func (ec *executionContext) _PlanLimits(ctx context.Context, sel ast.SelectionSet, obj *graphql6.PlanLimits) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, planLimitsImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -65133,7 +64886,7 @@ func (ec *executionContext) _RuleGroup(ctx context.Context, sel ast.SelectionSet
 
 var ruleItemImplementors = []string{"RuleItem"}
 
-func (ec *executionContext) _RuleItem(ctx context.Context, sel ast.SelectionSet, obj *model.RuleItem) graphql.Marshaler {
+func (ec *executionContext) _RuleItem(ctx context.Context, sel ast.SelectionSet, obj *domain10.RuleItem) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, ruleItemImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -67325,12 +67078,12 @@ func (ec *executionContext) marshalNActorType2hausletᚋinternalᚋmodulesᚋlea
 	return res
 }
 
-func (ec *executionContext) unmarshalNAddDisputeEvidenceInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAddDisputeEvidenceInput(ctx context.Context, v any) (model.AddDisputeEvidenceInput, error) {
+func (ec *executionContext) unmarshalNAddDisputeEvidenceInput2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐAddDisputeEvidenceInput(ctx context.Context, v any) (graphql2.AddDisputeEvidenceInput, error) {
 	res, err := ec.unmarshalInputAddDisputeEvidenceInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNAddPayoutDetailInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐAddPayoutDetailInput(ctx context.Context, v any) (graphql1.AddPayoutDetailInput, error) {
+func (ec *executionContext) unmarshalNAddPayoutDetailInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐAddPayoutDetailInput(ctx context.Context, v any) (graphql8.AddPayoutDetailInput, error) {
 	res, err := ec.unmarshalInputAddPayoutDetailInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -67349,7 +67102,7 @@ func (ec *executionContext) marshalNAgentSubscription2ᚖhausletᚋinternalᚋmo
 	return ec._AgentSubscription(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AmenityGroup) graphql.Marshaler {
+func (ec *executionContext) marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain10.AmenityGroup) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -67373,7 +67126,7 @@ func (ec *executionContext) marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋtran
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNAmenityGroup2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroup(ctx, sel, v[i])
+			ret[i] = ec.marshalNAmenityGroup2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroup(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -67393,7 +67146,7 @@ func (ec *executionContext) marshalNAmenityGroup2ᚕᚖhausletᚋinternalᚋtran
 	return ret
 }
 
-func (ec *executionContext) marshalNAmenityGroup2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroup(ctx context.Context, sel ast.SelectionSet, v *model.AmenityGroup) graphql.Marshaler {
+func (ec *executionContext) marshalNAmenityGroup2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroup(ctx context.Context, sel ast.SelectionSet, v *domain10.AmenityGroup) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -67403,7 +67156,7 @@ func (ec *executionContext) marshalNAmenityGroup2ᚖhausletᚋinternalᚋtranspo
 	return ec._AmenityGroup(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNAmenityGroupInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInput(ctx context.Context, v any) (*model.AmenityGroupInput, error) {
+func (ec *executionContext) unmarshalNAmenityGroupInput2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroup(ctx context.Context, v any) (*domain10.AmenityGroup, error) {
 	res, err := ec.unmarshalInputAmenityGroupInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
@@ -67461,14 +67214,8 @@ func (ec *executionContext) unmarshalNAmenityHighlightInput2ᚖhausletᚋinterna
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNAnalyticsPeriod2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAnalyticsPeriod(ctx context.Context, sel ast.SelectionSet, v *model.AnalyticsPeriod) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._AnalyticsPeriod(ctx, sel, v)
+func (ec *executionContext) marshalNAnalyticsPeriod2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPeriodResponse(ctx context.Context, sel ast.SelectionSet, v graphql11.PeriodResponse) graphql.Marshaler {
+	return ec._AnalyticsPeriod(ctx, sel, &v)
 }
 
 func (ec *executionContext) unmarshalNAssignmentReason2hausletᚋinternalᚋmodulesᚋleadsᚋdomainᚐAssignmentReason(ctx context.Context, v any) (domain2.AssignmentReason, error) {
@@ -67867,7 +67614,7 @@ func (ec *executionContext) marshalNBusinessAddress2hausletᚋinternalᚋmodules
 	return ec._BusinessAddress(ctx, sel, &v)
 }
 
-func (ec *executionContext) unmarshalNBusinessAddressInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBusinessAddressInput(ctx context.Context, v any) (*model.BusinessAddressInput, error) {
+func (ec *executionContext) unmarshalNBusinessAddressInput2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐBusinessAddressInput(ctx context.Context, v any) (*graphql1.BusinessAddressInput, error) {
 	res, err := ec.unmarshalInputBusinessAddressInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
@@ -68063,21 +67810,21 @@ func (ec *executionContext) marshalNCalendarEvent2ᚖhausletᚋinternalᚋmodule
 	return ec._CalendarEvent(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCancelBookingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCancelBookingInput(ctx context.Context, v any) (model.CancelBookingInput, error) {
+func (ec *executionContext) unmarshalNCancelBookingInput2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐCancelBookingInput(ctx context.Context, v any) (graphql4.CancelBookingInput, error) {
 	res, err := ec.unmarshalInputCancelBookingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCancelShowingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCancelShowingInput(ctx context.Context, v any) (model.CancelShowingInput, error) {
+func (ec *executionContext) unmarshalNCancelShowingInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐCancelShowingInput(ctx context.Context, v any) (graphql5.CancelShowingInput, error) {
 	res, err := ec.unmarshalInputCancelShowingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCompleteBookingPayload2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐCompleteBookingPayload(ctx context.Context, sel ast.SelectionSet, v graphql3.CompleteBookingPayload) graphql.Marshaler {
+func (ec *executionContext) marshalNCompleteBookingPayload2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐCompleteBookingPayload(ctx context.Context, sel ast.SelectionSet, v graphql4.CompleteBookingPayload) graphql.Marshaler {
 	return ec._CompleteBookingPayload(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCompleteBookingPayload2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐCompleteBookingPayload(ctx context.Context, sel ast.SelectionSet, v *graphql3.CompleteBookingPayload) graphql.Marshaler {
+func (ec *executionContext) marshalNCompleteBookingPayload2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐCompleteBookingPayload(ctx context.Context, sel ast.SelectionSet, v *graphql4.CompleteBookingPayload) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -68104,17 +67851,17 @@ func (ec *executionContext) marshalNCountryCode2hausletᚋinternalᚋmodulesᚋp
 	return res
 }
 
-func (ec *executionContext) unmarshalNCreateBusinessInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateBusinessInput(ctx context.Context, v any) (model.CreateBusinessInput, error) {
+func (ec *executionContext) unmarshalNCreateBusinessInput2hausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐCreateBusinessInput(ctx context.Context, v any) (graphql1.CreateBusinessInput, error) {
 	res, err := ec.unmarshalInputCreateBusinessInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreateIncludedPromotionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateIncludedPromotionInput(ctx context.Context, v any) (model.CreateIncludedPromotionInput, error) {
+func (ec *executionContext) unmarshalNCreateIncludedPromotionInput2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreateIncludedPromotionInput(ctx context.Context, v any) (graphql6.CreateIncludedPromotionInput, error) {
 	res, err := ec.unmarshalInputCreateIncludedPromotionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreateLeadInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateLeadInput(ctx context.Context, v any) (model.CreateLeadInput, error) {
+func (ec *executionContext) unmarshalNCreateLeadInput2hausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐCreateLeadInput(ctx context.Context, v any) (graphql7.CreateLeadInput, error) {
 	res, err := ec.unmarshalInputCreateLeadInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -68129,36 +67876,36 @@ func (ec *executionContext) unmarshalNCreateListingPropertyInput2ᚖhausletᚋin
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreateOpenHouseInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateOpenHouseInput(ctx context.Context, v any) (model.CreateOpenHouseInput, error) {
+func (ec *executionContext) unmarshalNCreateOpenHouseInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐCreateOpenHouseInput(ctx context.Context, v any) (graphql5.CreateOpenHouseInput, error) {
 	res, err := ec.unmarshalInputCreateOpenHouseInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreatePaymentInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐCreatePaymentInput(ctx context.Context, v any) (graphql1.CreatePaymentInput, error) {
+func (ec *executionContext) unmarshalNCreatePaymentInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐCreatePaymentInput(ctx context.Context, v any) (graphql8.CreatePaymentInput, error) {
 	res, err := ec.unmarshalInputCreatePaymentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreatePaymentMethodInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐSavePaymentMethodInput(ctx context.Context, v any) (graphql1.SavePaymentMethodInput, error) {
+func (ec *executionContext) unmarshalNCreatePaymentMethodInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐSavePaymentMethodInput(ctx context.Context, v any) (graphql8.SavePaymentMethodInput, error) {
 	res, err := ec.unmarshalInputCreatePaymentMethodInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreatePayoutInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreatePayoutInput(ctx context.Context, v any) (model.CreatePayoutInput, error) {
+func (ec *executionContext) unmarshalNCreatePayoutInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐCreatePayoutInput(ctx context.Context, v any) (graphql8.CreatePayoutInput, error) {
 	res, err := ec.unmarshalInputCreatePayoutInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreatePromotionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreatePromotionInput(ctx context.Context, v any) (model.CreatePromotionInput, error) {
+func (ec *executionContext) unmarshalNCreatePromotionInput2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreatePromotionInput(ctx context.Context, v any) (graphql6.CreatePromotionInput, error) {
 	res, err := ec.unmarshalInputCreatePromotionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCreatePromotionPayload2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreatePromotionPayload(ctx context.Context, sel ast.SelectionSet, v graphql4.CreatePromotionPayload) graphql.Marshaler {
+func (ec *executionContext) marshalNCreatePromotionPayload2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreatePromotionPayload(ctx context.Context, sel ast.SelectionSet, v graphql6.CreatePromotionPayload) graphql.Marshaler {
 	return ec._CreatePromotionPayload(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCreatePromotionPayload2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreatePromotionPayload(ctx context.Context, sel ast.SelectionSet, v *graphql4.CreatePromotionPayload) graphql.Marshaler {
+func (ec *executionContext) marshalNCreatePromotionPayload2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreatePromotionPayload(ctx context.Context, sel ast.SelectionSet, v *graphql6.CreatePromotionPayload) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -68168,21 +67915,21 @@ func (ec *executionContext) marshalNCreatePromotionPayload2ᚖhausletᚋinternal
 	return ec._CreatePromotionPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCreateReviewInput2hausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐCreateReviewInput(ctx context.Context, v any) (graphql2.CreateReviewInput, error) {
+func (ec *executionContext) unmarshalNCreateReviewInput2hausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐCreateReviewInput(ctx context.Context, v any) (graphql9.CreateReviewInput, error) {
 	res, err := ec.unmarshalInputCreateReviewInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreateSubscriptionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateSubscriptionInput(ctx context.Context, v any) (model.CreateSubscriptionInput, error) {
+func (ec *executionContext) unmarshalNCreateSubscriptionInput2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreateSubscriptionInput(ctx context.Context, v any) (graphql6.CreateSubscriptionInput, error) {
 	res, err := ec.unmarshalInputCreateSubscriptionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNCreateSubscriptionPayload2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreateSubscriptionPayload(ctx context.Context, sel ast.SelectionSet, v graphql4.CreateSubscriptionPayload) graphql.Marshaler {
+func (ec *executionContext) marshalNCreateSubscriptionPayload2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreateSubscriptionPayload(ctx context.Context, sel ast.SelectionSet, v graphql6.CreateSubscriptionPayload) graphql.Marshaler {
 	return ec._CreateSubscriptionPayload(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCreateSubscriptionPayload2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreateSubscriptionPayload(ctx context.Context, sel ast.SelectionSet, v *graphql4.CreateSubscriptionPayload) graphql.Marshaler {
+func (ec *executionContext) marshalNCreateSubscriptionPayload2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐCreateSubscriptionPayload(ctx context.Context, sel ast.SelectionSet, v *graphql6.CreateSubscriptionPayload) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -68192,7 +67939,7 @@ func (ec *executionContext) marshalNCreateSubscriptionPayload2ᚖhausletᚋinter
 	return ec._CreateSubscriptionPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCreateWishlistInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateWishlistInput(ctx context.Context, v any) (model.CreateWishlistInput, error) {
+func (ec *executionContext) unmarshalNCreateWishlistInput2hausletᚋinternalᚋmodulesᚋwishlistᚋportᚋgraphqlᚐCreateWishlistInput(ctx context.Context, v any) (graphql10.CreateWishlistInput, error) {
 	res, err := ec.unmarshalInputCreateWishlistInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -68542,11 +68289,11 @@ func (ec *executionContext) marshalNDisputeStatus2hausletᚋinternalᚋmodules�
 	return res
 }
 
-func (ec *executionContext) marshalNEarningsSummary2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐEarningsSummary(ctx context.Context, sel ast.SelectionSet, v graphql5.EarningsSummary) graphql.Marshaler {
+func (ec *executionContext) marshalNEarningsSummary2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐEarningsSummary(ctx context.Context, sel ast.SelectionSet, v graphql2.EarningsSummary) graphql.Marshaler {
 	return ec._EarningsSummary(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNEarningsSummary2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐEarningsSummary(ctx context.Context, sel ast.SelectionSet, v *graphql5.EarningsSummary) graphql.Marshaler {
+func (ec *executionContext) marshalNEarningsSummary2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐEarningsSummary(ctx context.Context, sel ast.SelectionSet, v *graphql2.EarningsSummary) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -68556,14 +68303,21 @@ func (ec *executionContext) marshalNEarningsSummary2ᚖhausletᚋinternalᚋmodu
 	return ec._EarningsSummary(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNEntityType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐEntityType(ctx context.Context, v any) (model.EntityType, error) {
-	var res model.EntityType
-	err := res.UnmarshalGQL(v)
+func (ec *executionContext) unmarshalNEntityType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐEntityTypeInput(ctx context.Context, v any) (graphql11.EntityTypeInput, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := graphql11.EntityTypeInput(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNEntityType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐEntityType(ctx context.Context, sel ast.SelectionSet, v model.EntityType) graphql.Marshaler {
-	return v
+func (ec *executionContext) marshalNEntityType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐEntityTypeInput(ctx context.Context, sel ast.SelectionSet, v graphql11.EntityTypeInput) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNEventStatus2hausletᚋinternalᚋmodulesᚋcalendarᚋdomainᚐEventStatus(ctx context.Context, v any) (domain8.EventStatus, error) {
@@ -68600,11 +68354,11 @@ func (ec *executionContext) marshalNEventType2hausletᚋinternalᚋmodulesᚋcal
 	return res
 }
 
-func (ec *executionContext) marshalNFeatureLimitCheckResult2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐFeatureLimitCheckResult(ctx context.Context, sel ast.SelectionSet, v graphql4.FeatureLimitCheckResult) graphql.Marshaler {
+func (ec *executionContext) marshalNFeatureLimitCheckResult2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐFeatureLimitCheckResult(ctx context.Context, sel ast.SelectionSet, v graphql6.FeatureLimitCheckResult) graphql.Marshaler {
 	return ec._FeatureLimitCheckResult(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNFeatureLimitCheckResult2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐFeatureLimitCheckResult(ctx context.Context, sel ast.SelectionSet, v *graphql4.FeatureLimitCheckResult) graphql.Marshaler {
+func (ec *executionContext) marshalNFeatureLimitCheckResult2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐFeatureLimitCheckResult(ctx context.Context, sel ast.SelectionSet, v *graphql6.FeatureLimitCheckResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -68614,7 +68368,7 @@ func (ec *executionContext) marshalNFeatureLimitCheckResult2ᚖhausletᚋinterna
 	return ec._FeatureLimitCheckResult(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNFileDisputeInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐFileDisputeInput(ctx context.Context, v any) (model.FileDisputeInput, error) {
+func (ec *executionContext) unmarshalNFileDisputeInput2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐFileDisputeInput(ctx context.Context, v any) (graphql2.FileDisputeInput, error) {
 	res, err := ec.unmarshalInputFileDisputeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -68788,7 +68542,7 @@ func (ec *executionContext) marshalNInt2int64(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) marshalNInteraction2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Interaction) graphql.Marshaler {
+func (ec *executionContext) marshalNInteraction2ᚕᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionResponseᚄ(ctx context.Context, sel ast.SelectionSet, v []*graphql11.InteractionResponse) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -68812,7 +68566,7 @@ func (ec *executionContext) marshalNInteraction2ᚕᚖhausletᚋinternalᚋtrans
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNInteraction2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteraction(ctx, sel, v[i])
+			ret[i] = ec.marshalNInteraction2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionResponse(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -68832,7 +68586,7 @@ func (ec *executionContext) marshalNInteraction2ᚕᚖhausletᚋinternalᚋtrans
 	return ret
 }
 
-func (ec *executionContext) marshalNInteraction2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteraction(ctx context.Context, sel ast.SelectionSet, v *model.Interaction) graphql.Marshaler {
+func (ec *executionContext) marshalNInteraction2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionResponse(ctx context.Context, sel ast.SelectionSet, v *graphql11.InteractionResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -68842,14 +68596,21 @@ func (ec *executionContext) marshalNInteraction2ᚖhausletᚋinternalᚋtranspor
 	return ec._Interaction(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNInteractionType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionType(ctx context.Context, v any) (model.InteractionType, error) {
-	var res model.InteractionType
-	err := res.UnmarshalGQL(v)
+func (ec *executionContext) unmarshalNInteractionType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionTypeInput(ctx context.Context, v any) (graphql11.InteractionTypeInput, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := graphql11.InteractionTypeInput(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNInteractionType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInteractionType(ctx context.Context, sel ast.SelectionSet, v model.InteractionType) graphql.Marshaler {
-	return v
+func (ec *executionContext) marshalNInteractionType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionTypeInput(ctx context.Context, sel ast.SelectionSet, v graphql11.InteractionTypeInput) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNInvitationStatus2hausletᚋinternalᚋmodulesᚋbusinessᚋdomainᚐInvitationStatus(ctx context.Context, v any) (domain.InvitationStatus, error) {
@@ -68869,7 +68630,7 @@ func (ec *executionContext) marshalNInvitationStatus2hausletᚋinternalᚋmodule
 	return res
 }
 
-func (ec *executionContext) unmarshalNInviteMemberInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐInviteMemberInput(ctx context.Context, v any) (model.InviteMemberInput, error) {
+func (ec *executionContext) unmarshalNInviteMemberInput2hausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐInviteMemberInput(ctx context.Context, v any) (graphql1.InviteMemberInput, error) {
 	res, err := ec.unmarshalInputInviteMemberInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -68932,11 +68693,11 @@ func (ec *executionContext) marshalNLead2ᚖhausletᚋinternalᚋmodulesᚋleads
 	return ec._Lead(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNLeadConnection2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLeadConnection(ctx context.Context, sel ast.SelectionSet, v model.LeadConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNLeadConnection2hausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐLeadConnection(ctx context.Context, sel ast.SelectionSet, v graphql7.LeadConnection) graphql.Marshaler {
 	return ec._LeadConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNLeadConnection2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLeadConnection(ctx context.Context, sel ast.SelectionSet, v *model.LeadConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNLeadConnection2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐLeadConnection(ctx context.Context, sel ast.SelectionSet, v *graphql7.LeadConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -69167,11 +68928,11 @@ func (ec *executionContext) marshalNListing2ᚖhausletᚋinternalᚋmodulesᚋpr
 	return ec._Listing(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNListingAnalytics2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingAnalytics(ctx context.Context, sel ast.SelectionSet, v model.ListingAnalytics) graphql.Marshaler {
+func (ec *executionContext) marshalNListingAnalytics2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐListingAnalyticsResponse(ctx context.Context, sel ast.SelectionSet, v graphql11.ListingAnalyticsResponse) graphql.Marshaler {
 	return ec._ListingAnalytics(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNListingAnalytics2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingAnalytics(ctx context.Context, sel ast.SelectionSet, v *model.ListingAnalytics) graphql.Marshaler {
+func (ec *executionContext) marshalNListingAnalytics2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐListingAnalyticsResponse(ctx context.Context, sel ast.SelectionSet, v *graphql11.ListingAnalyticsResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -69503,7 +69264,7 @@ func (ec *executionContext) marshalNMemberPermissions2hausletᚋinternalᚋmodul
 	return ec._MemberPermissions(ctx, sel, &v)
 }
 
-func (ec *executionContext) unmarshalNMemberPermissionsInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput(ctx context.Context, v any) (model.MemberPermissionsInput, error) {
+func (ec *executionContext) unmarshalNMemberPermissionsInput2hausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐMemberPermissionsInput(ctx context.Context, v any) (graphql1.MemberPermissionsInput, error) {
 	res, err := ec.unmarshalInputMemberPermissionsInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -69569,7 +69330,7 @@ func (ec *executionContext) marshalNPageInfo2ᚖhausletᚋinternalᚋtransport�
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNPayForBookingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPayForBookingInput(ctx context.Context, v any) (model.PayForBookingInput, error) {
+func (ec *executionContext) unmarshalNPayForBookingInput2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐPayForBookingInput(ctx context.Context, v any) (graphql4.PayForBookingInput, error) {
 	res, err := ec.unmarshalInputPayForBookingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -69813,11 +69574,11 @@ func (ec *executionContext) marshalNPayoutDetail2ᚖhausletᚋinternalᚋmodules
 	return ec._PayoutDetail(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNPlanLimits2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐPlanLimits(ctx context.Context, sel ast.SelectionSet, v graphql4.PlanLimits) graphql.Marshaler {
+func (ec *executionContext) marshalNPlanLimits2hausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐPlanLimits(ctx context.Context, sel ast.SelectionSet, v graphql6.PlanLimits) graphql.Marshaler {
 	return ec._PlanLimits(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNPlanLimits2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐPlanLimits(ctx context.Context, sel ast.SelectionSet, v *graphql4.PlanLimits) graphql.Marshaler {
+func (ec *executionContext) marshalNPlanLimits2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋportᚋgraphqlᚐPlanLimits(ctx context.Context, sel ast.SelectionSet, v *graphql6.PlanLimits) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -70086,37 +69847,37 @@ func (ec *executionContext) marshalNReconciliationStatus2hausletᚋinternalᚋmo
 	return res
 }
 
-func (ec *executionContext) unmarshalNRefundPaymentInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐRefundPaymentInput(ctx context.Context, v any) (graphql1.RefundPaymentInput, error) {
+func (ec *executionContext) unmarshalNRefundPaymentInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐRefundPaymentInput(ctx context.Context, v any) (graphql8.RefundPaymentInput, error) {
 	res, err := ec.unmarshalInputRefundPaymentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNRegisterOpenHouseInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRegisterOpenHouseInput(ctx context.Context, v any) (model.RegisterOpenHouseInput, error) {
+func (ec *executionContext) unmarshalNRegisterOpenHouseInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐRegisterOpenHouseInput(ctx context.Context, v any) (graphql5.RegisterOpenHouseInput, error) {
 	res, err := ec.unmarshalInputRegisterOpenHouseInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNRequestBookingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRequestBookingInput(ctx context.Context, v any) (model.RequestBookingInput, error) {
+func (ec *executionContext) unmarshalNRequestBookingInput2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐRequestBookingInput(ctx context.Context, v any) (graphql4.RequestBookingInput, error) {
 	res, err := ec.unmarshalInputRequestBookingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNRequestShowingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRequestShowingInput(ctx context.Context, v any) (model.RequestShowingInput, error) {
+func (ec *executionContext) unmarshalNRequestShowingInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐRequestShowingInput(ctx context.Context, v any) (graphql5.RequestShowingInput, error) {
 	res, err := ec.unmarshalInputRequestShowingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNRescheduleShowingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRescheduleShowingInput(ctx context.Context, v any) (model.RescheduleShowingInput, error) {
+func (ec *executionContext) unmarshalNRescheduleShowingInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐRescheduleShowingInput(ctx context.Context, v any) (graphql5.RescheduleShowingInput, error) {
 	res, err := ec.unmarshalInputRescheduleShowingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNReserveBookingInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐReserveBookingInput(ctx context.Context, v any) (model.ReserveBookingInput, error) {
+func (ec *executionContext) unmarshalNReserveBookingInput2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐReserveBookingInput(ctx context.Context, v any) (graphql4.ReserveBookingInput, error) {
 	res, err := ec.unmarshalInputReserveBookingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNResolveDisputeInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐResolveDisputeInput(ctx context.Context, v any) (model.ResolveDisputeInput, error) {
+func (ec *executionContext) unmarshalNResolveDisputeInput2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐResolveDisputeInput(ctx context.Context, v any) (graphql2.ResolveDisputeInput, error) {
 	res, err := ec.unmarshalInputResolveDisputeInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -70319,12 +70080,12 @@ func (ec *executionContext) marshalNRuleGroup2ᚕhausletᚋinternalᚋmodulesᚋ
 	return ret
 }
 
-func (ec *executionContext) unmarshalNRuleGroupInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInput(ctx context.Context, v any) (*model.RuleGroupInput, error) {
+func (ec *executionContext) unmarshalNRuleGroupInput2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroup(ctx context.Context, v any) (*domain10.RuleGroup, error) {
 	res, err := ec.unmarshalInputRuleGroupInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNRuleItem2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.RuleItem) graphql.Marshaler {
+func (ec *executionContext) marshalNRuleItem2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleItemᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain10.RuleItem) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -70348,7 +70109,7 @@ func (ec *executionContext) marshalNRuleItem2ᚕᚖhausletᚋinternalᚋtranspor
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNRuleItem2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItem(ctx, sel, v[i])
+			ret[i] = ec.marshalNRuleItem2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleItem(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -70368,7 +70129,7 @@ func (ec *executionContext) marshalNRuleItem2ᚕᚖhausletᚋinternalᚋtranspor
 	return ret
 }
 
-func (ec *executionContext) marshalNRuleItem2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItem(ctx context.Context, sel ast.SelectionSet, v *model.RuleItem) graphql.Marshaler {
+func (ec *executionContext) marshalNRuleItem2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleItem(ctx context.Context, sel ast.SelectionSet, v *domain10.RuleItem) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -70378,14 +70139,19 @@ func (ec *executionContext) marshalNRuleItem2ᚖhausletᚋinternalᚋtransport�
 	return ec._RuleItem(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNRuleItemInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemInputᚄ(ctx context.Context, v any) ([]*model.RuleItemInput, error) {
+func (ec *executionContext) unmarshalNRuleItemInput2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleItem(ctx context.Context, v any) (domain10.RuleItem, error) {
+	res, err := ec.unmarshalInputRuleItemInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNRuleItemInput2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleItemᚄ(ctx context.Context, v any) ([]domain10.RuleItem, error) {
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]*model.RuleItemInput, len(vSlice))
+	res := make([]domain10.RuleItem, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNRuleItemInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemInput(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNRuleItemInput2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleItem(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -70393,19 +70159,21 @@ func (ec *executionContext) unmarshalNRuleItemInput2ᚕᚖhausletᚋinternalᚋt
 	return res, nil
 }
 
-func (ec *executionContext) unmarshalNRuleItemInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleItemInput(ctx context.Context, v any) (*model.RuleItemInput, error) {
-	res, err := ec.unmarshalInputRuleItemInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNRuleSubCategory2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleSubCategory(ctx context.Context, v any) (model.RuleSubCategory, error) {
-	var res model.RuleSubCategory
-	err := res.UnmarshalGQL(v)
+func (ec *executionContext) unmarshalNRuleSubCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleSubCategory(ctx context.Context, v any) (domain10.RuleSubCategory, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain10.RuleSubCategory(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNRuleSubCategory2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleSubCategory(ctx context.Context, sel ast.SelectionSet, v model.RuleSubCategory) graphql.Marshaler {
-	return v
+func (ec *executionContext) marshalNRuleSubCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleSubCategory(ctx context.Context, sel ast.SelectionSet, v domain10.RuleSubCategory) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) marshalNScoredListing2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐScoredListingᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ScoredListing) graphql.Marshaler {
@@ -70472,7 +70240,7 @@ func (ec *executionContext) marshalNServiceCharge2ᚖhausletᚋinternalᚋmodule
 	return ec._ServiceCharge(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNServiceChargeInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐServiceChargeInput(ctx context.Context, v any) (*model.ServiceChargeInput, error) {
+func (ec *executionContext) unmarshalNServiceChargeInput2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceCharge(ctx context.Context, v any) (*domain10.ServiceCharge, error) {
 	res, err := ec.unmarshalInputServiceChargeInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
@@ -70632,7 +70400,7 @@ func (ec *executionContext) marshalNTime2ᚖtimeᚐTime(ctx context.Context, sel
 	return res
 }
 
-func (ec *executionContext) unmarshalNTrackInteractionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTrackInteractionInput(ctx context.Context, v any) (model.TrackInteractionInput, error) {
+func (ec *executionContext) unmarshalNTrackInteractionInput2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐTrackInteractionInput(ctx context.Context, v any) (graphql11.TrackInteractionInput, error) {
 	res, err := ec.unmarshalInputTrackInteractionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -70777,7 +70545,7 @@ func (ec *executionContext) marshalNTravelCompanion2ᚕhausletᚋinternalᚋmodu
 	return ret
 }
 
-func (ec *executionContext) unmarshalNTravelCompanionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTravelCompanionInput(ctx context.Context, v any) (model.TravelCompanionInput, error) {
+func (ec *executionContext) unmarshalNTravelCompanionInput2hausletᚋinternalᚋmodulesᚋprofileᚋportᚋgraphqlᚐTravelCompanionInput(ctx context.Context, v any) (graphql3.TravelCompanionInput, error) {
 	res, err := ec.unmarshalInputTravelCompanionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -70791,7 +70559,7 @@ func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx
 	return ec._UUID(ctx, sel, &v)
 }
 
-func (ec *executionContext) unmarshalNUpdateBusinessInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateBusinessInput(ctx context.Context, v any) (model.UpdateBusinessInput, error) {
+func (ec *executionContext) unmarshalNUpdateBusinessInput2hausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐUpdateBusinessInput(ctx context.Context, v any) (graphql1.UpdateBusinessInput, error) {
 	res, err := ec.unmarshalInputUpdateBusinessInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -70801,17 +70569,17 @@ func (ec *executionContext) unmarshalNUpdateListingInput2hausletᚋinternalᚋtr
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateProfileInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateProfileInput(ctx context.Context, v any) (model.UpdateProfileInput, error) {
+func (ec *executionContext) unmarshalNUpdateProfileInput2hausletᚋinternalᚋmodulesᚋprofileᚋportᚋgraphqlᚐUpdateProfileInput(ctx context.Context, v any) (graphql3.UpdateProfileInput, error) {
 	res, err := ec.unmarshalInputUpdateProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateReviewInput2hausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐUpdateReviewInput(ctx context.Context, v any) (graphql2.UpdateReviewInput, error) {
+func (ec *executionContext) unmarshalNUpdateReviewInput2hausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐUpdateReviewInput(ctx context.Context, v any) (graphql9.UpdateReviewInput, error) {
 	res, err := ec.unmarshalInputUpdateReviewInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateWishlistInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐUpdateWishlistInput(ctx context.Context, v any) (model.UpdateWishlistInput, error) {
+func (ec *executionContext) unmarshalNUpdateWishlistInput2hausletᚋinternalᚋmodulesᚋwishlistᚋportᚋgraphqlᚐUpdateWishlistInput(ctx context.Context, v any) (graphql10.UpdateWishlistInput, error) {
 	res, err := ec.unmarshalInputUpdateWishlistInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -71475,17 +71243,17 @@ func (ec *executionContext) marshalOAgentSubscription2ᚖhausletᚋinternalᚋmo
 	return ec._AgentSubscription(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInputᚄ(ctx context.Context, v any) ([]*model.AmenityGroupInput, error) {
+func (ec *executionContext) unmarshalOAmenityGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroupᚄ(ctx context.Context, v any) ([]*domain10.AmenityGroup, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]*model.AmenityGroupInput, len(vSlice))
+	res := make([]*domain10.AmenityGroup, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNAmenityGroupInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAmenityGroupInput(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNAmenityGroupInput2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAmenityGroup(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -71581,7 +71349,7 @@ func (ec *executionContext) marshalOBusiness2ᚖhausletᚋinternalᚋmodulesᚋb
 	return ec._Business(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOBusinessAddressInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBusinessAddressInput(ctx context.Context, v any) (*model.BusinessAddressInput, error) {
+func (ec *executionContext) unmarshalOBusinessAddressInput2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐBusinessAddressInput(ctx context.Context, v any) (*graphql1.BusinessAddressInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -71688,20 +71456,23 @@ func (ec *executionContext) marshalODailyRate2ᚕhausletᚋinternalᚋmodulesᚋ
 	return ret
 }
 
-func (ec *executionContext) unmarshalODeviceType2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDeviceType(ctx context.Context, v any) (*model.DeviceType, error) {
+func (ec *executionContext) unmarshalODeviceType2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐDeviceTypeInput(ctx context.Context, v any) (*graphql11.DeviceTypeInput, error) {
 	if v == nil {
 		return nil, nil
 	}
-	var res = new(model.DeviceType)
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
+	tmp, err := graphql.UnmarshalString(v)
+	res := graphql11.DeviceTypeInput(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalODeviceType2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDeviceType(ctx context.Context, sel ast.SelectionSet, v *model.DeviceType) graphql.Marshaler {
+func (ec *executionContext) marshalODeviceType2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐDeviceTypeInput(ctx context.Context, sel ast.SelectionSet, v *graphql11.DeviceTypeInput) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return v
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
 }
 
 func (ec *executionContext) marshalODisbursement2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursement(ctx context.Context, sel ast.SelectionSet, v *domain6.Disbursement) graphql.Marshaler {
@@ -72067,7 +71838,7 @@ func (ec *executionContext) marshalOLead2ᚖhausletᚋinternalᚋmodulesᚋleads
 	return ec._Lead(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOLeadFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐLeadFilterInput(ctx context.Context, v any) (*model.LeadFilterInput, error) {
+func (ec *executionContext) unmarshalOLeadFilterInput2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐLeadFilterInput(ctx context.Context, v any) (*graphql7.LeadFilterInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -72437,7 +72208,7 @@ func (ec *executionContext) marshalOMemberPermissions2ᚖhausletᚋinternalᚋmo
 	return ec._MemberPermissions(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOMemberPermissionsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐMemberPermissionsInput(ctx context.Context, v any) (*model.MemberPermissionsInput, error) {
+func (ec *executionContext) unmarshalOMemberPermissionsInput2ᚖhausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐMemberPermissionsInput(ctx context.Context, v any) (*graphql1.MemberPermissionsInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -72555,7 +72326,7 @@ func (ec *executionContext) marshalOOwnerType2ᚖhausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
-func (ec *executionContext) unmarshalOPageInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPageInput(ctx context.Context, v any) (*model.PageInput, error) {
+func (ec *executionContext) unmarshalOPageInput2ᚖhausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐPageInput(ctx context.Context, v any) (*graphql7.PageInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -72687,20 +72458,23 @@ func (ec *executionContext) marshalOPayoutDetail2ᚖhausletᚋinternalᚋmodules
 	return ec._PayoutDetail(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOPlatform2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPlatform(ctx context.Context, v any) (*model.Platform, error) {
+func (ec *executionContext) unmarshalOPlatform2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPlatformInput(ctx context.Context, v any) (*graphql11.PlatformInput, error) {
 	if v == nil {
 		return nil, nil
 	}
-	var res = new(model.Platform)
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
+	tmp, err := graphql.UnmarshalString(v)
+	res := graphql11.PlatformInput(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOPlatform2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPlatform(ctx context.Context, sel ast.SelectionSet, v *model.Platform) graphql.Marshaler {
+func (ec *executionContext) marshalOPlatform2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPlatformInput(ctx context.Context, sel ast.SelectionSet, v *graphql11.PlatformInput) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return v
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
 }
 
 func (ec *executionContext) marshalOPriceBreakdownSnapshot2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐPriceBreakdownSnapshot(ctx context.Context, sel ast.SelectionSet, v *domain7.PriceBreakdownSnapshot) graphql.Marshaler {
@@ -73014,7 +72788,7 @@ func (ec *executionContext) marshalOReview2ᚖhausletᚋinternalᚋmodulesᚋrev
 	return ec._Review(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOReviewFilterInput2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐReviewFilterInput(ctx context.Context, v any) (*graphql2.ReviewFilterInput, error) {
+func (ec *executionContext) unmarshalOReviewFilterInput2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐReviewFilterInput(ctx context.Context, v any) (*graphql9.ReviewFilterInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -73094,17 +72868,17 @@ func (ec *executionContext) marshalOReviewStatus2ᚕhausletᚋinternalᚋmodules
 	return ret
 }
 
-func (ec *executionContext) unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInputᚄ(ctx context.Context, v any) ([]*model.RuleGroupInput, error) {
+func (ec *executionContext) unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroupᚄ(ctx context.Context, v any) ([]*domain10.RuleGroup, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]*model.RuleGroupInput, len(vSlice))
+	res := make([]*domain10.RuleGroup, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNRuleGroupInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐRuleGroupInput(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNRuleGroupInput2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐRuleGroup(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -73182,17 +72956,17 @@ func (ec *executionContext) marshalOServiceCharge2ᚕᚖhausletᚋinternalᚋmod
 	return ret
 }
 
-func (ec *executionContext) unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐServiceChargeInputᚄ(ctx context.Context, v any) ([]*model.ServiceChargeInput, error) {
+func (ec *executionContext) unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx context.Context, v any) ([]*domain10.ServiceCharge, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]*model.ServiceChargeInput, len(vSlice))
+	res := make([]*domain10.ServiceCharge, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNServiceChargeInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐServiceChargeInput(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNServiceChargeInput2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceCharge(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}

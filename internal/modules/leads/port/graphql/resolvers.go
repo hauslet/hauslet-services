@@ -2,10 +2,12 @@ package graphql
 
 import (
 	"context"
+	"fmt"
 	"hauslet/internal/modules/leads/domain"
 	"hauslet/internal/modules/leads/service"
 	"hauslet/internal/transport/graph/viewer"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -70,11 +72,11 @@ func (r *Resolver) CreateLead(ctx context.Context, input CreateLeadInput) (*doma
 		Email:       input.Email,
 		PhoneNumber: input.PhoneNumber,
 		Message:     input.Message,
-		Source:      mapLeadSource(input.Source),
+		Source:      mapLeadSource(string(input.Source)),
 		UserAgent:   &userAgent,
 		IPAddress:   &ipAddress,
 		ReferrerURL: &referrerURL,
-		UTMParams:   input.UTMParams,
+		UTMParams:   normalizeUTMParams(input.UtmParams),
 	}
 
 	// HYBRID: Check if user is authenticated (optional)
@@ -107,7 +109,7 @@ func (r *Resolver) CreateLead(ctx context.Context, input CreateLeadInput) (*doma
 }
 
 // UpdateLeadStatus updates the status of a lead
-func (r *Resolver) UpdateLeadStatus(ctx context.Context, leadID string, status string, notes *string) (*domain.Lead, error) {
+func (r *Resolver) UpdateLeadStatus(ctx context.Context, leadID string, status domain.LeadStatus, notes *string) (*domain.Lead, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
 		return nil, domain.ErrUnauthorized
@@ -123,7 +125,7 @@ func (r *Resolver) UpdateLeadStatus(ctx context.Context, leadID string, status s
 		return nil, domain.ErrUnauthorized
 	}
 
-	leadStatus := mapLeadStatus(status)
+	leadStatus := mapLeadStatus(string(status))
 
 	lead, err := r.leadService.UpdateLeadStatus(ctx, leadUUID, leadStatus, requesterID, notes)
 	if err != nil {
@@ -135,7 +137,7 @@ func (r *Resolver) UpdateLeadStatus(ctx context.Context, leadID string, status s
 }
 
 // AssignLead assigns a lead to a user
-func (r *Resolver) AssignLead(ctx context.Context, leadID, assigneeID string, reason string) (*domain.Lead, error) {
+func (r *Resolver) AssignLead(ctx context.Context, leadID, assigneeID string, reason domain.AssignmentReason) (*domain.Lead, error) {
 	v := viewer.FromContext(ctx)
 	if v == nil || v.UserID == "" {
 		return nil, domain.ErrUnauthorized
@@ -156,7 +158,7 @@ func (r *Resolver) AssignLead(ctx context.Context, leadID, assigneeID string, re
 		return nil, domain.ErrUnauthorized
 	}
 
-	assignmentReason := mapAssignmentReason(reason)
+	assignmentReason := mapAssignmentReason(string(reason))
 
 	lead, err := r.leadService.AssignLead(ctx, leadUUID, assigneeUUID, requesterID, assignmentReason)
 	if err != nil {
@@ -348,7 +350,7 @@ func extractReferrerFromContext(ctx context.Context) string {
 }
 
 func mapLeadSource(s string) domain.LeadSource {
-	switch s {
+	switch strings.ToUpper(s) {
 	case "WEBSITE":
 		return domain.SourceWebsite
 	case "MOBILE_APP":
@@ -367,7 +369,7 @@ func mapLeadSource(s string) domain.LeadSource {
 }
 
 func mapLeadStatus(s string) domain.LeadStatus {
-	switch s {
+	switch strings.ToUpper(s) {
 	case "NEW":
 		return domain.StatusNew
 	case "ASSIGNED":
@@ -390,7 +392,7 @@ func mapLeadStatus(s string) domain.LeadStatus {
 }
 
 func mapAssignmentReason(r string) domain.AssignmentReason {
-	switch r {
+	switch strings.ToUpper(r) {
 	case "AUTO":
 		return domain.ReasonAuto
 	case "MANUAL":
@@ -409,39 +411,13 @@ func convertFilter(filter *LeadFilterInput) service.LeadFilter {
 		return service.LeadFilter{}
 	}
 
-	var statusList []domain.LeadStatus
-	for _, s := range filter.Status {
-		statusList = append(statusList, mapLeadStatus(s))
-	}
-
-	var sourceList []domain.LeadSource
-	for _, s := range filter.Source {
-		sourceList = append(sourceList, mapLeadSource(s))
-	}
-
-	// Parse date strings if provided
-	var dateFrom *time.Time
-	var dateTo *time.Time
-
-	if filter.DateFrom != nil {
-		if parsed, err := time.Parse(time.RFC3339, *filter.DateFrom); err == nil {
-			dateFrom = &parsed
-		}
-	}
-
-	if filter.DateTo != nil {
-		if parsed, err := time.Parse(time.RFC3339, *filter.DateTo); err == nil {
-			dateTo = &parsed
-		}
-	}
-
 	return service.LeadFilter{
-		Status:     statusList,
-		Source:     sourceList,
+		Status:     normalizeLeadStatuses(filter.Status),
+		Source:     normalizeLeadSources(filter.Source),
 		IsSpam:     filter.IsSpam,
 		Assigned:   filter.Assigned,
-		DateFrom:   dateFrom,
-		DateTo:     dateTo,
+		DateFrom:   filter.DateFrom,
+		DateTo:     filter.DateTo,
 		SearchTerm: filter.SearchTerm,
 	}
 }
@@ -484,17 +460,17 @@ type CreateLeadInput struct {
 	Email       string
 	PhoneNumber *string
 	Message     string
-	Source      string
-	UTMParams   map[string]string
+	Source      domain.LeadSource
+	UtmParams   map[string]any
 }
 
 type LeadFilterInput struct {
-	Status     []string
-	Source     []string
+	Status     []domain.LeadStatus
+	Source     []domain.LeadSource
 	IsSpam     *bool
 	Assigned   *bool
-	DateFrom   *string
-	DateTo     *string
+	DateFrom   *time.Time
+	DateTo     *time.Time
 	SearchTerm *string
 }
 
@@ -507,4 +483,42 @@ type LeadConnection struct {
 	Items       []*domain.Lead
 	TotalCount  int
 	HasNextPage bool
+}
+
+func normalizeUTMParams(params map[string]any) map[string]string {
+	if params == nil {
+		return nil
+	}
+	normalized := make(map[string]string, len(params))
+	for key, value := range params {
+		switch typed := value.(type) {
+		case string:
+			normalized[key] = typed
+		default:
+			normalized[key] = fmt.Sprint(typed)
+		}
+	}
+	return normalized
+}
+
+func normalizeLeadStatuses(statuses []domain.LeadStatus) []domain.LeadStatus {
+	if len(statuses) == 0 {
+		return nil
+	}
+	normalized := make([]domain.LeadStatus, len(statuses))
+	for i, status := range statuses {
+		normalized[i] = mapLeadStatus(string(status))
+	}
+	return normalized
+}
+
+func normalizeLeadSources(sources []domain.LeadSource) []domain.LeadSource {
+	if len(sources) == 0 {
+		return nil
+	}
+	normalized := make([]domain.LeadSource, len(sources))
+	for i, source := range sources {
+		normalized[i] = mapLeadSource(string(source))
+	}
+	return normalized
 }

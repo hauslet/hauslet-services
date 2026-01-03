@@ -146,7 +146,7 @@ func (r *Resolver) MyDisputes(ctx context.Context, limit, offset *int) ([]*domai
 
 // FileDisputeInput represents the input for filing a dispute
 type FileDisputeInput struct {
-	BookingID   string
+	BookingID   uuid.UUID
 	Reason      domain.DisputeReason
 	Description string
 	Amount      int64
@@ -160,16 +160,10 @@ func (r *Resolver) FileDispute(ctx context.Context, input FileDisputeInput) (*do
 		return nil, err
 	}
 
-	bookingID, err := uuid.Parse(input.BookingID)
-	if err != nil {
-		r.log.Error("invalid booking ID", "id", input.BookingID, "error", err)
-		return nil, fmt.Errorf("invalid booking ID")
-	}
-
 	// Service handles authorization and determines party internally
 	dispute, err := r.financeService.FileDispute(
 		ctx,
-		bookingID,
+		input.BookingID,
 		userID,
 		input.Reason,
 		input.Description,
@@ -181,7 +175,7 @@ func (r *Resolver) FileDispute(ctx context.Context, input FileDisputeInput) (*do
 		return nil, err
 	}
 
-	r.log.Info(" dispute filed", "id", dispute.ID, "booking_id", bookingID, "user_id", userID)
+	r.log.Info(" dispute filed", "id", dispute.ID, "booking_id", input.BookingID, "user_id", userID)
 
 	return dispute, nil
 }
@@ -220,7 +214,7 @@ func (r *Resolver) InvestigateDispute(ctx context.Context, disputeID string) (*d
 
 // ResolveDisputeInput represents the input for resolving a dispute
 type ResolveDisputeInput struct {
-	DisputeID    string
+	DisputeID    uuid.UUID
 	Outcome      domain.DisputeStatus
 	RefundAmount int64
 	Reason       string
@@ -238,15 +232,9 @@ func (r *Resolver) ResolveDispute(ctx context.Context, input ResolveDisputeInput
 		return nil, err
 	}
 
-	did, err := uuid.Parse(input.DisputeID)
-	if err != nil {
-		r.log.Error("invalid dispute ID", "id", input.DisputeID, "error", err)
-		return nil, fmt.Errorf("invalid dispute ID")
-	}
-
 	if err := r.financeService.ResolveDispute(
 		ctx,
-		did,
+		input.DisputeID,
 		adminID,
 		input.Outcome,
 		input.RefundAmount,
@@ -258,7 +246,7 @@ func (r *Resolver) ResolveDispute(ctx context.Context, input ResolveDisputeInput
 	}
 
 	// Return updated dispute
-	dispute, err := r.financeService.GetDispute(ctx, did)
+	dispute, err := r.financeService.GetDispute(ctx, input.DisputeID)
 	if err != nil {
 		r.log.Error("failed to get dispute after resolution", "error", err)
 		return nil, err
@@ -314,7 +302,7 @@ func (r *Resolver) CancelDispute(ctx context.Context, disputeID string) (*domain
 
 // AddDisputeEvidenceInput represents the input for adding evidence to a dispute
 type AddDisputeEvidenceInput struct {
-	DisputeID   string
+	DisputeID   uuid.UUID
 	Type        string
 	URL         string
 	Description string
@@ -327,16 +315,10 @@ func (r *Resolver) AddDisputeEvidence(ctx context.Context, input AddDisputeEvide
 		return nil, err
 	}
 
-	did, err := uuid.Parse(input.DisputeID)
-	if err != nil {
-		r.log.Error("invalid dispute ID %s: %v", input.DisputeID, err)
-		return nil, fmt.Errorf("invalid dispute ID")
-	}
-
 	// Service handles authorization internally
 	if err := r.financeService.AddEvidence(
 		ctx,
-		did,
+		input.DisputeID,
 		userID,
 		input.Type,
 		input.URL,
@@ -347,7 +329,7 @@ func (r *Resolver) AddDisputeEvidence(ctx context.Context, input AddDisputeEvide
 	}
 
 	// Return updated dispute
-	dispute, err := r.financeService.GetDispute(ctx, did)
+	dispute, err := r.financeService.GetDispute(ctx, input.DisputeID)
 	if err != nil {
 		r.log.Error("failed to get dispute after adding evidence", "error", err)
 		return nil, err

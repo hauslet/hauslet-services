@@ -136,8 +136,6 @@ func createListing(ctx *SeedContext, property struct {
 
   LatestReviewStatus: propertySchema.ReviewStatusApproved,
 
-  ViewCount: utils.RandomInt(0, 500),
-
   CreatedAt: utils.RandomPastDate(180),
   UpdatedAt: time.Now(),
  }

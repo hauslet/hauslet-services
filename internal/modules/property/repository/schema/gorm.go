@@ -120,12 +120,6 @@ type Listing struct {
 	// Moderation
 	LatestReviewStatus ReviewStatus `gorm:"default:'pending'"`
 
-	// Metrics
-	ViewCount     int `gorm:"default:0"`
-	LastViewedAt  *time.Time
-	FeaturedUntil *time.Time `gorm:"index"`
-	BoostLevel    int        `gorm:"default:0"`
-
 	// Audit
 	CreatedBy       *uuid.UUID `gorm:"type:uuid"`
 	UpdatedBy       *uuid.UUID `gorm:"type:uuid"`

@@ -12,19 +12,25 @@ import (
 	domain5 "hauslet/internal/modules/booking/domain"
 	graphql4 "hauslet/internal/modules/booking/port/graphql"
 	domain3 "hauslet/internal/modules/business/domain"
+	businessgraphql "hauslet/internal/modules/business/port/graphql"
 	calendardomain "hauslet/internal/modules/calendar/domain"
+	calendargraphql "hauslet/internal/modules/calendar/port/graphql"
 	domain7 "hauslet/internal/modules/finance/domain"
 	graphql2 "hauslet/internal/modules/finance/port/graphql"
+	interactionsgraphql "hauslet/internal/modules/interactions/port/graphql"
 	domain10 "hauslet/internal/modules/leads/domain"
+	leadsgraphql "hauslet/internal/modules/leads/port/graphql"
 	domain6 "hauslet/internal/modules/payments/domain"
 	graphql1 "hauslet/internal/modules/payments/port/graphql"
 	domain1 "hauslet/internal/modules/profile/domain"
+	profilegraphql "hauslet/internal/modules/profile/port/graphql"
 	domain9 "hauslet/internal/modules/promotions/domain"
 	graphql5 "hauslet/internal/modules/promotions/port/graphql"
 	"hauslet/internal/modules/property/domain"
 	domain8 "hauslet/internal/modules/review/domain"
 	graphql3 "hauslet/internal/modules/review/port/graphql"
 	domain4 "hauslet/internal/modules/wishlist/domain"
+	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/transport/graph/model"
 	"time"
@@ -98,14 +104,13 @@ func (r *agentSubscriptionResolver) Metadata(ctx context.Context, obj *domain9.A
 
 // Location is the resolver for the location field.
 func (r *businessResolver) Location(ctx context.Context, obj *domain3.Business) (*domain.Location, error) {
-	// Business.Location is already a *domain.Location, but it's from property domain
-	// We need to return it as is since both Business and Property use the same Location type
-	if obj.Location == nil {
+	if obj == nil || obj.Location == nil {
 		return nil, nil
 	}
 	return &domain.Location{
-		Lat: obj.Location.Lat,
-		Lng: obj.Location.Lng,
+		Lat:  obj.Location.Lat,
+		Lng:  obj.Location.Lng,
+		SRID: obj.Location.SRID,
 	}, nil
 }
 
@@ -181,37 +186,61 @@ func (r *hostStatsResolver) UpdatedAt(ctx context.Context, obj *domain8.HostStat
 
 // ID is the resolver for the id field.
 func (r *leadResolver) ID(ctx context.Context, obj *domain10.Lead) (string, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
+	if obj == nil {
+		return "", nil
+	}
+	return obj.ID.String(), nil
 }
 
 // ListingID is the resolver for the listingId field.
 func (r *leadResolver) ListingID(ctx context.Context, obj *domain10.Lead) (string, error) {
-	panic(fmt.Errorf("not implemented: ListingID - listingId"))
+	if obj == nil {
+		return "", nil
+	}
+	return obj.ListingID.String(), nil
 }
 
 // BusinessID is the resolver for the businessId field.
 func (r *leadResolver) BusinessID(ctx context.Context, obj *domain10.Lead) (*string, error) {
-	panic(fmt.Errorf("not implemented: BusinessID - businessId"))
+	if obj == nil || obj.BusinessID == nil {
+		return nil, nil
+	}
+	id := obj.BusinessID.String()
+	return &id, nil
 }
 
 // AssignedTo is the resolver for the assignedTo field.
 func (r *leadResolver) AssignedTo(ctx context.Context, obj *domain10.Lead) (*string, error) {
-	panic(fmt.Errorf("not implemented: AssignedTo - assignedTo"))
+	if obj == nil || obj.AssignedTo == nil {
+		return nil, nil
+	}
+	id := obj.AssignedTo.String()
+	return &id, nil
 }
 
 // ID is the resolver for the id field.
 func (r *leadEventResolver) ID(ctx context.Context, obj *domain10.LeadEvent) (string, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
+	if obj == nil {
+		return "", nil
+	}
+	return obj.ID.String(), nil
 }
 
 // LeadID is the resolver for the leadId field.
 func (r *leadEventResolver) LeadID(ctx context.Context, obj *domain10.LeadEvent) (string, error) {
-	panic(fmt.Errorf("not implemented: LeadID - leadId"))
+	if obj == nil {
+		return "", nil
+	}
+	return obj.LeadID.String(), nil
 }
 
 // ActorID is the resolver for the actorId field.
 func (r *leadEventResolver) ActorID(ctx context.Context, obj *domain10.LeadEvent) (*string, error) {
-	panic(fmt.Errorf("not implemented: ActorID - actorId"))
+	if obj == nil || obj.ActorID == nil {
+		return nil, nil
+	}
+	id := obj.ActorID.String()
+	return &id, nil
 }
 
 // ResourceType is the resolver for the resourceType field.
@@ -346,7 +375,7 @@ func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
 }
 
 // UpdateProfile is the resolver for the updateProfile field.
-func (r *mutationResolver) UpdateProfile(ctx context.Context, input model.UpdateProfileInput) (*domain1.Profile, error) {
+func (r *mutationResolver) UpdateProfile(ctx context.Context, input profilegraphql.UpdateProfileInput) (*domain1.Profile, error) {
 	return r.ProfileResolver.UpdateProfile(ctx, input)
 }
 
@@ -356,12 +385,12 @@ func (r *mutationResolver) SelectSupplyRoles(ctx context.Context, userTypes []do
 }
 
 // AddTravelCompanion is the resolver for the addTravelCompanion field.
-func (r *mutationResolver) AddTravelCompanion(ctx context.Context, userID string, input model.TravelCompanionInput) (bool, error) {
+func (r *mutationResolver) AddTravelCompanion(ctx context.Context, userID string, input profilegraphql.TravelCompanionInput) (bool, error) {
 	return r.ProfileResolver.AddTravelCompanion(ctx, userID, input)
 }
 
 // UpdateTravelCompanion is the resolver for the updateTravelCompanion field.
-func (r *mutationResolver) UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input model.TravelCompanionInput) (bool, error) {
+func (r *mutationResolver) UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input profilegraphql.TravelCompanionInput) (bool, error) {
 	return r.ProfileResolver.UpdateTravelCompanion(ctx, userID, companionID, input)
 }
 
@@ -401,12 +430,12 @@ func (r *mutationResolver) UnpublishListing(ctx context.Context, id uuid.UUID) (
 }
 
 // CreateBusiness is the resolver for the createBusiness field.
-func (r *mutationResolver) CreateBusiness(ctx context.Context, input model.CreateBusinessInput) (*domain3.Business, error) {
+func (r *mutationResolver) CreateBusiness(ctx context.Context, input businessgraphql.CreateBusinessInput) (*domain3.Business, error) {
 	return r.BusinessResolver.CreateBusiness(ctx, input)
 }
 
 // UpdateBusiness is the resolver for the updateBusiness field.
-func (r *mutationResolver) UpdateBusiness(ctx context.Context, id uuid.UUID, input model.UpdateBusinessInput) (*domain3.Business, error) {
+func (r *mutationResolver) UpdateBusiness(ctx context.Context, id uuid.UUID, input businessgraphql.UpdateBusinessInput) (*domain3.Business, error) {
 	return r.BusinessResolver.UpdateBusiness(ctx, id.String(), input)
 }
 
@@ -416,7 +445,7 @@ func (r *mutationResolver) DeleteBusiness(ctx context.Context, id uuid.UUID) (bo
 }
 
 // AddBusinessMember is the resolver for the addBusinessMember field.
-func (r *mutationResolver) AddBusinessMember(ctx context.Context, businessID uuid.UUID, userID uuid.UUID, role domain3.MemberRole, customPermissions *model.MemberPermissionsInput) (*domain3.BusinessMember, error) {
+func (r *mutationResolver) AddBusinessMember(ctx context.Context, businessID uuid.UUID, userID uuid.UUID, role domain3.MemberRole, customPermissions *businessgraphql.MemberPermissionsInput) (*domain3.BusinessMember, error) {
 	return r.BusinessResolver.AddBusinessMember(ctx, businessID.String(), userID.String(), role, customPermissions)
 }
 
@@ -426,7 +455,7 @@ func (r *mutationResolver) UpdateMemberRole(ctx context.Context, businessID uuid
 }
 
 // UpdateMemberPermissions is the resolver for the updateMemberPermissions field.
-func (r *mutationResolver) UpdateMemberPermissions(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, permissions model.MemberPermissionsInput) (*domain3.BusinessMember, error) {
+func (r *mutationResolver) UpdateMemberPermissions(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, permissions businessgraphql.MemberPermissionsInput) (*domain3.BusinessMember, error) {
 	return r.BusinessResolver.UpdateMemberPermissions(ctx, businessID.String(), memberID.String(), permissions)
 }
 
@@ -436,7 +465,7 @@ func (r *mutationResolver) RemoveMember(ctx context.Context, businessID uuid.UUI
 }
 
 // InviteMember is the resolver for the inviteMember field.
-func (r *mutationResolver) InviteMember(ctx context.Context, businessID uuid.UUID, input model.InviteMemberInput) (*domain3.BusinessInvitation, error) {
+func (r *mutationResolver) InviteMember(ctx context.Context, businessID uuid.UUID, input businessgraphql.InviteMemberInput) (*domain3.BusinessInvitation, error) {
 	return r.BusinessResolver.InviteMember(ctx, businessID.String(), input)
 }
 
@@ -456,81 +485,42 @@ func (r *mutationResolver) RevokeInvitation(ctx context.Context, invitationID uu
 }
 
 // ReserveBooking is the resolver for the reserveBooking field.
-func (r *mutationResolver) ReserveBooking(ctx context.Context, input model.ReserveBookingInput) (*graphql4.CompleteBookingPayload, error) {
-	// Convert generated model input to booking resolver input (strings)
-	var paymentMethodID *string
-	if input.PaymentMethodID != nil {
-		pmID := input.PaymentMethodID.String()
-		paymentMethodID = &pmID
-	}
-
-	bookingInput := &graphql4.ReserveBookingInput{
-		ListingID:       input.ListingID.String(),
-		CheckIn:         input.CheckIn.Format(time.RFC3339),
-		CheckOut:        input.CheckOut.Format(time.RFC3339),
-		GuestCount:      input.GuestCount,
-		PaymentMethodID: paymentMethodID,
-		SpecialRequests: input.SpecialRequests,
-	}
-	return r.BookingResolver.ReserveBooking(ctx, bookingInput)
+func (r *mutationResolver) ReserveBooking(ctx context.Context, input graphql4.ReserveBookingInput) (*graphql4.CompleteBookingPayload, error) {
+	return r.BookingResolver.ReserveBooking(ctx, input)
 }
 
 // RequestBooking is the resolver for the requestBooking field.
-func (r *mutationResolver) RequestBooking(ctx context.Context, input model.RequestBookingInput) (*domain5.Booking, error) {
-	// Convert generated model input to booking resolver input (strings)
-	bookingInput := &graphql4.RequestBookingInput{
-		ListingID:       input.ListingID.String(),
-		CheckIn:         input.CheckIn.Format(time.RFC3339),
-		CheckOut:        input.CheckOut.Format(time.RFC3339),
-		GuestCount:      input.GuestCount,
-		SpecialRequests: input.SpecialRequests,
-	}
-	return r.BookingResolver.RequestBooking(ctx, bookingInput)
+func (r *mutationResolver) RequestBooking(ctx context.Context, input graphql4.RequestBookingInput) (*domain5.Booking, error) {
+	return r.BookingResolver.RequestBooking(ctx, input)
 }
 
 // PayForBooking is the resolver for the payForBooking field.
-func (r *mutationResolver) PayForBooking(ctx context.Context, input model.PayForBookingInput) (*graphql4.CompleteBookingPayload, error) {
-	// Convert generated model input to booking resolver input (strings)
-	var paymentMethodID *string
-	if input.PaymentMethodID != nil {
-		pmID := input.PaymentMethodID.String()
-		paymentMethodID = &pmID
-	}
-
-	bookingInput := &graphql4.PayForBookingInput{
-		BookingID:       input.BookingID.String(),
-		PaymentMethodID: paymentMethodID,
-	}
-	return r.BookingResolver.PayForBooking(ctx, bookingInput)
+func (r *mutationResolver) PayForBooking(ctx context.Context, input graphql4.PayForBookingInput) (*graphql4.CompleteBookingPayload, error) {
+	return r.BookingResolver.PayForBooking(ctx, input)
 }
 
 // ConfirmBooking is the resolver for the confirmBooking field.
 func (r *mutationResolver) ConfirmBooking(ctx context.Context, bookingID uuid.UUID) (*domain5.Booking, error) {
-	return r.BookingResolver.ConfirmBooking(ctx, bookingID.String())
+	return r.BookingResolver.ConfirmBooking(ctx, bookingID)
 }
 
 // CancelBooking is the resolver for the cancelBooking field.
-func (r *mutationResolver) CancelBooking(ctx context.Context, input model.CancelBookingInput) (*domain5.Booking, error) {
-	// Convert generated model input to booking resolver input (strings)
-	bookingInput := &graphql4.CancelBookingInput{
-		BookingID: input.BookingID.String(),
-		Reason:    input.Reason,
-	}
-	return r.BookingResolver.CancelBooking(ctx, bookingInput)
+func (r *mutationResolver) CancelBooking(ctx context.Context, input graphql4.CancelBookingInput) (*domain5.Booking, error) {
+	return r.BookingResolver.CancelBooking(ctx, input)
 }
 
 // CheckInBooking is the resolver for the checkInBooking field.
 func (r *mutationResolver) CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*domain5.Booking, error) {
-	return r.BookingResolver.CheckInBooking(ctx, bookingID.String())
+	return r.BookingResolver.CheckInBooking(ctx, bookingID)
 }
 
 // CheckOutBooking is the resolver for the checkOutBooking field.
 func (r *mutationResolver) CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*domain5.Booking, error) {
-	return r.BookingResolver.CheckOutBooking(ctx, bookingID.String())
+	return r.BookingResolver.CheckOutBooking(ctx, bookingID)
 }
 
 // RequestShowing is the resolver for the requestShowing field.
-func (r *mutationResolver) RequestShowing(ctx context.Context, input model.RequestShowingInput) (*calendardomain.CalendarEvent, error) {
+func (r *mutationResolver) RequestShowing(ctx context.Context, input calendargraphql.RequestShowingInput) (*calendardomain.CalendarEvent, error) {
 	return r.CalendarResolver.RequestShowing(ctx, input)
 }
 
@@ -540,22 +530,22 @@ func (r *mutationResolver) ConfirmShowing(ctx context.Context, eventID uuid.UUID
 }
 
 // CancelShowing is the resolver for the cancelShowing field.
-func (r *mutationResolver) CancelShowing(ctx context.Context, input model.CancelShowingInput) (*calendardomain.CalendarEvent, error) {
+func (r *mutationResolver) CancelShowing(ctx context.Context, input calendargraphql.CancelShowingInput) (*calendardomain.CalendarEvent, error) {
 	return r.CalendarResolver.CancelShowing(ctx, input)
 }
 
 // RescheduleShowing is the resolver for the rescheduleShowing field.
-func (r *mutationResolver) RescheduleShowing(ctx context.Context, input model.RescheduleShowingInput) (*calendardomain.CalendarEvent, error) {
+func (r *mutationResolver) RescheduleShowing(ctx context.Context, input calendargraphql.RescheduleShowingInput) (*calendardomain.CalendarEvent, error) {
 	return r.CalendarResolver.RescheduleShowing(ctx, input)
 }
 
 // CreateOpenHouse is the resolver for the createOpenHouse field.
-func (r *mutationResolver) CreateOpenHouse(ctx context.Context, input model.CreateOpenHouseInput) (*calendardomain.CalendarEvent, error) {
+func (r *mutationResolver) CreateOpenHouse(ctx context.Context, input calendargraphql.CreateOpenHouseInput) (*calendardomain.CalendarEvent, error) {
 	return r.CalendarResolver.CreateOpenHouse(ctx, input)
 }
 
 // RegisterOpenHouse is the resolver for the registerOpenHouse field.
-func (r *mutationResolver) RegisterOpenHouse(ctx context.Context, input model.RegisterOpenHouseInput) (bool, error) {
+func (r *mutationResolver) RegisterOpenHouse(ctx context.Context, input calendargraphql.RegisterOpenHouseInput) (bool, error) {
 	return r.CalendarResolver.RegisterOpenHouse(ctx, input)
 }
 
@@ -613,27 +603,13 @@ func (r *mutationResolver) DeactivatePayoutDetail(ctx context.Context, id uuid.U
 }
 
 // CreatePayout is the resolver for the createPayout field.
-func (r *mutationResolver) CreatePayout(ctx context.Context, input model.CreatePayoutInput) (*domain6.Transaction, error) {
-	// Convert model.CreatePayoutInput to graphql1.CreatePayoutInput
-	payoutInput := &graphql1.CreatePayoutInput{
-		BusinessID:    input.BusinessID.String(),
-		Amount:        int64(input.Amount),
-		Currency:      payment.Currency(input.Currency),
-		Description:   *input.Description,
-		RecipientCode: input.RecipientCode,
-	}
-	return r.PaymentsResolver.CreatePayout(ctx, payoutInput)
+func (r *mutationResolver) CreatePayout(ctx context.Context, input graphql1.CreatePayoutInput) (*domain6.Transaction, error) {
+	return r.PaymentsResolver.CreatePayout(ctx, &input)
 }
 
 // FileDispute is the resolver for the fileDispute field.
-func (r *mutationResolver) FileDispute(ctx context.Context, input model.FileDisputeInput) (*domain7.Dispute, error) {
-	return r.FinanceResolver.FileDispute(ctx, graphql2.FileDisputeInput{
-		BookingID:   input.BookingID.String(),
-		Reason:      input.Reason,
-		Description: input.Description,
-		Amount:      int64(input.Amount),
-		Currency:    input.Currency,
-	})
+func (r *mutationResolver) FileDispute(ctx context.Context, input graphql2.FileDisputeInput) (*domain7.Dispute, error) {
+	return r.FinanceResolver.FileDispute(ctx, input)
 }
 
 // InvestigateDispute is the resolver for the investigateDispute field.
@@ -642,14 +618,8 @@ func (r *mutationResolver) InvestigateDispute(ctx context.Context, disputeID uui
 }
 
 // ResolveDispute is the resolver for the resolveDispute field.
-func (r *mutationResolver) ResolveDispute(ctx context.Context, input model.ResolveDisputeInput) (*domain7.Dispute, error) {
-	return r.FinanceResolver.ResolveDispute(ctx, graphql2.ResolveDisputeInput{
-		DisputeID:    input.DisputeID.String(),
-		Outcome:      input.Outcome,
-		RefundAmount: int64(input.RefundAmount),
-		Reason:       input.Reason,
-		Notes:        input.Notes,
-	})
+func (r *mutationResolver) ResolveDispute(ctx context.Context, input graphql2.ResolveDisputeInput) (*domain7.Dispute, error) {
+	return r.FinanceResolver.ResolveDispute(ctx, input)
 }
 
 // CancelDispute is the resolver for the cancelDispute field.
@@ -658,22 +628,17 @@ func (r *mutationResolver) CancelDispute(ctx context.Context, disputeID uuid.UUI
 }
 
 // AddDisputeEvidence is the resolver for the addDisputeEvidence field.
-func (r *mutationResolver) AddDisputeEvidence(ctx context.Context, input model.AddDisputeEvidenceInput) (*domain7.Dispute, error) {
-	return r.FinanceResolver.AddDisputeEvidence(ctx, graphql2.AddDisputeEvidenceInput{
-		DisputeID:   input.DisputeID.String(),
-		Type:        input.Type,
-		URL:         input.URL,
-		Description: input.Description,
-	})
+func (r *mutationResolver) AddDisputeEvidence(ctx context.Context, input graphql2.AddDisputeEvidenceInput) (*domain7.Dispute, error) {
+	return r.FinanceResolver.AddDisputeEvidence(ctx, input)
 }
 
 // CreateWishlist is the resolver for the createWishlist field.
-func (r *mutationResolver) CreateWishlist(ctx context.Context, input model.CreateWishlistInput) (*domain4.Wishlist, error) {
+func (r *mutationResolver) CreateWishlist(ctx context.Context, input wishlistgraphql.CreateWishlistInput) (*domain4.Wishlist, error) {
 	return r.WishlistResolver.CreateWishlist(ctx, input)
 }
 
 // UpdateWishlist is the resolver for the updateWishlist field.
-func (r *mutationResolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input model.UpdateWishlistInput) (*domain4.Wishlist, error) {
+func (r *mutationResolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input wishlistgraphql.UpdateWishlistInput) (*domain4.Wishlist, error) {
 	return r.WishlistResolver.UpdateWishlist(ctx, id, input)
 }
 
@@ -748,12 +713,12 @@ func (r *mutationResolver) DeleteResponse(ctx context.Context, responseID uuid.U
 }
 
 // CreatePromotion is the resolver for the createPromotion field.
-func (r *mutationResolver) CreatePromotion(ctx context.Context, input model.CreatePromotionInput) (*graphql5.CreatePromotionPayload, error) {
+func (r *mutationResolver) CreatePromotion(ctx context.Context, input graphql5.CreatePromotionInput) (*graphql5.CreatePromotionPayload, error) {
 	return r.PromotionResolver.CreatePromotion(ctx, input.ListingID, input.Type, input.Duration)
 }
 
 // CreateIncludedPromotion is the resolver for the createIncludedPromotion field.
-func (r *mutationResolver) CreateIncludedPromotion(ctx context.Context, input model.CreateIncludedPromotionInput) (*domain9.ListingPromotion, error) {
+func (r *mutationResolver) CreateIncludedPromotion(ctx context.Context, input graphql5.CreateIncludedPromotionInput) (*domain9.ListingPromotion, error) {
 	return r.PromotionResolver.CreateIncludedPromotion(ctx, input.ListingID, input.Type, input.Duration)
 }
 
@@ -763,7 +728,7 @@ func (r *mutationResolver) CancelPromotion(ctx context.Context, id uuid.UUID) (*
 }
 
 // CreateSubscription is the resolver for the createSubscription field.
-func (r *mutationResolver) CreateSubscription(ctx context.Context, input model.CreateSubscriptionInput) (*graphql5.CreateSubscriptionPayload, error) {
+func (r *mutationResolver) CreateSubscription(ctx context.Context, input graphql5.CreateSubscriptionInput) (*graphql5.CreateSubscriptionPayload, error) {
 	return r.PromotionResolver.CreateSubscription(ctx, input.PlanType, input.BillingCycle, input.StartTrial)
 }
 
@@ -798,33 +763,33 @@ func (r *mutationResolver) UsePrivateShowing(ctx context.Context) (bool, error) 
 }
 
 // CreateLead is the resolver for the createLead field.
-func (r *mutationResolver) CreateLead(ctx context.Context, input model.CreateLeadInput) (*domain10.Lead, error) {
-	panic(fmt.Errorf("not implemented: CreateLead - createLead"))
+func (r *mutationResolver) CreateLead(ctx context.Context, input leadsgraphql.CreateLeadInput) (*domain10.Lead, error) {
+	return r.LeadResolver.CreateLead(ctx, input)
 }
 
 // UpdateLeadStatus is the resolver for the updateLeadStatus field.
 func (r *mutationResolver) UpdateLeadStatus(ctx context.Context, leadID string, status domain10.LeadStatus, notes *string) (*domain10.Lead, error) {
-	panic(fmt.Errorf("not implemented: UpdateLeadStatus - updateLeadStatus"))
+	return r.LeadResolver.UpdateLeadStatus(ctx, leadID, status, notes)
 }
 
 // AssignLead is the resolver for the assignLead field.
 func (r *mutationResolver) AssignLead(ctx context.Context, leadID string, assigneeID string, reason domain10.AssignmentReason) (*domain10.Lead, error) {
-	panic(fmt.Errorf("not implemented: AssignLead - assignLead"))
+	return r.LeadResolver.AssignLead(ctx, leadID, assigneeID, reason)
 }
 
 // MarkLeadAsSpam is the resolver for the markLeadAsSpam field.
 func (r *mutationResolver) MarkLeadAsSpam(ctx context.Context, leadID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: MarkLeadAsSpam - markLeadAsSpam"))
+	return r.LeadResolver.MarkLeadAsSpam(ctx, leadID)
 }
 
 // DeleteLead is the resolver for the deleteLead field.
 func (r *mutationResolver) DeleteLead(ctx context.Context, leadID string) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeleteLead - deleteLead"))
+	return r.LeadResolver.DeleteLead(ctx, leadID)
 }
 
 // TrackInteraction is the resolver for the trackInteraction field.
-func (r *mutationResolver) TrackInteraction(ctx context.Context, input model.TrackInteractionInput) (bool, error) {
-	panic(fmt.Errorf("not implemented: TrackInteraction - trackInteraction"))
+func (r *mutationResolver) TrackInteraction(ctx context.Context, input interactionsgraphql.TrackInteractionInput) (bool, error) {
+	return r.InteractionsResolver.TrackInteraction(ctx, input)
 }
 
 // Currency is the resolver for the currency field.
@@ -890,35 +855,27 @@ func (r *profileResolver) Gender(ctx context.Context, obj *domain1.Profile) (*st
 }
 
 // Amenities is the resolver for the amenities field.
-func (r *propertyResolver) Amenities(ctx context.Context, obj *domain.Property) ([]*model.AmenityGroup, error) {
+func (r *propertyResolver) Amenities(ctx context.Context, obj *domain.Property) ([]*domain.AmenityGroup, error) {
 	if obj == nil || len(obj.Amenities) == 0 {
-		return []*model.AmenityGroup{}, nil
+		return []*domain.AmenityGroup{}, nil
 	}
 
-	// Convert domain.AmenityGroup to model.AmenityGroup
-	result := make([]*model.AmenityGroup, len(obj.Amenities))
-	for i, group := range obj.Amenities {
-		result[i] = &model.AmenityGroup{
-			Group: group.Group,
-			Items: group.Items,
-		}
+	result := make([]*domain.AmenityGroup, len(obj.Amenities))
+	for i := range obj.Amenities {
+		result[i] = &obj.Amenities[i]
 	}
 	return result, nil
 }
 
 // FeaturesCommercial is the resolver for the featuresCommercial field.
-func (r *propertyResolver) FeaturesCommercial(ctx context.Context, obj *domain.Property) ([]*model.AmenityGroup, error) {
+func (r *propertyResolver) FeaturesCommercial(ctx context.Context, obj *domain.Property) ([]*domain.AmenityGroup, error) {
 	if obj == nil || len(obj.FeaturesCommercial) == 0 {
-		return []*model.AmenityGroup{}, nil
+		return []*domain.AmenityGroup{}, nil
 	}
 
-	// Convert domain.AmenityGroup to model.AmenityGroup
-	result := make([]*model.AmenityGroup, len(obj.FeaturesCommercial))
-	for i, group := range obj.FeaturesCommercial {
-		result[i] = &model.AmenityGroup{
-			Group: group.Group,
-			Items: group.Items,
-		}
+	result := make([]*domain.AmenityGroup, len(obj.FeaturesCommercial))
+	for i := range obj.FeaturesCommercial {
+		result[i] = &obj.FeaturesCommercial[i]
 	}
 	return result, nil
 }
@@ -1163,12 +1120,12 @@ func (r *queryResolver) MyBusinessPermissions(ctx context.Context, businessID uu
 // QuoteBooking is the resolver for the quoteBooking field.
 func (r *queryResolver) QuoteBooking(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain5.BookingQuote, error) {
 	// BookingQuote is bound to domain type in gqlgen.yml, so return it directly
-	return r.BookingResolver.QuoteBooking(ctx, listingID.String(), checkIn.Format(time.RFC3339), checkOut.Format(time.RFC3339), guestCount)
+	return r.BookingResolver.QuoteBooking(ctx, listingID, checkIn, checkOut, guestCount)
 }
 
 // Booking is the resolver for the booking field.
 func (r *queryResolver) Booking(ctx context.Context, id uuid.UUID) (*domain5.Booking, error) {
-	return r.BookingResolver.Booking(ctx, id.String())
+	return r.BookingResolver.Booking(ctx, id)
 }
 
 // MyBookings is the resolver for the myBookings field.
@@ -1178,12 +1135,7 @@ func (r *queryResolver) MyBookings(ctx context.Context, limit *int, offset *int)
 
 // ListingBookings is the resolver for the listingBookings field.
 func (r *queryResolver) ListingBookings(ctx context.Context, listingID uuid.UUID, status *domain5.BookingStatus, limit *int, offset *int) ([]*domain5.Booking, error) {
-	var statusStr *string
-	if status != nil {
-		s := string(*status)
-		statusStr = &s
-	}
-	return r.BookingResolver.ListingBookings(ctx, listingID.String(), statusStr, limit, offset)
+	return r.BookingResolver.ListingBookings(ctx, listingID, status, limit, offset)
 }
 
 // CalendarEvent is the resolver for the calendarEvent field.
@@ -1538,37 +1490,37 @@ func (r *queryResolver) GetCurrentUsage(ctx context.Context) (*domain9.UsageTrac
 
 // Lead is the resolver for the lead field.
 func (r *queryResolver) Lead(ctx context.Context, id string) (*domain10.Lead, error) {
-	panic(fmt.Errorf("not implemented: Lead - lead"))
+	return r.LeadResolver.Lead(ctx, id)
 }
 
 // LeadsByListing is the resolver for the leadsByListing field.
-func (r *queryResolver) LeadsByListing(ctx context.Context, listingID string, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error) {
-	panic(fmt.Errorf("not implemented: LeadsByListing - leadsByListing"))
+func (r *queryResolver) LeadsByListing(ctx context.Context, listingID string, filter *leadsgraphql.LeadFilterInput, page *leadsgraphql.PageInput) (*leadsgraphql.LeadConnection, error) {
+	return r.LeadResolver.LeadsByListing(ctx, listingID, filter, page)
 }
 
 // LeadsByBusiness is the resolver for the leadsByBusiness field.
-func (r *queryResolver) LeadsByBusiness(ctx context.Context, businessID string, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error) {
-	panic(fmt.Errorf("not implemented: LeadsByBusiness - leadsByBusiness"))
+func (r *queryResolver) LeadsByBusiness(ctx context.Context, businessID string, filter *leadsgraphql.LeadFilterInput, page *leadsgraphql.PageInput) (*leadsgraphql.LeadConnection, error) {
+	return r.LeadResolver.LeadsByBusiness(ctx, businessID, filter, page)
 }
 
 // MyLeads is the resolver for the myLeads field.
-func (r *queryResolver) MyLeads(ctx context.Context, filter *model.LeadFilterInput, page *model.PageInput) (*model.LeadConnection, error) {
-	panic(fmt.Errorf("not implemented: MyLeads - myLeads"))
+func (r *queryResolver) MyLeads(ctx context.Context, filter *leadsgraphql.LeadFilterInput, page *leadsgraphql.PageInput) (*leadsgraphql.LeadConnection, error) {
+	return r.LeadResolver.MyLeads(ctx, filter, page)
 }
 
 // LeadHistory is the resolver for the leadHistory field.
 func (r *queryResolver) LeadHistory(ctx context.Context, leadID string) ([]*domain10.LeadEvent, error) {
-	panic(fmt.Errorf("not implemented: LeadHistory - leadHistory"))
+	return r.LeadResolver.LeadHistory(ctx, leadID)
 }
 
 // ListingAnalytics is the resolver for the listingAnalytics field.
-func (r *queryResolver) ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*model.ListingAnalytics, error) {
-	panic(fmt.Errorf("not implemented: ListingAnalytics - listingAnalytics"))
+func (r *queryResolver) ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*interactionsgraphql.ListingAnalyticsResponse, error) {
+	return r.InteractionsResolver.ListingAnalytics(ctx, listingID, days)
 }
 
 // MyInteractionHistory is the resolver for the myInteractionHistory field.
-func (r *queryResolver) MyInteractionHistory(ctx context.Context, limit *int) ([]*model.Interaction, error) {
-	panic(fmt.Errorf("not implemented: MyInteractionHistory - myInteractionHistory"))
+func (r *queryResolver) MyInteractionHistory(ctx context.Context, limit *int) ([]*interactionsgraphql.InteractionResponse, error) {
+	return r.InteractionsResolver.MyInteractionHistory(ctx, limit)
 }
 
 // OneStar is the resolver for the oneStar field.
@@ -1639,18 +1591,18 @@ func (r *reviewResolver) HiddenAt(ctx context.Context, obj *domain8.Review) (*ti
 }
 
 // Rules is the resolver for the rules field.
-func (r *ruleGroupResolver) Rules(ctx context.Context, obj *domain.RuleGroup) ([]*model.RuleItem, error) {
+func (r *ruleGroupResolver) Rules(ctx context.Context, obj *domain.RuleGroup) ([]*domain.RuleItem, error) {
 	if obj == nil || len(obj.Rules) == 0 {
-		return []*model.RuleItem{}, nil
+		return []*domain.RuleItem{}, nil
 	}
 
-	// Convert domain.RuleItem to model.RuleItem
-	rules := make([]*model.RuleItem, len(obj.Rules))
-	for i, item := range obj.Rules {
-		rules[i] = &model.RuleItem{
-			Name:        model.RuleSubCategory(item.Name),
-			Description: item.Description,
+	rules := make([]*domain.RuleItem, len(obj.Rules))
+	for i := range obj.Rules {
+		rule := obj.Rules[i]
+		if rule.Description == nil {
+			rule.Description = map[string]any{}
 		}
+		rules[i] = &rule
 	}
 	return rules, nil
 }
@@ -1884,6 +1836,12 @@ func (r *createPaymentMethodInputResolver) IsDefault(ctx context.Context, obj *g
 	return nil
 }
 
+// Currency is the resolver for the currency field.
+func (r *createPayoutInputResolver) Currency(ctx context.Context, obj *graphql1.CreatePayoutInput, data string) error {
+	obj.Currency = payment.Currency(data)
+	return nil
+}
+
 // BookingID is the resolver for the bookingId field.
 func (r *createReviewInputResolver) BookingID(ctx context.Context, obj *graphql3.CreateReviewInput, data uuid.UUID) error {
 	obj.BookingID = data.String()
@@ -2023,6 +1981,11 @@ func (r *Resolver) CreatePaymentMethodInput() CreatePaymentMethodInputResolver {
 	return &createPaymentMethodInputResolver{r}
 }
 
+// CreatePayoutInput returns CreatePayoutInputResolver implementation.
+func (r *Resolver) CreatePayoutInput() CreatePayoutInputResolver {
+	return &createPayoutInputResolver{r}
+}
+
 // CreateReviewInput returns CreateReviewInputResolver implementation.
 func (r *Resolver) CreateReviewInput() CreateReviewInputResolver {
 	return &createReviewInputResolver{r}
@@ -2068,5 +2031,6 @@ type wishlistItemResolver struct{ *Resolver }
 type addPayoutDetailInputResolver struct{ *Resolver }
 type createPaymentInputResolver struct{ *Resolver }
 type createPaymentMethodInputResolver struct{ *Resolver }
+type createPayoutInputResolver struct{ *Resolver }
 type createReviewInputResolver struct{ *Resolver }
 type refundPaymentInputResolver struct{ *Resolver }

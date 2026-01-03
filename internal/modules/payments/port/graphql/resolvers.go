@@ -639,11 +639,6 @@ func (r *Resolver) CreatePayout(ctx context.Context, input *CreatePayoutInput) (
 		return nil, err
 	}
 
-	businessID, err := uuid.Parse(input.BusinessID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid business ID")
-	}
-
 	// Parse recipient code as payout detail ID
 	payoutDetailID, err := uuid.Parse(input.RecipientCode)
 	if err != nil {
@@ -652,7 +647,7 @@ func (r *Resolver) CreatePayout(ctx context.Context, input *CreatePayoutInput) (
 
 	// Create payout input
 	domainInput := domain.ProcessPayoutInput{
-		BusinessID:     &businessID,
+		BusinessID:     &input.BusinessID,
 		Amount:         input.Amount,
 		Currency:       input.Currency,
 		PayoutDetailID: payoutDetailID,
@@ -715,7 +710,7 @@ type AddPayoutDetailInput struct {
 }
 
 type CreatePayoutInput struct {
-	BusinessID    string
+	BusinessID    uuid.UUID
 	Amount        int64
 	Currency      payment.Currency
 	Description   string

@@ -12,6 +12,7 @@ import (
 	businessservice "hauslet/internal/modules/business/service"
 	calendarservice "hauslet/internal/modules/calendar/service"
 	financeservice "hauslet/internal/modules/finance/service"
+	interactionsservice "hauslet/internal/modules/interactions/service"
 	leadsservice "hauslet/internal/modules/leads/service"
 	paymentsservice "hauslet/internal/modules/payments/service"
 	profileservice "hauslet/internal/modules/profile/service"
@@ -50,6 +51,8 @@ func SetupGraphQL(r chi.Router,
 	subscriptionService promotionservice.SubscriptionService,
 	usageService promotionservice.UsageService,
 	leadService leadsservice.LeadService,
+	interactionsTracker interactionsservice.TrackerService,
+	interactionsReader interactionsservice.ReaderService,
 	tenantSlugMiddleware func(http.Handler) http.Handler,
 	fxClient xchange.XChange,
 	redisClient *redis.RedisClient,
@@ -74,6 +77,8 @@ func SetupGraphQL(r chi.Router,
 				subscriptionService,
 				usageService,
 				leadService,
+				interactionsTracker,
+				interactionsReader,
 				fxClient,
 				cfg,
 				log,

@@ -114,27 +114,6 @@ func TestListingStateHelpers(t *testing.T) {
 	}
 }
 
-func TestListingIsFeatured(t *testing.T) {
-	t.Parallel()
-
-	l := &Listing{}
-	if l.IsFeatured() {
-		t.Fatalf("IsFeatured() = true, want false when FeaturedUntil is nil")
-	}
-
-	past := time.Now().Add(-1 * time.Hour)
-	l.FeaturedUntil = &past
-	if l.IsFeatured() {
-		t.Fatalf("IsFeatured() = true, want false when FeaturedUntil is in the past")
-	}
-
-	future := time.Now().Add(2 * time.Hour)
-	l.FeaturedUntil = &future
-	if !l.IsFeatured() {
-		t.Fatalf("IsFeatured() = false, want true when FeaturedUntil is in the future")
-	}
-}
-
 func TestListingGetPrimaryMedia(t *testing.T) {
 	t.Parallel()
 
@@ -285,10 +264,10 @@ func TestMapListingFromSchema(t *testing.T) {
 	updatedBy := uuid.New()
 
 	publishedAt := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-	lastViewed := time.Date(2024, 1, 2, 12, 0, 0, 0, time.UTC)
-	featuredUntil := time.Date(2024, 1, 3, 12, 0, 0, 0, time.UTC)
+	saleAvailabilityDate := time.Date(2024, 1, 3, 12, 0, 0, 0, time.UTC)
 	statusChanged := time.Date(2024, 1, 4, 12, 0, 0, 0, time.UTC)
 	deletedAt := time.Date(2024, 1, 5, 12, 0, 0, 0, time.UTC)
+	updatedAt := time.Date(2024, 1, 6, 12, 0, 0, 0, time.UTC)
 
 	amenitiesHighlights := []schema.AmenityHighlight{{Title: "Pool", Summary: "Rooftop pool", Icon: "pool"}}
 	serviceCharges := []schema.ServiceCharge{{Name: "Service", Period: schema.PayMonthly, Amount: 2500}}
@@ -308,10 +287,6 @@ func TestMapListingFromSchema(t *testing.T) {
 		Published:          true,
 		PublishedAt:        &publishedAt,
 		LatestReviewStatus: schema.ReviewApproved,
-		ViewCount:          12,
-		LastViewedAt:       &lastViewed,
-		FeaturedUntil:      &featuredUntil,
-		BoostLevel:         2,
 		CreatedBy:          &createdBy,
 		UpdatedBy:          &updatedBy,
 		StatusChangedAt:    &statusChanged,
@@ -357,7 +332,7 @@ func TestMapListingFromSchema(t *testing.T) {
 			AgencyFee:              floatPtr(1000),
 			ServiceChargeBreakdown: &saleCharges,
 			SaleTerms:              "Negotiable",
-			SaleAvailabilityFrom:   &featuredUntil,
+			SaleAvailabilityFrom:   &saleAvailabilityDate,
 		},
 		Media: []schema.ListingMedia{
 			{
@@ -372,7 +347,7 @@ func TestMapListingFromSchema(t *testing.T) {
 			},
 		},
 		CreatedAt: publishedAt,
-		UpdatedAt: featuredUntil,
+		UpdatedAt: updatedAt,
 		DeletedAt: gorm.DeletedAt{Time: deletedAt, Valid: true},
 	}
 
@@ -413,10 +388,9 @@ func TestMapListingToSchema(t *testing.T) {
 	createdBy := uuid.New()
 	updatedBy := uuid.New()
 	publishedAt := time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC)
-	lastViewed := time.Date(2024, 6, 2, 0, 0, 0, 0, time.UTC)
-	featuredUntil := time.Date(2024, 6, 3, 0, 0, 0, 0, time.UTC)
 	statusChanged := time.Date(2024, 6, 4, 0, 0, 0, 0, time.UTC)
 	deletedAt := time.Date(2024, 6, 5, 0, 0, 0, 0, time.UTC)
+	updatedAt := time.Date(2024, 6, 6, 0, 0, 0, 0, time.UTC)
 
 	mediaID := uuid.New()
 	listing := &Listing{
@@ -433,10 +407,6 @@ func TestMapListingToSchema(t *testing.T) {
 		Published:          true,
 		PublishedAt:        &publishedAt,
 		LatestReviewStatus: ReviewPending,
-		ViewCount:          5,
-		LastViewedAt:       &lastViewed,
-		FeaturedUntil:      &featuredUntil,
-		BoostLevel:         1,
 		CreatedBy:          &createdBy,
 		UpdatedBy:          &updatedBy,
 		StatusChangedAt:    &statusChanged,
@@ -487,7 +457,7 @@ func TestMapListingToSchema(t *testing.T) {
 			},
 		},
 		CreatedAt: publishedAt,
-		UpdatedAt: featuredUntil,
+		UpdatedAt: updatedAt,
 		DeletedAt: &deletedAt,
 	}
 

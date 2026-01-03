@@ -5,6 +5,7 @@ import (
 	"hauslet/internal/modules/interactions/domain"
 	"hauslet/internal/modules/interactions/service"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -238,8 +239,8 @@ func convertInteractions(interactions []*domain.Interaction) []*InteractionRespo
 			ID:         interaction.ID,
 			UserID:     interaction.UserID,
 			SessionID:  interaction.SessionID,
-			Type:       string(interaction.Type),
-			EntityType: string(interaction.EntityType),
+			Type:       encodeInteractionType(interaction.Type),
+			EntityType: encodeEntityType(interaction.EntityType),
 			EntityID:   interaction.EntityID,
 			Context:    interaction.Context,
 			IsBot:      interaction.IsBot,
@@ -325,10 +326,18 @@ type InteractionResponse struct {
 	ID         uuid.UUID
 	UserID     *uuid.UUID
 	SessionID  string
-	Type       string
-	EntityType string
+	Type       InteractionTypeInput
+	EntityType EntityTypeInput
 	EntityID   *uuid.UUID
 	Context    map[string]any
 	IsBot      bool
 	CreatedAt  time.Time
+}
+
+func encodeInteractionType(t domain.InteractionType) InteractionTypeInput {
+	return InteractionTypeInput(strings.ToUpper(string(t)))
+}
+
+func encodeEntityType(t domain.EntityType) EntityTypeInput {
+	return EntityTypeInput(strings.ToUpper(string(t)))
 }

@@ -12,6 +12,8 @@ import (
 	calendarservice "hauslet/internal/modules/calendar/service"
 	financegraphql "hauslet/internal/modules/finance/port/graphql"
 	financeservice "hauslet/internal/modules/finance/service"
+	interactionsgraphql "hauslet/internal/modules/interactions/port/graphql"
+	interactionsservice "hauslet/internal/modules/interactions/service"
 	leadsgraphql "hauslet/internal/modules/leads/port/graphql"
 	leadsservice "hauslet/internal/modules/leads/service"
 	paymentsgraphql "hauslet/internal/modules/payments/port/graphql"
@@ -32,19 +34,20 @@ import (
 
 // Resolver wires domain-specific resolvers into gqlgen.
 type Resolver struct {
-	log               *slog.Logger
-	AuthResolver      *authgraphql.Resolver
-	ProfileResolver   *profilegraphql.Resolver
-	PropertyResolver  *propertygraphql.Resolver
-	BusinessResolver  *businessgraphql.Resolver
-	PaymentsResolver  *paymentsgraphql.Resolver
-	FinanceResolver   *financegraphql.Resolver
-	BookingResolver   *bookinggraphql.Resolver
-	CalendarResolver  *calendargraphql.Resolver
-	WishlistResolver  *wishlistgraphql.Resolver
-	ReviewResolver    *reviewgraphql.Resolver
-	PromotionResolver *promotiongraphql.Resolver
-	LeadResolver      *leadsgraphql.Resolver
+	log                  *slog.Logger
+	AuthResolver         *authgraphql.Resolver
+	ProfileResolver      *profilegraphql.Resolver
+	PropertyResolver     *propertygraphql.Resolver
+	BusinessResolver     *businessgraphql.Resolver
+	PaymentsResolver     *paymentsgraphql.Resolver
+	FinanceResolver      *financegraphql.Resolver
+	BookingResolver      *bookinggraphql.Resolver
+	CalendarResolver     *calendargraphql.Resolver
+	WishlistResolver     *wishlistgraphql.Resolver
+	ReviewResolver       *reviewgraphql.Resolver
+	PromotionResolver    *promotiongraphql.Resolver
+	LeadResolver         *leadsgraphql.Resolver
+	InteractionsResolver *interactionsgraphql.Resolver
 }
 
 func NewResolver(
@@ -63,23 +66,26 @@ func NewResolver(
 	subscriptionSvc promotionservice.SubscriptionService,
 	usageSvc promotionservice.UsageService,
 	leadSvc leadsservice.LeadService,
+	interactionsTracker interactionsservice.TrackerService,
+	interactionsReader interactionsservice.ReaderService,
 	fxClient xchange.XChange,
 	appCfg *cfg.GlobalConfig,
 	log *slog.Logger,
 ) *Resolver {
 	return &Resolver{
-		log:               log,
-		AuthResolver:      authgraphql.NewResolver(authSvc),
-		ProfileResolver:   profilegraphql.NewResolver(profileSvc, &appCfg.Storage, log),
-		PropertyResolver:  propertygraphql.NewResolver(propertySvc, &appCfg.Storage, fxClient, log),
-		BusinessResolver:  businessgraphql.NewResolver(businessSvc, log),
-		PaymentsResolver:  paymentsgraphql.NewResolver(paymentsSvc, log),
-		FinanceResolver:   financegraphql.NewResolver(financeSvc, payoutSvc, log),
-		BookingResolver:   bookinggraphql.NewResolver(bookingSvc, fxClient, log),
-		CalendarResolver:  calendargraphql.NewResolver(calendarSvc, log),
-		WishlistResolver:  wishlistgraphql.NewResolver(wishlistSvc, log),
-		ReviewResolver:    reviewgraphql.NewResolver(reviewSvc, log),
-		PromotionResolver: promotiongraphql.NewResolver(promotionSvc, subscriptionSvc, usageSvc, &appCfg.YAML.Promotion, log),
-		LeadResolver:      leadsgraphql.NewResolver(leadSvc, log),
+		log:                  log,
+		AuthResolver:         authgraphql.NewResolver(authSvc),
+		ProfileResolver:      profilegraphql.NewResolver(profileSvc, &appCfg.Storage, log),
+		PropertyResolver:     propertygraphql.NewResolver(propertySvc, &appCfg.Storage, fxClient, log),
+		BusinessResolver:     businessgraphql.NewResolver(businessSvc, log),
+		PaymentsResolver:     paymentsgraphql.NewResolver(paymentsSvc, log),
+		FinanceResolver:      financegraphql.NewResolver(financeSvc, payoutSvc, log),
+		BookingResolver:      bookinggraphql.NewResolver(bookingSvc, fxClient, log),
+		CalendarResolver:     calendargraphql.NewResolver(calendarSvc, log),
+		WishlistResolver:     wishlistgraphql.NewResolver(wishlistSvc, log),
+		ReviewResolver:       reviewgraphql.NewResolver(reviewSvc, log),
+		PromotionResolver:    promotiongraphql.NewResolver(promotionSvc, subscriptionSvc, usageSvc, &appCfg.YAML.Promotion, log),
+		LeadResolver:         leadsgraphql.NewResolver(leadSvc, log),
+		InteractionsResolver: interactionsgraphql.NewResolver(interactionsTracker, interactionsReader, log),
 	}
 }
