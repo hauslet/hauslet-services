@@ -38,6 +38,7 @@ type BookingService interface {
 	ConfirmBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error)
 	CancelBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID, reason *string) (*domain.Booking, error)
 	GetBooking(ctx context.Context, bookingID uuid.UUID, requestorID uuid.UUID) (*domain.Booking, error)
+	GetBookingByReference(ctx context.Context, reference string, requestorID uuid.UUID) (*domain.Booking, error)
 	CheckInBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error)
 	CheckOutBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error)
 

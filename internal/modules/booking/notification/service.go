@@ -285,15 +285,15 @@ func (s *NotificationService) renderAndSend(ctx context.Context, templateName, t
 
 func (s *NotificationService) baseBookingData(subject, preview string, booking *domain.Booking) map[string]any {
 	return map[string]any{
-		"Subject":    subject,
-		"Preview":    preview,
-		"Year":       time.Now().Year(),
-		"BookingID":  booking.ID.String(),
-		"CheckIn":    s.formatDate(booking.ScheduledCheckIn()),
-		"CheckOut":   s.formatDate(booking.ScheduledCheckOut()),
-		"GuestCount": booking.GuestCount,
-		"Nights":     booking.DurationNights(),
-		"TotalPrice": s.formatTotal(booking),
+		"Subject":          subject,
+		"Preview":          preview,
+		"Year":             time.Now().Year(),
+		"BookingReference": booking.BookingReference,
+		"CheckIn":          s.formatDate(booking.ScheduledCheckIn()),
+		"CheckOut":         s.formatDate(booking.ScheduledCheckOut()),
+		"GuestCount":       booking.GuestCount,
+		"Nights":           booking.DurationNights(),
+		"TotalPrice":       s.formatTotal(booking),
 		"SpecialRequests": func() string {
 			if booking.SpecialRequests == nil {
 				return ""

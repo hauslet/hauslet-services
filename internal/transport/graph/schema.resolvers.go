@@ -1129,6 +1129,11 @@ func (r *queryResolver) Booking(ctx context.Context, id uuid.UUID) (*domain5.Boo
 	return r.BookingResolver.Booking(ctx, id)
 }
 
+// BookingByReference is the resolver for the bookingByReference field.
+func (r *queryResolver) BookingByReference(ctx context.Context, reference string) (*domain5.Booking, error) {
+	panic(fmt.Errorf("not implemented: BookingByReference - bookingByReference"))
+}
+
 // MyBookings is the resolver for the myBookings field.
 func (r *queryResolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*domain5.Booking, error) {
 	return r.BookingResolver.MyBookings(ctx, limit, offset)

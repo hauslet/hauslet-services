@@ -20,6 +20,14 @@ func (r *BookingRepositoryImpl) GetBookingByID(ctx context.Context, id uuid.UUID
 	return &booking, nil
 }
 
+func (r *BookingRepositoryImpl) GetBookingByReference(ctx context.Context, reference string) (*schema.Booking, error) {
+	var booking schema.Booking
+	if err := r.db.WithContext(ctx).Where("booking_reference = ?", reference).First(&booking).Error; err != nil {
+		return nil, err
+	}
+	return &booking, nil
+}
+
 func (r *BookingRepositoryImpl) UpdateBooking(ctx context.Context, booking *schema.Booking) error {
 	return r.db.WithContext(ctx).Save(booking).Error
 }

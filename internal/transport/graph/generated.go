@@ -162,6 +162,7 @@ type ComplexityRoot struct {
 	Booking struct {
 		ActiveAt         func(childComplexity int) int
 		ArchivedAt       func(childComplexity int) int
+		BookingReference func(childComplexity int) int
 		BookingType      func(childComplexity int) int
 		CalendarEventID  func(childComplexity int) int
 		CancelledAt      func(childComplexity int) int
@@ -942,6 +943,7 @@ type ComplexityRoot struct {
 	Query struct {
 		AllBusinesses                func(childComplexity int, limit *int, offset *int) int
 		Booking                      func(childComplexity int, id uuid.UUID) int
+		BookingByReference           func(childComplexity int, reference string) int
 		Business                     func(childComplexity int, id uuid.UUID) int
 		BusinessBySlug               func(childComplexity int, slug string) int
 		BusinessInvitations          func(childComplexity int, businessID uuid.UUID) int
@@ -1567,6 +1569,7 @@ type QueryResolver interface {
 	MyBusinessPermissions(ctx context.Context, businessID uuid.UUID) (*domain.MemberPermissions, error)
 	QuoteBooking(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain7.BookingQuote, error)
 	Booking(ctx context.Context, id uuid.UUID) (*domain7.Booking, error)
+	BookingByReference(ctx context.Context, reference string) (*domain7.Booking, error)
 	MyBookings(ctx context.Context, limit *int, offset *int) ([]*domain7.Booking, error)
 	ListingBookings(ctx context.Context, listingID uuid.UUID, status *domain7.BookingStatus, limit *int, offset *int) ([]*domain7.Booking, error)
 	CalendarEvent(ctx context.Context, id uuid.UUID) (*domain8.CalendarEvent, error)
@@ -1954,6 +1957,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Booking.ArchivedAt(childComplexity), true
+	case "Booking.bookingReference":
+		if e.complexity.Booking.BookingReference == nil {
+			break
+		}
+
+		return e.complexity.Booking.BookingReference(childComplexity), true
 	case "Booking.bookingType":
 		if e.complexity.Booking.BookingType == nil {
 			break
@@ -6187,6 +6196,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Booking(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.bookingByReference":
+		if e.complexity.Query.BookingByReference == nil {
+			break
+		}
+
+		args, err := ec.field_Query_bookingByReference_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BookingByReference(childComplexity, args["reference"].(string)), true
 	case "Query.business":
 		if e.complexity.Query.Business == nil {
 			break
@@ -10024,6 +10044,7 @@ enum BookingType {
 
 type Booking {
   id: UUID!
+  bookingReference: String!
   listingId: UUID!
   calendarEventId: UUID!
   cleaningEventId: UUID
@@ -10161,6 +10182,9 @@ extend type Query {
 
   # Get a single booking by ID
   booking(id: UUID!): Booking
+
+  # Get a single booking by reference
+  bookingByReference(reference: String!): Booking
 
   # List bookings for the authenticated guest
   myBookings(
@@ -12932,6 +12956,17 @@ func (ec *executionContext) field_Query_allBusinesses_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_bookingByReference_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "reference", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["reference"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_booking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -15311,6 +15346,35 @@ func (ec *executionContext) fieldContext_Booking_id(_ context.Context, field gra
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Booking_bookingReference(ctx context.Context, field graphql.CollectedField, obj *domain7.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_bookingReference,
+		func(ctx context.Context) (any, error) {
+			return obj.BookingReference, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_bookingReference(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -18959,6 +19023,8 @@ func (ec *executionContext) fieldContext_CompleteBookingPayload_booking(_ contex
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
 			case "calendarEventId":
@@ -29265,6 +29331,8 @@ func (ec *executionContext) fieldContext_Mutation_requestBooking(ctx context.Con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
 			case "calendarEventId":
@@ -29425,6 +29493,8 @@ func (ec *executionContext) fieldContext_Mutation_confirmBooking(ctx context.Con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
 			case "calendarEventId":
@@ -29530,6 +29600,8 @@ func (ec *executionContext) fieldContext_Mutation_cancelBooking(ctx context.Cont
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
 			case "calendarEventId":
@@ -29635,6 +29707,8 @@ func (ec *executionContext) fieldContext_Mutation_checkInBooking(ctx context.Con
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
 			case "calendarEventId":
@@ -29740,6 +29814,8 @@ func (ec *executionContext) fieldContext_Mutation_checkOutBooking(ctx context.Co
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
 			case "calendarEventId":
@@ -39991,6 +40067,8 @@ func (ec *executionContext) fieldContext_Query_booking(ctx context.Context, fiel
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
 			case "calendarEventId":
@@ -40069,6 +40147,113 @@ func (ec *executionContext) fieldContext_Query_booking(ctx context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_bookingByReference(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_bookingByReference,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BookingByReference(ctx, fc.Args["reference"].(string))
+		},
+		nil,
+		ec.marshalOBooking2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBooking,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_bookingByReference(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
+			case "listingId":
+				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "calendarEventId":
+				return ec.fieldContext_Booking_calendarEventId(ctx, field)
+			case "cleaningEventId":
+				return ec.fieldContext_Booking_cleaningEventId(ctx, field)
+			case "guestId":
+				return ec.fieldContext_Booking_guestId(ctx, field)
+			case "guestName":
+				return ec.fieldContext_Booking_guestName(ctx, field)
+			case "guestEmail":
+				return ec.fieldContext_Booking_guestEmail(ctx, field)
+			case "guestPhone":
+				return ec.fieldContext_Booking_guestPhone(ctx, field)
+			case "guestCount":
+				return ec.fieldContext_Booking_guestCount(ctx, field)
+			case "status":
+				return ec.fieldContext_Booking_status(ctx, field)
+			case "bookingType":
+				return ec.fieldContext_Booking_bookingType(ctx, field)
+			case "checkIn":
+				return ec.fieldContext_Booking_checkIn(ctx, field)
+			case "checkOut":
+				return ec.fieldContext_Booking_checkOut(ctx, field)
+			case "checkInTime":
+				return ec.fieldContext_Booking_checkInTime(ctx, field)
+			case "checkOutTime":
+				return ec.fieldContext_Booking_checkOutTime(ctx, field)
+			case "holdExpiresAt":
+				return ec.fieldContext_Booking_holdExpiresAt(ctx, field)
+			case "paymentDueAt":
+				return ec.fieldContext_Booking_paymentDueAt(ctx, field)
+			case "activeAt":
+				return ec.fieldContext_Booking_activeAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Booking_completedAt(ctx, field)
+			case "archivedAt":
+				return ec.fieldContext_Booking_archivedAt(ctx, field)
+			case "paymentReference":
+				return ec.fieldContext_Booking_paymentReference(ctx, field)
+			case "lastPaymentId":
+				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "specialRequests":
+				return ec.fieldContext_Booking_specialRequests(ctx, field)
+			case "priceBreakdown":
+				return ec.fieldContext_Booking_priceBreakdown(ctx, field)
+			case "totalPrice":
+				return ec.fieldContext_Booking_totalPrice(ctx, field)
+			case "currency":
+				return ec.fieldContext_Booking_currency(ctx, field)
+			case "confirmedAt":
+				return ec.fieldContext_Booking_confirmedAt(ctx, field)
+			case "cancelledAt":
+				return ec.fieldContext_Booking_cancelledAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Booking_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Booking_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Booking_deletedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_bookingByReference_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_myBookings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -40096,6 +40281,8 @@ func (ec *executionContext) fieldContext_Query_myBookings(ctx context.Context, f
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
 			case "calendarEventId":
@@ -40201,6 +40388,8 @@ func (ec *executionContext) fieldContext_Query_listingBookings(ctx context.Conte
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
 			case "calendarEventId":
@@ -57848,6 +58037,11 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "bookingReference":
+			out.Values[i] = ec._Booking_bookingReference(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "listingId":
 			out.Values[i] = ec._Booking_listingId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -64575,6 +64769,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_booking(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "bookingByReference":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_bookingByReference(ctx, field)
 				return res
 			}
 

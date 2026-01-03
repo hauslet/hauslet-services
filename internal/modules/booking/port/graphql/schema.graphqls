@@ -21,6 +21,7 @@ enum BookingType {
 
 type Booking {
   id: UUID!
+  bookingReference: String!
   listingId: UUID!
   calendarEventId: UUID!
   cleaningEventId: UUID
@@ -158,6 +159,9 @@ extend type Query {
 
   # Get a single booking by ID
   booking(id: UUID!): Booking
+
+  # Get a single booking by reference
+  bookingByReference(reference: String!): Booking
 
   # List bookings for the authenticated guest
   myBookings(

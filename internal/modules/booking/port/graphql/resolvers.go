@@ -71,6 +71,23 @@ func (r *Resolver) Booking(ctx context.Context, id uuid.UUID) (*domain.Booking, 
 	return booking, nil
 }
 
+// BookingByReference retrieves a booking by reference
+func (r *Resolver) BookingByReference(ctx context.Context, reference string) (*domain.Booking, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	booking, err := r.bookingService.GetBookingByReference(ctx, reference, userID)
+	if err != nil {
+		r.log.Error("failed to get booking by reference", "reference", reference, "error", err)
+		return nil, err
+	}
+
+	r.localizeBooking(ctx, booking)
+	return booking, nil
+}
+
 // MyBookings lists bookings for the authenticated guest
 func (r *Resolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*domain.Booking, error) {
 	// Get current user from context

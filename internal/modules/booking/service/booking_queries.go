@@ -14,18 +14,41 @@ func (s *BookingServiceImpl) GetBooking(ctx context.Context, bookingID uuid.UUID
 	}
 
 	booking := domain.MapBookingFromSchema(schemaBooking)
-
-	if booking.GuestID != requestorID {
-		ownerID, err := s.listingHooks.GetListingOwner(ctx, booking.ListingID)
-		if err != nil {
-			return nil, err
-		}
-		if ownerID != requestorID {
-			return nil, domain.ErrUnauthorized
-		}
+	if err := s.authorizeBookingAccess(ctx, booking, requestorID); err != nil {
+		return nil, err
 	}
 
 	return booking, nil
+}
+
+func (s *BookingServiceImpl) GetBookingByReference(ctx context.Context, reference string, requestorID uuid.UUID) (*domain.Booking, error) {
+	schemaBooking, err := s.repo.GetBookingByReference(ctx, reference)
+	if err != nil {
+		return nil, err
+	}
+
+	booking := domain.MapBookingFromSchema(schemaBooking)
+	if err := s.authorizeBookingAccess(ctx, booking, requestorID); err != nil {
+		return nil, err
+	}
+
+	return booking, nil
+}
+
+func (s *BookingServiceImpl) authorizeBookingAccess(ctx context.Context, booking *domain.Booking, requestorID uuid.UUID) error {
+	if booking.GuestID == requestorID {
+		return nil
+	}
+
+	ownerID, err := s.listingHooks.GetListingOwner(ctx, booking.ListingID)
+	if err != nil {
+		return err
+	}
+	if ownerID != requestorID {
+		return domain.ErrUnauthorized
+	}
+
+	return nil
 }
 
 func (s *BookingServiceImpl) ListBookingsForGuest(ctx context.Context, guestID uuid.UUID, limit, offset int) ([]*domain.Booking, error) {

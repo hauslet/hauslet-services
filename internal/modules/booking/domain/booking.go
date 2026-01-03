@@ -8,10 +8,11 @@ import (
 
 // Booking represents the full booking aggregate in the domain layer.
 type Booking struct {
-	ID              uuid.UUID  `json:"id"`
-	ListingID       uuid.UUID  `json:"listing_id"`
-	CalendarEventID uuid.UUID  `json:"calendar_event_id"`
-	CleaningEventID *uuid.UUID `json:"cleaning_event_id,omitempty"`
+	ID               uuid.UUID  `json:"id"`
+	BookingReference string     `json:"booking_reference"`
+	ListingID        uuid.UUID  `json:"listing_id"`
+	CalendarEventID  uuid.UUID  `json:"calendar_event_id"`
+	CleaningEventID  *uuid.UUID `json:"cleaning_event_id,omitempty"`
 
 	GuestID    uuid.UUID `json:"guest_id"`
 	GuestName  string    `json:"guest_name"`
@@ -42,7 +43,7 @@ type Booking struct {
 	LastPaymentID    *uuid.UUID `json:"last_payment_id,omitempty"`
 
 	// Refund tracking
-	RefundAmount      int64      `json:"refund_amount"`       // Amount refunded in minor units
+	RefundAmount      int64      `json:"refund_amount"` // Amount refunded in minor units
 	RefundInitiatedAt *time.Time `json:"refund_initiated_at,omitempty"`
 	RefundProcessedAt *time.Time `json:"refund_processed_at,omitempty"`
 	RefundReason      *string    `json:"refund_reason,omitempty"`

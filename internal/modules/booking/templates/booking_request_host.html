@@ -12,7 +12,8 @@
     <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
         <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
             <strong>Guests:</strong> {{.GuestCount}} &nbsp;&nbsp; <strong>Nights:</strong> {{.Nights}}<br/>
-            <strong>Total:</strong> {{.TotalPrice}} &nbsp;&nbsp; <strong>Booking ID:</strong> {{.BookingID}}
+            <strong>Total:</strong> {{.TotalPrice}}<br/>
+            <strong>Booking reference:</strong> {{.BookingReference}}
         </p>
         {{if .SpecialRequests}}
         <p style="margin-top: 16px; font-size: 14px; color: #5F4B6B;">

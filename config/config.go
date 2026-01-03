@@ -1,3 +1,6 @@
+// Package config loads application configuration from environment variables.
+// SECURITY: Never commit . env files or hardcode secrets in this file.
+// Use . env.example for documentation of required variables.
 package config
 
 import (
