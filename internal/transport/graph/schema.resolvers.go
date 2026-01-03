@@ -843,6 +843,11 @@ func (r *paymentMethodResolver) AccountNumberLast4(ctx context.Context, obj *dom
 	return obj.Last4Digits, nil
 }
 
+// PlatformFees is the resolver for the platformFees field.
+func (r *priceBreakdownSnapshotResolver) PlatformFees(ctx context.Context, obj *domain5.PriceBreakdownSnapshot) (*model.PlatformFeeBreakdown, error) {
+	panic(fmt.Errorf("not implemented: PlatformFees - platformFees"))
+}
+
 // Gender is the resolver for the gender field.
 func (r *profileResolver) Gender(ctx context.Context, obj *domain1.Profile) (*string, error) {
 	if obj == nil {
@@ -1945,6 +1950,11 @@ func (r *Resolver) Payment() PaymentResolver { return &paymentResolver{r} }
 // PaymentMethod returns PaymentMethodResolver implementation.
 func (r *Resolver) PaymentMethod() PaymentMethodResolver { return &paymentMethodResolver{r} }
 
+// PriceBreakdownSnapshot returns PriceBreakdownSnapshotResolver implementation.
+func (r *Resolver) PriceBreakdownSnapshot() PriceBreakdownSnapshotResolver {
+	return &priceBreakdownSnapshotResolver{r}
+}
+
 // Profile returns ProfileResolver implementation.
 func (r *Resolver) Profile() ProfileResolver { return &profileResolver{r} }
 
@@ -2039,6 +2049,7 @@ type maintenanceDetailResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type paymentResolver struct{ *Resolver }
 type paymentMethodResolver struct{ *Resolver }
+type priceBreakdownSnapshotResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
 type propertyResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

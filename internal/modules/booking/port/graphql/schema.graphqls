@@ -77,6 +77,7 @@ type PriceBreakdownSnapshot {
   subtotal: Float!
   total: Float!
   currency: String!
+  platformFees: PlatformFeeBreakdown
 }
 
 type DiscountSnapshot {
@@ -89,6 +90,17 @@ type DailyRate {
   date: String!
   baseRate: Float!
   finalRate: Float!
+}
+
+type PlatformFeeBreakdown {
+  guestFeePercent: Float!
+  guestFeeAmount: Float!
+  hostCommissionPercent: Float!
+  hostCommissionAmount: Float!
+  payoutProcessingPercent: Float!
+  payoutProcessingAmount: Float!
+  minimumGuestFeeApplied: Boolean!
+  hostNetAmount: Float!
 }
 
 type BookingQuote {

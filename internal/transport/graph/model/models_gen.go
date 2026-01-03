@@ -167,6 +167,17 @@ type PaymentInitResponse struct {
 	AccessCode       *string          `json:"accessCode,omitempty"`
 }
 
+type PlatformFeeBreakdown struct {
+	GuestFeePercent         float64 `json:"guestFeePercent"`
+	GuestFeeAmount          float64 `json:"guestFeeAmount"`
+	HostCommissionPercent   float64 `json:"hostCommissionPercent"`
+	HostCommissionAmount    float64 `json:"hostCommissionAmount"`
+	PayoutProcessingPercent float64 `json:"payoutProcessingPercent"`
+	PayoutProcessingAmount  float64 `json:"payoutProcessingAmount"`
+	MinimumGuestFeeApplied  bool    `json:"minimumGuestFeeApplied"`
+	HostNetAmount           float64 `json:"hostNetAmount"`
+}
+
 type PriceRangeFilterInput struct {
 	Min      *int   `json:"min,omitempty"`
 	Max      *int   `json:"max,omitempty"`

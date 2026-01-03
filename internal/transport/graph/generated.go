@@ -82,6 +82,7 @@ type ResolverRoot interface {
 	Mutation() MutationResolver
 	Payment() PaymentResolver
 	PaymentMethod() PaymentMethodResolver
+	PriceBreakdownSnapshot() PriceBreakdownSnapshotResolver
 	Profile() ProfileResolver
 	Property() PropertyResolver
 	Query() QueryResolver
@@ -844,6 +845,17 @@ type ComplexityRoot struct {
 		PrivateShowingsPerMonth    func(childComplexity int) int
 	}
 
+	PlatformFeeBreakdown struct {
+		GuestFeeAmount          func(childComplexity int) int
+		GuestFeePercent         func(childComplexity int) int
+		HostCommissionAmount    func(childComplexity int) int
+		HostCommissionPercent   func(childComplexity int) int
+		HostNetAmount           func(childComplexity int) int
+		MinimumGuestFeeApplied  func(childComplexity int) int
+		PayoutProcessingAmount  func(childComplexity int) int
+		PayoutProcessingPercent func(childComplexity int) int
+	}
+
 	PriceBreakdownSnapshot struct {
 		BaseTotal    func(childComplexity int) int
 		CautionFee   func(childComplexity int) int
@@ -851,6 +863,7 @@ type ComplexityRoot struct {
 		Currency     func(childComplexity int) int
 		Discounts    func(childComplexity int) int
 		NightlyRates func(childComplexity int) int
+		PlatformFees func(childComplexity int) int
 		ServiceFee   func(childComplexity int) int
 		Subtotal     func(childComplexity int) int
 		Total        func(childComplexity int) int
@@ -1527,6 +1540,9 @@ type PaymentMethodResolver interface {
 
 	AccountName(ctx context.Context, obj *domain9.PaymentMethod) (*string, error)
 	AccountNumberLast4(ctx context.Context, obj *domain9.PaymentMethod) (*string, error)
+}
+type PriceBreakdownSnapshotResolver interface {
+	PlatformFees(ctx context.Context, obj *domain7.PriceBreakdownSnapshot) (*model.PlatformFeeBreakdown, error)
 }
 type ProfileResolver interface {
 	Gender(ctx context.Context, obj *domain5.Profile) (*string, error)
@@ -5661,6 +5677,55 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PlanLimits.PrivateShowingsPerMonth(childComplexity), true
 
+	case "PlatformFeeBreakdown.guestFeeAmount":
+		if e.complexity.PlatformFeeBreakdown.GuestFeeAmount == nil {
+			break
+		}
+
+		return e.complexity.PlatformFeeBreakdown.GuestFeeAmount(childComplexity), true
+	case "PlatformFeeBreakdown.guestFeePercent":
+		if e.complexity.PlatformFeeBreakdown.GuestFeePercent == nil {
+			break
+		}
+
+		return e.complexity.PlatformFeeBreakdown.GuestFeePercent(childComplexity), true
+	case "PlatformFeeBreakdown.hostCommissionAmount":
+		if e.complexity.PlatformFeeBreakdown.HostCommissionAmount == nil {
+			break
+		}
+
+		return e.complexity.PlatformFeeBreakdown.HostCommissionAmount(childComplexity), true
+	case "PlatformFeeBreakdown.hostCommissionPercent":
+		if e.complexity.PlatformFeeBreakdown.HostCommissionPercent == nil {
+			break
+		}
+
+		return e.complexity.PlatformFeeBreakdown.HostCommissionPercent(childComplexity), true
+	case "PlatformFeeBreakdown.hostNetAmount":
+		if e.complexity.PlatformFeeBreakdown.HostNetAmount == nil {
+			break
+		}
+
+		return e.complexity.PlatformFeeBreakdown.HostNetAmount(childComplexity), true
+	case "PlatformFeeBreakdown.minimumGuestFeeApplied":
+		if e.complexity.PlatformFeeBreakdown.MinimumGuestFeeApplied == nil {
+			break
+		}
+
+		return e.complexity.PlatformFeeBreakdown.MinimumGuestFeeApplied(childComplexity), true
+	case "PlatformFeeBreakdown.payoutProcessingAmount":
+		if e.complexity.PlatformFeeBreakdown.PayoutProcessingAmount == nil {
+			break
+		}
+
+		return e.complexity.PlatformFeeBreakdown.PayoutProcessingAmount(childComplexity), true
+	case "PlatformFeeBreakdown.payoutProcessingPercent":
+		if e.complexity.PlatformFeeBreakdown.PayoutProcessingPercent == nil {
+			break
+		}
+
+		return e.complexity.PlatformFeeBreakdown.PayoutProcessingPercent(childComplexity), true
+
 	case "PriceBreakdownSnapshot.baseTotal":
 		if e.complexity.PriceBreakdownSnapshot.BaseTotal == nil {
 			break
@@ -5697,6 +5762,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PriceBreakdownSnapshot.NightlyRates(childComplexity), true
+	case "PriceBreakdownSnapshot.platformFees":
+		if e.complexity.PriceBreakdownSnapshot.PlatformFees == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdownSnapshot.PlatformFees(childComplexity), true
 	case "PriceBreakdownSnapshot.serviceFee":
 		if e.complexity.PriceBreakdownSnapshot.ServiceFee == nil {
 			break
@@ -10100,6 +10171,7 @@ type PriceBreakdownSnapshot {
   subtotal: Float!
   total: Float!
   currency: String!
+  platformFees: PlatformFeeBreakdown
 }
 
 type DiscountSnapshot {
@@ -10112,6 +10184,17 @@ type DailyRate {
   date: String!
   baseRate: Float!
   finalRate: Float!
+}
+
+type PlatformFeeBreakdown {
+  guestFeePercent: Float!
+  guestFeeAmount: Float!
+  hostCommissionPercent: Float!
+  hostCommissionAmount: Float!
+  payoutProcessingPercent: Float!
+  payoutProcessingAmount: Float!
+  minimumGuestFeeApplied: Boolean!
+  hostNetAmount: Float!
 }
 
 type BookingQuote {
@@ -16060,6 +16143,8 @@ func (ec *executionContext) fieldContext_Booking_priceBreakdown(_ context.Contex
 				return ec.fieldContext_PriceBreakdownSnapshot_total(ctx, field)
 			case "currency":
 				return ec.fieldContext_PriceBreakdownSnapshot_currency(ctx, field)
+			case "platformFees":
+				return ec.fieldContext_PriceBreakdownSnapshot_platformFees(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PriceBreakdownSnapshot", field.Name)
 		},
@@ -16457,6 +16542,8 @@ func (ec *executionContext) fieldContext_BookingQuote_priceBreakdown(_ context.C
 				return ec.fieldContext_PriceBreakdownSnapshot_total(ctx, field)
 			case "currency":
 				return ec.fieldContext_PriceBreakdownSnapshot_currency(ctx, field)
+			case "platformFees":
+				return ec.fieldContext_PriceBreakdownSnapshot_platformFees(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PriceBreakdownSnapshot", field.Name)
 		},
@@ -35165,6 +35252,238 @@ func (ec *executionContext) fieldContext_PlanLimits_features(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _PlatformFeeBreakdown_guestFeePercent(ctx context.Context, field graphql.CollectedField, obj *model.PlatformFeeBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlatformFeeBreakdown_guestFeePercent,
+		func(ctx context.Context) (any, error) {
+			return obj.GuestFeePercent, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlatformFeeBreakdown_guestFeePercent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlatformFeeBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlatformFeeBreakdown_guestFeeAmount(ctx context.Context, field graphql.CollectedField, obj *model.PlatformFeeBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlatformFeeBreakdown_guestFeeAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.GuestFeeAmount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlatformFeeBreakdown_guestFeeAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlatformFeeBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlatformFeeBreakdown_hostCommissionPercent(ctx context.Context, field graphql.CollectedField, obj *model.PlatformFeeBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlatformFeeBreakdown_hostCommissionPercent,
+		func(ctx context.Context) (any, error) {
+			return obj.HostCommissionPercent, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlatformFeeBreakdown_hostCommissionPercent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlatformFeeBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlatformFeeBreakdown_hostCommissionAmount(ctx context.Context, field graphql.CollectedField, obj *model.PlatformFeeBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlatformFeeBreakdown_hostCommissionAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.HostCommissionAmount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlatformFeeBreakdown_hostCommissionAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlatformFeeBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlatformFeeBreakdown_payoutProcessingPercent(ctx context.Context, field graphql.CollectedField, obj *model.PlatformFeeBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlatformFeeBreakdown_payoutProcessingPercent,
+		func(ctx context.Context) (any, error) {
+			return obj.PayoutProcessingPercent, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlatformFeeBreakdown_payoutProcessingPercent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlatformFeeBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlatformFeeBreakdown_payoutProcessingAmount(ctx context.Context, field graphql.CollectedField, obj *model.PlatformFeeBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlatformFeeBreakdown_payoutProcessingAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.PayoutProcessingAmount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlatformFeeBreakdown_payoutProcessingAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlatformFeeBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlatformFeeBreakdown_minimumGuestFeeApplied(ctx context.Context, field graphql.CollectedField, obj *model.PlatformFeeBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlatformFeeBreakdown_minimumGuestFeeApplied,
+		func(ctx context.Context) (any, error) {
+			return obj.MinimumGuestFeeApplied, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlatformFeeBreakdown_minimumGuestFeeApplied(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlatformFeeBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PlatformFeeBreakdown_hostNetAmount(ctx context.Context, field graphql.CollectedField, obj *model.PlatformFeeBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PlatformFeeBreakdown_hostNetAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.HostNetAmount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PlatformFeeBreakdown_hostNetAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PlatformFeeBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PriceBreakdownSnapshot_baseTotal(ctx context.Context, field graphql.CollectedField, obj *domain7.PriceBreakdownSnapshot) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -35437,6 +35756,53 @@ func (ec *executionContext) fieldContext_PriceBreakdownSnapshot_currency(_ conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdownSnapshot_platformFees(ctx context.Context, field graphql.CollectedField, obj *domain7.PriceBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdownSnapshot_platformFees,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.PriceBreakdownSnapshot().PlatformFees(ctx, obj)
+		},
+		nil,
+		ec.marshalOPlatformFeeBreakdown2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPlatformFeeBreakdown,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdownSnapshot_platformFees(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "guestFeePercent":
+				return ec.fieldContext_PlatformFeeBreakdown_guestFeePercent(ctx, field)
+			case "guestFeeAmount":
+				return ec.fieldContext_PlatformFeeBreakdown_guestFeeAmount(ctx, field)
+			case "hostCommissionPercent":
+				return ec.fieldContext_PlatformFeeBreakdown_hostCommissionPercent(ctx, field)
+			case "hostCommissionAmount":
+				return ec.fieldContext_PlatformFeeBreakdown_hostCommissionAmount(ctx, field)
+			case "payoutProcessingPercent":
+				return ec.fieldContext_PlatformFeeBreakdown_payoutProcessingPercent(ctx, field)
+			case "payoutProcessingAmount":
+				return ec.fieldContext_PlatformFeeBreakdown_payoutProcessingAmount(ctx, field)
+			case "minimumGuestFeeApplied":
+				return ec.fieldContext_PlatformFeeBreakdown_minimumGuestFeeApplied(ctx, field)
+			case "hostNetAmount":
+				return ec.fieldContext_PlatformFeeBreakdown_hostNetAmount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PlatformFeeBreakdown", field.Name)
 		},
 	}
 	return fc, nil
@@ -63513,6 +63879,80 @@ func (ec *executionContext) _PlanLimits(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var platformFeeBreakdownImplementors = []string{"PlatformFeeBreakdown"}
+
+func (ec *executionContext) _PlatformFeeBreakdown(ctx context.Context, sel ast.SelectionSet, obj *model.PlatformFeeBreakdown) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, platformFeeBreakdownImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PlatformFeeBreakdown")
+		case "guestFeePercent":
+			out.Values[i] = ec._PlatformFeeBreakdown_guestFeePercent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "guestFeeAmount":
+			out.Values[i] = ec._PlatformFeeBreakdown_guestFeeAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hostCommissionPercent":
+			out.Values[i] = ec._PlatformFeeBreakdown_hostCommissionPercent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hostCommissionAmount":
+			out.Values[i] = ec._PlatformFeeBreakdown_hostCommissionAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "payoutProcessingPercent":
+			out.Values[i] = ec._PlatformFeeBreakdown_payoutProcessingPercent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "payoutProcessingAmount":
+			out.Values[i] = ec._PlatformFeeBreakdown_payoutProcessingAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "minimumGuestFeeApplied":
+			out.Values[i] = ec._PlatformFeeBreakdown_minimumGuestFeeApplied(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hostNetAmount":
+			out.Values[i] = ec._PlatformFeeBreakdown_hostNetAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var priceBreakdownSnapshotImplementors = []string{"PriceBreakdownSnapshot"}
 
 func (ec *executionContext) _PriceBreakdownSnapshot(ctx context.Context, sel ast.SelectionSet, obj *domain7.PriceBreakdownSnapshot) graphql.Marshaler {
@@ -63527,7 +63967,7 @@ func (ec *executionContext) _PriceBreakdownSnapshot(ctx context.Context, sel ast
 		case "baseTotal":
 			out.Values[i] = ec._PriceBreakdownSnapshot_baseTotal(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "cleaningFee":
 			out.Values[i] = ec._PriceBreakdownSnapshot_cleaningFee(ctx, field, obj)
@@ -63542,18 +63982,51 @@ func (ec *executionContext) _PriceBreakdownSnapshot(ctx context.Context, sel ast
 		case "subtotal":
 			out.Values[i] = ec._PriceBreakdownSnapshot_subtotal(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "total":
 			out.Values[i] = ec._PriceBreakdownSnapshot_total(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "currency":
 			out.Values[i] = ec._PriceBreakdownSnapshot_currency(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "platformFees":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._PriceBreakdownSnapshot_platformFees(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -75043,6 +75516,13 @@ func (ec *executionContext) marshalOPlatform2ᚖhausletᚋinternalᚋmodulesᚋi
 	_ = ctx
 	res := graphql.MarshalString(string(*v))
 	return res
+}
+
+func (ec *executionContext) marshalOPlatformFeeBreakdown2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPlatformFeeBreakdown(ctx context.Context, sel ast.SelectionSet, v *model.PlatformFeeBreakdown) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._PlatformFeeBreakdown(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOPriceBreakdownSnapshot2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐPriceBreakdownSnapshot(ctx context.Context, sel ast.SelectionSet, v *domain7.PriceBreakdownSnapshot) graphql.Marshaler {
