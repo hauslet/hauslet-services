@@ -1531,22 +1531,22 @@ func (r *queryResolver) MyInteractionHistory(ctx context.Context, limit *int) ([
 
 // Discover is the resolver for the discover field.
 func (r *queryResolver) Discover(ctx context.Context, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) (*domain11.SearchResult, error) {
-	panic(fmt.Errorf("not implemented: Discover - discover"))
+	return r.DiscoveryResolver.Discover(ctx, filter, options)
 }
 
 // HomeFeed is the resolver for the homeFeed field.
 func (r *queryResolver) HomeFeed(ctx context.Context, options *model.FeedOptionsInput) ([]*domain11.HomeFeedSection, error) {
-	panic(fmt.Errorf("not implemented: HomeFeed - homeFeed"))
+	return r.DiscoveryResolver.HomeFeed(ctx, options)
 }
 
 // FeaturedListings is the resolver for the featuredListings field.
 func (r *queryResolver) FeaturedListings(ctx context.Context, limit *int) ([]*domain11.RankedListing, error) {
-	panic(fmt.Errorf("not implemented: FeaturedListings - featuredListings"))
+	return r.DiscoveryResolver.FeaturedListings(ctx, limit)
 }
 
 // DiscoverSimilar is the resolver for the discoverSimilar field.
 func (r *queryResolver) DiscoverSimilar(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain11.RankedListing, error) {
-	panic(fmt.Errorf("not implemented: DiscoverSimilar - discoverSimilar"))
+	return r.DiscoveryResolver.DiscoverSimilar(ctx, listingID, limit)
 }
 
 // OneStar is the resolver for the oneStar field.

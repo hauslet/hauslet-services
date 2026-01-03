@@ -6,6 +6,7 @@ import (
 
 	"hauslet/internal/modules/discovery/domain"
 	"hauslet/internal/modules/discovery/service"
+	graphmodel "hauslet/internal/transport/graph/model"
 	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/google/uuid"
@@ -28,9 +29,9 @@ func NewResolver(discoverySvc service.DiscoveryService, log *slog.Logger) *Resol
 // Discover performs semantic search with promotion-aware ranking
 func (r *Resolver) Discover(
 	ctx context.Context,
-	filter DiscoverySearchFilterInput,
-	options *SearchOptionsInput,
-) (*SearchResult, error) {
+	filter graphmodel.DiscoverySearchFilterInput,
+	options *graphmodel.SearchOptionsInput,
+) (*domain.SearchResult, error) {
 	// Map GraphQL input to service types
 	serviceFilter := mapToServiceFilter(filter)
 	serviceOptions := mapToServiceOptions(options)
@@ -42,15 +43,14 @@ func (r *Resolver) Discover(
 		return nil, err
 	}
 
-	// Map result to GraphQL type
-	return mapToGraphQLSearchResult(result), nil
+	return result, nil
 }
 
 // HomeFeed returns the curated home feed
 func (r *Resolver) HomeFeed(
 	ctx context.Context,
-	options *FeedOptionsInput,
-) ([]HomeFeedSection, error) {
+	options *graphmodel.FeedOptionsInput,
+) ([]*domain.HomeFeedSection, error) {
 	// Get user ID from context if authenticated
 	var userID *uuid.UUID
 	if v := viewer.FromContext(ctx); v != nil && v.UserID != "" {
@@ -72,14 +72,14 @@ func (r *Resolver) HomeFeed(
 		return nil, err
 	}
 
-	return mapToGraphQLHomeFeed(sections), nil
+	return toHomeFeedSectionPointers(sections), nil
 }
 
 // FeaturedListings returns currently featured listings
 func (r *Resolver) FeaturedListings(
 	ctx context.Context,
 	limit *int,
-) ([]RankedListing, error) {
+) ([]*domain.RankedListing, error) {
 	limitValue := 10 // default
 	if limit != nil {
 		limitValue = *limit
@@ -91,7 +91,7 @@ func (r *Resolver) FeaturedListings(
 		return nil, err
 	}
 
-	return mapToGraphQLRankedListings(listings), nil
+	return toRankedListingPointers(listings), nil
 }
 
 // DiscoverSimilar finds listings similar to the given listing with promotion-aware ranking
@@ -99,7 +99,7 @@ func (r *Resolver) DiscoverSimilar(
 	ctx context.Context,
 	listingID uuid.UUID,
 	limit *int,
-) ([]RankedListing, error) {
+) ([]*domain.RankedListing, error) {
 	limitValue := 10 // default
 	if limit != nil {
 		limitValue = *limit
@@ -111,13 +111,13 @@ func (r *Resolver) DiscoverSimilar(
 		return nil, err
 	}
 
-	return mapToGraphQLRankedListings(listings), nil
+	return toRankedListingPointers(listings), nil
 }
 
 // ===== MAPPING FUNCTIONS =====
 
 // mapToServiceFilter converts GraphQL filter to service filter
-func mapToServiceFilter(input DiscoverySearchFilterInput) service.SearchFilter {
+func mapToServiceFilter(input graphmodel.DiscoverySearchFilterInput) service.SearchFilter {
 	filter := service.SearchFilter{
 		Query: input.Query,
 	}
@@ -132,8 +132,8 @@ func mapToServiceFilter(input DiscoverySearchFilterInput) service.SearchFilter {
 
 	if input.PriceRange != nil {
 		filter.PriceRange = &service.PriceRangeFilter{
-			Min:      input.PriceRange.Min,
-			Max:      input.PriceRange.Max,
+			Min:      intPtrToInt64Ptr(input.PriceRange.Min),
+			Max:      intPtrToInt64Ptr(input.PriceRange.Max),
 			Currency: input.PriceRange.Currency,
 		}
 	}
@@ -175,7 +175,7 @@ func mapToServiceFilter(input DiscoverySearchFilterInput) service.SearchFilter {
 }
 
 // mapToServiceOptions converts GraphQL options to service options
-func mapToServiceOptions(input *SearchOptionsInput) service.SearchOptions {
+func mapToServiceOptions(input *graphmodel.SearchOptionsInput) service.SearchOptions {
 	options := service.SearchOptions{
 		Limit:          20, // default
 		IncludePromoted: true,
@@ -203,7 +203,7 @@ func mapToServiceOptions(input *SearchOptionsInput) service.SearchOptions {
 }
 
 // mapToFeedOptions converts GraphQL feed options to service options
-func mapToFeedOptions(input *FeedOptionsInput) service.FeedOptions {
+func mapToFeedOptions(input *graphmodel.FeedOptionsInput) service.FeedOptions {
 	options := service.FeedOptions{
 		Limit: 10, // default
 	}
@@ -220,75 +220,11 @@ func mapToFeedOptions(input *FeedOptionsInput) service.FeedOptions {
 			options.Limit = *input.Limit
 		}
 		if len(input.SectionsToInclude) > 0 {
-			options.SectionsToInclude = make([]domain.FeedSectionType, len(input.SectionsToInclude))
-			for i, st := range input.SectionsToInclude {
-				options.SectionsToInclude[i] = domain.FeedSectionType(st)
-			}
+			options.SectionsToInclude = input.SectionsToInclude
 		}
 	}
 
 	return options
-}
-
-// mapToGraphQLSearchResult maps domain SearchResult to GraphQL type
-func mapToGraphQLSearchResult(result *domain.SearchResult) *SearchResult {
-	processingTime := int(result.ProcessingTime)
-	return &SearchResult{
-		Listings:       mapToGraphQLRankedListings(result.Listings),
-		TotalCount:     result.TotalCount,
-		SearchID:       result.SearchID,
-		ProcessingTime: &processingTime,
-	}
-}
-
-// mapToGraphQLHomeFeed maps domain HomeFeedSection slice to GraphQL type
-func mapToGraphQLHomeFeed(sections []domain.HomeFeedSection) []HomeFeedSection {
-	graphqlSections := make([]HomeFeedSection, len(sections))
-	for i, section := range sections {
-		graphqlSections[i] = HomeFeedSection{
-			SectionType: FeedSectionType(section.SectionType),
-			Title:       section.Title,
-			Listings:    mapToGraphQLRankedListings(section.Listings),
-			TotalCount:  section.TotalCount,
-		}
-	}
-	return graphqlSections
-}
-
-// mapToGraphQLRankedListings maps domain RankedListing slice to GraphQL type
-func mapToGraphQLRankedListings(listings []domain.RankedListing) []RankedListing {
-	graphqlListings := make([]RankedListing, len(listings))
-	for i, listing := range listings {
-		graphqlListings[i] = mapToGraphQLRankedListing(listing)
-	}
-	return graphqlListings
-}
-
-// mapToGraphQLRankedListing maps a single domain RankedListing to GraphQL type
-func mapToGraphQLRankedListing(listing domain.RankedListing) RankedListing {
-	var promotionBoost *PromotionBoostInfo
-	if listing.PromotionBoost != nil {
-		promotionBoost = &PromotionBoostInfo{
-			PromotionID:     listing.PromotionBoost.PromotionID,
-			PromotionType:   listing.PromotionBoost.PromotionType,
-			BoostMultiplier: listing.PromotionBoost.BoostMultiplier,
-			ExpiresAt:       listing.PromotionBoost.ExpiresAt,
-		}
-	}
-
-	return RankedListing{
-		Listing: &listing.Listing,
-		Score: RankingScore{
-			FinalScore:        listing.Score.FinalScore,
-			SemanticScore:     listing.Score.SemanticScore,
-			PromotionBoost:    listing.Score.PromotionBoost,
-			RecencyScore:      listing.Score.RecencyScore,
-			LocationScore:     listing.Score.LocationScore,
-			PersonalizedScore: listing.Score.PersonalizedScore,
-		},
-		Ranking:        listing.Ranking,
-		PromotionBoost: promotionBoost,
-	}
 }
 
 // getFloatOrDefault returns the float value if not nil, otherwise returns the default
@@ -299,103 +235,32 @@ func getFloatOrDefault(value *float64, defaultValue float64) float64 {
 	return defaultValue
 }
 
-// ===== GraphQL TYPE DEFINITIONS (will be generated by gqlgen) =====
-
-// These types will be generated by gqlgen based on the schema
-
-type DiscoverySearchFilterInput struct {
-	Query         *string
-	Location      *LocationFilterInput
-	PriceRange    *PriceRangeFilterInput
-	PropertyTypes []string
-	Bedrooms      *IntRangeFilterInput
-	Bathrooms     *IntRangeFilterInput
-	ListingTypes  []string
-	City          *string
-	State         *string
-	Country       *string
-	Amenities     []string
+func intPtrToInt64Ptr(value *int) *int64 {
+	if value == nil {
+		return nil
+	}
+	converted := int64(*value)
+	return &converted
 }
 
-type LocationFilterInput struct {
-	Lat      float64
-	Lng      float64
-	RadiusKm float64
+func toHomeFeedSectionPointers(sections []domain.HomeFeedSection) []*domain.HomeFeedSection {
+	if len(sections) == 0 {
+		return []*domain.HomeFeedSection{}
+	}
+	pointers := make([]*domain.HomeFeedSection, len(sections))
+	for i := range sections {
+		pointers[i] = &sections[i]
+	}
+	return pointers
 }
 
-type PriceRangeFilterInput struct {
-	Min      *int64
-	Max      *int64
-	Currency string
+func toRankedListingPointers(listings []domain.RankedListing) []*domain.RankedListing {
+	if len(listings) == 0 {
+		return []*domain.RankedListing{}
+	}
+	pointers := make([]*domain.RankedListing, len(listings))
+	for i := range listings {
+		pointers[i] = &listings[i]
+	}
+	return pointers
 }
-
-type IntRangeFilterInput struct {
-	Min *int
-	Max *int
-}
-
-type SearchOptionsInput struct {
-	Limit          *int
-	IncludePromoted *bool
-	RankingConfig  *RankingConfigInput
-}
-
-type RankingConfigInput struct {
-	SemanticWeight  *float64
-	PromotionWeight *float64
-	RecencyWeight   *float64
-	LocationWeight  *float64
-}
-
-type FeedOptionsInput struct {
-	Location          *LocationFilterInput
-	Limit             *int
-	SectionsToInclude []FeedSectionType
-}
-
-type SearchResult struct {
-	Listings       []RankedListing
-	TotalCount     int
-	SearchID       uuid.UUID
-	ProcessingTime *int
-}
-
-type HomeFeedSection struct {
-	SectionType FeedSectionType
-	Title       string
-	Listings    []RankedListing
-	TotalCount  int
-}
-
-type RankedListing struct {
-	Listing        interface{} // Will be *propertydomain.Listing
-	Score          RankingScore
-	Ranking        int
-	PromotionBoost *PromotionBoostInfo
-}
-
-type RankingScore struct {
-	FinalScore        float64
-	SemanticScore     *float64
-	PromotionBoost    float64
-	RecencyScore      float64
-	LocationScore     *float64
-	PersonalizedScore *float64
-}
-
-type PromotionBoostInfo struct {
-	PromotionID     uuid.UUID
-	PromotionType   string
-	BoostMultiplier float64
-	ExpiresAt       interface{} // time.Time
-}
-
-type FeedSectionType string
-
-const (
-	FeedSectionTypeFeatured    FeedSectionType = "featured"
-	FeedSectionTypePremium     FeedSectionType = "premium"
-	FeedSectionTypeRecent      FeedSectionType = "recent"
-	FeedSectionTypeRecommended FeedSectionType = "recommended"
-	FeedSectionTypeNearYou     FeedSectionType = "near_you"
-)
