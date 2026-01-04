@@ -69,6 +69,14 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/review/reminders",
 		Timeout: 120 * time.Second,
 	},
+	"promotion_expiry": {
+		Path:    "/tasks/promotion/expiry",
+		Timeout: 120 * time.Second,
+	},
+	"subscription_billing": {
+		Path:    "/tasks/promotion/billing",
+		Timeout: 120 * time.Second,
+	},
 	"calendar_showing_reminders": {
 		Path:    "/tasks/calendar/showing/reminders",
 		Timeout: 120 * time.Second,
