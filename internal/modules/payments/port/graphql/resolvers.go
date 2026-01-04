@@ -8,6 +8,7 @@ import (
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/transport/graph/viewer"
 	"log/slog"
+	"sort"
 
 	"github.com/google/uuid"
 )
@@ -71,7 +72,7 @@ func (r *Resolver) PaymentByReference(ctx context.Context, reference string) (*d
 }
 
 // MyPayments lists payments for the current user
-func (r *Resolver) MyPayments(ctx context.Context, limit *int, offset *int) ([]domain.Payment, error) {
+func (r *Resolver) MyPayments(ctx context.Context, limit *int, offset *int, status *domain.PaymentStatus) ([]domain.Payment, error) {
 	// Get current user from context
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
@@ -92,6 +93,16 @@ func (r *Resolver) MyPayments(ctx context.Context, limit *int, offset *int) ([]d
 	if err != nil {
 		r.log.Error("failed to list payments for user", "user_id", userID, "error", err)
 		return nil, err
+	}
+
+	if status != nil {
+		filtered := make([]domain.Payment, 0, len(payments))
+		for _, pmt := range payments {
+			if pmt.Status == *status {
+				filtered = append(filtered, pmt)
+			}
+		}
+		return filtered, nil
 	}
 
 	return payments, nil
@@ -127,6 +138,137 @@ func (r *Resolver) MyPayoutDetails(ctx context.Context) ([]domain.PayoutDetail, 
 	}
 
 	return details, nil
+}
+
+// PayoutDetailsByUserID lists payout details for a user or business ID (admin only).
+func (r *Resolver) PayoutDetailsByUserID(ctx context.Context, userID string) ([]domain.PayoutDetail, error) {
+	if err := requireAdmin(ctx); err != nil {
+		r.log.Warn("unauthorized payout details lookup", "user_id", userID)
+		return nil, err
+	}
+
+	ownerID, err := uuid.Parse(userID)
+	if err != nil {
+		r.log.Error("invalid payout owner ID", "user_id", userID, "error", err)
+		return nil, fmt.Errorf("invalid user ID")
+	}
+
+	details, err := r.paymentService.ListPayoutDetailsByUserID(ctx, ownerID)
+	if err != nil {
+		r.log.Error("failed to list payout details by owner", "owner_id", ownerID, "error", err)
+		return nil, err
+	}
+
+	return details, nil
+}
+
+// MyTransactions lists transactions for the current user.
+func (r *Resolver) MyTransactions(ctx context.Context, txType *domain.TransactionType, status *domain.TransactionStatus, limit *int, offset *int) ([]domain.Transaction, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	l := 20
+	if limit != nil && *limit > 0 {
+		l = *limit
+	}
+
+	o := 0
+	if offset != nil && *offset > 0 {
+		o = *offset
+	}
+
+	paymentLimit := l + o
+	payments, err := r.paymentService.ListPaymentsByPayer(ctx, userID, paymentLimit, 0)
+	if err != nil {
+		r.log.Error("failed to list payments for user", "user_id", userID, "error", err)
+		return nil, err
+	}
+
+	transactions := make([]domain.Transaction, 0)
+	for _, pmt := range payments {
+		txs, err := r.paymentService.ListTransactionsByPayment(ctx, pmt.ID)
+		if err != nil {
+			r.log.Error("failed to list transactions for payment", "payment_id", pmt.ID, "error", err)
+			return nil, err
+		}
+		transactions = append(transactions, txs...)
+	}
+
+	if txType != nil {
+		filtered := make([]domain.Transaction, 0, len(transactions))
+		for _, tx := range transactions {
+			if tx.Type == *txType {
+				filtered = append(filtered, tx)
+			}
+		}
+		transactions = filtered
+	}
+
+	if status != nil {
+		filtered := make([]domain.Transaction, 0, len(transactions))
+		for _, tx := range transactions {
+			if tx.Status == *status {
+				filtered = append(filtered, tx)
+			}
+		}
+		transactions = filtered
+	}
+
+	sort.Slice(transactions, func(i, j int) bool {
+		return transactions[i].CreatedAt.After(transactions[j].CreatedAt)
+	})
+
+	if o >= len(transactions) {
+		return []domain.Transaction{}, nil
+	}
+
+	end := o + l
+	if end > len(transactions) {
+		end = len(transactions)
+	}
+
+	return transactions[o:end], nil
+}
+
+// TransactionsByBooking lists transactions for a booking (admin or payer only).
+func (r *Resolver) TransactionsByBooking(ctx context.Context, bookingID string) ([]domain.Transaction, error) {
+	bID, err := uuid.Parse(bookingID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid booking ID")
+	}
+
+	payments, err := r.paymentService.ListPaymentsByBooking(ctx, bID)
+	if err != nil {
+		r.log.Error("failed to list payments for booking", "booking_id", bookingID, "error", err)
+		return nil, err
+	}
+
+	userID, userErr := getUserIDFromContext(ctx)
+	authorized := false
+	if userErr == nil {
+		for _, pmt := range payments {
+			if pmt.PayerID == userID {
+				authorized = true
+				break
+			}
+		}
+	}
+
+	if !authorized {
+		if err := requireAdmin(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	transactions, err := r.paymentService.ListTransactionsByBooking(ctx, bID)
+	if err != nil {
+		r.log.Error("failed to list transactions for booking", "booking_id", bookingID, "error", err)
+		return nil, err
+	}
+
+	return transactions, nil
 }
 
 // Transaction retrieves a transaction by ID
@@ -460,6 +602,49 @@ func (r *Resolver) DeactivatePayoutDetail(ctx context.Context, detailID string) 
 
 	// Return the detail with updated status
 	detail.IsActive = false
+	return detail, nil
+}
+
+// SetDefaultPayoutDetail sets a payout detail as default.
+func (r *Resolver) SetDefaultPayoutDetail(ctx context.Context, detailID string) (*domain.PayoutDetail, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := uuid.Parse(detailID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid payout detail ID")
+	}
+
+	detail, err := r.paymentService.GetPayoutDetail(ctx, id)
+	if err != nil {
+		r.log.Error("failed to get payout detail", "error", err)
+		return nil, err
+	}
+
+	if detail.UserID == nil && detail.BusinessID == nil {
+		return nil, domain.ErrMissingRequiredField
+	}
+
+	if detail.UserID != nil && *detail.UserID != userID {
+		if err := requireAdmin(ctx); err != nil {
+			return nil, fmt.Errorf("unauthorized: payout detail does not belong to user")
+		}
+	}
+
+	if detail.BusinessID != nil {
+		if err := requireAdmin(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := r.paymentService.SetDefaultPayoutDetail(ctx, id, detail.UserID, detail.BusinessID); err != nil {
+		r.log.Error("failed to set default payout detail", "error", err)
+		return nil, err
+	}
+
+	detail.IsDefault = true
 	return detail, nil
 }
 

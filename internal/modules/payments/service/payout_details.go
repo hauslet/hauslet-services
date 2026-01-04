@@ -162,6 +162,31 @@ func (s *PaymentServiceImpl) ListPayoutDetails(ctx context.Context, userID *uuid
 	return domain.MapPayoutDetailsFromSchema(schemaDetails), nil
 }
 
+// ListPayoutDetailsByUserID lists payout details for a user ID or business ID.
+func (s *PaymentServiceImpl) ListPayoutDetailsByUserID(ctx context.Context, ownerID uuid.UUID) ([]domain.PayoutDetail, error) {
+	if ownerID == uuid.Nil {
+		return nil, domain.ErrMissingRequiredField
+	}
+
+	s.log.Info(" listing payout details by owner", "owner_id", ownerID)
+
+	schemaDetails, err := s.repo.ListPayoutDetailsByUserID(ctx, ownerID)
+	if err != nil {
+		s.log.Error("failed to list payout details by user", "user_id", ownerID, "error", err)
+		return nil, fmt.Errorf("failed to list payout details: %w", err)
+	}
+
+	if len(schemaDetails) == 0 {
+		schemaDetails, err = s.repo.ListPayoutDetailsByBusinessID(ctx, ownerID)
+		if err != nil {
+			s.log.Error("failed to list payout details by business", "business_id", ownerID, "error", err)
+			return nil, fmt.Errorf("failed to list payout details: %w", err)
+		}
+	}
+
+	return domain.MapPayoutDetailsFromSchema(schemaDetails), nil
+}
+
 // SetDefaultPayoutDetail sets a payout detail as default
 func (s *PaymentServiceImpl) SetDefaultPayoutDetail(ctx context.Context, detailID uuid.UUID, userID *uuid.UUID, businessID *uuid.UUID) error {
 	s.log.Info(" setting default payout detail", "id", detailID)

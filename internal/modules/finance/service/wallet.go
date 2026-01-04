@@ -139,7 +139,12 @@ func (s *FinanceServiceImpl) UnfreezeWallet(ctx context.Context, walletID uuid.U
 
 // ListUserWallets returns all wallets for a user
 func (s *FinanceServiceImpl) ListUserWallets(ctx context.Context, userID uuid.UUID) ([]*domain.Wallet, error) {
-	walletsSchema, err := s.walletRepo.ListByOwner(ctx, domain.OwnerTypeUser.String(), userID)
+	return s.ListOwnerWallets(ctx, domain.OwnerTypeUser, userID)
+}
+
+// ListOwnerWallets returns all wallets for a given owner
+func (s *FinanceServiceImpl) ListOwnerWallets(ctx context.Context, ownerType domain.OwnerType, ownerID uuid.UUID) ([]*domain.Wallet, error) {
+	walletsSchema, err := s.walletRepo.ListByOwner(ctx, ownerType.String(), ownerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list wallets: %w", err)
 	}

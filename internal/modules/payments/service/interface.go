@@ -33,6 +33,7 @@ type PaymentService interface {
 	AddPayoutDetail(ctx context.Context, input domain.CreatePayoutDetailInput) (*domain.PayoutDetail, error)
 	GetPayoutDetail(ctx context.Context, id uuid.UUID) (*domain.PayoutDetail, error)
 	ListPayoutDetails(ctx context.Context, userID *uuid.UUID, businessID *uuid.UUID) ([]domain.PayoutDetail, error)
+	ListPayoutDetailsByUserID(ctx context.Context, ownerID uuid.UUID) ([]domain.PayoutDetail, error)
 	SetDefaultPayoutDetail(ctx context.Context, detailID uuid.UUID, userID *uuid.UUID, businessID *uuid.UUID) error
 	RemovePayoutDetail(ctx context.Context, detailID uuid.UUID) error
 	VerifyBankAccount(ctx context.Context, market domain.Market, bankCode, accountNumber string) (string, error)

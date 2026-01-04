@@ -324,7 +324,7 @@ func (r *Resolver) AddDisputeEvidence(ctx context.Context, input AddDisputeEvide
 		input.URL,
 		input.Description,
 	); err != nil {
-		r.log.Error("failed to add evidence to dispute %s: %v", input.DisputeID, err)
+		r.log.Error("failed to add evidence to dispute", "dispute_id", input.DisputeID, "error", err)
 		return nil, err
 	}
 

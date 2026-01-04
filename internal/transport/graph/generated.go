@@ -740,6 +740,7 @@ type ComplexityRoot struct {
 		SavePaymentMethod       func(childComplexity int, input graphql8.SavePaymentMethodInput) int
 		SelectSupplyRoles       func(childComplexity int, userTypes []domain5.UserType) int
 		SetDefaultPaymentMethod func(childComplexity int, id uuid.UUID) int
+		SetDefaultPayoutDetail  func(childComplexity int, id uuid.UUID) int
 		TrackInteraction        func(childComplexity int, input graphql11.TrackInteractionInput) int
 		UnhideReview            func(childComplexity int, reviewID uuid.UUID) int
 		UnpublishListing        func(childComplexity int, id uuid.UUID) int
@@ -803,7 +804,6 @@ type ComplexityRoot struct {
 	}
 
 	PaymentMethod struct {
-		AccountName        func(childComplexity int) int
 		AccountNumberLast4 func(childComplexity int) int
 		AuthorizationCode  func(childComplexity int) int
 		BankName           func(childComplexity int) int
@@ -959,10 +959,13 @@ type ComplexityRoot struct {
 		BookingByReference           func(childComplexity int, reference string) int
 		Business                     func(childComplexity int, id uuid.UUID) int
 		BusinessBySlug               func(childComplexity int, slug string) int
+		BusinessDisbursements        func(childComplexity int, businessID uuid.UUID, status *domain6.DisbursementStatus, limit *int, offset *int) int
 		BusinessInvitations          func(childComplexity int, businessID uuid.UUID) int
 		BusinessListings             func(childComplexity int, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) int
 		BusinessMember               func(childComplexity int, businessID uuid.UUID, userID uuid.UUID) int
 		BusinessMembers              func(childComplexity int, businessID uuid.UUID) int
+		BusinessWalletLedger         func(childComplexity int, walletID uuid.UUID, limit *int, offset *int) int
+		BusinessWallets              func(childComplexity int, businessID uuid.UUID) int
 		CalendarEvent                func(childComplexity int, id uuid.UUID) int
 		CanAddListing                func(childComplexity int) int
 		CanAddPhotos                 func(childComplexity int, listingID uuid.UUID, photoCount int) int
@@ -1012,23 +1015,32 @@ type ComplexityRoot struct {
 		MyBookings                   func(childComplexity int, limit *int, offset *int) int
 		MyBusinessPermissions        func(childComplexity int, businessID uuid.UUID) int
 		MyCalendarEvents             func(childComplexity int, startTime time.Time, endTime time.Time) int
+		MyDisbursements              func(childComplexity int, status *domain6.DisbursementStatus, limit *int, offset *int) int
 		MyDisputes                   func(childComplexity int, limit *int, offset *int) int
 		MyEarnings                   func(childComplexity int) int
+		MyFinanceTransactions        func(childComplexity int, typeArg *domain6.TransactionType, status *domain6.TransactionStatus, limit *int, offset *int) int
 		MyIndividualListings         func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		MyInteractionHistory         func(childComplexity int, limit *int) int
 		MyInvitations                func(childComplexity int, email string) int
 		MyLeads                      func(childComplexity int, filter *graphql7.LeadFilterInput, page *graphql7.PageInput) int
 		MyListings                   func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		MyMemberships                func(childComplexity int) int
+		MyPaymentMethods             func(childComplexity int) int
+		MyPayments                   func(childComplexity int, limit *int, offset *int, status *domain9.PaymentStatus) int
+		MyPayoutDetails              func(childComplexity int) int
 		MyProfile                    func(childComplexity int) int
+		MyTransactions               func(childComplexity int, typeArg *domain9.TransactionType, status *domain9.TransactionStatus, limit *int, offset *int) int
+		MyWalletLedger               func(childComplexity int, walletID uuid.UUID, limit *int, offset *int) int
+		MyWallets                    func(childComplexity int) int
 		MyWishlists                  func(childComplexity int, limit *int, offset *int) int
 		OpenHouseAttendees           func(childComplexity int, eventID uuid.UUID) int
 		Payment                      func(childComplexity int, id uuid.UUID) int
+		PaymentByReference           func(childComplexity int, reference string) int
 		PaymentMethod                func(childComplexity int, id uuid.UUID) int
 		PaymentMethods               func(childComplexity int, userID uuid.UUID) int
 		Payments                     func(childComplexity int, bookingID *uuid.UUID, businessID *uuid.UUID, payerID *uuid.UUID, status *domain9.PaymentStatus, limit *int, offset *int) int
 		PayoutDetail                 func(childComplexity int, id uuid.UUID) int
-		PayoutDetails                func(childComplexity int, businessID uuid.UUID) int
+		PayoutDetailsByUserID        func(childComplexity int, userID uuid.UUID) int
 		Profile                      func(childComplexity int, id uuid.UUID) int
 		ProfileByUserID              func(childComplexity int, userID string) int
 		Profiles                     func(childComplexity int, limit *int, offset *int) int
@@ -1046,6 +1058,7 @@ type ComplexityRoot struct {
 		SimilarListings              func(childComplexity int, listingID uuid.UUID, limit *int, minSimilarity *float64) int
 		Transaction                  func(childComplexity int, id uuid.UUID) int
 		Transactions                 func(childComplexity int, paymentID *uuid.UUID, typeArg *domain9.TransactionType, status *domain9.TransactionStatus, limit *int, offset *int) int
+		TransactionsByBooking        func(childComplexity int, bookingID uuid.UUID) int
 		UpcomingListingEvents        func(childComplexity int, listingID uuid.UUID, limit *int) int
 		UploadProfilePhoto           func(childComplexity int, userID string, fileName string) int
 		UploadTravelCompanionPhoto   func(childComplexity int, userID string, companionID string, fileName string) int
@@ -1487,6 +1500,7 @@ type MutationResolver interface {
 	SetDefaultPaymentMethod(ctx context.Context, id uuid.UUID) (*domain9.PaymentMethod, error)
 	DeletePaymentMethod(ctx context.Context, id uuid.UUID) (bool, error)
 	CreatePayoutDetail(ctx context.Context, input graphql8.AddPayoutDetailInput) (*domain9.PayoutDetail, error)
+	SetDefaultPayoutDetail(ctx context.Context, id uuid.UUID) (*domain9.PayoutDetail, error)
 	DeactivatePayoutDetail(ctx context.Context, id uuid.UUID) (*domain9.PayoutDetail, error)
 	CreatePayout(ctx context.Context, input graphql8.CreatePayoutInput) (*domain9.Transaction, error)
 	FileDispute(ctx context.Context, input graphql2.FileDisputeInput) (*domain6.Dispute, error)
@@ -1538,7 +1552,6 @@ type PaymentMethodResolver interface {
 	CardExpYear(ctx context.Context, obj *domain9.PaymentMethod) (*int, error)
 	CardBrand(ctx context.Context, obj *domain9.PaymentMethod) (*string, error)
 
-	AccountName(ctx context.Context, obj *domain9.PaymentMethod) (*string, error)
 	AccountNumberLast4(ctx context.Context, obj *domain9.PaymentMethod) (*string, error)
 }
 type PriceBreakdownSnapshotResolver interface {
@@ -1595,19 +1608,32 @@ type QueryResolver interface {
 	OpenHouseAttendees(ctx context.Context, eventID uuid.UUID) ([]*domain8.Attendee, error)
 	CheckListingAvailability(ctx context.Context, listingID uuid.UUID, startTime time.Time, endTime time.Time) (bool, error)
 	Payment(ctx context.Context, id uuid.UUID) (*domain9.Payment, error)
+	PaymentByReference(ctx context.Context, reference string) (*domain9.Payment, error)
+	MyPayments(ctx context.Context, limit *int, offset *int, status *domain9.PaymentStatus) ([]*domain9.Payment, error)
 	Payments(ctx context.Context, bookingID *uuid.UUID, businessID *uuid.UUID, payerID *uuid.UUID, status *domain9.PaymentStatus, limit *int, offset *int) ([]*domain9.Payment, error)
 	PaymentMethod(ctx context.Context, id uuid.UUID) (*domain9.PaymentMethod, error)
 	PaymentMethods(ctx context.Context, userID uuid.UUID) ([]*domain9.PaymentMethod, error)
+	MyPaymentMethods(ctx context.Context) ([]*domain9.PaymentMethod, error)
 	Transaction(ctx context.Context, id uuid.UUID) (*domain9.Transaction, error)
+	TransactionsByBooking(ctx context.Context, bookingID uuid.UUID) ([]*domain9.Transaction, error)
+	MyTransactions(ctx context.Context, typeArg *domain9.TransactionType, status *domain9.TransactionStatus, limit *int, offset *int) ([]*domain9.Transaction, error)
 	Transactions(ctx context.Context, paymentID *uuid.UUID, typeArg *domain9.TransactionType, status *domain9.TransactionStatus, limit *int, offset *int) ([]*domain9.Transaction, error)
 	PayoutDetail(ctx context.Context, id uuid.UUID) (*domain9.PayoutDetail, error)
-	PayoutDetails(ctx context.Context, businessID uuid.UUID) ([]*domain9.PayoutDetail, error)
+	MyPayoutDetails(ctx context.Context) ([]*domain9.PayoutDetail, error)
+	PayoutDetailsByUserID(ctx context.Context, userID uuid.UUID) ([]*domain9.PayoutDetail, error)
 	Wallet(ctx context.Context, id uuid.UUID) (*domain6.Wallet, error)
 	UserWallets(ctx context.Context, userID uuid.UUID) ([]*domain6.Wallet, error)
+	MyWallets(ctx context.Context) ([]*domain6.Wallet, error)
 	FinanceTransactionHistory(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*domain6.Transaction, error)
 	WalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain6.LedgerEntry, error)
+	MyWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain6.LedgerEntry, error)
 	Disbursement(ctx context.Context, id uuid.UUID) (*domain6.Disbursement, error)
 	MyEarnings(ctx context.Context) (*graphql2.EarningsSummary, error)
+	MyDisbursements(ctx context.Context, status *domain6.DisbursementStatus, limit *int, offset *int) ([]*domain6.Disbursement, error)
+	MyFinanceTransactions(ctx context.Context, typeArg *domain6.TransactionType, status *domain6.TransactionStatus, limit *int, offset *int) ([]*domain6.Transaction, error)
+	BusinessWallets(ctx context.Context, businessID uuid.UUID) ([]*domain6.Wallet, error)
+	BusinessWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain6.LedgerEntry, error)
+	BusinessDisbursements(ctx context.Context, businessID uuid.UUID, status *domain6.DisbursementStatus, limit *int, offset *int) ([]*domain6.Disbursement, error)
 	Dispute(ctx context.Context, id uuid.UUID) (*domain6.Dispute, error)
 	DisputeByBooking(ctx context.Context, bookingID uuid.UUID) (*domain6.Dispute, error)
 	Disputes(ctx context.Context, status *domain6.DisputeStatus, limit *int, offset *int) ([]*domain6.Dispute, error)
@@ -5097,6 +5123,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SetDefaultPaymentMethod(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.setDefaultPayoutDetail":
+		if e.complexity.Mutation.SetDefaultPayoutDetail == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setDefaultPayoutDetail_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetDefaultPayoutDetail(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.trackInteraction":
 		if e.complexity.Mutation.TrackInteraction == nil {
 			break
@@ -5470,12 +5507,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PaymentInitResponse.Payment(childComplexity), true
 
-	case "PaymentMethod.accountName":
-		if e.complexity.PaymentMethod.AccountName == nil {
-			break
-		}
-
-		return e.complexity.PaymentMethod.AccountName(childComplexity), true
 	case "PaymentMethod.accountNumberLast4":
 		if e.complexity.PaymentMethod.AccountNumberLast4 == nil {
 			break
@@ -6300,6 +6331,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.BusinessBySlug(childComplexity, args["slug"].(string)), true
+	case "Query.businessDisbursements":
+		if e.complexity.Query.BusinessDisbursements == nil {
+			break
+		}
+
+		args, err := ec.field_Query_businessDisbursements_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BusinessDisbursements(childComplexity, args["businessId"].(uuid.UUID), args["status"].(*domain6.DisbursementStatus), args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.businessInvitations":
 		if e.complexity.Query.BusinessInvitations == nil {
 			break
@@ -6344,6 +6386,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.BusinessMembers(childComplexity, args["businessID"].(uuid.UUID)), true
+	case "Query.businessWalletLedger":
+		if e.complexity.Query.BusinessWalletLedger == nil {
+			break
+		}
+
+		args, err := ec.field_Query_businessWalletLedger_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BusinessWalletLedger(childComplexity, args["walletId"].(uuid.UUID), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.businessWallets":
+		if e.complexity.Query.BusinessWallets == nil {
+			break
+		}
+
+		args, err := ec.field_Query_businessWallets_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BusinessWallets(childComplexity, args["businessId"].(uuid.UUID)), true
 	case "Query.calendarEvent":
 		if e.complexity.Query.CalendarEvent == nil {
 			break
@@ -6848,6 +6912,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyCalendarEvents(childComplexity, args["startTime"].(time.Time), args["endTime"].(time.Time)), true
+	case "Query.myDisbursements":
+		if e.complexity.Query.MyDisbursements == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myDisbursements_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyDisbursements(childComplexity, args["status"].(*domain6.DisbursementStatus), args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.myDisputes":
 		if e.complexity.Query.MyDisputes == nil {
 			break
@@ -6865,6 +6940,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyEarnings(childComplexity), true
+	case "Query.myFinanceTransactions":
+		if e.complexity.Query.MyFinanceTransactions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myFinanceTransactions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyFinanceTransactions(childComplexity, args["type"].(*domain6.TransactionType), args["status"].(*domain6.TransactionStatus), args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.myIndividualListings":
 		if e.complexity.Query.MyIndividualListings == nil {
 			break
@@ -6926,12 +7012,63 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyMemberships(childComplexity), true
+	case "Query.myPaymentMethods":
+		if e.complexity.Query.MyPaymentMethods == nil {
+			break
+		}
+
+		return e.complexity.Query.MyPaymentMethods(childComplexity), true
+	case "Query.myPayments":
+		if e.complexity.Query.MyPayments == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myPayments_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyPayments(childComplexity, args["limit"].(*int), args["offset"].(*int), args["status"].(*domain9.PaymentStatus)), true
+	case "Query.myPayoutDetails":
+		if e.complexity.Query.MyPayoutDetails == nil {
+			break
+		}
+
+		return e.complexity.Query.MyPayoutDetails(childComplexity), true
 	case "Query.myProfile":
 		if e.complexity.Query.MyProfile == nil {
 			break
 		}
 
 		return e.complexity.Query.MyProfile(childComplexity), true
+	case "Query.myTransactions":
+		if e.complexity.Query.MyTransactions == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myTransactions_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyTransactions(childComplexity, args["type"].(*domain9.TransactionType), args["status"].(*domain9.TransactionStatus), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.myWalletLedger":
+		if e.complexity.Query.MyWalletLedger == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myWalletLedger_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyWalletLedger(childComplexity, args["walletId"].(uuid.UUID), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.myWallets":
+		if e.complexity.Query.MyWallets == nil {
+			break
+		}
+
+		return e.complexity.Query.MyWallets(childComplexity), true
 	case "Query.myWishlists":
 		if e.complexity.Query.MyWishlists == nil {
 			break
@@ -6965,6 +7102,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Payment(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.paymentByReference":
+		if e.complexity.Query.PaymentByReference == nil {
+			break
+		}
+
+		args, err := ec.field_Query_paymentByReference_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PaymentByReference(childComplexity, args["reference"].(string)), true
 	case "Query.paymentMethod":
 		if e.complexity.Query.PaymentMethod == nil {
 			break
@@ -7009,17 +7157,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.PayoutDetail(childComplexity, args["id"].(uuid.UUID)), true
-	case "Query.payoutDetails":
-		if e.complexity.Query.PayoutDetails == nil {
+	case "Query.payoutDetailsByUserId":
+		if e.complexity.Query.PayoutDetailsByUserID == nil {
 			break
 		}
 
-		args, err := ec.field_Query_payoutDetails_args(ctx, rawArgs)
+		args, err := ec.field_Query_payoutDetailsByUserId_args(ctx, rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.PayoutDetails(childComplexity, args["businessId"].(uuid.UUID)), true
+		return e.complexity.Query.PayoutDetailsByUserID(childComplexity, args["userId"].(uuid.UUID)), true
 	case "Query.profile":
 		if e.complexity.Query.Profile == nil {
 			break
@@ -7207,6 +7355,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Transactions(childComplexity, args["paymentId"].(*uuid.UUID), args["type"].(*domain9.TransactionType), args["status"].(*domain9.TransactionStatus), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.transactionsByBooking":
+		if e.complexity.Query.TransactionsByBooking == nil {
+			break
+		}
+
+		args, err := ec.field_Query_transactionsByBooking_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.TransactionsByBooking(childComplexity, args["bookingId"].(uuid.UUID)), true
 	case "Query.upcomingListingEvents":
 		if e.complexity.Query.UpcomingListingEvents == nil {
 			break
@@ -10588,7 +10747,6 @@ type PaymentMethod {
   cardExpYear: Int
   cardBrand: String
   bankName: String
-  accountName: String
   accountNumberLast4: String
   isDefault: Boolean!
   createdAt: Time!
@@ -10677,6 +10835,8 @@ input CreatePayoutInput {
 
 extend type Query {
   payment(id: UUID!): Payment
+  paymentByReference(reference: String!): Payment
+  myPayments(limit: Int, offset: Int, status: PaymentStatus): [Payment!]!
   payments(
     bookingId: UUID
     businessId: UUID
@@ -10688,8 +10848,16 @@ extend type Query {
 
   paymentMethod(id: UUID!): PaymentMethod
   paymentMethods(userId: UUID!): [PaymentMethod!]!
+  myPaymentMethods: [PaymentMethod!]!
 
   transaction(id: UUID!): Transaction
+  transactionsByBooking(bookingId: UUID!): [Transaction!]!
+  myTransactions(
+    type: TransactionType
+    status: TransactionStatus
+    limit: Int
+    offset: Int
+  ): [Transaction!]!
   transactions(
     paymentId: UUID
     type: TransactionType
@@ -10699,7 +10867,8 @@ extend type Query {
   ): [Transaction!]!
 
   payoutDetail(id: UUID!): PayoutDetail
-  payoutDetails(businessId: UUID!): [PayoutDetail!]!
+  myPayoutDetails: [PayoutDetail!]!
+  payoutDetailsByUserId(userId: UUID!): [PayoutDetail!]!
 }
 
 extend type Mutation {
@@ -10715,6 +10884,7 @@ extend type Mutation {
 
   # Payout mutations
   createPayoutDetail(input: AddPayoutDetailInput!): PayoutDetail!
+  setDefaultPayoutDetail(id: UUID!): PayoutDetail!
   deactivatePayoutDetail(id: UUID!): PayoutDetail!
   createPayout(input: CreatePayoutInput!): Transaction!
 }
@@ -10826,6 +10996,9 @@ extend type Query {
   # Admin: List all wallets for a user
   userWallets(userId: UUID!): [Wallet!]!
 
+  # Host: List wallets owned by the current user
+  myWallets: [Wallet!]!
+
   # Admin/Host: View transaction history for a resource (booking, payment, etc)
   financeTransactionHistory(
     resourceType: String!
@@ -10839,11 +11012,51 @@ extend type Query {
     offset: Int
   ): [LedgerEntry!]!
 
+  # Host: View own wallet ledger
+  myWalletLedger(
+    walletId: UUID!
+    limit: Int
+    offset: Int
+  ): [LedgerEntry!]!
+
   # Admin/Host: View disbursement status
   disbursement(id: UUID!): Disbursement
 
   # Host: My earnings summary (requires authentication)
   myEarnings: EarningsSummary!
+
+  # Host: View payout disbursements for current user
+  myDisbursements(
+    status: DisbursementStatus
+    limit: Int
+    offset: Int
+  ): [Disbursement!]!
+
+  # Host: View finance transactions for current user
+  myFinanceTransactions(
+    type: FinanceTransactionType
+    status: FinanceTransactionStatus
+    limit: Int
+    offset: Int
+  ): [FinanceTransaction!]!
+
+  # Business Host: List wallets owned by a business
+  businessWallets(businessId: UUID!): [Wallet!]!
+
+  # Business Host: View a business wallet ledger
+  businessWalletLedger(
+    walletId: UUID!
+    limit: Int
+    offset: Int
+  ): [LedgerEntry!]!
+
+  # Business Host: View payout disbursements for a business
+  businessDisbursements(
+    businessId: UUID!
+    status: DisbursementStatus
+    limit: Int
+    offset: Int
+  ): [Disbursement!]!
 }
 
 # ========================================================================
@@ -12750,6 +12963,17 @@ func (ec *executionContext) field_Mutation_setDefaultPaymentMethod_args(ctx cont
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_setDefaultPayoutDetail_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_trackInteraction_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -13072,6 +13296,32 @@ func (ec *executionContext) field_Query_businessBySlug_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_businessDisbursements_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalODisbursementStatus2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementStatus)
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg3
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_businessInvitations_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -13133,6 +13383,38 @@ func (ec *executionContext) field_Query_businessMembers_args(ctx context.Context
 		return nil, err
 	}
 	args["businessID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_businessWalletLedger_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "walletId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["walletId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_businessWallets_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["businessId"] = arg0
 	return args, nil
 }
 
@@ -13764,6 +14046,27 @@ func (ec *executionContext) field_Query_myCalendarEvents_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_myDisbursements_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalODisbursementStatus2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementStatus)
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_myDisputes_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -13777,6 +14080,32 @@ func (ec *executionContext) field_Query_myDisputes_args(ctx context.Context, raw
 		return nil, err
 	}
 	args["offset"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_myFinanceTransactions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "type", ec.unmarshalOFinanceTransactionType2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionType)
+	if err != nil {
+		return nil, err
+	}
+	args["type"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalOFinanceTransactionStatus2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionStatus)
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg3
 	return args, nil
 }
 
@@ -13860,6 +14189,74 @@ func (ec *executionContext) field_Query_myListings_args(ctx context.Context, raw
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_myPayments_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalOPaymentStatus2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPaymentStatus)
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_myTransactions_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "type", ec.unmarshalOTransactionType2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐTransactionType)
+	if err != nil {
+		return nil, err
+	}
+	args["type"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalOTransactionStatus2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐTransactionStatus)
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_myWalletLedger_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "walletId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["walletId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_myWishlists_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -13884,6 +14281,17 @@ func (ec *executionContext) field_Query_openHouseAttendees_args(ctx context.Cont
 		return nil, err
 	}
 	args["eventId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_paymentByReference_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "reference", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["reference"] = arg0
 	return args, nil
 }
 
@@ -13967,14 +14375,14 @@ func (ec *executionContext) field_Query_payoutDetail_args(ctx context.Context, r
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_payoutDetails_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+func (ec *executionContext) field_Query_payoutDetailsByUserId_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "businessId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
 	if err != nil {
 		return nil, err
 	}
-	args["businessId"] = arg0
+	args["userId"] = arg0
 	return args, nil
 }
 
@@ -14226,6 +14634,17 @@ func (ec *executionContext) field_Query_transaction_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_transactionsByBooking_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bookingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["bookingId"] = arg0
 	return args, nil
 }
 
@@ -30720,8 +31139,6 @@ func (ec *executionContext) fieldContext_Mutation_savePaymentMethod(ctx context.
 				return ec.fieldContext_PaymentMethod_cardBrand(ctx, field)
 			case "bankName":
 				return ec.fieldContext_PaymentMethod_bankName(ctx, field)
-			case "accountName":
-				return ec.fieldContext_PaymentMethod_accountName(ctx, field)
 			case "accountNumberLast4":
 				return ec.fieldContext_PaymentMethod_accountNumberLast4(ctx, field)
 			case "isDefault":
@@ -30793,8 +31210,6 @@ func (ec *executionContext) fieldContext_Mutation_setDefaultPaymentMethod(ctx co
 				return ec.fieldContext_PaymentMethod_cardBrand(ctx, field)
 			case "bankName":
 				return ec.fieldContext_PaymentMethod_bankName(ctx, field)
-			case "accountName":
-				return ec.fieldContext_PaymentMethod_accountName(ctx, field)
 			case "accountNumberLast4":
 				return ec.fieldContext_PaymentMethod_accountNumberLast4(ctx, field)
 			case "isDefault":
@@ -30921,6 +31336,71 @@ func (ec *executionContext) fieldContext_Mutation_createPayoutDetail(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createPayoutDetail_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_setDefaultPayoutDetail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_setDefaultPayoutDetail,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SetDefaultPayoutDetail(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNPayoutDetail2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPayoutDetail,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_setDefaultPayoutDetail(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PayoutDetail_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_PayoutDetail_userId(ctx, field)
+			case "businessId":
+				return ec.fieldContext_PayoutDetail_businessId(ctx, field)
+			case "recipientCode":
+				return ec.fieldContext_PayoutDetail_recipientCode(ctx, field)
+			case "bankCode":
+				return ec.fieldContext_PayoutDetail_bankCode(ctx, field)
+			case "bankName":
+				return ec.fieldContext_PayoutDetail_bankName(ctx, field)
+			case "accountNumber":
+				return ec.fieldContext_PayoutDetail_accountNumber(ctx, field)
+			case "accountName":
+				return ec.fieldContext_PayoutDetail_accountName(ctx, field)
+			case "isActive":
+				return ec.fieldContext_PayoutDetail_isActive(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PayoutDetail_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_PayoutDetail_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PayoutDetail", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setDefaultPayoutDetail_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -34549,35 +35029,6 @@ func (ec *executionContext) fieldContext_PaymentMethod_bankName(_ context.Contex
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _PaymentMethod_accountName(ctx context.Context, field graphql.CollectedField, obj *domain9.PaymentMethod) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_PaymentMethod_accountName,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.PaymentMethod().AccountName(ctx, obj)
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_PaymentMethod_accountName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PaymentMethod",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -41335,6 +41786,164 @@ func (ec *executionContext) fieldContext_Query_payment(ctx context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_paymentByReference(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_paymentByReference,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PaymentByReference(ctx, fc.Args["reference"].(string))
+		},
+		nil,
+		ec.marshalOPayment2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPayment,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_paymentByReference(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Payment_id(ctx, field)
+			case "reference":
+				return ec.fieldContext_Payment_reference(ctx, field)
+			case "providerRef":
+				return ec.fieldContext_Payment_providerRef(ctx, field)
+			case "bookingId":
+				return ec.fieldContext_Payment_bookingId(ctx, field)
+			case "businessId":
+				return ec.fieldContext_Payment_businessId(ctx, field)
+			case "payerId":
+				return ec.fieldContext_Payment_payerId(ctx, field)
+			case "payerName":
+				return ec.fieldContext_Payment_payerName(ctx, field)
+			case "payerEmail":
+				return ec.fieldContext_Payment_payerEmail(ctx, field)
+			case "amount":
+				return ec.fieldContext_Payment_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_Payment_currency(ctx, field)
+			case "market":
+				return ec.fieldContext_Payment_market(ctx, field)
+			case "status":
+				return ec.fieldContext_Payment_status(ctx, field)
+			case "description":
+				return ec.fieldContext_Payment_description(ctx, field)
+			case "refundedAmount":
+				return ec.fieldContext_Payment_refundedAmount(ctx, field)
+			case "refundedAt":
+				return ec.fieldContext_Payment_refundedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Payment_metadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Payment_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Payment_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Payment", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_paymentByReference_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myPayments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myPayments,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyPayments(ctx, fc.Args["limit"].(*int), fc.Args["offset"].(*int), fc.Args["status"].(*domain9.PaymentStatus))
+		},
+		nil,
+		ec.marshalNPayment2ᚕᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPaymentᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myPayments(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Payment_id(ctx, field)
+			case "reference":
+				return ec.fieldContext_Payment_reference(ctx, field)
+			case "providerRef":
+				return ec.fieldContext_Payment_providerRef(ctx, field)
+			case "bookingId":
+				return ec.fieldContext_Payment_bookingId(ctx, field)
+			case "businessId":
+				return ec.fieldContext_Payment_businessId(ctx, field)
+			case "payerId":
+				return ec.fieldContext_Payment_payerId(ctx, field)
+			case "payerName":
+				return ec.fieldContext_Payment_payerName(ctx, field)
+			case "payerEmail":
+				return ec.fieldContext_Payment_payerEmail(ctx, field)
+			case "amount":
+				return ec.fieldContext_Payment_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_Payment_currency(ctx, field)
+			case "market":
+				return ec.fieldContext_Payment_market(ctx, field)
+			case "status":
+				return ec.fieldContext_Payment_status(ctx, field)
+			case "description":
+				return ec.fieldContext_Payment_description(ctx, field)
+			case "refundedAmount":
+				return ec.fieldContext_Payment_refundedAmount(ctx, field)
+			case "refundedAt":
+				return ec.fieldContext_Payment_refundedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Payment_metadata(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Payment_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Payment_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Payment", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myPayments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_payments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -41459,8 +42068,6 @@ func (ec *executionContext) fieldContext_Query_paymentMethod(ctx context.Context
 				return ec.fieldContext_PaymentMethod_cardBrand(ctx, field)
 			case "bankName":
 				return ec.fieldContext_PaymentMethod_bankName(ctx, field)
-			case "accountName":
-				return ec.fieldContext_PaymentMethod_accountName(ctx, field)
 			case "accountNumberLast4":
 				return ec.fieldContext_PaymentMethod_accountNumberLast4(ctx, field)
 			case "isDefault":
@@ -41532,8 +42139,6 @@ func (ec *executionContext) fieldContext_Query_paymentMethods(ctx context.Contex
 				return ec.fieldContext_PaymentMethod_cardBrand(ctx, field)
 			case "bankName":
 				return ec.fieldContext_PaymentMethod_bankName(ctx, field)
-			case "accountName":
-				return ec.fieldContext_PaymentMethod_accountName(ctx, field)
 			case "accountNumberLast4":
 				return ec.fieldContext_PaymentMethod_accountNumberLast4(ctx, field)
 			case "isDefault":
@@ -41556,6 +42161,65 @@ func (ec *executionContext) fieldContext_Query_paymentMethods(ctx context.Contex
 	if fc.Args, err = ec.field_Query_paymentMethods_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myPaymentMethods(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myPaymentMethods,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyPaymentMethods(ctx)
+		},
+		nil,
+		ec.marshalNPaymentMethod2ᚕᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPaymentMethodᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myPaymentMethods(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PaymentMethod_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_PaymentMethod_userId(ctx, field)
+			case "type":
+				return ec.fieldContext_PaymentMethod_type(ctx, field)
+			case "provider":
+				return ec.fieldContext_PaymentMethod_provider(ctx, field)
+			case "authorizationCode":
+				return ec.fieldContext_PaymentMethod_authorizationCode(ctx, field)
+			case "cardLast4":
+				return ec.fieldContext_PaymentMethod_cardLast4(ctx, field)
+			case "cardExpMonth":
+				return ec.fieldContext_PaymentMethod_cardExpMonth(ctx, field)
+			case "cardExpYear":
+				return ec.fieldContext_PaymentMethod_cardExpYear(ctx, field)
+			case "cardBrand":
+				return ec.fieldContext_PaymentMethod_cardBrand(ctx, field)
+			case "bankName":
+				return ec.fieldContext_PaymentMethod_bankName(ctx, field)
+			case "accountNumberLast4":
+				return ec.fieldContext_PaymentMethod_accountNumberLast4(ctx, field)
+			case "isDefault":
+				return ec.fieldContext_PaymentMethod_isDefault(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PaymentMethod_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_PaymentMethod_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PaymentMethod", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -41623,6 +42287,144 @@ func (ec *executionContext) fieldContext_Query_transaction(ctx context.Context, 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_transaction_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_transactionsByBooking(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_transactionsByBooking,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().TransactionsByBooking(ctx, fc.Args["bookingId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNTransaction2ᚕᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐTransactionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_transactionsByBooking(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Transaction_id(ctx, field)
+			case "paymentId":
+				return ec.fieldContext_Transaction_paymentId(ctx, field)
+			case "reference":
+				return ec.fieldContext_Transaction_reference(ctx, field)
+			case "type":
+				return ec.fieldContext_Transaction_type(ctx, field)
+			case "amount":
+				return ec.fieldContext_Transaction_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_Transaction_currency(ctx, field)
+			case "status":
+				return ec.fieldContext_Transaction_status(ctx, field)
+			case "description":
+				return ec.fieldContext_Transaction_description(ctx, field)
+			case "providerRef":
+				return ec.fieldContext_Transaction_providerRef(ctx, field)
+			case "providerResponse":
+				return ec.fieldContext_Transaction_providerResponse(ctx, field)
+			case "processedAt":
+				return ec.fieldContext_Transaction_processedAt(ctx, field)
+			case "failureReason":
+				return ec.fieldContext_Transaction_failureReason(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Transaction_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Transaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_transactionsByBooking_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myTransactions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myTransactions,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyTransactions(ctx, fc.Args["type"].(*domain9.TransactionType), fc.Args["status"].(*domain9.TransactionStatus), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNTransaction2ᚕᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐTransactionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myTransactions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Transaction_id(ctx, field)
+			case "paymentId":
+				return ec.fieldContext_Transaction_paymentId(ctx, field)
+			case "reference":
+				return ec.fieldContext_Transaction_reference(ctx, field)
+			case "type":
+				return ec.fieldContext_Transaction_type(ctx, field)
+			case "amount":
+				return ec.fieldContext_Transaction_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_Transaction_currency(ctx, field)
+			case "status":
+				return ec.fieldContext_Transaction_status(ctx, field)
+			case "description":
+				return ec.fieldContext_Transaction_description(ctx, field)
+			case "providerRef":
+				return ec.fieldContext_Transaction_providerRef(ctx, field)
+			case "providerResponse":
+				return ec.fieldContext_Transaction_providerResponse(ctx, field)
+			case "processedAt":
+				return ec.fieldContext_Transaction_processedAt(ctx, field)
+			case "failureReason":
+				return ec.fieldContext_Transaction_failureReason(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Transaction_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Transaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myTransactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -41763,15 +42565,14 @@ func (ec *executionContext) fieldContext_Query_payoutDetail(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_payoutDetails(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_myPayoutDetails(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_payoutDetails,
+		ec.fieldContext_Query_myPayoutDetails,
 		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().PayoutDetails(ctx, fc.Args["businessId"].(uuid.UUID))
+			return ec.resolvers.Query().MyPayoutDetails(ctx)
 		},
 		nil,
 		ec.marshalNPayoutDetail2ᚕᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPayoutDetailᚄ,
@@ -41780,7 +42581,61 @@ func (ec *executionContext) _Query_payoutDetails(ctx context.Context, field grap
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_payoutDetails(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_myPayoutDetails(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PayoutDetail_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_PayoutDetail_userId(ctx, field)
+			case "businessId":
+				return ec.fieldContext_PayoutDetail_businessId(ctx, field)
+			case "recipientCode":
+				return ec.fieldContext_PayoutDetail_recipientCode(ctx, field)
+			case "bankCode":
+				return ec.fieldContext_PayoutDetail_bankCode(ctx, field)
+			case "bankName":
+				return ec.fieldContext_PayoutDetail_bankName(ctx, field)
+			case "accountNumber":
+				return ec.fieldContext_PayoutDetail_accountNumber(ctx, field)
+			case "accountName":
+				return ec.fieldContext_PayoutDetail_accountName(ctx, field)
+			case "isActive":
+				return ec.fieldContext_PayoutDetail_isActive(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PayoutDetail_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_PayoutDetail_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PayoutDetail", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_payoutDetailsByUserId(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_payoutDetailsByUserId,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PayoutDetailsByUserID(ctx, fc.Args["userId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNPayoutDetail2ᚕᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPayoutDetailᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_payoutDetailsByUserId(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -41821,7 +42676,7 @@ func (ec *executionContext) fieldContext_Query_payoutDetails(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_payoutDetails_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_payoutDetailsByUserId_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -41946,6 +42801,55 @@ func (ec *executionContext) fieldContext_Query_userWallets(ctx context.Context, 
 	if fc.Args, err = ec.field_Query_userWallets_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myWallets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myWallets,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyWallets(ctx)
+		},
+		nil,
+		ec.marshalNWallet2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myWallets(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Wallet_id(ctx, field)
+			case "ownerType":
+				return ec.fieldContext_Wallet_ownerType(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_Wallet_ownerId(ctx, field)
+			case "walletType":
+				return ec.fieldContext_Wallet_walletType(ctx, field)
+			case "balance":
+				return ec.fieldContext_Wallet_balance(ctx, field)
+			case "currency":
+				return ec.fieldContext_Wallet_currency(ctx, field)
+			case "status":
+				return ec.fieldContext_Wallet_status(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Wallet_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Wallet_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Wallet", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -42082,6 +42986,71 @@ func (ec *executionContext) fieldContext_Query_walletLedger(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_myWalletLedger(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myWalletLedger,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyWalletLedger(ctx, fc.Args["walletId"].(uuid.UUID), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNLedgerEntry2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myWalletLedger(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_LedgerEntry_id(ctx, field)
+			case "transactionId":
+				return ec.fieldContext_LedgerEntry_transactionId(ctx, field)
+			case "reference":
+				return ec.fieldContext_LedgerEntry_reference(ctx, field)
+			case "debitWalletId":
+				return ec.fieldContext_LedgerEntry_debitWalletId(ctx, field)
+			case "creditWalletId":
+				return ec.fieldContext_LedgerEntry_creditWalletId(ctx, field)
+			case "amount":
+				return ec.fieldContext_LedgerEntry_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_LedgerEntry_currency(ctx, field)
+			case "resourceType":
+				return ec.fieldContext_LedgerEntry_resourceType(ctx, field)
+			case "resourceId":
+				return ec.fieldContext_LedgerEntry_resourceId(ctx, field)
+			case "memo":
+				return ec.fieldContext_LedgerEntry_memo(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_LedgerEntry_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type LedgerEntry", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myWalletLedger_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_disbursement(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -42188,6 +43157,341 @@ func (ec *executionContext) fieldContext_Query_myEarnings(_ context.Context, fie
 			}
 			return nil, fmt.Errorf("no field named %q was found under type EarningsSummary", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myDisbursements(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myDisbursements,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyDisbursements(ctx, fc.Args["status"].(*domain6.DisbursementStatus), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNDisbursement2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myDisbursements(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Disbursement_id(ctx, field)
+			case "walletId":
+				return ec.fieldContext_Disbursement_walletId(ctx, field)
+			case "transactionId":
+				return ec.fieldContext_Disbursement_transactionId(ctx, field)
+			case "amount":
+				return ec.fieldContext_Disbursement_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_Disbursement_currency(ctx, field)
+			case "status":
+				return ec.fieldContext_Disbursement_status(ctx, field)
+			case "provider":
+				return ec.fieldContext_Disbursement_provider(ctx, field)
+			case "transferCode":
+				return ec.fieldContext_Disbursement_transferCode(ctx, field)
+			case "attempts":
+				return ec.fieldContext_Disbursement_attempts(ctx, field)
+			case "nextRetryAt":
+				return ec.fieldContext_Disbursement_nextRetryAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Disbursement_completedAt(ctx, field)
+			case "failureReason":
+				return ec.fieldContext_Disbursement_failureReason(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Disbursement_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Disbursement_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Disbursement", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myDisbursements_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myFinanceTransactions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myFinanceTransactions,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyFinanceTransactions(ctx, fc.Args["type"].(*domain6.TransactionType), fc.Args["status"].(*domain6.TransactionStatus), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNFinanceTransaction2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myFinanceTransactions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_FinanceTransaction_id(ctx, field)
+			case "type":
+				return ec.fieldContext_FinanceTransaction_type(ctx, field)
+			case "status":
+				return ec.fieldContext_FinanceTransaction_status(ctx, field)
+			case "resourceType":
+				return ec.fieldContext_FinanceTransaction_resourceType(ctx, field)
+			case "resourceId":
+				return ec.fieldContext_FinanceTransaction_resourceId(ctx, field)
+			case "paymentId":
+				return ec.fieldContext_FinanceTransaction_paymentId(ctx, field)
+			case "amount":
+				return ec.fieldContext_FinanceTransaction_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_FinanceTransaction_currency(ctx, field)
+			case "metadata":
+				return ec.fieldContext_FinanceTransaction_metadata(ctx, field)
+			case "ledgerEntries":
+				return ec.fieldContext_FinanceTransaction_ledgerEntries(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_FinanceTransaction_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_FinanceTransaction_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type FinanceTransaction", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myFinanceTransactions_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_businessWallets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_businessWallets,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BusinessWallets(ctx, fc.Args["businessId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNWallet2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐWalletᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_businessWallets(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Wallet_id(ctx, field)
+			case "ownerType":
+				return ec.fieldContext_Wallet_ownerType(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_Wallet_ownerId(ctx, field)
+			case "walletType":
+				return ec.fieldContext_Wallet_walletType(ctx, field)
+			case "balance":
+				return ec.fieldContext_Wallet_balance(ctx, field)
+			case "currency":
+				return ec.fieldContext_Wallet_currency(ctx, field)
+			case "status":
+				return ec.fieldContext_Wallet_status(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Wallet_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Wallet_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Wallet", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_businessWallets_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_businessWalletLedger(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_businessWalletLedger,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BusinessWalletLedger(ctx, fc.Args["walletId"].(uuid.UUID), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNLedgerEntry2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐLedgerEntryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_businessWalletLedger(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_LedgerEntry_id(ctx, field)
+			case "transactionId":
+				return ec.fieldContext_LedgerEntry_transactionId(ctx, field)
+			case "reference":
+				return ec.fieldContext_LedgerEntry_reference(ctx, field)
+			case "debitWalletId":
+				return ec.fieldContext_LedgerEntry_debitWalletId(ctx, field)
+			case "creditWalletId":
+				return ec.fieldContext_LedgerEntry_creditWalletId(ctx, field)
+			case "amount":
+				return ec.fieldContext_LedgerEntry_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_LedgerEntry_currency(ctx, field)
+			case "resourceType":
+				return ec.fieldContext_LedgerEntry_resourceType(ctx, field)
+			case "resourceId":
+				return ec.fieldContext_LedgerEntry_resourceId(ctx, field)
+			case "memo":
+				return ec.fieldContext_LedgerEntry_memo(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_LedgerEntry_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type LedgerEntry", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_businessWalletLedger_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_businessDisbursements(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_businessDisbursements,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BusinessDisbursements(ctx, fc.Args["businessId"].(uuid.UUID), fc.Args["status"].(*domain6.DisbursementStatus), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNDisbursement2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_businessDisbursements(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Disbursement_id(ctx, field)
+			case "walletId":
+				return ec.fieldContext_Disbursement_walletId(ctx, field)
+			case "transactionId":
+				return ec.fieldContext_Disbursement_transactionId(ctx, field)
+			case "amount":
+				return ec.fieldContext_Disbursement_amount(ctx, field)
+			case "currency":
+				return ec.fieldContext_Disbursement_currency(ctx, field)
+			case "status":
+				return ec.fieldContext_Disbursement_status(ctx, field)
+			case "provider":
+				return ec.fieldContext_Disbursement_provider(ctx, field)
+			case "transferCode":
+				return ec.fieldContext_Disbursement_transferCode(ctx, field)
+			case "attempts":
+				return ec.fieldContext_Disbursement_attempts(ctx, field)
+			case "nextRetryAt":
+				return ec.fieldContext_Disbursement_nextRetryAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Disbursement_completedAt(ctx, field)
+			case "failureReason":
+				return ec.fieldContext_Disbursement_failureReason(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Disbursement_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Disbursement_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Disbursement", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_businessDisbursements_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -62843,6 +64147,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "setDefaultPayoutDetail":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setDefaultPayoutDetail(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "deactivatePayoutDetail":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deactivatePayoutDetail(ctx, field)
@@ -63618,39 +64929,6 @@ func (ec *executionContext) _PaymentMethod(ctx context.Context, sel ast.Selectio
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "bankName":
 			out.Values[i] = ec._PaymentMethod_bankName(ctx, field, obj)
-		case "accountName":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._PaymentMethod_accountName(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "accountNumberLast4":
 			field := field
 
@@ -65462,6 +66740,47 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "paymentByReference":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_paymentByReference(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myPayments":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myPayments(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "payments":
 			field := field
 
@@ -65525,6 +66844,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myPaymentMethods":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myPaymentMethods(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "transaction":
 			field := field
 
@@ -65535,6 +66876,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_transaction(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "transactionsByBooking":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_transactionsByBooking(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myTransactions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myTransactions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -65585,7 +66970,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "payoutDetails":
+		case "myPayoutDetails":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -65594,7 +66979,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_payoutDetails(ctx, field)
+				res = ec._Query_myPayoutDetails(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "payoutDetailsByUserId":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_payoutDetailsByUserId(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -65636,6 +67043,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_userWallets(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myWallets":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myWallets(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -65692,6 +67121,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myWalletLedger":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myWalletLedger(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "disbursement":
 			field := field
 
@@ -65721,6 +67172,116 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_myEarnings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myDisbursements":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myDisbursements(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myFinanceTransactions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myFinanceTransactions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "businessWallets":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_businessWallets(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "businessWalletLedger":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_businessWalletLedger(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "businessDisbursements":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_businessDisbursements(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -70719,6 +72280,60 @@ func (ec *executionContext) marshalNDayOfWeek2hausletᚋinternalᚋtransportᚋg
 	return v
 }
 
+func (ec *executionContext) marshalNDisbursement2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain6.Disbursement) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDisbursement2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursement(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNDisbursement2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursement(ctx context.Context, sel ast.SelectionSet, v *domain6.Disbursement) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Disbursement(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNDisbursementStatus2hausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementStatus(ctx context.Context, v any) (domain6.DisbursementStatus, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain6.DisbursementStatus(tmp)
@@ -74422,6 +76037,25 @@ func (ec *executionContext) marshalODisbursement2ᚖhausletᚋinternalᚋmodules
 	return ec._Disbursement(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalODisbursementStatus2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementStatus(ctx context.Context, v any) (*domain6.DisbursementStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain6.DisbursementStatus(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalODisbursementStatus2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementStatus(ctx context.Context, sel ast.SelectionSet, v *domain6.DisbursementStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
+}
+
 func (ec *executionContext) marshalODiscountSnapshot2ᚕhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐDiscountSnapshotᚄ(ctx context.Context, sel ast.SelectionSet, v []domain7.DiscountSnapshot) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -74657,6 +76291,44 @@ func (ec *executionContext) marshalOFeedSectionType2ᚕhausletᚋinternalᚋmodu
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalOFinanceTransactionStatus2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionStatus(ctx context.Context, v any) (*domain6.TransactionStatus, error) {
+	if v == nil {
+		return nil, nil
+	}
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain6.TransactionStatus(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFinanceTransactionStatus2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionStatus(ctx context.Context, sel ast.SelectionSet, v *domain6.TransactionStatus) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
+}
+
+func (ec *executionContext) unmarshalOFinanceTransactionType2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionType(ctx context.Context, v any) (*domain6.TransactionType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain6.TransactionType(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFinanceTransactionType2ᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐTransactionType(ctx context.Context, sel ast.SelectionSet, v *domain6.TransactionType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
 }
 
 func (ec *executionContext) unmarshalOFloat2float64(ctx context.Context, v any) (float64, error) {

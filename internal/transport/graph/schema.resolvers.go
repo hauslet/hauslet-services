@@ -598,6 +598,11 @@ func (r *mutationResolver) CreatePayoutDetail(ctx context.Context, input graphql
 	return r.PaymentsResolver.AddPayoutDetail(ctx, &input)
 }
 
+// SetDefaultPayoutDetail is the resolver for the setDefaultPayoutDetail field.
+func (r *mutationResolver) SetDefaultPayoutDetail(ctx context.Context, id uuid.UUID) (*domain6.PayoutDetail, error) {
+	return r.PaymentsResolver.SetDefaultPayoutDetail(ctx, id.String())
+}
+
 // DeactivatePayoutDetail is the resolver for the deactivatePayoutDetail field.
 func (r *mutationResolver) DeactivatePayoutDetail(ctx context.Context, id uuid.UUID) (*domain6.PayoutDetail, error) {
 	return r.PaymentsResolver.DeactivatePayoutDetail(ctx, id.String())
@@ -829,12 +834,6 @@ func (r *paymentMethodResolver) CardExpYear(ctx context.Context, obj *domain6.Pa
 // CardBrand is the resolver for the cardBrand field.
 func (r *paymentMethodResolver) CardBrand(ctx context.Context, obj *domain6.PaymentMethod) (*string, error) {
 	return obj.Brand, nil
-}
-
-// AccountName is the resolver for the accountName field.
-func (r *paymentMethodResolver) AccountName(ctx context.Context, obj *domain6.PaymentMethod) (*string, error) {
-	// Bank account name not currently tracked in PaymentMethod domain
-	return nil, nil
 }
 
 // AccountNumberLast4 is the resolver for the accountNumberLast4 field.
@@ -1149,7 +1148,7 @@ func (r *queryResolver) Booking(ctx context.Context, id uuid.UUID) (*domain5.Boo
 
 // BookingByReference is the resolver for the bookingByReference field.
 func (r *queryResolver) BookingByReference(ctx context.Context, reference string) (*domain5.Booking, error) {
-	panic(fmt.Errorf("not implemented: BookingByReference - bookingByReference"))
+	return r.BookingResolver.BookingByReference(ctx, reference)
 }
 
 // MyBookings is the resolver for the myBookings field.
@@ -1195,6 +1194,25 @@ func (r *queryResolver) CheckListingAvailability(ctx context.Context, listingID 
 // Payment is the resolver for the payment field.
 func (r *queryResolver) Payment(ctx context.Context, id uuid.UUID) (*domain6.Payment, error) {
 	return r.PaymentsResolver.Payment(ctx, id.String())
+}
+
+// PaymentByReference is the resolver for the paymentByReference field.
+func (r *queryResolver) PaymentByReference(ctx context.Context, reference string) (*domain6.Payment, error) {
+	return r.PaymentsResolver.PaymentByReference(ctx, reference)
+}
+
+// MyPayments is the resolver for the myPayments field.
+func (r *queryResolver) MyPayments(ctx context.Context, limit *int, offset *int, status *domain6.PaymentStatus) ([]*domain6.Payment, error) {
+	payments, err := r.PaymentsResolver.MyPayments(ctx, limit, offset, status)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*domain6.Payment, len(payments))
+	for i := range payments {
+		result[i] = &payments[i]
+	}
+	return result, nil
 }
 
 // Payments is the resolver for the payments field.
@@ -1246,9 +1264,51 @@ func (r *queryResolver) PaymentMethods(ctx context.Context, userID uuid.UUID) ([
 	return result, nil
 }
 
+// MyPaymentMethods is the resolver for the myPaymentMethods field.
+func (r *queryResolver) MyPaymentMethods(ctx context.Context) ([]*domain6.PaymentMethod, error) {
+	methods, err := r.PaymentsResolver.MyPaymentMethods(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*domain6.PaymentMethod, len(methods))
+	for i := range methods {
+		result[i] = &methods[i]
+	}
+	return result, nil
+}
+
 // Transaction is the resolver for the transaction field.
 func (r *queryResolver) Transaction(ctx context.Context, id uuid.UUID) (*domain6.Transaction, error) {
 	return r.PaymentsResolver.Transaction(ctx, id.String())
+}
+
+// TransactionsByBooking is the resolver for the transactionsByBooking field.
+func (r *queryResolver) TransactionsByBooking(ctx context.Context, bookingID uuid.UUID) ([]*domain6.Transaction, error) {
+	transactions, err := r.PaymentsResolver.TransactionsByBooking(ctx, bookingID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*domain6.Transaction, len(transactions))
+	for i := range transactions {
+		result[i] = &transactions[i]
+	}
+	return result, nil
+}
+
+// MyTransactions is the resolver for the myTransactions field.
+func (r *queryResolver) MyTransactions(ctx context.Context, typeArg *domain6.TransactionType, status *domain6.TransactionStatus, limit *int, offset *int) ([]*domain6.Transaction, error) {
+	transactions, err := r.PaymentsResolver.MyTransactions(ctx, typeArg, status, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*domain6.Transaction, len(transactions))
+	for i := range transactions {
+		result[i] = &transactions[i]
+	}
+	return result, nil
 }
 
 // Transactions is the resolver for the transactions field.
@@ -1277,13 +1337,27 @@ func (r *queryResolver) PayoutDetail(ctx context.Context, id uuid.UUID) (*domain
 	return r.PaymentsResolver.GetPayoutDetail(ctx, id.String())
 }
 
-// PayoutDetails is the resolver for the payoutDetails field.
-func (r *queryResolver) PayoutDetails(ctx context.Context, businessID uuid.UUID) ([]*domain6.PayoutDetail, error) {
+// MyPayoutDetails is the resolver for the myPayoutDetails field.
+func (r *queryResolver) MyPayoutDetails(ctx context.Context) ([]*domain6.PayoutDetail, error) {
 	details, err := r.PaymentsResolver.MyPayoutDetails(ctx)
 	if err != nil {
 		return nil, err
 	}
 	// Convert []PayoutDetail to []*PayoutDetail
+	result := make([]*domain6.PayoutDetail, len(details))
+	for i := range details {
+		result[i] = &details[i]
+	}
+	return result, nil
+}
+
+// PayoutDetailsByUserID is the resolver for the payoutDetailsByUserId field.
+func (r *queryResolver) PayoutDetailsByUserID(ctx context.Context, userID uuid.UUID) ([]*domain6.PayoutDetail, error) {
+	details, err := r.PaymentsResolver.PayoutDetailsByUserID(ctx, userID.String())
+	if err != nil {
+		return nil, err
+	}
+
 	result := make([]*domain6.PayoutDetail, len(details))
 	for i := range details {
 		result[i] = &details[i]
@@ -1301,6 +1375,11 @@ func (r *queryResolver) UserWallets(ctx context.Context, userID uuid.UUID) ([]*d
 	return r.FinanceResolver.UserWallets(ctx, userID.String())
 }
 
+// MyWallets is the resolver for the myWallets field.
+func (r *queryResolver) MyWallets(ctx context.Context) ([]*domain7.Wallet, error) {
+	return r.FinanceResolver.MyWallets(ctx)
+}
+
 // FinanceTransactionHistory is the resolver for the financeTransactionHistory field.
 func (r *queryResolver) FinanceTransactionHistory(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*domain7.Transaction, error) {
 	return r.FinanceResolver.FinanceTransactionHistory(ctx, resourceType, resourceID.String())
@@ -1311,6 +1390,11 @@ func (r *queryResolver) WalletLedger(ctx context.Context, walletID uuid.UUID, li
 	return r.FinanceResolver.WalletLedger(ctx, walletID.String(), limit, offset)
 }
 
+// MyWalletLedger is the resolver for the myWalletLedger field.
+func (r *queryResolver) MyWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain7.LedgerEntry, error) {
+	return r.FinanceResolver.MyWalletLedger(ctx, walletID.String(), limit, offset)
+}
+
 // Disbursement is the resolver for the disbursement field.
 func (r *queryResolver) Disbursement(ctx context.Context, id uuid.UUID) (*domain7.Disbursement, error) {
 	return r.FinanceResolver.Disbursement(ctx, id.String())
@@ -1319,6 +1403,31 @@ func (r *queryResolver) Disbursement(ctx context.Context, id uuid.UUID) (*domain
 // MyEarnings is the resolver for the myEarnings field.
 func (r *queryResolver) MyEarnings(ctx context.Context) (*graphql2.EarningsSummary, error) {
 	return r.FinanceResolver.MyEarnings(ctx)
+}
+
+// MyDisbursements is the resolver for the myDisbursements field.
+func (r *queryResolver) MyDisbursements(ctx context.Context, status *domain7.DisbursementStatus, limit *int, offset *int) ([]*domain7.Disbursement, error) {
+	return r.FinanceResolver.MyDisbursements(ctx, status, limit, offset)
+}
+
+// MyFinanceTransactions is the resolver for the myFinanceTransactions field.
+func (r *queryResolver) MyFinanceTransactions(ctx context.Context, typeArg *domain7.TransactionType, status *domain7.TransactionStatus, limit *int, offset *int) ([]*domain7.Transaction, error) {
+	return r.FinanceResolver.MyFinanceTransactions(ctx, typeArg, status, limit, offset)
+}
+
+// BusinessWallets is the resolver for the businessWallets field.
+func (r *queryResolver) BusinessWallets(ctx context.Context, businessID uuid.UUID) ([]*domain7.Wallet, error) {
+	return r.FinanceResolver.BusinessWallets(ctx, businessID.String())
+}
+
+// BusinessWalletLedger is the resolver for the businessWalletLedger field.
+func (r *queryResolver) BusinessWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain7.LedgerEntry, error) {
+	return r.FinanceResolver.BusinessWalletLedger(ctx, walletID.String(), limit, offset)
+}
+
+// BusinessDisbursements is the resolver for the businessDisbursements field.
+func (r *queryResolver) BusinessDisbursements(ctx context.Context, businessID uuid.UUID, status *domain7.DisbursementStatus, limit *int, offset *int) ([]*domain7.Disbursement, error) {
+	return r.FinanceResolver.BusinessDisbursements(ctx, businessID.String(), status, limit, offset)
 }
 
 // Dispute is the resolver for the dispute field.
@@ -2084,3 +2193,16 @@ type createPaymentMethodInputResolver struct{ *Resolver }
 type createPayoutInputResolver struct{ *Resolver }
 type createReviewInputResolver struct{ *Resolver }
 type refundPaymentInputResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *paymentMethodResolver) AccountName(ctx context.Context, obj *domain6.PaymentMethod) (*string, error) {
+	// Bank account name not currently tracked in PaymentMethod domain
+	return nil, nil
+}
+*/

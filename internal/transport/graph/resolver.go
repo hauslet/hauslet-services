@@ -83,7 +83,7 @@ func NewResolver(
 		PropertyResolver:     propertygraphql.NewResolver(propertySvc, &appCfg.Storage, fxClient, log),
 		BusinessResolver:     businessgraphql.NewResolver(businessSvc, log),
 		PaymentsResolver:     paymentsgraphql.NewResolver(paymentsSvc, log),
-		FinanceResolver:      financegraphql.NewResolver(financeSvc, payoutSvc, log),
+		FinanceResolver:      financegraphql.NewResolver(financeSvc, payoutSvc, businessSvc, log),
 		BookingResolver:      bookinggraphql.NewResolver(bookingSvc, fxClient, log),
 		CalendarResolver:     calendargraphql.NewResolver(calendarSvc, log),
 		WishlistResolver:     wishlistgraphql.NewResolver(wishlistSvc, log),

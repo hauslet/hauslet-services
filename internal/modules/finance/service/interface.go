@@ -27,6 +27,9 @@ type WalletService interface {
 
 	// ListUserWallets returns all wallets for a given user
 	ListUserWallets(ctx context.Context, userID uuid.UUID) ([]*domain.Wallet, error)
+
+	// ListOwnerWallets returns all wallets for a given owner
+	ListOwnerWallets(ctx context.Context, ownerType domain.OwnerType, ownerID uuid.UUID) ([]*domain.Wallet, error)
 }
 
 // LedgerService handles financial transactions using double-entry bookkeeping
@@ -52,6 +55,9 @@ type LedgerService interface {
 
 	// GetWalletHistory returns ledger entries for a wallet
 	GetWalletHistory(ctx context.Context, walletID uuid.UUID, limit, offset int) ([]*domain.LedgerEntry, error)
+
+	// ListTransactionsByOwner returns transactions for a user or business
+	ListTransactionsByOwner(ctx context.Context, ownerType domain.OwnerType, ownerID uuid.UUID, txType *domain.TransactionType, status *domain.TransactionStatus, limit, offset int) ([]*domain.Transaction, error)
 }
 
 // PayoutService defines operations for automated host payouts
@@ -73,6 +79,9 @@ type PayoutService interface {
 
 	// UpdateDisbursementStatus updates disbursement status (called by webhooks)
 	UpdateDisbursementStatus(ctx context.Context, disbursementID uuid.UUID, status domain.DisbursementStatus, response *string) error
+
+	// ListDisbursementsByOwner lists disbursements for a user or business
+	ListDisbursementsByOwner(ctx context.Context, ownerType domain.OwnerType, ownerID uuid.UUID, status *domain.DisbursementStatus, limit, offset int) ([]*domain.Disbursement, error)
 }
 
 // BookingHooks defines callbacks for payout service to update booking status

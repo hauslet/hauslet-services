@@ -71,7 +71,6 @@ type PaymentMethod {
   cardExpYear: Int
   cardBrand: String
   bankName: String
-  accountName: String
   accountNumberLast4: String
   isDefault: Boolean!
   createdAt: Time!
@@ -160,6 +159,8 @@ input CreatePayoutInput {
 
 extend type Query {
   payment(id: UUID!): Payment
+  paymentByReference(reference: String!): Payment
+  myPayments(limit: Int, offset: Int, status: PaymentStatus): [Payment!]!
   payments(
     bookingId: UUID
     businessId: UUID
@@ -171,8 +172,16 @@ extend type Query {
 
   paymentMethod(id: UUID!): PaymentMethod
   paymentMethods(userId: UUID!): [PaymentMethod!]!
+  myPaymentMethods: [PaymentMethod!]!
 
   transaction(id: UUID!): Transaction
+  transactionsByBooking(bookingId: UUID!): [Transaction!]!
+  myTransactions(
+    type: TransactionType
+    status: TransactionStatus
+    limit: Int
+    offset: Int
+  ): [Transaction!]!
   transactions(
     paymentId: UUID
     type: TransactionType
@@ -182,7 +191,8 @@ extend type Query {
   ): [Transaction!]!
 
   payoutDetail(id: UUID!): PayoutDetail
-  payoutDetails(businessId: UUID!): [PayoutDetail!]!
+  myPayoutDetails: [PayoutDetail!]!
+  payoutDetailsByUserId(userId: UUID!): [PayoutDetail!]!
 }
 
 extend type Mutation {
@@ -198,6 +208,7 @@ extend type Mutation {
 
   # Payout mutations
   createPayoutDetail(input: AddPayoutDetailInput!): PayoutDetail!
+  setDefaultPayoutDetail(id: UUID!): PayoutDetail!
   deactivatePayoutDetail(id: UUID!): PayoutDetail!
   createPayout(input: CreatePayoutInput!): Transaction!
 }

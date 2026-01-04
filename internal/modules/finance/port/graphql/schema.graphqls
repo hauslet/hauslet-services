@@ -105,6 +105,9 @@ extend type Query {
   # Admin: List all wallets for a user
   userWallets(userId: UUID!): [Wallet!]!
 
+  # Host: List wallets owned by the current user
+  myWallets: [Wallet!]!
+
   # Admin/Host: View transaction history for a resource (booking, payment, etc)
   financeTransactionHistory(
     resourceType: String!
@@ -118,11 +121,51 @@ extend type Query {
     offset: Int
   ): [LedgerEntry!]!
 
+  # Host: View own wallet ledger
+  myWalletLedger(
+    walletId: UUID!
+    limit: Int
+    offset: Int
+  ): [LedgerEntry!]!
+
   # Admin/Host: View disbursement status
   disbursement(id: UUID!): Disbursement
 
   # Host: My earnings summary (requires authentication)
   myEarnings: EarningsSummary!
+
+  # Host: View payout disbursements for current user
+  myDisbursements(
+    status: DisbursementStatus
+    limit: Int
+    offset: Int
+  ): [Disbursement!]!
+
+  # Host: View finance transactions for current user
+  myFinanceTransactions(
+    type: FinanceTransactionType
+    status: FinanceTransactionStatus
+    limit: Int
+    offset: Int
+  ): [FinanceTransaction!]!
+
+  # Business Host: List wallets owned by a business
+  businessWallets(businessId: UUID!): [Wallet!]!
+
+  # Business Host: View a business wallet ledger
+  businessWalletLedger(
+    walletId: UUID!
+    limit: Int
+    offset: Int
+  ): [LedgerEntry!]!
+
+  # Business Host: View payout disbursements for a business
+  businessDisbursements(
+    businessId: UUID!
+    status: DisbursementStatus
+    limit: Int
+    offset: Int
+  ): [Disbursement!]!
 }
 
 # ========================================================================
