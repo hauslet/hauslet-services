@@ -202,7 +202,8 @@ func (s *BookingServiceImpl) ReserveBooking(
 	}
 
 	// Persist booking
-	if err := s.repo.CreateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
+	schemaBooking := domain.MapBookingFromDomain(booking)
+	if err := s.repo.CreateBooking(ctx, schemaBooking); err != nil {
 		if s.log != nil {
 			s.log.Error("failed to persist booking", "error", err)
 		}
@@ -212,6 +213,8 @@ func (s *BookingServiceImpl) ReserveBooking(
 		}
 		return nil, nil, err
 	}
+
+	booking.BookingReference = schemaBooking.BookingReference
 
 	// Initiate payment immediately
 	if s.payment == nil {

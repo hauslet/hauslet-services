@@ -187,7 +187,8 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		booking.MarkAwaitingPayment(holdExpiry)
 	}
 
-	if err := s.repo.CreateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
+	schemaBooking := domain.MapBookingFromDomain(booking)
+	if err := s.repo.CreateBooking(ctx, schemaBooking); err != nil {
 		if s.log != nil {
 			s.log.Error("failed to persist booking, rolling back calendar event", "error", err)
 		}
@@ -195,6 +196,7 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		return nil, err
 	}
 
+	booking.BookingReference = schemaBooking.BookingReference
 	s.notifyBookingCreation(ctx, booking, ownerID)
 
 	return booking, nil

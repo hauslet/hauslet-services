@@ -44,7 +44,7 @@ func (s *CalendarServiceImpl) cacheEvent(ctx context.Context, event *domain.Cale
 	}
 
 	key := eventCacheKey(event.ID)
-	if err := s.cache.Set(ctx, key, data, eventCacheTTL); err != nil {
+	if err := s.cache.Set(ctx, key, data, eventCacheTTL).Err(); err != nil {
 		if s.log != nil {
 			s.log.Warn("failed to cache event", "error", err)
 		}
@@ -65,7 +65,7 @@ func (s *CalendarServiceImpl) cacheAvailability(ctx context.Context, listingID u
 	}
 
 	key := availabilityCacheKey(listingID, startTime, endTime)
-	if err := s.cache.Set(ctx, key, data, availabilityCacheTTL); err != nil {
+	if err := s.cache.Set(ctx, key, data, availabilityCacheTTL).Err(); err != nil {
 		if s.log != nil {
 			s.log.Warn("failed to cache availability", "error", err)
 		}
@@ -99,7 +99,7 @@ func (s *CalendarServiceImpl) invalidateEventCache(ctx context.Context, eventID 
 	}
 
 	key := eventCacheKey(eventID)
-	if err := s.cache.Del(ctx, key); err != nil {
+	if err := s.cache.Del(ctx, key).Err(); err != nil {
 		if s.log != nil {
 			s.log.Warn("failed to invalidate event cache", "error", err)
 		}

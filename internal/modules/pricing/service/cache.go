@@ -52,7 +52,7 @@ func (s *PricingServiceImpl) cacheBasePrice(ctx context.Context, listingID uuid.
 	}
 
 	key := basePriceCacheKey(listingID)
-	if err := s.cache.Set(ctx, key, bytes, basePriceCacheTTL); err != nil {
+	if err := s.cache.Set(ctx, key, bytes, basePriceCacheTTL).Err(); err != nil {
 		if s.log != nil {
 			s.log.Warn("failed to cache base price", "error", err)
 		}
@@ -73,7 +73,7 @@ func (s *PricingServiceImpl) cachePriceBreakdown(ctx context.Context, breakdown 
 	}
 
 	key := breakdownCacheKey(breakdown.ListingID, breakdown.CheckIn, breakdown.CheckOut)
-	if err := s.cache.Set(ctx, key, data, breakdownCacheTTL); err != nil {
+	if err := s.cache.Set(ctx, key, data, breakdownCacheTTL).Err(); err != nil {
 		if s.log != nil {
 			s.log.Warn("failed to cache price breakdown", "error", err)
 		}
@@ -108,7 +108,7 @@ func (s *PricingServiceImpl) invalidatePriceCaches(ctx context.Context, listingI
 
 	// Invalidate base price
 	baseKey := basePriceCacheKey(listingID)
-	if err := s.cache.Del(ctx, baseKey); err != nil {
+	if err := s.cache.Del(ctx, baseKey).Err(); err != nil {
 		if s.log != nil {
 			s.log.Warn("failed to invalidate base price cache", "error", err)
 		}
