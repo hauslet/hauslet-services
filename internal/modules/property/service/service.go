@@ -17,15 +17,18 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 		return domain.ErrInvalidListingID
 	}
 
-	if err := s.authorizeSupplyAction(ctx, authorization.SupplyActionPublishListing, nil); err != nil {
-		return err
-	}
-
 	s.log.Info("starting publish request for listing", "listing_id", listingID)
 
 	listing, err := s.ensureListing(ctx, listingID, true)
 	if err != nil {
 		s.log.Error("failed to fetch listing", "listing_id", listingID, "error", err)
+		return err
+	}
+
+	if err := s.authorizeSupplyAction(ctx, authorization.SupplyActionPublishListing,
+		&authorization.SupplyOptions{
+			ListingType: string(listing.ListingType),
+		}); err != nil {
 		return err
 	}
 

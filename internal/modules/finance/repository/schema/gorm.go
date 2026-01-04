@@ -63,7 +63,7 @@ type Transaction struct {
 
 // TableName specifies the table name for Transaction
 func (Transaction) TableName() string {
-	return "transactions"
+	return "finance_transactions"
 }
 
 // Disbursement represents a payout disbursement in the database

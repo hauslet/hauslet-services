@@ -3,6 +3,7 @@ package authorization
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	profiledomain "hauslet/internal/modules/profile/domain"
@@ -126,16 +127,17 @@ func (g *SupplyGateImpl) hasSupplyType(types []profiledomain.UserType) bool {
 }
 
 func (g *SupplyGateImpl) hasSpecificType(types []profiledomain.UserType, target profiledomain.UserType) bool {
-	for _, t := range types {
-		if t == target {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(types, target)
 }
 
 func (g *SupplyGateImpl) isShortletHostBypass(action SupplyAction, opts *SupplyOptions, types []profiledomain.UserType) bool {
-	if action != SupplyActionCreateListing || opts == nil {
+	if opts == nil {
+		return false
+	}
+	switch action {
+	case SupplyActionCreateListing, SupplyActionPublishListing:
+		// allow
+	default:
 		return false
 	}
 	listingType := strings.ToLower(strings.TrimSpace(opts.ListingType))
