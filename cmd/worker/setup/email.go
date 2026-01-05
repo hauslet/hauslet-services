@@ -18,6 +18,7 @@ func InitializeEmailClient(cfg *config.GlobalConfig, log *slog.Logger) *email.Cl
 			cfg.Services.Email.SMTP.User,
 			cfg.Services.Email.SMTP.Pass,
 			cfg.Services.Email.From,
+			log,
 		)
 		log.Info("✅ SMTP email adapter initialized")
 	default:

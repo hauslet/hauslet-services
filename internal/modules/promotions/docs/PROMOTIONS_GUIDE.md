@@ -100,9 +100,22 @@ Subscribe to a plan and receive monthly promotion quotas. Ideal for:
 **Process:**
 
 1. Subscribe to a plan (BASIC/PROFESSIONAL/ENTERPRISE)
-2. Receive monthly promotion quota
-3. Use included promotions without additional payment
-4. Quotas reset on billing cycle renewal
+2. Optionally start with a 30-day free trial
+3. Link a payment method for automatic billing (optional for trials)
+4. Receive monthly promotion quota
+5. Use included promotions without additional payment
+6. Quotas reset on billing cycle renewal
+
+**Trial Subscriptions:**
+
+All paid plans (BASIC, PROFESSIONAL, ENTERPRISE) support a 30-day free trial period:
+
+- **No charges during trial**: Full access to plan features without payment
+- **Optional payment method**: Link a saved payment method for automatic billing when trial expires
+- **Automatic conversion**: Trial converts to paid subscription on expiry date if payment method linked
+- **Manual conversion**: If no payment method linked, you'll receive a payment link to continue
+- **Full features**: Access all plan limits and quotas during trial period
+- **One trial per user**: Each user can only use trial once per plan tier
 
 ---
 
@@ -270,28 +283,68 @@ mutation CreateIncludedPromotion($input: CreateIncludedPromotionInput!) {
 #### 3. Subscribe to Plan
 
 ```graphql
-mutation Subscribe($input: SubscribeInput!) {
-  subscribe(input: $input) {
+mutation CreateSubscription($input: CreateSubscriptionInput!) {
+  createSubscription(input: $input) {
     subscription {
       id
-      plan
+      planType
+      billingCycle
       status
-      currentPeriodEnd
-      featuredQuotaRemaining
-      premiumQuotaRemaining
+      trialEndsAt
+      nextBillingDate
+      hasPaymentMethod
+      paymentMethodID
     }
     paymentURL
+    paymentID
   }
 }
 ```
 
-**Input Variables:**
+**Input Variables (Immediate Paid Subscription):**
 
 ```json
 {
   "input": {
-    "plan": "PROFESSIONAL",
-    "billingCycle": "MONTHLY"
+    "planType": "PROFESSIONAL",
+    "billingCycle": "MONTHLY",
+    "startTrial": false
+  }
+}
+```
+
+**Input Variables (Trial with Payment Method):**
+
+```json
+{
+  "input": {
+    "planType": "PROFESSIONAL",
+    "billingCycle": "MONTHLY",
+    "startTrial": true,
+    "paymentMethodID": "pm-uuid-here"
+  }
+}
+```
+
+**Response (Trial with Payment Method):**
+
+```json
+{
+  "data": {
+    "createSubscription": {
+      "subscription": {
+        "id": "sub-uuid",
+        "planType": "PROFESSIONAL",
+        "billingCycle": "MONTHLY",
+        "status": "TRIAL",
+        "trialEndsAt": "2026-02-04T00:00:00Z",
+        "nextBillingDate": "2026-02-04T00:00:00Z",
+        "hasPaymentMethod": true,
+        "paymentMethodID": "pm-uuid-here"
+      },
+      "paymentURL": null,
+      "paymentID": null
+    }
   }
 }
 ```
@@ -334,20 +387,19 @@ query MyPromotions {
 #### 2. Get Subscription Status
 
 ```graphql
-query MySubscription {
-  mySubscription {
+query GetMySubscription {
+  getMySubscription {
     id
-    plan
-    status
+    planType
     billingCycle
-    currentPeriodEnd
-    cancelAtPeriodEnd
-    featuredQuotaTotal
-    featuredQuotaUsed
-    featuredQuotaRemaining
-    premiumQuotaTotal
-    premiumQuotaUsed
-    premiumQuotaRemaining
+    status
+    startDate
+    nextBillingDate
+    trialEndsAt
+    hasPaymentMethod
+    paymentMethodID
+    createdAt
+    updatedAt
   }
 }
 ```
@@ -751,6 +803,7 @@ User initiates upgrade → Payment processed → Status: SUCCEEDED → Upgrade a
 ```
 
 **Characteristics:**
+
 - Standard card payments without additional authentication
 - Completes in seconds
 - Upgrade applies immediately upon mutation return
@@ -765,6 +818,7 @@ Upgrade applied via webhook handler
 ```
 
 **Characteristics:**
+
 - Requires additional authentication (OTP, biometric, etc.)
 - Payment status is initially `PENDING`
 - User redirected to bank's authentication page
@@ -776,6 +830,7 @@ Upgrade applied via webhook handler
 When you call `upgradeSubscription`, you may receive:
 
 **Success Response (Instant):**
+
 ```json
 {
   "data": {
@@ -791,6 +846,7 @@ When you call `upgradeSubscription`, you may receive:
 ```
 
 **Error Response (3DS Required):**
+
 ```json
 {
   "errors": [{
@@ -804,6 +860,7 @@ When you call `upgradeSubscription`, you may receive:
 ```
 
 **What to do:**
+
 - Redirect user to `paymentURL` to complete authentication
 - Listen for payment webhook confirmation
 - Upgrade will auto-apply when payment succeeds
@@ -820,6 +877,7 @@ Backend listens for Paystack `charge.success` webhooks. When received for an upg
 5. Logs completion
 
 **Important:**
+
 - Upgrade mutations ONLY succeed for `SUCCEEDED` payments
 - `PENDING` payments must complete via webhook
 - This prevents users from accessing upgraded features without confirmed payment
@@ -913,6 +971,26 @@ query {
 
 **A:** All promotions and subscriptions are processed through Paystack, which accepts: Cards (Visa, Mastercard, Verve), Bank Transfers, USSD, and Mobile Money.
 
+### Q: How do trial subscriptions work?
+
+**A:** Trial subscriptions provide 30 days of free access to any paid plan (BASIC/PROFESSIONAL/ENTERPRISE). You can optionally link a saved payment method during trial signup. If linked, your subscription automatically converts to paid when the trial expires. If no payment method is linked, you'll receive a payment link to continue your subscription.
+
+### Q: Can I link a payment method after starting a trial?
+
+**A:** Not currently through the API. Payment methods must be linked during initial trial signup. However, you can always convert to a paid subscription manually by completing payment when your trial expires.
+
+### Q: Will I be charged immediately when linking a payment method to a trial?
+
+**A:** No. Linking a payment method during trial signup does not charge you immediately. You'll only be charged when your 30-day trial period ends, at which point your saved payment method will be automatically charged for the first billing cycle.
+
+### Q: What happens if my saved payment method fails during trial conversion?
+
+**A:** If automatic billing fails when your trial expires, your subscription status will change to PAST_DUE and you'll receive a payment link via email. Your subscription features remain accessible for a grace period while you update your payment method.
+
+### Q: Can I cancel a trial subscription before it converts to paid?
+
+**A:** Yes. Cancel your subscription anytime during the trial period. You'll continue to have access until the trial ends, but won't be charged when it expires.
+
 ---
 
 ## Technical Implementation Notes
@@ -978,6 +1056,7 @@ Webhook handlers are designed to be idempotent - processing the same webhook mul
 **Transaction Safety:**
 
 All subscription modifications (upgrade, downgrade, cancellation) are wrapped in database transactions with automatic rollback on errors. This ensures:
+
 - Payment recorded ⇔ Subscription updated (atomic)
 - No partial state (either fully upgraded or not upgraded at all)
 - Usage counters remain consistent with plan limits
@@ -1001,10 +1080,20 @@ For questions about the Promotions System:
 ---
 
 **Last Updated**: January 5, 2026
-**Document Version**: 1.1
+**Document Version**: 1.2
 **Module Version**: Hauslet Services v1.0
 
+**Changelog v1.2 (January 5, 2026):**
+
+- Added trial subscription support with payment method linking
+- Documented 30-day free trial period for all paid plans
+- Added automatic trial-to-paid conversion with saved payment methods
+- Updated GraphQL schema examples to include `paymentMethodID` and `startTrial` fields
+- Added `hasPaymentMethod` field to subscription queries
+- Added FAQ section for trial subscriptions and payment method behavior
+
 **Changelog v1.1 (January 5, 2026):**
+
 - Added instant upgrade implementation with proration details
 - Documented deferred downgrade behavior and rationale
 - Added comprehensive payment flow documentation (instant vs 3D Secure)

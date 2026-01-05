@@ -13,7 +13,9 @@ This document guides the implementation of trial subscriptions with saved paymen
 ## ✅ What's Already Implemented
 
 ### 1. Payment Module (100% Complete)
+
 The payment module already has everything needed:
+
 - ✅ `AuthorizePaymentMethod()` - Creates payment authorization without charging
 - ✅ `SavePaymentMethod()` - Stores authorization code as payment method
 - ✅ `GetDefaultPaymentMethod()` - Retrieves user's default payment method
@@ -23,12 +25,14 @@ The payment module already has everything needed:
 **Location:** `internal/modules/payments/`
 
 ### 2. Subscription Domain (100% Complete)
+
 - ✅ Added `PaymentMethodID *uuid.UUID` field
 - ✅ Added helper methods: `HasPaymentMethod()`, `LinkPaymentMethod()`, `UnlinkPaymentMethod()`
 
 **Location:** `internal/modules/promotions/domain/agent_subscription.go`
 
 ### 3. Repository Schema (100% Complete)
+
 - ✅ Database schema updated with `payment_method_id` column
 - ✅ Mapper functions updated (both directions)
 - ✅ Migration created: `db/migrations/003_add_subscription_payment_method.sql`
@@ -36,6 +40,7 @@ The payment module already has everything needed:
 **Location:** `internal/modules/promotions/repository/schema/`
 
 ### 4. Service Interface (100% Complete)
+
 - ✅ `CreateSubscriptionInput` now has `PaymentMethodID *uuid.UUID` field
 
 **Location:** `internal/modules/promotions/service/interface.go:163`
@@ -45,6 +50,7 @@ The payment module already has everything needed:
 ## 🔄 What Needs to Be Implemented
 
 ### Task 1: Update CreateSubscription Service Logic
+
 **File:** `internal/modules/promotions/service/subscription_service.go:50`
 
 **What to do:**
@@ -53,6 +59,7 @@ Add logic to handle payment methods in the `CreateSubscription` method.
 **Implementation Steps:**
 
 1. **After line 108 (in the trial subscription block):**
+
    ```go
    } else {
        // Trial subscription
@@ -87,6 +94,7 @@ Add logic to handle payment methods in the `CreateSubscription` method.
    ```
 
 2. **After line 133 (after creating subscription entity):**
+
    ```go
    subscription := &domain.AgentSubscription{
        // ... all existing fields ...
@@ -105,6 +113,7 @@ Add logic to handle payment methods in the `CreateSubscription` method.
 ---
 
 ### Task 2: Update ProcessBilling to Charge Saved Payment Methods
+
 **File:** `internal/modules/promotions/service/subscription_service.go:621` (ProcessBilling method)
 
 **What to do:**
@@ -115,6 +124,7 @@ Modify the payment creation logic to use saved payment methods when available.
 1. **Find the section around line 547-600 where payments are created**
 
 2. **Replace the payment creation block with:**
+
    ```go
    // Determine amount to charge (existing logic)
    amountToCharge := subscription.Amount
@@ -222,6 +232,7 @@ Modify the payment creation logic to use saved payment methods when available.
 ---
 
 ### Task 3: Update GraphQL Schema
+
 **File:** `internal/modules/promotions/port/graphql/schema.graphqls`
 
 **What to do:**
@@ -230,6 +241,7 @@ Add payment method fields to subscription types and inputs.
 **Implementation Steps:**
 
 1. **Update `CreateSubscriptionInput` (around line 122):**
+
    ```graphql
    input CreateSubscriptionInput {
      planType: PlanType!
@@ -240,6 +252,7 @@ Add payment method fields to subscription types and inputs.
    ```
 
 2. **Update `AgentSubscription` type (around line 25-41):**
+
    ```graphql
    type AgentSubscription {
      id: UUID!
@@ -259,6 +272,7 @@ Add payment method fields to subscription types and inputs.
    ```
 
 3. **Add new query (around line 165):**
+
    ```graphql
    extend type Query {
      # ... existing queries ...
@@ -269,6 +283,7 @@ Add payment method fields to subscription types and inputs.
    ```
 
 4. **Add PaymentMethod type (if not already present):**
+
    ```graphql
    type PaymentMethod {
      id: UUID!
@@ -288,6 +303,7 @@ Add payment method fields to subscription types and inputs.
 ---
 
 ### Task 4: Update GraphQL Resolvers
+
 **File:** `internal/modules/promotions/port/graphql/resolver.go`
 
 **What to do:**
@@ -296,6 +312,7 @@ Wire up the new GraphQL fields to service calls.
 **Implementation Steps:**
 
 1. **Update `createSubscription` mutation resolver:**
+
    ```go
    func (r *mutationResolver) CreateSubscription(ctx context.Context, input CreateSubscriptionInput) (*CreateSubscriptionPayload, error) {
        userID := auth.GetUserIDFromContext(ctx)
@@ -317,6 +334,7 @@ Wire up the new GraphQL fields to service calls.
    ```
 
 2. **Add resolver for `hasPaymentMethod` field:**
+
    ```go
    func (r *agentSubscriptionResolver) HasPaymentMethod(ctx context.Context, obj *domain.AgentSubscription) (bool, error) {
        return obj.HasPaymentMethod(), nil
@@ -324,6 +342,7 @@ Wire up the new GraphQL fields to service calls.
    ```
 
 3. **Add resolver for `getMyPaymentMethods` query:**
+
    ```go
    func (r *queryResolver) GetMyPaymentMethods(ctx context.Context) ([]*paymentDomain.PaymentMethod, error) {
        userID := auth.GetUserIDFromContext(ctx)
@@ -350,6 +369,7 @@ Wire up the new GraphQL fields to service calls.
 ### Trial Signup Flow with Payment Method
 
 **Step 1: User initiates trial signup**
+
 ```graphql
 mutation StartTrial($paymentMethodID: UUID) {
   createSubscription(
@@ -375,15 +395,18 @@ mutation StartTrial($paymentMethodID: UUID) {
 **Step 2: Client handles two scenarios**
 
 **Scenario A: User has saved payment method**
+
 - Pass existing `paymentMethodID`
 - Trial starts immediately with card on file
 - Auto-billing when trial ends
 
 **Scenario B: User needs to add payment method**
+
 1. Client calls Paystack authorization API first
 2. User completes card authorization (no charge)
 3. Client receives authorization code
 4. Client calls payment service to save method:
+
    ```graphql
    mutation SaveCard($authCode: String!) {
      savePaymentMethod(authorizationCode: $authCode) {
@@ -393,6 +416,7 @@ mutation StartTrial($paymentMethodID: UUID) {
      }
    }
    ```
+
 5. Client calls `createSubscription` with new payment method ID
 
 ---
@@ -477,6 +501,7 @@ mutation StartTrial($paymentMethodID: UUID) {
 ### Monitoring & Alerts
 
 Set up alerts for:
+
 - High trial-to-paid conversion failures
 - Spike in past_due subscriptions
 - Payment method authorization failures

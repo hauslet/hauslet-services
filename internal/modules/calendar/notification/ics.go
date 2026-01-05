@@ -10,14 +10,14 @@ import (
 )
 
 // BuildICS generates an iCalendar file content for a calendar event.
-func BuildICS(event *domain.CalendarEvent, summary, description, location string) (string, error) {
+func BuildICS(event *domain.CalendarEvent, summary, description, location string, method ics.Method) (string, error) {
 	if event == nil {
 		return "", fmt.Errorf("event is nil")
 	}
 
 	// 1. Initialize the Calendar
 	cal := ics.NewCalendar()
-	cal.SetMethod(ics.MethodRequest) // "REQUEST" allows the user to Accept/Decline in their email client
+	cal.SetMethod(method) // "REQUEST" allows the user to Accept/Decline in their email client
 	cal.SetProductId("-//Hauslet//Calendar//EN")
 	cal.SetVersion("2.0")
 	cal.SetCalscale("GREGORIAN")

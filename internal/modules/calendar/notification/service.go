@@ -14,6 +14,7 @@ import (
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
 
+	ics "github.com/arran4/golang-ical"
 	"github.com/google/uuid"
 )
 
@@ -364,7 +365,7 @@ func (s *NotificationService) getOwnerContact(ctx context.Context, ownerID uuid.
 }
 
 func (s *NotificationService) buildCalendarAssets(event *domain.CalendarEvent, summary, description string) (string, []emailJob.Attachment) {
-	ics, err := BuildICS(event, summary, description, "")
+	ics, err := BuildICS(event, summary, description, "", ics.MethodPublish)
 	if err != nil {
 		if s.log != nil {
 			s.log.Warn("failed to build ics", "event_id", event.ID, "error", err)
