@@ -373,26 +373,132 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, subsc
 		return fmt.Errorf("new plan must be higher tier than current plan")
 	}
 
-	// Schedule the plan change for next billing cycle
-	if err := subscription.SchedulePlanChange(newPlan); err != nil {
-		return fmt.Errorf("failed to schedule plan change: %w", err)
-	}
-
-	// Save updated subscription
-	subscriptionSchema, err := schema.MapAgentSubscriptionToSchema(subscription)
+	// Load new plan configuration
+	planConfig, err := loadPlanConfig(s.config, newPlan, subscription.BillingCycle)
 	if err != nil {
-		return fmt.Errorf("failed to map subscription: %w", err)
+		return fmt.Errorf("failed to load new plan config: %w", err)
 	}
 
-	if err := s.subscriptionRepo.Update(ctx, subscriptionSchema); err != nil {
-		return fmt.Errorf("failed to update subscription: %w", err)
+	now := time.Now()
+
+	// Calculate proration for the upgrade
+	var proratedAmount int64
+	if subscription.NextBillingDate != nil && subscription.NextBillingDate.After(now) {
+		// Calculate days remaining in current cycle
+		daysRemaining := int(subscription.NextBillingDate.Sub(now).Hours() / 24)
+		totalDays := getDaysInBillingCycle(subscription.BillingCycle, now)
+
+		// Calculate prorated charge: difference between new and old plan, prorated
+		proratedAmount = calculateProrationAmount(
+			subscription.Amount,
+			planConfig.Amount,
+			daysRemaining,
+			totalDays,
+		)
+
+		s.log.Info("calculated proration for upgrade",
+			"subscription_id", subscriptionID,
+			"old_amount", subscription.Amount,
+			"new_amount", planConfig.Amount,
+			"days_remaining", daysRemaining,
+			"total_days", totalDays,
+			"prorated_amount", proratedAmount,
+		)
+	} else {
+		// No next billing date or already passed - charge full amount
+		proratedAmount = planConfig.Amount
 	}
 
-	s.log.Info("scheduled subscription upgrade",
+	// CRITICAL FIX #1: Payment Status Handling
+	// Create payment for prorated upgrade (only if amount > 0)
+	var paymentID *uuid.UUID
+	if proratedAmount > 0 {
+		paymentInput := paymentDomain.CreatePaymentInput{
+			Amount:       proratedAmount,
+			Currency:     payment.Currency(planConfig.Currency),
+			Market:       paymentDomain.MarketNigeria,
+			PayerID:      subscription.UserID,
+			PayerEmail:   subscription.UserEmail,
+			PayerName:    subscription.UserName,
+			ResourceType: paymentDomain.ResourceTypeSubscription,
+			ResourceID:   &subscriptionID,
+			Description:  fmt.Sprintf("Subscription upgrade to %s (prorated)", newPlan),
+			Metadata: map[string]string{
+				"subscription_id": subscriptionID.String(),
+				"old_plan":        subscription.PlanType.String(),
+				"new_plan":        newPlan.String(),
+				"upgrade_type":    "instant_proration",
+			},
+		}
+
+		pmt, err := s.paymentService.CreatePayment(ctx, paymentInput)
+		if err != nil {
+			return fmt.Errorf("failed to create upgrade payment: %w", err)
+		}
+
+		// CRITICAL: Only accept SUCCEEDED payments for instant upgrades
+		// Pending payments (3D Secure) must be handled via webhooks
+		if pmt.Status != paymentDomain.PaymentStatusSucceeded {
+			return fmt.Errorf("payment requires confirmation - status: %s. Upgrade will be applied after payment succeeds", pmt.Status)
+		}
+
+		paymentID = &pmt.ID
+	}
+
+	// CRITICAL FIX #3: Transaction Safety
+	// Wrap upgrade in transaction with rollback capability
+	err = s.db.Transaction(func(tx *gorm.DB) error {
+		// Apply upgrade immediately
+		planLimits := domain.PlanLimits{
+			MaxListings:                     planConfig.MaxListings,
+			MaxPhotosPerListing:             planConfig.MaxPhotosPerListing,
+			MaxVirtualTours:                 planConfig.MaxVirtualTours,
+			IncludedFeaturedPerMonth:        planConfig.IncludedFeaturedPerMonth,
+			IncludedPremiumPerMonth:         planConfig.IncludedPremiumPerMonth,
+			IncludedOpenHousesPerMonth:      planConfig.IncludedOpenHousesPerMonth,
+			IncludedPrivateShowingsPerMonth: planConfig.IncludedPrivateShowingsPerMonth,
+			Features:                        planConfig.Features,
+		}
+
+		if err := subscription.ApplyImmediateUpgrade(newPlan, planLimits, planConfig.Amount, planConfig.Currency); err != nil {
+			return fmt.Errorf("failed to apply upgrade: %w", err)
+		}
+
+		// Save updated subscription
+		subscriptionSchema, err := schema.MapAgentSubscriptionToSchema(subscription)
+		if err != nil {
+			return fmt.Errorf("failed to map subscription: %w", err)
+		}
+
+		// Use transaction for update
+		if err := tx.Save(subscriptionSchema).Error; err != nil {
+			return fmt.Errorf("failed to update subscription: %w", err)
+		}
+
+		// CRITICAL FIX #2: Reset Usage Quotas
+		// User should get fresh quotas immediately upon upgrade
+		if err := s.usageService.ResetUsage(ctx, subscription.ID, subscription.UserID); err != nil {
+			s.log.Warn("failed to reset usage after upgrade",
+				"subscription_id", subscription.ID,
+				"error", err,
+			)
+			// Don't fail the upgrade, but log for investigation
+			// Usage will be reset on next billing cycle if this fails
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to complete upgrade transaction: %w", err)
+	}
+
+	s.log.Info("instant subscription upgrade completed",
 		"subscription_id", subscriptionID,
-		"current_plan", subscription.PlanType,
-		"pending_plan", newPlan,
-		"next_billing_date", subscription.NextBillingDate,
+		"old_plan", subscription.PlanType,
+		"new_plan", newPlan,
+		"prorated_amount", proratedAmount,
+		"payment_id", paymentID,
 	)
 
 	return nil
@@ -415,7 +521,9 @@ func (s *SubscriptionServiceImpl) DowngradeSubscription(ctx context.Context, sub
 		return fmt.Errorf("new plan must be lower tier than current plan")
 	}
 
-	// Schedule the plan change for next billing cycle
+	// DEFERRED DOWNGRADE: Schedule for end of billing period
+	// User keeps current features until period ends (no refunds needed)
+	// This prevents feature hopping abuse and is standard SaaS practice
 	if err := subscription.SchedulePlanChange(newPlan); err != nil {
 		return fmt.Errorf("failed to schedule plan change: %w", err)
 	}
@@ -499,6 +607,125 @@ func (s *SubscriptionServiceImpl) RenewSubscription(ctx context.Context, subscri
 	return nil
 }
 
+// HandlePaymentSuccess handles successful payment confirmation (webhooks, 3D Secure completion)
+// This completes pending upgrades when async payments succeed
+func (s *SubscriptionServiceImpl) HandlePaymentSuccess(ctx context.Context, paymentID uuid.UUID) error {
+	// Get payment details
+	pmt, err := s.paymentService.GetPayment(ctx, paymentID)
+	if err != nil {
+		return fmt.Errorf("failed to get payment: %w", err)
+	}
+
+	// Only process subscription-related payments
+	if pmt.ResourceType != paymentDomain.ResourceTypeSubscription {
+		s.log.Debug("payment not subscription-related, skipping", "payment_id", paymentID, "resource_type", pmt.ResourceType)
+		return nil
+	}
+
+	// Check if this is an upgrade payment
+	upgradeType, isUpgrade := pmt.Metadata["upgrade_type"]
+	if !isUpgrade || upgradeType != "instant_proration" {
+		s.log.Debug("payment not an upgrade payment, skipping", "payment_id", paymentID)
+		return nil
+	}
+
+	// Extract subscription and plan details from metadata
+	subscriptionIDStr, ok := pmt.Metadata["subscription_id"]
+	if !ok {
+		return fmt.Errorf("upgrade payment missing subscription_id in metadata")
+	}
+
+	subscriptionID, err := uuid.Parse(subscriptionIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid subscription_id in metadata: %w", err)
+	}
+
+	newPlanStr, ok := pmt.Metadata["new_plan"]
+	if !ok {
+		return fmt.Errorf("upgrade payment missing new_plan in metadata")
+	}
+
+	newPlan := domain.PlanType(newPlanStr)
+
+	s.log.Info("processing upgrade completion from payment webhook",
+		"payment_id", paymentID,
+		"subscription_id", subscriptionID,
+		"new_plan", newPlan,
+	)
+
+	// Get subscription
+	subscription, err := s.GetSubscription(ctx, subscriptionID)
+	if err != nil {
+		return fmt.Errorf("failed to get subscription: %w", err)
+	}
+
+	// Verify payment actually succeeded
+	if pmt.Status != paymentDomain.PaymentStatusSucceeded {
+		s.log.Warn("payment not succeeded, cannot complete upgrade",
+			"payment_id", paymentID,
+			"status", pmt.Status,
+		)
+		return fmt.Errorf("payment status is %s, expected succeeded", pmt.Status)
+	}
+
+	// Load new plan configuration
+	planConfig, err := loadPlanConfig(s.config, newPlan, subscription.BillingCycle)
+	if err != nil {
+		return fmt.Errorf("failed to load plan config: %w", err)
+	}
+
+	// Apply upgrade in transaction
+	err = s.db.Transaction(func(tx *gorm.DB) error {
+		planLimits := domain.PlanLimits{
+			MaxListings:                     planConfig.MaxListings,
+			MaxPhotosPerListing:             planConfig.MaxPhotosPerListing,
+			MaxVirtualTours:                 planConfig.MaxVirtualTours,
+			IncludedFeaturedPerMonth:        planConfig.IncludedFeaturedPerMonth,
+			IncludedPremiumPerMonth:         planConfig.IncludedPremiumPerMonth,
+			IncludedOpenHousesPerMonth:      planConfig.IncludedOpenHousesPerMonth,
+			IncludedPrivateShowingsPerMonth: planConfig.IncludedPrivateShowingsPerMonth,
+			Features:                        planConfig.Features,
+		}
+
+		// Apply upgrade
+		if err := subscription.ApplyImmediateUpgrade(newPlan, planLimits, planConfig.Amount, planConfig.Currency); err != nil {
+			return fmt.Errorf("failed to apply upgrade: %w", err)
+		}
+
+		// Save subscription
+		subscriptionSchema, err := schema.MapAgentSubscriptionToSchema(subscription)
+		if err != nil {
+			return fmt.Errorf("failed to map subscription: %w", err)
+		}
+
+		if err := tx.Save(subscriptionSchema).Error; err != nil {
+			return fmt.Errorf("failed to save subscription: %w", err)
+		}
+
+		// Reset usage quotas
+		if err := s.usageService.ResetUsage(ctx, subscription.ID, subscription.UserID); err != nil {
+			s.log.Warn("failed to reset usage after webhook upgrade",
+				"subscription_id", subscription.ID,
+				"error", err,
+			)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to complete upgrade transaction: %w", err)
+	}
+
+	s.log.Info("upgrade completed via payment webhook",
+		"payment_id", paymentID,
+		"subscription_id", subscriptionID,
+		"new_plan", newPlan,
+	)
+
+	return nil
+}
+
 func (s *SubscriptionServiceImpl) ProcessBilling(ctx context.Context) error {
 	// Get subscriptions due for billing
 	subscriptions, err := s.subscriptionRepo.ListDueForBilling(ctx)
@@ -546,13 +773,14 @@ func (s *SubscriptionServiceImpl) ProcessBilling(ctx context.Context) error {
 		}
 
 		// Determine amount to charge (check for pending plan change)
+		// NOTE: Pending changes are now ONLY downgrades (upgrades are instant)
 		amountToCharge := subscription.Amount
 		currencyToCharge := subscription.Currency
 		planForDescription := subscription.PlanType
 		planForMetadata := subscription.PlanType.String()
 
 		if subscription.HasPendingPlanChange() {
-			// Load new plan config to get the new amount
+			// Apply pending downgrade at billing cycle end
 			planConfig, err := loadPlanConfig(s.config, *subscription.PendingPlanType, subscription.BillingCycle)
 			if err != nil {
 				s.log.Warn("failed to load new plan config, charging old amount",

@@ -646,6 +646,8 @@ Day 13: Premium - Land in Ibeju-Lekki
 
 ### Upgrading Plans
 
+**Upgrades are applied INSTANTLY with proration.**
+
 ```graphql
 mutation {
   upgradeSubscription(input: {
@@ -655,21 +657,50 @@ mutation {
       id
       plan
       status
-      proratedCharge
     }
-    paymentURL
   }
 }
 ```
 
-**Notes:**
+**How Instant Upgrades Work:**
 
-- Immediate upgrade with prorated charges
-- Unused quotas from old plan are forfeited
-- New quotas available immediately
-- Next billing at full new plan price
+1. **Proration Calculation**: System calculates the prorated difference between your current plan and new plan for the remaining days in your billing cycle.
+
+   ```
+   Formula: (newPlanAmount - oldPlanAmount) × (daysRemaining / totalDays)
+   ```
+
+2. **Payment Processing**:
+   - If proration amount > ₦0, you'll be charged immediately
+   - Payment must be **SUCCEEDED** status (not pending) for upgrade to apply
+   - 3D Secure payments require webhook confirmation (see [Payment Flows](#payment-status-and-3d-secure) below)
+
+3. **Immediate Benefits**:
+   - Plan changes instantly upon successful payment
+   - **Usage quotas reset to 0** - you get fresh quotas immediately
+   - New limits (max listings, features) apply right away
+   - Next billing date remains unchanged
+
+**Example:**
+
+You're on BASIC (₦30,000/month) with 15 days left in your cycle and upgrade to PROFESSIONAL (₦100,000/month):
+
+```
+Proration = (₦100,000 - ₦30,000) × (15 / 30) = ₦35,000
+```
+
+You pay ₦35,000 now, and your plan upgrades immediately. Your next billing will be ₦100,000 on your original billing date.
+
+**Important Notes:**
+
+- **Card payments** complete instantly if successful
+- **3D Secure payments** may require authentication (see Payment Flows section)
+- **Usage reset**: All quota counters reset to 0 (you get full new plan quotas immediately)
+- Any pending downgrades are automatically cancelled when you upgrade
 
 ### Downgrading Plans
+
+**Downgrades are DEFERRED to your next billing cycle.**
 
 ```graphql
 mutation {
@@ -679,18 +710,119 @@ mutation {
     subscription {
       id
       plan
-      effectiveDate
+      pendingPlanType
+      pendingPlanScheduledAt
     }
   }
 }
 ```
 
-**Notes:**
+**How Deferred Downgrades Work:**
 
-- Downgrade takes effect at end of current billing period
-- Continue using current plan's quotas until period end
-- No refunds for remaining days
-- New quotas available after billing period renewal
+1. **Scheduled Change**: Downgrade is scheduled but doesn't apply until your current billing period ends
+2. **Keep Current Benefits**: You continue using your current plan's features and quotas until period end
+3. **No Immediate Payment**: No charges or refunds at downgrade time
+4. **Automatic Application**: On your next billing date, the system:
+   - Charges you the new (lower) plan amount
+   - Applies the new plan limits and quotas
+   - Resets usage counters for the new plan
+
+**Rationale:**
+
+Downgrades are deferred (not instant) because you've already paid for your current plan period. You should get the full value of what you paid for. This prevents "buyer's remorse" scenarios where users accidentally downgrade and lose access to features they've already funded.
+
+**Important Notes:**
+
+- **Cancel pending downgrade**: You can cancel the scheduled downgrade before it takes effect
+- **Upgrades override downgrades**: If you upgrade before the downgrade takes effect, the pending downgrade is automatically cancelled
+- **No partial refunds**: You're billed for the full current plan period regardless of when you schedule the downgrade
+- **Usage quotas**: Continue using current plan quotas - they do NOT prorate down early
+
+### Payment Status and 3D Secure
+
+**Understanding Payment Flows**
+
+The subscription system handles two types of payment flows:
+
+#### 1. Instant Card Payments (Succeeded Immediately)
+
+```
+User initiates upgrade → Payment processed → Status: SUCCEEDED → Upgrade applied instantly
+```
+
+**Characteristics:**
+- Standard card payments without additional authentication
+- Completes in seconds
+- Upgrade applies immediately upon mutation return
+- Most common flow for Nigerian cards
+
+#### 2. 3D Secure / Async Payments (Pending → Succeeded)
+
+```
+User initiates upgrade → Payment created → Status: PENDING →
+User completes 3DS authentication → Webhook received → Status: SUCCEEDED →
+Upgrade applied via webhook handler
+```
+
+**Characteristics:**
+- Requires additional authentication (OTP, biometric, etc.)
+- Payment status is initially `PENDING`
+- User redirected to bank's authentication page
+- Upgrade completes when webhook confirms payment success
+- May take minutes to hours depending on user action
+
+**Error Handling:**
+
+When you call `upgradeSubscription`, you may receive:
+
+**Success Response (Instant):**
+```json
+{
+  "data": {
+    "upgradeSubscription": {
+      "subscription": {
+        "id": "sub-123",
+        "plan": "PROFESSIONAL",
+        "status": "ACTIVE"
+      }
+    }
+  }
+}
+```
+
+**Error Response (3DS Required):**
+```json
+{
+  "errors": [{
+    "message": "payment requires confirmation - status: PENDING",
+    "extensions": {
+      "code": "PAYMENT_PENDING",
+      "paymentURL": "https://checkout.paystack.com/xyz"
+    }
+  }]
+}
+```
+
+**What to do:**
+- Redirect user to `paymentURL` to complete authentication
+- Listen for payment webhook confirmation
+- Upgrade will auto-apply when payment succeeds
+- User can check subscription status to confirm upgrade completion
+
+**Webhook Processing:**
+
+Backend listens for Paystack `charge.success` webhooks. When received for an upgrade payment:
+
+1. Verifies payment status is `SUCCEEDED`
+2. Extracts subscription and plan info from payment metadata
+3. Applies upgrade in database transaction
+4. Resets usage quotas
+5. Logs completion
+
+**Important:**
+- Upgrade mutations ONLY succeed for `SUCCEEDED` payments
+- `PENDING` payments must complete via webhook
+- This prevents users from accessing upgraded features without confirmed payment
 
 ### Cancelling Subscription
 
@@ -814,7 +946,41 @@ All payment confirmations (for both pay-per-promotions and subscriptions) are pr
 POST /api/webhooks/paystack
 ```
 
-Promotions automatically activate upon successful `charge.success` webhook reception.
+**Webhook Event Handlers:**
+
+1. **`charge.success`** - Activates pending promotions after payment confirmation
+2. **`charge.success` (with upgrade metadata)** - Completes pending subscription upgrades for 3D Secure payments
+
+**Subscription Upgrade Webhook Flow:**
+
+When a payment with `upgrade_type: "instant_proration"` metadata succeeds:
+
+```go
+// Webhook handler extracts from payment metadata:
+- subscription_id: UUID of subscription being upgraded
+- new_plan: Target plan type (BASIC/PROFESSIONAL/ENTERPRISE)
+- old_plan: Previous plan type
+- proration_amount: Amount charged
+- days_remaining: Days left in billing cycle
+
+// Handler then:
+1. Validates payment status is SUCCEEDED
+2. Applies upgrade to subscription (changes plan, updates limits)
+3. Resets usage quotas to 0 (user gets fresh quotas)
+4. Saves changes in database transaction (atomic - all or nothing)
+5. Logs completion for audit trail
+```
+
+**Idempotency:**
+
+Webhook handlers are designed to be idempotent - processing the same webhook multiple times produces the same result. This prevents double-upgrades if Paystack retries webhook delivery.
+
+**Transaction Safety:**
+
+All subscription modifications (upgrade, downgrade, cancellation) are wrapped in database transactions with automatic rollback on errors. This ensures:
+- Payment recorded ⇔ Subscription updated (atomic)
+- No partial state (either fully upgraded or not upgraded at all)
+- Usage counters remain consistent with plan limits
 
 ### Database Considerations
 
@@ -834,6 +1000,15 @@ For questions about the Promotions System:
 
 ---
 
-**Last Updated**: January 3, 2026
-**Document Version**: 1.0
+**Last Updated**: January 5, 2026
+**Document Version**: 1.1
 **Module Version**: Hauslet Services v1.0
+
+**Changelog v1.1 (January 5, 2026):**
+- Added instant upgrade implementation with proration details
+- Documented deferred downgrade behavior and rationale
+- Added comprehensive payment flow documentation (instant vs 3D Secure)
+- Documented usage quota reset behavior on upgrades
+- Added webhook integration details for async payment completion
+- Added transaction safety guarantees
+- Clarified payment status requirements for upgrades

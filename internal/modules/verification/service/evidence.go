@@ -7,6 +7,7 @@ import (
 
 	"hauslet/internal/modules/verification/domain"
 	"hauslet/internal/platform/evidence"
+	verificationJob "hauslet/internal/queue/jobs/verification"
 
 	"github.com/google/uuid"
 )
@@ -75,6 +76,25 @@ func (s *verificationService) UploadEvidence(ctx context.Context, req UploadEvid
 		"type", req.Type,
 		"size", evidenceResp.Size,
 	)
+
+	// Enqueue verification submission job for async processing
+	if session.Type == domain.VerificationIdentity && s.queueClient != nil {
+		submissionJob := verificationJob.VerificationSubmissionJob{
+			SessionID:    session.ID.String(),
+			EvidenceURL:  evidenceResp.URL,
+			EvidenceHash: evidenceResp.Hash,
+			Priority:     s.getPriorityForTier(session.Tier),
+			RetryAttempt: 0,
+		}
+
+		if err := s.queueClient.Publish(ctx, "verification_submission", submissionJob); err != nil {
+			s.logger.Error("failed to enqueue verification submission",
+				"session_id", session.ID,
+				"error", err,
+			)
+			// Don't fail the upload if queue fails - job can be retried
+		}
+	}
 
 	return ev, nil
 }

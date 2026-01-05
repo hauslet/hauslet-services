@@ -601,6 +601,45 @@ resource "google_cloud_scheduler_job" "interactions_batch_writer" {
   ]
 }
 
+# 16. Verification Reconciliation Scheduler (every 6 hours)
+resource "google_cloud_scheduler_job" "verification_reconciliation" {
+  name        = "verification-reconciliation-scheduler"
+  description = "Reconciles verified sessions with profile module every 6 hours"
+  schedule    = "0 */6 * * *"  # Every 6 hours at minute 0
+  time_zone   = "UTC"
+  region      = "europe-west1"  # Cloud Scheduler not available in europe-north1
+
+  retry_config {
+    retry_count = 2
+    min_backoff_duration = "10s"
+    max_backoff_duration = "120s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/verification/reconciliation"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Job payload matching ReconciliationJob
+    body = base64encode(jsonencode({
+      batch_size = 100
+      timestamp  = ""  # Handler will use current time
+    }))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
 # Enable Cloud Scheduler API
 resource "google_project_service" "cloudscheduler" {
   project = var.project_id

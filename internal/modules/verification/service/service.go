@@ -8,6 +8,7 @@ import (
 	"hauslet/internal/platform/breaker"
 	"hauslet/internal/platform/evidence"
 	"hauslet/internal/platform/kyc"
+	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/ratelimit"
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/sms"
@@ -27,6 +28,7 @@ type verificationService struct {
 	redisClient     redis.RedisClient
 	profileAdapter  port.ProfileAdapter
 	businessAdapter port.BusinessAdapter
+	queueClient     *queue.Client
 	config          *config.GlobalConfig
 	logger          *slog.Logger
 }
@@ -42,6 +44,7 @@ func NewVerificationService(
 	redisClient redis.RedisClient,
 	profileAdapter port.ProfileAdapter,
 	businessAdapter port.BusinessAdapter,
+	queueClient *queue.Client,
 	cfg *config.GlobalConfig,
 	logger *slog.Logger,
 ) VerificationService {
@@ -63,6 +66,7 @@ func NewVerificationService(
 		redisClient:     redisClient,
 		profileAdapter:  profileAdapter,
 		businessAdapter: businessAdapter,
+		queueClient:     queueClient,
 		config:          cfg,
 		logger:          logger,
 	}
@@ -166,4 +170,18 @@ type ProcessWebhookRequest struct {
 	Payload      []byte
 	Headers      map[string]string
 	Signature    string
+}
+
+// getPriorityForTier maps verification tier to job priority
+func (s *verificationService) getPriorityForTier(tier domain.VerificationTier) string {
+	switch tier {
+	case domain.TierEnhanced:
+		return "high"
+	case domain.TierStandard:
+		return "normal"
+	case domain.TierBasic:
+		return "low"
+	default:
+		return "normal"
+	}
 }

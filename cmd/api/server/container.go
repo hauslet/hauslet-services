@@ -828,6 +828,7 @@ func (c *Container) initVerification() error {
 		*c.Redis,
 		profileVerificationAdapter,
 		businessVerificationAdapter,
+		c.Queue,
 		c.Config,
 		c.Logger,
 	)

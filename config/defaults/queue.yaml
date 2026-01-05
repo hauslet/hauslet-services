@@ -28,6 +28,9 @@ queue:
     subscription_billing: "subscription-billing-queue"
     calendar_showing_reminders: "calendar-showing-reminders-queue"
     calendar_open_house_reminders: "calendar-open-house-reminders-queue"
+    verification_submission: "verification-submission-queue"
+    verification_sms: "verification-sms-queue"
+    verification_reconciliation: "verification-reconciliation-queue"
 
   # Legacy field (unused for Cloud Tasks)
   consumers:
@@ -52,3 +55,6 @@ queue:
     subscription_billing: "subscription-billing-worker"
     calendar_showing_reminders: "calendar-showing-reminders-worker"
     calendar_open_house_reminders: "calendar-open-house-reminders-worker"
+    verification_submission: "verification-submission-worker"
+    verification_sms: "verification-sms-worker"
+    verification_reconciliation: "verification-reconciliation-worker"
