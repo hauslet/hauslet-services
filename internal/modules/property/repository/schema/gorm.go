@@ -140,8 +140,9 @@ type Listing struct {
 	EmbeddingGeneratedAt  *time.Time       `json:"embedding_generated_at,omitempty"`
 	EmbeddingDocumentHash *string          `gorm:"type:char(64)" json:"embedding_document_hash,omitempty"`
 
-	// Media
-	Media []ListingMedia `gorm:"foreignKey:ListingID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	// Associations
+	Media    []ListingMedia `gorm:"foreignKey:ListingID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Property *Property      `gorm:"foreignKey:PropertyID;references:ID"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

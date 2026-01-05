@@ -97,6 +97,10 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/verification/reconciliation",
 		Timeout: 300 * time.Second,
 	},
+	"interactions_batch": {
+		Path:    "/tasks/interactions/batch",
+		Timeout: 60 * time.Second,
+	},
 }
 
 func BuildQueueRoutes(queueNames map[string]string) map[string]QueueRoute {

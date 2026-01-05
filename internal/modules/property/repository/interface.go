@@ -33,6 +33,7 @@ type ListingRepository interface {
 	UpdateListing(ctx context.Context, listing *schema.Listing) error
 	PatchListing(ctx context.Context, id uuid.UUID, updates map[string]any) error
 	GetListingByID(ctx context.Context, id uuid.UUID, preloadMedia bool) (*schema.Listing, error)
+	GetListingWithPropertyByID(ctx context.Context, id uuid.UUID) (*schema.Listing, *schema.Property, error)
 	GetListingByPublicID(ctx context.Context, publicID string, preloadMedia bool) (*schema.Listing, error)
 	GetListingBySlug(ctx context.Context, slug string, preloadMedia bool) (*schema.Listing, error)
 	ListListings(ctx context.Context, filter ListingFilter, page Pagination) (*PaginatedResult[schema.Listing], error)

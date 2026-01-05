@@ -44,7 +44,7 @@ type CalendarService interface {
 	UnblockDates(ctx context.Context, eventID uuid.UUID, ownerID uuid.UUID) error
 
 	// --- Open House Management ---
-	CreateOpenHouse(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time, details *domain.OpenHouseDetail) (*domain.CalendarEvent, error)
+	CreateOpenHouse(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time, details *domain.OpenHouseDetail, createdBy uuid.UUID) (*domain.CalendarEvent, error)
 	RegisterAttendee(ctx context.Context, eventID uuid.UUID, attendee domain.Attendee) error
 	MarkAttendeePresence(ctx context.Context, eventID uuid.UUID, attendeeID uuid.UUID, attended bool) error
 

@@ -253,7 +253,7 @@ func (r *Resolver) CreateOpenHouse(ctx context.Context, input CreateOpenHouseInp
 		AgentID:              &userID,
 	}
 
-	event, err := r.calendarService.CreateOpenHouse(ctx, input.ListingID, input.StartTime, input.EndTime, details)
+	event, err := r.calendarService.CreateOpenHouse(ctx, input.ListingID, input.StartTime, input.EndTime, details, userID)
 	if err != nil {
 		r.log.Error("failed to create open house", "listing_id", input.ListingID, "error", err)
 		return nil, err
