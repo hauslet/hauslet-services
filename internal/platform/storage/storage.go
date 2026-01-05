@@ -100,6 +100,35 @@ func (r *R2Storage) ObjectExists(ctx context.Context, objectKey string) (bool, e
 	return true, nil
 }
 
+// ListObjects returns object keys that match the provided prefix.
+func (r *R2Storage) ListObjects(ctx context.Context, prefix string) ([]string, error) {
+	if strings.TrimSpace(prefix) == "" {
+		return nil, fmt.Errorf("prefix is required")
+	}
+
+	input := &s3.ListObjectsV2Input{
+		Bucket: aws.String(r.bucketName),
+		Prefix: aws.String(prefix),
+	}
+	paginator := s3.NewListObjectsV2Paginator(r.client, input)
+
+	var keys []string
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list objects with prefix %s: %w", prefix, err)
+		}
+		for _, obj := range page.Contents {
+			if obj.Key == nil || *obj.Key == "" {
+				continue
+			}
+			keys = append(keys, *obj.Key)
+		}
+	}
+
+	return keys, nil
+}
+
 // UploadObject uploads an object to the bucket
 func (r *R2Storage) UploadObject(ctx context.Context, key string, body io.Reader, contentType string) error {
 	_, err := r.client.PutObject(ctx, &s3.PutObjectInput{

@@ -3,12 +3,12 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
-	platformRedis "hauslet/internal/platform/redis"
-
-	"github.com/redis/go-redis/v9"
+	"hauslet/internal/platform/ratelimit"
 )
 
 // RateLimitConfig holds the configuration for rate limiting
@@ -17,56 +17,77 @@ type RateLimitConfig struct {
 	Window   time.Duration // Time window for the requests
 }
 
-// RateLimit creates a middleware that limits requests based on IP address using Redis
-func RateLimit(limitConfig RateLimitConfig, redisClient platformRedis.RedisClient) func(http.Handler) http.Handler {
+// RateLimitPolicy defines how to build limit keys for a request.
+type RateLimitPolicy struct {
+	Keys func(r *http.Request) []ratelimit.LimitKey
+}
+
+// RateLimitWithLimiter enforces rate limits using the platform limiter.
+func RateLimitWithLimiter(limiter ratelimit.Limiter, policy RateLimitPolicy) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-
-			// Get client IP
-			ip := r.RemoteAddr
-			if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
-				ip = forwardedFor
-			}
-
-			// Create Redis key for this IP
-			key := fmt.Sprintf("rate_limit:%s", ip)
-
-			// Get current count
-			count, err := redisClient.Get(ctx, key).Int()
-			if err != nil && err != redis.Nil {
-				// Log error but allow request to proceed
+			if limiter == nil || policy.Keys == nil {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// If key doesn't exist, create it
-			if err == redis.Nil {
-				err = redisClient.Set(ctx, key, 1, limitConfig.Window).Err()
-				if err != nil {
-					next.ServeHTTP(w, r)
-					return
-				}
-			} else if count >= limitConfig.Requests {
-				// Rate limit exceeded
-				responseBody := map[string]any{
-					"message": fmt.Sprintf("Rate limit exceeded. Try again in %v", limitConfig.Window),
-					"title":   "Too Many Requests",
-				}
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusTooManyRequests)
-				_ = json.NewEncoder(w).Encode(responseBody)
+			keys := policy.Keys(r)
+			if len(keys) == 0 {
+				next.ServeHTTP(w, r)
 				return
-			} else {
-				// Increment counter
-				err = redisClient.Incr(ctx, key).Err()
-				if err != nil {
-					next.ServeHTTP(w, r)
+			}
+
+			results, err := limiter.CheckMultiple(r.Context(), keys...)
+			if err != nil {
+				// Fail open on limiter errors.
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			for _, result := range results {
+				if !result.Allowed {
+					writeRateLimitResponse(w, result.Window)
 					return
 				}
+			}
+
+			for _, key := range keys {
+				_, _ = limiter.Increment(r.Context(), key)
 			}
 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// ClientIP returns the best-effort client IP for rate limiting.
+func ClientIP(r *http.Request) string {
+	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+		parts := strings.Split(forwarded, ",")
+		ip := strings.TrimSpace(parts[0])
+		if ip != "" {
+			return ip
+		}
+	}
+
+	if realIP := strings.TrimSpace(r.Header.Get("X-Real-IP")); realIP != "" {
+		return realIP
+	}
+
+	host, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr))
+	if err == nil && host != "" {
+		return host
+	}
+
+	return strings.TrimSpace(r.RemoteAddr)
+}
+
+func writeRateLimitResponse(w http.ResponseWriter, window time.Duration) {
+	responseBody := map[string]any{
+		"message": fmt.Sprintf("Rate limit exceeded. Try again in %v", window),
+		"title":   "Too Many Requests",
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusTooManyRequests)
+	_ = json.NewEncoder(w).Encode(responseBody)
 }

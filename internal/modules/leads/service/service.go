@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"hauslet/internal/modules/leads/repository"
+	"hauslet/internal/platform/ratelimit"
 )
 
 // ServiceImpl implements the LeadService interface
@@ -32,6 +33,8 @@ func NewLeadService(
 	propertyHooks PropertyHooks,
 	businessHooks BusinessHooks,
 	profileHooks ProfileHooks, // Optional - for hybrid authentication
+	limiter ratelimit.Limiter,
+	rateLimitConfig RateLimitConfig,
 	log *slog.Logger,
 ) LeadService {
 	return &ServiceImpl{
@@ -40,7 +43,7 @@ func NewLeadService(
 		assignmentRepo: assignmentRepo,
 		validator:      NewLeadValidator(),
 		spamDetector:   NewSpamDetector(),
-		rateLimiter:    NewRateLimiter(leadRepo),
+		rateLimiter:    NewRateLimiter(limiter, rateLimitConfig),
 		propertyHooks:  propertyHooks,
 		businessHooks:  businessHooks,
 		profileHooks:   profileHooks,

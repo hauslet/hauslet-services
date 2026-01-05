@@ -10,7 +10,7 @@ import (
 	authservice "hauslet/internal/modules/auth/service"
 	businessmiddleware "hauslet/internal/modules/business/middleware"
 	calendarservice "hauslet/internal/modules/calendar/service"
-	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/ratelimit"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -49,12 +49,28 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router, authService authservice.AuthServ
 }
 
 // SetupRoutesWithRateLimiting registers calendar endpoints with rate limiting for production.
-func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService authservice.AuthService, redisClient redis.RedisClient, businessMW *businessmiddleware.Middleware) {
+func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService authservice.AuthService, limiter ratelimit.Limiter, businessMW *businessmiddleware.Middleware) {
 	authMiddleware := authService.OAuthService().Middleware()
 
 	// Helper to apply rate limiting
 	applyRateLimit := func(config middleware.RateLimitConfig) func(http.Handler) http.Handler {
-		return middleware.RateLimit(config, redisClient)
+		policy := middleware.RateLimitPolicy{
+			Keys: func(r *http.Request) []ratelimit.LimitKey {
+				ip := middleware.ClientIP(r)
+				if ip == "" {
+					return nil
+				}
+				return []ratelimit.LimitKey{
+					{
+						Type:   ratelimit.KeyTypeIP,
+						Value:  ip,
+						Limit:  int64(config.Requests),
+						Window: config.Window,
+					},
+				}
+			},
+		}
+		return middleware.RateLimitWithLimiter(limiter, policy)
 	}
 
 	r.Group(func(r chi.Router) {

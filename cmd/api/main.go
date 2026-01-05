@@ -49,6 +49,11 @@ func main() {
 		infra.Email,
 		infra.Queue,
 		infra.Storage,
+		infra.KYC,
+		infra.SMS,
+		infra.Evidence,
+		infra.RateLimiter,
+		infra.CircuitBreaker,
 	)
 	setup.HandleServerLifecycle(srv, log)
 }

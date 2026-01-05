@@ -1,0 +1,35 @@
+# Rate Limiting Configuration
+# Controls how many requests can be made within specified time windows
+
+verification:
+  # Per-user rate limits (prevent individual user abuse)
+  user:
+    limit: 5          # Maximum 5 verification attempts
+    window: "24h"     # Per 24 hours
+
+  # Per-IP rate limits (prevent bot/script abuse)
+  ip:
+    limit: 50         # Maximum 50 verification attempts
+    window: "24h"     # Per 24 hours
+
+  # Per-phone rate limits (prevent phone number cycling)
+  phone:
+    limit: 3          # Maximum 3 verification attempts
+    window: "1h"      # Per hour
+
+  # Per-country rate limits (prevent country-wide attacks)
+  country:
+    limit: 1000       # Maximum 1000 verification attempts
+    window: "1h"      # Per hour
+
+leads:
+  window: "24h"
+  anonymous:
+    per_email: 3
+    per_ip: 10
+    per_listing_email: 5
+    per_listing_ip: 5
+  authenticated:
+    per_user: 20
+    per_listing_email: 10
+    per_listing_ip: 10

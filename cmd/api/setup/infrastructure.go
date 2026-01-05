@@ -5,10 +5,15 @@ import (
 	"log/slog"
 
 	"hauslet/config"
+	"hauslet/internal/platform/breaker"
 	"hauslet/internal/platform/database"
 	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/evidence"
+	"hauslet/internal/platform/kyc"
 	"hauslet/internal/platform/queue"
+	"hauslet/internal/platform/ratelimit"
 	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/sms"
 	"hauslet/internal/platform/storage"
 
 	"gorm.io/gorm"
@@ -16,11 +21,17 @@ import (
 
 // Infrastructure holds shared platform dependencies for the API.
 type Infrastructure struct {
-	DB      *gorm.DB
-	Storage *storage.R2Storage
-	Email   *email.Client
-	Queue   *queue.Client
-	Cache   redis.RedisClient
+	DB            *gorm.DB
+	Storage       *storage.R2Storage
+	Email         *email.Client
+	Queue         *queue.Client
+	Cache         redis.RedisClient
+	// Verification services
+	KYC           *kyc.Client
+	SMS           *sms.Client
+	Evidence      evidence.Store
+	RateLimiter   ratelimit.Limiter
+	CircuitBreaker breaker.CircuitBreaker
 }
 
 // CloseDB closes the DB connection.
@@ -80,10 +91,36 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *slog
 	emailClient := InitializeEmailClient(cfg, log)
 	log.Info(" ✅ Email client initialized")
 
+	// Initialize verification services
+	kycClient := InitKYCClient(cfg, log)
+	log.Info(" ✅ KYC client initialized (Dojah + Veriff)")
+
+	smsClient := InitSMSClient(cfg, log)
+	log.Info(" ✅ SMS client initialized (Termii + Twilio)")
+
+	evidenceStore := InitEvidenceStore(r2Storage)
+	log.Info(" ✅ Evidence store initialized")
+
+	rateLimiter := InitRateLimiter(redisClient, cfg)
+	log.Info(" ✅ Rate limiter initialized")
+
+	circuitBreaker, err := InitCircuitBreaker(ctx, redisClient, log)
+	if err != nil {
+		database.Close(db)
+		redis.CloseRedis()
+		return nil, err
+	}
+	log.Info(" ✅ Circuit breaker initialized")
+
 	return &Infrastructure{
-		DB:      db,
-		Storage: r2Storage,
-		Email:   emailClient,
-		Cache:   redisClient,
+		DB:             db,
+		Storage:        r2Storage,
+		Email:          emailClient,
+		Cache:          redisClient,
+		KYC:            kycClient,
+		SMS:            smsClient,
+		Evidence:       evidenceStore,
+		RateLimiter:    rateLimiter,
+		CircuitBreaker: circuitBreaker,
 	}, nil
 }

@@ -61,13 +61,19 @@ import (
 	wishlistrepository "hauslet/internal/modules/wishlist/repository"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
+	"hauslet/internal/platform/breaker"
 	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/evidence"
+	"hauslet/internal/platform/kyc"
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/platform/queue"
+	"hauslet/internal/platform/ratelimit"
 	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/sms"
 	"hauslet/internal/platform/storage"
 	"hauslet/internal/platform/xchange"
 	"log/slog"
+	"time"
 
 	authhttp "hauslet/internal/modules/auth/port/http"
 
@@ -76,13 +82,18 @@ import (
 
 // InfrastructureDependencies holds the foundational dependencies needed to bootstrap the application
 type InfrastructureDependencies struct {
-	DB          *gorm.DB
-	Redis       *redis.RedisClient
-	Queue       *queue.Client
-	R2          *storage.R2Storage
-	Logger      *slog.Logger
-	Config      *config.GlobalConfig
-	EmailClient *email.Client
+	DB             *gorm.DB
+	Redis          *redis.RedisClient
+	Queue          *queue.Client
+	R2             *storage.R2Storage
+	Logger         *slog.Logger
+	Config         *config.GlobalConfig
+	EmailClient    *email.Client
+	KYC            *kyc.Client
+	SMS            *sms.Client
+	Evidence       evidence.Store
+	RateLimiter    ratelimit.Limiter
+	CircuitBreaker breaker.CircuitBreaker
 }
 
 // Container holds all initialized services, repositories, and handlers for the application
@@ -96,10 +107,15 @@ type Container struct {
 	Config *config.GlobalConfig
 
 	// Platform Services
-	EmailClient   *email.Client
-	PaymentClient *payment.Client
-	FXClient      *xchange.Client
-	EmbeddingAI   *aiembeddings.Client
+	EmailClient    *email.Client
+	PaymentClient  *payment.Client
+	FXClient       *xchange.Client
+	EmbeddingAI    *aiembeddings.Client
+	KYCClient      *kyc.Client
+	SMSClient      *sms.Client
+	EvidenceStore  evidence.Store
+	RateLimiter    ratelimit.Limiter
+	CircuitBreaker breaker.CircuitBreaker
 
 	// Module Services
 	AuthSvc            authservice.AuthService
@@ -137,13 +153,18 @@ type Container struct {
 // NewContainer initializes all application dependencies in the correct topological order
 func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Container, error) {
 	c := &Container{
-		DB:          deps.DB,
-		Redis:       deps.Redis,
-		Queue:       deps.Queue,
-		R2:          deps.R2,
-		Logger:      deps.Logger,
-		Config:      deps.Config,
-		EmailClient: deps.EmailClient,
+		DB:             deps.DB,
+		Redis:          deps.Redis,
+		Queue:          deps.Queue,
+		R2:             deps.R2,
+		Logger:         deps.Logger,
+		Config:         deps.Config,
+		EmailClient:    deps.EmailClient,
+		KYCClient:      deps.KYC,
+		SMSClient:      deps.SMS,
+		EvidenceStore:  deps.Evidence,
+		RateLimiter:    deps.RateLimiter,
+		CircuitBreaker: deps.CircuitBreaker,
 	}
 
 	// Initialize platform services
@@ -472,6 +493,23 @@ func (c *Container) initLeads() error {
 	businessHooks := leadsservice.NewBusinessHooksAdapter(c.BusinessSvc)
 	profileHooks := leadsservice.NewProfileHooksAdapter(c.ProfileSvc)
 
+	rateLimitConfig := leadsservice.DefaultRateLimitConfig
+	if c.Config != nil && c.Config.YAML != nil {
+		leadsCfg := c.Config.YAML.RateLimit.Leads
+		if leadsCfg.Window != "" {
+			if window, err := time.ParseDuration(leadsCfg.Window); err == nil {
+				rateLimitConfig.Window = window
+			}
+		}
+		rateLimitConfig.Anonymous.PerEmail = leadsCfg.Anonymous.PerEmail
+		rateLimitConfig.Anonymous.PerIP = leadsCfg.Anonymous.PerIP
+		rateLimitConfig.Anonymous.PerListingEmail = leadsCfg.Anonymous.PerListingEmail
+		rateLimitConfig.Anonymous.PerListingIP = leadsCfg.Anonymous.PerListingIP
+		rateLimitConfig.Authenticated.PerUser = leadsCfg.Authenticated.PerUser
+		rateLimitConfig.Authenticated.PerListingEmail = leadsCfg.Authenticated.PerListingEmail
+		rateLimitConfig.Authenticated.PerListingIP = leadsCfg.Authenticated.PerListingIP
+	}
+
 	// Initialize lead service
 	c.LeadSvc = leadsservice.NewLeadService(
 		leadRepo,
@@ -480,6 +518,8 @@ func (c *Container) initLeads() error {
 		propertyHooks,
 		businessHooks,
 		profileHooks,
+		c.RateLimiter,
+		rateLimitConfig,
 		c.Logger,
 	)
 
