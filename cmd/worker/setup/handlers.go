@@ -130,13 +130,55 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			log,
 		)
 
-		// Create moderation service
+		// Initialize review service for moderation hooks
+		// Note: Review service is needed here to handle moderation callbacks for reviews
+		reviewRepo := reviewrepository.NewReviewRepository(infra.DB)
+		responseRepo := reviewrepository.NewResponseRepository(infra.DB)
+		statsRepo := reviewrepository.NewStatsRepository(infra.DB)
+		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
+
+		if propertyRepo == nil {
+			propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
+		}
+
+		bookingQuerierAdapter := reviewhooks.NewBookingQuerierAdapter(bookingRepo, propertyRepo)
+
+		if profileSvc == nil {
+			profileRepo = profilerepository.NewProfileRepository(infra.DB)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+		}
+		userQuerierAdapter := reviewhooks.NewReviewUserAdapter(profileSvc)
+
+		reviewNotificationSvc := reviewnotification.NewNotificationService(
+			infra.Email,
+			infra.Queue,
+			qCfg["email"],
+			cfg.App.Client,
+			log,
+		)
+
+		reviewSvc := reviewservice.NewReviewService(
+			reviewRepo,
+			responseRepo,
+			statsRepo,
+			reviewNotificationSvc,
+			bookingQuerierAdapter,
+			nil, // booking hooks not needed for worker tasks
+			userQuerierAdapter,
+			nil, // moderation service not needed here (circular dep avoided)
+			log,
+		)
+
+		// Create review moderation hooks adapter
+		reviewModerationHooks := reviewhooks.NewReviewModerationHooksAdapter(reviewSvc)
+
+		// Create moderation service with review hooks
 		modService := moderationservice.NewModerationService(moderationRepo,
 			infra.AI, infra.Queue,
 			qCfg["ai_moderation"],
 			propertyModerationCallback,
 			profileModerationCallback,
-			nil, // TODO: replace nil with reviewHooks after review service is initialized
+			reviewModerationHooks,
 			log,
 		)
 		h := moderationHandler.NewAIModerationHandler(modService, log, qCfg["ai_moderation"])
