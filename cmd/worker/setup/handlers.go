@@ -23,6 +23,7 @@ import (
 	financehooks "hauslet/internal/modules/finance/port/hooks"
 	financerepository "hauslet/internal/modules/finance/repository"
 	financeservice "hauslet/internal/modules/finance/service"
+	interactionrepository "hauslet/internal/modules/interactions/repository"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
 	paymentsnotification "hauslet/internal/modules/payments/notification"
@@ -53,6 +54,7 @@ import (
 	calendarHandler "hauslet/internal/transport/worker/handlers/calendar"
 	emailHandler "hauslet/internal/transport/worker/handlers/emails"
 	financeHandler "hauslet/internal/transport/worker/handlers/finance"
+	interactionHandler "hauslet/internal/transport/worker/handlers/interactions"
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
 	paymentHandler "hauslet/internal/transport/worker/handlers/payments"
@@ -128,13 +130,55 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			log,
 		)
 
-		// Create moderation service
+		// Initialize review service for moderation hooks
+		// Note: Review service is needed here to handle moderation callbacks for reviews
+		reviewRepo := reviewrepository.NewReviewRepository(infra.DB)
+		responseRepo := reviewrepository.NewResponseRepository(infra.DB)
+		statsRepo := reviewrepository.NewStatsRepository(infra.DB)
+		bookingRepo := bookingrepository.NewBookingRepository(infra.DB)
+
+		if propertyRepo == nil {
+			propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
+		}
+
+		bookingQuerierAdapter := reviewhooks.NewBookingQuerierAdapter(bookingRepo, propertyRepo)
+
+		if profileSvc == nil {
+			profileRepo = profilerepository.NewProfileRepository(infra.DB)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+		}
+		userQuerierAdapter := reviewhooks.NewReviewUserAdapter(profileSvc)
+
+		reviewNotificationSvc := reviewnotification.NewNotificationService(
+			infra.Email,
+			infra.Queue,
+			qCfg["email"],
+			cfg.App.Client,
+			log,
+		)
+
+		reviewSvc := reviewservice.NewReviewService(
+			reviewRepo,
+			responseRepo,
+			statsRepo,
+			reviewNotificationSvc,
+			bookingQuerierAdapter,
+			nil, // booking hooks not needed for worker tasks
+			userQuerierAdapter,
+			nil, // moderation service not needed here (circular dep avoided)
+			log,
+		)
+
+		// Create review moderation hooks adapter
+		reviewModerationHooks := reviewhooks.NewReviewModerationHooksAdapter(reviewSvc)
+
+		// Create moderation service with review hooks
 		modService := moderationservice.NewModerationService(moderationRepo,
 			infra.AI, infra.Queue,
 			qCfg["ai_moderation"],
 			propertyModerationCallback,
 			profileModerationCallback,
-			nil, // TODO: replace nil with reviewHooks after review service is initialized
+			reviewModerationHooks,
 			log,
 		)
 		h := moderationHandler.NewAIModerationHandler(modService, log, qCfg["ai_moderation"])
@@ -722,6 +766,19 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			)
 			registry.Register(h)
 		}
+	}
+
+	// Interactions batch writer handler
+	hasInteractionsBatch := qCfg["interactions_batch"] != ""
+	if hasInteractionsBatch {
+		interactionRepo := interactionrepository.NewInteractionRepository(infra.DB)
+		h := interactionHandler.NewBatchWriterHandler(
+			infra.Redis,
+			interactionRepo,
+			log,
+			qCfg["interactions_batch"],
+		)
+		registry.Register(h)
 	}
 
 	return registry

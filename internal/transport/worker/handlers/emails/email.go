@@ -53,8 +53,22 @@ func (h *EmailHandler) Handle(ctx context.Context, data []byte) error {
 
 	attachments := make([]email.Attachment, 0, len(job.Attachments))
 	for _, attachment := range job.Attachments {
+		// Debug: log first 50 chars of ContentBase64
+		previewLen := 50
+		previewLen = min(previewLen, len(attachment.ContentBase64))
+		h.log.Info("Processing attachment",
+			"filename", attachment.Filename,
+			"content_length", len(attachment.ContentBase64),
+			"content_preview", attachment.ContentBase64[:previewLen],
+		)
+
 		payload, err := base64.StdEncoding.DecodeString(attachment.ContentBase64)
 		if err != nil {
+			h.log.Error("Failed to decode attachment",
+				"filename", attachment.Filename,
+				"content_preview", attachment.ContentBase64[:previewLen],
+				"error", err,
+			)
 			return fmt.Errorf("failed to decode attachment %s: %w", attachment.Filename, err)
 		}
 		attachments = append(attachments, email.Attachment{

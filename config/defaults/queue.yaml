@@ -31,6 +31,7 @@ queue:
     verification_submission: "verification-submission-queue"
     verification_sms: "verification-sms-queue"
     verification_reconciliation: "verification-reconciliation-queue"
+    interactions_batch: "interactions-batch-queue"
 
   # Legacy field (unused for Cloud Tasks)
   consumers:
@@ -58,3 +59,4 @@ queue:
     verification_submission: "verification-submission-worker"
     verification_sms: "verification-sms-worker"
     verification_reconciliation: "verification-reconciliation-worker"
+    interactions_batch: "interactions-batch-worker"

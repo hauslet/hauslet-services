@@ -16,6 +16,7 @@ type BatchWriterHandler struct {
 	redis           redis.RedisClient
 	interactionRepo repository.InteractionRepository
 	log             *slog.Logger
+	subject         string
 	batchSize       int
 }
 
@@ -24,11 +25,13 @@ func NewBatchWriterHandler(
 	redis redis.RedisClient,
 	interactionRepo repository.InteractionRepository,
 	log *slog.Logger,
+	subject string,
 ) *BatchWriterHandler {
 	return &BatchWriterHandler{
 		redis:           redis,
 		interactionRepo: interactionRepo,
 		log:             log,
+		subject:         subject,
 		batchSize:       100,
 	}
 }
@@ -91,7 +94,12 @@ func (h *BatchWriterHandler) Handle(ctx context.Context, payload []byte) error {
 	return nil
 }
 
-// Queue returns the queue name for this handler
-func (h *BatchWriterHandler) Queue() string {
-	return "interactions_batch"
+// JobType returns the job type this handler processes
+func (h *BatchWriterHandler) JobType() string {
+	return "interactions.batch_writer"
+}
+
+// Subject returns the queue subject for this handler
+func (h *BatchWriterHandler) Subject() string {
+	return h.subject
 }
