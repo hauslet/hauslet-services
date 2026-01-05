@@ -23,6 +23,7 @@ import (
 	financehooks "hauslet/internal/modules/finance/port/hooks"
 	financerepository "hauslet/internal/modules/finance/repository"
 	financeservice "hauslet/internal/modules/finance/service"
+	interactionrepository "hauslet/internal/modules/interactions/repository"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
 	paymentsnotification "hauslet/internal/modules/payments/notification"
@@ -53,6 +54,7 @@ import (
 	calendarHandler "hauslet/internal/transport/worker/handlers/calendar"
 	emailHandler "hauslet/internal/transport/worker/handlers/emails"
 	financeHandler "hauslet/internal/transport/worker/handlers/finance"
+	interactionHandler "hauslet/internal/transport/worker/handlers/interactions"
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
 	paymentHandler "hauslet/internal/transport/worker/handlers/payments"
@@ -722,6 +724,19 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			)
 			registry.Register(h)
 		}
+	}
+
+	// Interactions batch writer handler
+	hasInteractionsBatch := qCfg["interactions_batch"] != ""
+	if hasInteractionsBatch {
+		interactionRepo := interactionrepository.NewInteractionRepository(infra.DB)
+		h := interactionHandler.NewBatchWriterHandler(
+			infra.Redis,
+			interactionRepo,
+			log,
+			qCfg["interactions_batch"],
+		)
+		registry.Register(h)
 	}
 
 	return registry

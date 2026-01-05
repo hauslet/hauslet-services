@@ -379,6 +379,25 @@ func (s *NotificationService) buildCalendarAssets(event *domain.CalendarEvent, s
 	// Encode ICS content to base64 for email attachment
 	icsBase64 := base64.StdEncoding.EncodeToString([]byte(ics))
 
+	// Debug logging
+	if s.log != nil {
+		previewLen := 50
+		icsPreviewLen := 50
+		if len(icsBase64) < previewLen {
+			previewLen = len(icsBase64)
+		}
+		if len(ics) < icsPreviewLen {
+			icsPreviewLen = len(ics)
+		}
+		s.log.Info("Building calendar attachment",
+			"filename", filename,
+			"ics_raw_length", len(ics),
+			"ics_raw_preview", ics[:icsPreviewLen],
+			"ics_base64_length", len(icsBase64),
+			"ics_base64_preview", icsBase64[:previewLen],
+		)
+	}
+
 	attachments := []emailJob.Attachment{{
 		Filename:      filename,
 		ContentType:   contentType,
