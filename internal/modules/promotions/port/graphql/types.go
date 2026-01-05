@@ -36,9 +36,10 @@ type CreateSubscriptionPayload struct {
 
 // CreateSubscriptionInput mirrors the GraphQL input for subscriptions.
 type CreateSubscriptionInput struct {
-	PlanType     domain.PlanType     `json:"planType"`
-	BillingCycle domain.BillingCycle `json:"billingCycle"`
-	StartTrial   bool                `json:"startTrial"`
+	PlanType        domain.PlanType     `json:"planType"`
+	BillingCycle    domain.BillingCycle `json:"billingCycle"`
+	StartTrial      bool                `json:"startTrial"`
+	PaymentMethodID *uuid.UUID          `json:"paymentMethodID"`
 }
 
 // FeatureLimitCheckResult contains the result of checking a feature limit

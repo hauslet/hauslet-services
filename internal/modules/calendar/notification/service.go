@@ -375,13 +375,16 @@ func (s *NotificationService) buildCalendarAssets(event *domain.CalendarEvent, s
 	filename := s.calendarFilename(event)
 	contentType := "text/calendar; charset=utf-8; method=PUBLISH"
 
+	// Encode ICS content to base64 for email attachment
+	icsBase64 := base64.StdEncoding.EncodeToString([]byte(ics))
+
 	attachments := []emailJob.Attachment{{
 		Filename:      filename,
 		ContentType:   contentType,
-		ContentBase64: ics,
+		ContentBase64: icsBase64,
 	}}
 
-	return "data:text/calendar;base64," + ics, attachments
+	return "data:text/calendar;base64," + icsBase64, attachments
 }
 
 func (s *NotificationService) calendarFilename(event *domain.CalendarEvent) string {

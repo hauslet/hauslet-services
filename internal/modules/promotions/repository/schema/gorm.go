@@ -70,6 +70,9 @@ type AgentSubscription struct {
 	PendingPlanType        *string    `gorm:"type:varchar(50)"`
 	PendingPlanScheduledAt *time.Time
 
+	// Payment Method (for recurring billing)
+	PaymentMethodID *uuid.UUID `gorm:"type:uuid;index:idx_subscription_payment_method"`
+
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time `gorm:"index"`

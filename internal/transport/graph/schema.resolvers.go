@@ -105,6 +105,22 @@ func (r *agentSubscriptionResolver) Metadata(ctx context.Context, obj *domain9.A
 	return metadata, nil
 }
 
+// HasPaymentMethod is the resolver for the hasPaymentMethod field.
+func (r *agentSubscriptionResolver) HasPaymentMethod(ctx context.Context, obj *domain9.AgentSubscription) (bool, error) {
+	if obj == nil {
+		return false, nil
+	}
+	return obj.HasPaymentMethod(), nil
+}
+
+// PaymentMethodID is the resolver for the paymentMethodID field.
+func (r *agentSubscriptionResolver) PaymentMethodID(ctx context.Context, obj *domain9.AgentSubscription) (*uuid.UUID, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	return obj.PaymentMethodID, nil
+}
+
 // Location is the resolver for the location field.
 func (r *businessResolver) Location(ctx context.Context, obj *domain3.Business) (*domain.Location, error) {
 	if obj == nil || obj.Location == nil {
@@ -737,7 +753,7 @@ func (r *mutationResolver) CancelPromotion(ctx context.Context, id uuid.UUID) (*
 
 // CreateSubscription is the resolver for the createSubscription field.
 func (r *mutationResolver) CreateSubscription(ctx context.Context, input graphql5.CreateSubscriptionInput) (*graphql5.CreateSubscriptionPayload, error) {
-	return r.PromotionResolver.CreateSubscription(ctx, input.PlanType, input.BillingCycle, input.StartTrial)
+	return r.PromotionResolver.CreateSubscription(ctx, input.PlanType, input.BillingCycle, input.StartTrial, input.PaymentMethodID)
 }
 
 // UpgradeSubscription is the resolver for the upgradeSubscription field.
