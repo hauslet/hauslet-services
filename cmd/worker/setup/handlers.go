@@ -44,6 +44,8 @@ import (
 	reviewhooks "hauslet/internal/modules/review/port/hooks"
 	reviewrepository "hauslet/internal/modules/review/repository"
 	reviewservice "hauslet/internal/modules/review/service"
+	verificationrepository "hauslet/internal/modules/verification/repository"
+	verificationservice "hauslet/internal/modules/verification/service"
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/queue"
 	calendarjobs "hauslet/internal/queue/jobs/calendar"
@@ -56,6 +58,7 @@ import (
 	paymentHandler "hauslet/internal/transport/worker/handlers/payments"
 	promotionHandler "hauslet/internal/transport/worker/handlers/promotions"
 	reviewHandler "hauslet/internal/transport/worker/handlers/review"
+	verificationHandler "hauslet/internal/transport/worker/handlers/verification"
 )
 
 // RegisterHandlers builds and registers all queue handlers based on config.
@@ -651,6 +654,72 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 
 		if hasSubscriptionBilling {
 			h := promotionHandler.NewSubscriptionBillingHandler(subscriptionSvc, log, qCfg["subscription_billing"])
+			registry.Register(h)
+		}
+	}
+
+	// Verification handlers
+	hasVerificationSubmission := qCfg["verification_submission"] != ""
+	hasVerificationSMS := qCfg["verification_sms"] != ""
+	hasVerificationReconciliation := qCfg["verification_reconciliation"] != ""
+
+	if hasVerificationSubmission || hasVerificationSMS || hasVerificationReconciliation {
+		// Import verification dependencies
+		verificationRepo := verificationrepository.NewVerificationRepo(infra.DB)
+
+		if hasVerificationSubmission {
+			// Submission handler needs KYC client and evidence store
+			verificationSvc := verificationservice.NewVerificationService(
+				verificationRepo,
+				infra.KYC,
+				infra.SMS,
+				infra.EvidenceStore,
+				infra.RateLimiter,
+				infra.CircuitBreaker,
+				infra.Redis,
+				nil, // profile adapter not needed for worker
+				nil, // business adapter not needed for worker
+				nil, // queue client not needed in worker (handlers use queue directly)
+				cfg,
+				log,
+			)
+
+			h := verificationHandler.NewSubmissionHandler(
+				verificationSvc,
+				verificationRepo,
+				infra.KYC,
+				infra.EvidenceStore,
+				log,
+				qCfg["verification_submission"],
+			)
+			registry.Register(h)
+		}
+
+		if hasVerificationSMS {
+			// SMS handler only needs SMS client
+			h := verificationHandler.NewSMSHandler(
+				infra.SMS,
+				log,
+				qCfg["verification_sms"],
+			)
+			registry.Register(h)
+		}
+
+		if hasVerificationReconciliation {
+			// Reconciliation handler needs profile service
+			if profileRepo == nil {
+				profileRepo = profilerepository.NewProfileRepository(infra.DB)
+			}
+			if profileSvc == nil {
+				profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+			}
+
+			h := verificationHandler.NewReconciliationHandler(
+				verificationRepo,
+				profileSvc,
+				log,
+				qCfg["verification_reconciliation"],
+			)
 			registry.Register(h)
 		}
 	}

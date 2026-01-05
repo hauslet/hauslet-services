@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"hauslet/config"
@@ -10,7 +11,9 @@ import (
 
 // calculatePromotionPrice looks up the price for a promotion type and duration
 func calculatePromotionPrice(cfg *config.PromotionYAMLConfig, promoType domain.PromotionType, durationDays int) (int64, error) {
-	price, found := cfg.GetPromotionPrice(promoType.String(), durationDays)
+	// Normalize promotion type to lowercase for case-insensitive lookup
+	normalizedPromoType := strings.ToLower(promoType.String())
+	price, found := cfg.GetPromotionPrice(normalizedPromoType, durationDays)
 	if !found {
 		return 0, fmt.Errorf("no pricing found for promotion type %s with duration %d days", promoType, durationDays)
 	}
@@ -19,7 +22,9 @@ func calculatePromotionPrice(cfg *config.PromotionYAMLConfig, promoType domain.P
 
 // calculateBoostMultiplier returns the search boost multiplier for a promotion type
 func calculateBoostMultiplier(cfg *config.PromotionYAMLConfig, promoType domain.PromotionType) float64 {
-	promo, exists := cfg.ListingPromotions[promoType.String()]
+	// Normalize promotion type to lowercase for case-insensitive lookup
+	normalizedPromoType := strings.ToLower(promoType.String())
+	promo, exists := cfg.ListingPromotions[normalizedPromoType]
 	if !exists {
 		return 1.0 // No boost
 	}
@@ -44,14 +49,24 @@ func calculateProrationAmount(oldAmount, newAmount int64, daysRemaining, totalDa
 
 // loadPlanConfig loads subscription plan configuration
 func loadPlanConfig(cfg *config.PromotionYAMLConfig, planType domain.PlanType, billingCycle domain.BillingCycle) (*PlanConfig, error) {
-	plan, exists := cfg.SubscriptionPlans[planType.String()]
+	// Normalize plan type to lowercase for case-insensitive lookup
+	normalizedPlanType := strings.ToLower(planType.String())
+
+	plan, exists := cfg.SubscriptionPlans[normalizedPlanType]
 	if !exists || !plan.Enabled {
 		return nil, fmt.Errorf("plan %s not found or disabled", planType)
 	}
 
-	limits, _ := cfg.GetPlanLimits(planType.String())
-	features, _ := cfg.GetPlanFeatures(planType.String())
-	price, found := cfg.GetSubscriptionPrice(planType.String(), billingCycle.String())
+	limits, _ := cfg.GetPlanLimits(normalizedPlanType)
+	features, _ := cfg.GetPlanFeatures(normalizedPlanType)
+
+	// Normalize billing cycle: convert to lowercase and map "annual" to "yearly"
+	normalizedBillingCycle := strings.ToLower(billingCycle.String())
+	if normalizedBillingCycle == "annual" {
+		normalizedBillingCycle = "yearly"
+	}
+
+	price, found := cfg.GetSubscriptionPrice(normalizedPlanType, normalizedBillingCycle)
 	if !found {
 		return nil, fmt.Errorf("no pricing found for plan %s with billing cycle %s", planType, billingCycle)
 	}
@@ -88,13 +103,15 @@ type PlanConfig struct {
 
 // validatePromotionDuration checks if the duration is valid for a promotion type
 func validatePromotionDuration(cfg *config.PromotionYAMLConfig, promoType domain.PromotionType, durationDays int) error {
-	promo, exists := cfg.ListingPromotions[promoType.String()]
+	// Normalize promotion type to lowercase for case-insensitive lookup
+	normalizedPromoType := strings.ToLower(promoType.String())
+	promo, exists := cfg.ListingPromotions[normalizedPromoType]
 	if !exists {
 		return fmt.Errorf("promotion type %s not found", promoType)
 	}
 
 	// Check if this duration has pricing configured
-	_, found := cfg.GetPromotionPrice(promoType.String(), durationDays)
+	_, found := cfg.GetPromotionPrice(normalizedPromoType, durationDays)
 	if !found {
 		availableDurations := make([]string, 0, len(promo.Pricing))
 		for duration := range promo.Pricing {

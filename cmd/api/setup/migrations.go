@@ -8,6 +8,7 @@ import (
 	discoverySchema "hauslet/internal/modules/discovery/repository/schema"
 	financeSchema "hauslet/internal/modules/finance/repository/schema"
 	interactionsSchema "hauslet/internal/modules/interactions/repository/schema"
+	leadsSchema "hauslet/internal/modules/leads/repository/schema"
 	moderationSchema "hauslet/internal/modules/moderation/repository/schema"
 	paymentsSchema "hauslet/internal/modules/payments/repository/schema"
 	pricingSchema "hauslet/internal/modules/pricing/repository/schema"
@@ -15,6 +16,7 @@ import (
 	promotionsSchema "hauslet/internal/modules/promotions/repository/schema"
 	propertySchema "hauslet/internal/modules/property/repository/schema"
 	reviewSchema "hauslet/internal/modules/review/repository/schema"
+	verificationSchema "hauslet/internal/modules/verification/repository/schema"
 	wishlistSchema "hauslet/internal/modules/wishlist/repository/schema"
 	"hauslet/internal/platform/database"
 	"log/slog"
@@ -65,6 +67,12 @@ func RunMigrations(db *gorm.DB, log *slog.Logger) error {
 		&interactionsSchema.InteractionAggregate{},
 		&discoverySchema.SearchHistory{},
 		&discoverySchema.UserPreferences{},
+		&verificationSchema.VerificationSessionSchema{},
+		&verificationSchema.VerificationAttemptSchema{},
+		&verificationSchema.VerificationEvidenceSchema{},
+		&leadsSchema.Lead{},
+		&leadsSchema.LeadEvent{},
+		&leadsSchema.LeadAssignment{},
 	); err != nil {
 		return err
 	}

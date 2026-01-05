@@ -230,6 +230,49 @@ func (s *AgentSubscription) ApplyPendingPlanChange(newLimits PlanLimits, newAmou
 	return nil
 }
 
+// ApplyImmediateUpgrade applies an upgrade immediately (without pending state)
+// Used for instant upgrades with proration
+func (s *AgentSubscription) ApplyImmediateUpgrade(newPlan PlanType, newLimits PlanLimits, newAmount int64, newCurrency string) error {
+	if !s.IsActive() {
+		return ErrSubscriptionNotActive
+	}
+
+	// Validate it's actually an upgrade
+	if newPlan <= s.PlanType {
+		return ErrCannotUpgrade
+	}
+
+	if !s.CanUpgrade() {
+		return ErrCannotUpgrade
+	}
+
+	// Clear any pending downgrades (upgrade takes precedence)
+	if s.HasPendingPlanChange() && *s.PendingPlanType < s.PlanType {
+		s.CancelPendingPlanChange()
+	}
+
+	// Update plan type immediately
+	s.PlanType = newPlan
+
+	// Update billing amount
+	s.Amount = newAmount
+	s.Currency = newCurrency
+
+	// Update limits immediately
+	s.MaxListings = newLimits.MaxListings
+	s.MaxPhotosPerListing = newLimits.MaxPhotosPerListing
+	s.MaxVirtualTours = newLimits.MaxVirtualTours
+	s.IncludedFeaturedPerMonth = newLimits.IncludedFeaturedPerMonth
+	s.IncludedPremiumPerMonth = newLimits.IncludedPremiumPerMonth
+	s.IncludedOpenHousesPerMonth = newLimits.IncludedOpenHousesPerMonth
+	s.IncludedPrivateShowingsPerMonth = newLimits.IncludedPrivateShowingsPerMonth
+	s.Features = newLimits.Features
+
+	s.UpdatedAt = time.Now()
+
+	return nil
+}
+
 // PlanLimits holds the configuration for a subscription plan
 type PlanLimits struct {
 	MaxListings                     int

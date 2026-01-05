@@ -85,6 +85,18 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/calendar/open-house/reminders",
 		Timeout: 120 * time.Second,
 	},
+	"verification_submission": {
+		Path:    "/tasks/verification/submission",
+		Timeout: 180 * time.Second,
+	},
+	"verification_sms": {
+		Path:    "/tasks/verification/sms",
+		Timeout: 30 * time.Second,
+	},
+	"verification_reconciliation": {
+		Path:    "/tasks/verification/reconciliation",
+		Timeout: 300 * time.Second,
+	},
 }
 
 func BuildQueueRoutes(queueNames map[string]string) map[string]QueueRoute {

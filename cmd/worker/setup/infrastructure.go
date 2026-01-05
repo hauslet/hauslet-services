@@ -7,10 +7,15 @@ import (
 	"hauslet/config"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	aimoderation "hauslet/internal/platform/ai/moderation"
+	"hauslet/internal/platform/breaker"
 	"hauslet/internal/platform/database"
 	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/evidence"
+	"hauslet/internal/platform/kyc"
 	"hauslet/internal/platform/queue"
+	"hauslet/internal/platform/ratelimit"
 	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/sms"
 	"hauslet/internal/platform/storage"
 
 	"gorm.io/gorm"
@@ -18,13 +23,19 @@ import (
 
 // Infrastructure holds shared platform dependencies for the worker.
 type Infrastructure struct {
-	DB        *gorm.DB
-	Storage   *storage.R2Storage
-	AI        *aimoderation.Client
-	Email     *email.Client
-	Queue     *queue.Client
-	Cache     redis.RedisClient
-	embedding *aiembeddings.Client
+	DB             *gorm.DB
+	Storage        *storage.R2Storage
+	AI             *aimoderation.Client
+	Email          *email.Client
+	Queue          *queue.Client
+	Cache          redis.RedisClient
+	embedding      *aiembeddings.Client
+	KYC            *kyc.Client
+	SMS            *sms.Client
+	EvidenceStore  evidence.Store
+	RateLimiter    ratelimit.Limiter
+	CircuitBreaker breaker.CircuitBreaker
+	Redis          redis.RedisClient
 }
 
 // CloseDB closes the DB connection.
@@ -105,12 +116,36 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *slog
 		log.Warn("failed to get Redis client (cache will be disabled)", "error", err)
 	}
 
+	// KYC Client (for verification)
+	kycFactory := kyc.NewProviderFactory(cfg.Services.KYC)
+	kycClient := kyc.New(kycFactory)
+
+	// SMS Client (for verification OTP)
+	termiiProvider := sms.NewTermiiAdapter(cfg.Services.SMS.TermiiAPIKey, cfg.Services.SMS.TermiiSenderID)
+	twilioProvider := sms.NewTwilioAdapter(cfg.Services.SMS.TwilioAccountSID, cfg.Services.SMS.TwilioAuthToken, cfg.Services.SMS.TwilioFromNumber)
+	smsClient := sms.New(termiiProvider, twilioProvider, log)
+
+	// Evidence Store (uses R2 storage)
+	evidenceStore := evidence.NewR2Store(r2Storage)
+
+	// Rate Limiter (uses Redis)
+	rateLimiter := ratelimit.NewRedisLimiter(redisClient)
+
+	// Circuit Breaker (uses Redis) - using default config
+	circuitBreaker := breaker.NewRedisCircuitBreaker(redisClient, breaker.DefaultProviderConfig(), log)
+
 	return &Infrastructure{
-		DB:        db,
-		Storage:   r2Storage,
-		AI:        aiClient,
-		Email:     emailClient,
-		Cache:     redisClient,
-		embedding: embeddingClient,
+		DB:             db,
+		Storage:        r2Storage,
+		AI:             aiClient,
+		Email:          emailClient,
+		Cache:          redisClient,
+		embedding:      embeddingClient,
+		KYC:            kycClient,
+		SMS:            smsClient,
+		EvidenceStore:  evidenceStore,
+		RateLimiter:    rateLimiter,
+		CircuitBreaker: circuitBreaker,
+		Redis:          redisClient,
 	}, nil
 }

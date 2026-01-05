@@ -72,6 +72,10 @@ type SubscriptionService interface {
 	// RenewSubscription renews a subscription after payment
 	RenewSubscription(ctx context.Context, subscriptionID, paymentID uuid.UUID) error
 
+	// HandlePaymentSuccess handles successful payment confirmation (webhooks, 3D Secure completion)
+	// Completes pending upgrades when async payments succeed
+	HandlePaymentSuccess(ctx context.Context, paymentID uuid.UUID) error
+
 	// GetSubscription retrieves a subscription by ID
 	GetSubscription(ctx context.Context, subscriptionID uuid.UUID) (*domain.AgentSubscription, error)
 
