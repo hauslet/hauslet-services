@@ -17,6 +17,7 @@ schema:
   - internal/modules/leads/port/graphql/*.graphqls
   - internal/modules/interactions/port/graphql/*.graphqls
   - internal/modules/discovery/port/graphql/*.graphqls
+  - internal/modules/verification/port/graphql/*.graphqls
 
 # 2. Server Logic (The Wiring)
 exec:
@@ -523,3 +524,57 @@ models:
   # Discovery Enums
   FeedSectionType:
     model: hauslet/internal/modules/discovery/domain.FeedSectionType
+  # --- Verification Module Bindings ---
+  VerificationSession:
+    model: hauslet/internal/modules/verification/domain.VerificationSession
+  VerificationAttempt:
+    model: hauslet/internal/modules/verification/domain.VerificationAttempt
+  ApplicantInfo:
+    model: hauslet/internal/modules/verification/domain.ApplicantInfo
+  DocumentInfo:
+    model: hauslet/internal/modules/verification/domain.DocumentInfo
+  Address:
+    model: hauslet/internal/modules/verification/domain.Address
+
+  # Verification Enums
+  VerificationType:
+    model: hauslet/internal/modules/verification/domain.VerificationType
+  SessionStatus:
+    model: hauslet/internal/modules/verification/domain.SessionStatus
+  VerificationTier:
+    model: hauslet/internal/modules/verification/domain.VerificationTier
+  DocumentType:
+    model: hauslet/internal/modules/verification/domain.DocumentType
+  RejectionReason:
+    model: hauslet/internal/modules/verification/domain.RejectionReason
+  AttemptStatus:
+    model: hauslet/internal/modules/verification/domain.AttemptStatus
+  # Verification Response Types
+  OTPResponse:
+    model: hauslet/internal/modules/verification/port/graphql.OTPResponse
+  OTPVerificationResponse:
+    model: hauslet/internal/modules/verification/port/graphql.OTPVerificationResponse
+  VerificationSubmitResponse:
+    model: hauslet/internal/modules/verification/port/graphql.VerificationSubmitResponse
+  
+  # Verification Input Types
+  CreatePhoneVerificationInput:
+    model: hauslet/internal/modules/verification/port/graphql.CreatePhoneVerificationInput
+  CreateIdentityVerificationInput:
+    model: hauslet/internal/modules/verification/port/graphql.CreateIdentityVerificationInput
+  SubmitIdentityVerificationInput:
+    model: hauslet/internal/modules/verification/port/graphql.SubmitIdentityVerificationInput
+  CreateAddressVerificationInput:
+    model: hauslet/internal/modules/verification/port/graphql.CreateAddressVerificationInput
+  SubmitAddressVerificationInput:
+    model: hauslet/internal/modules/verification/port/graphql.SubmitAddressVerificationInput
+  CreateBusinessVerificationInput:
+    model: hauslet/internal/modules/verification/port/graphql.CreateBusinessVerificationInput
+  SubmitBusinessVerificationInput:
+    model: hauslet/internal/modules/verification/port/graphql.SubmitBusinessVerificationInput
+  ApplicantInfoInput:
+    model: hauslet/internal/modules/verification/port/graphql.ApplicantInfoInput
+  DocumentInfoInput:
+    model: hauslet/internal/modules/verification/port/graphql.DocumentInfoInput
+  AddressInput:
+    model: hauslet/internal/modules/verification/port/graphql.AddressInput

@@ -26,6 +26,7 @@ type RedisClient interface {
 	SMembers(ctx context.Context, key string) *redis.StringSliceCmd
 	Expire(ctx context.Context, key string, expiration time.Duration) *redis.BoolCmd
 	TTL(ctx context.Context, key string) *redis.DurationCmd
+	Eval(ctx context.Context, script string, keys []string, args ...any) *redis.Cmd
 	// List operations
 	RPush(ctx context.Context, key string, values ...any) *redis.IntCmd
 	LPop(ctx context.Context, key string) *redis.StringCmd

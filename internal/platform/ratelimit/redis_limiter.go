@@ -4,8 +4,13 @@ import (
 	"context"
 	"fmt"
 	"hauslet/internal/platform/redis"
+	"strconv"
 	"time"
 )
+
+//
+// Redis-backed rate limiter using Lua (atomic, production-safe)
+//
 
 // RedisLimiter implements Limiter using Redis
 type RedisLimiter struct {
@@ -19,28 +24,71 @@ func NewRedisLimiter(redisClient redis.RedisClient) *RedisLimiter {
 	}
 }
 
-// Check verifies if a single key is within rate limits
+// Lua script
+// KEYS[1] = redis key
+// ARGV[1] = limit
+// ARGV[2] = window (seconds)
+//
+// Returns: { allowed, current, remaining, ttl }
+// allowed   -> 1 | 0
+// current   -> current count
+// remaining -> remaining allowed requests
+// ttl       -> seconds until reset
+var rateLimitScript = redis.NewScript(`
+  local limit = tonumber(ARGV[1])
+  local window = tonumber(ARGV[2])
+
+  local current = redis.call("GET", KEYS[1])
+  if current then
+    current = tonumber(current)
+  else
+    current = 0
+  end
+
+  if current >= limit then
+    local ttl = redis.call("TTL", KEYS[1])
+    if ttl < 0 then
+      ttl = window
+    end
+    return {0, current, 0, ttl}
+  end
+
+  current = redis.call("INCR", KEYS[1])
+
+  if current == 1 then
+    redis.call("EXPIRE", KEYS[1], window)
+  end
+
+  local ttl = redis.call("TTL", KEYS[1])
+  if ttl < 0 then
+    ttl = window
+  end
+
+  return {1, current, limit - current, ttl}
+`)
+
+//
+// =======================
+// READ-ONLY (BEST EFFORT)
+// =======================
+//
+
+// Check verifies if a key appears within limits (NOT atomic, informational only)
 func (rl *RedisLimiter) Check(ctx context.Context, key LimitKey) (*CheckResult, error) {
-	// Get current count
 	current, err := rl.GetCurrent(ctx, key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current count: %w", err)
 	}
 
-	// Calculate remaining
-	remaining := max(key.Limit - current, 0)
-
-	// Check if allowed
 	allowed := current < key.Limit
+	remaining := max(key.Limit-current, 0)
 
-	// Calculate retry time if rate limited
 	var retryAt *time.Time
 	if !allowed {
-		// Get TTL to calculate when limit resets
 		ttl, err := rl.getTTL(ctx, key)
 		if err == nil && ttl > 0 {
-			retry := time.Now().Add(ttl)
-			retryAt = &retry
+			t := time.Now().Add(ttl)
+			retryAt = &t
 		}
 	}
 
@@ -55,19 +103,18 @@ func (rl *RedisLimiter) Check(ctx context.Context, key LimitKey) (*CheckResult, 
 	}, nil
 }
 
-// CheckMultiple verifies multiple keys (all must pass)
+// CheckMultiple is informational only (NOT enforcement)
 func (rl *RedisLimiter) CheckMultiple(ctx context.Context, keys ...LimitKey) ([]*CheckResult, error) {
 	results := make([]*CheckResult, len(keys))
 
 	for i, key := range keys {
-		result, err := rl.Check(ctx, key)
+		res, err := rl.Check(ctx, key)
 		if err != nil {
-			return nil, fmt.Errorf("failed to check key %s:%s: %w", key.Type, key.Value, err)
+			return nil, err
 		}
-		results[i] = result
+		results[i] = res
 
-		// If any key fails, return early
-		if !result.Allowed {
+		if !res.Allowed {
 			return results[:i+1], nil
 		}
 	}
@@ -75,73 +122,171 @@ func (rl *RedisLimiter) CheckMultiple(ctx context.Context, keys ...LimitKey) ([]
 	return results, nil
 }
 
-// Increment increments the counter for a key and returns new value
-func (rl *RedisLimiter) Increment(ctx context.Context, key LimitKey) (int64, error) {
-	redisKey := key.RedisKey()
+//
+// =======================
+// ENFORCEMENT (ATOMIC)
+// =======================
+//
 
-	// Increment counter
-	count, err := rl.redis.Incr(ctx, redisKey).Result()
+// CheckAndIncrement atomically checks and consumes a request
+func (rl *RedisLimiter) CheckAndIncrement(ctx context.Context, key LimitKey) (*CheckResult, error) {
+	r, err := rl.runRateLimitScript(ctx, key)
 	if err != nil {
-		return 0, fmt.Errorf("failed to increment counter: %w", err)
+		return nil, err
 	}
 
-	// Set expiration on first increment
-	if count == 1 {
-		if err := rl.redis.Expire(ctx, redisKey, key.Window).Err(); err != nil {
-			return count, fmt.Errorf("failed to set expiration: %w", err)
+	var retryAt *time.Time
+	if !r.allowed && r.ttl > 0 {
+		t := time.Now().Add(r.ttl)
+		retryAt = &t
+	}
+
+	return &CheckResult{
+		Allowed:   r.allowed,
+		Key:       key,
+		Current:   r.current,
+		Limit:     key.Limit,
+		Remaining: r.remaining,
+		RetryAt:   retryAt,
+		Window:    key.Window,
+	}, nil
+}
+
+// CheckAndIncrementMultiple enforces ALL limits atomically (short-circuits on failure)
+func (rl *RedisLimiter) CheckAndIncrementMultiple(
+	ctx context.Context,
+	keys ...LimitKey,
+) ([]*CheckResult, error) {
+
+	results := make([]*CheckResult, 0, len(keys))
+
+	for _, key := range keys {
+		res, err := rl.CheckAndIncrement(ctx, key)
+		if err != nil {
+			return results, err
+		}
+
+		results = append(results, res)
+
+		if !res.Allowed {
+			return results, nil
 		}
 	}
 
-	return count, nil
+	return results, nil
 }
 
-// Reset resets the counter for a key
-func (rl *RedisLimiter) Reset(ctx context.Context, key LimitKey) error {
-	redisKey := key.RedisKey()
-
-	if err := rl.redis.Del(ctx, redisKey).Err(); err != nil {
-		return fmt.Errorf("failed to reset counter: %w", err)
+// Increment increments ONLY if allowed.
+// Returns -1 if rate-limited.
+func (rl *RedisLimiter) Increment(ctx context.Context, key LimitKey) (int64, error) {
+	r, err := rl.runRateLimitScript(ctx, key)
+	if err != nil {
+		return 0, err
 	}
 
-	return nil
+	if !r.allowed {
+		return -1, nil
+	}
+
+	return r.current, nil
 }
 
-// GetCurrent returns the current count for a key
-func (rl *RedisLimiter) GetCurrent(ctx context.Context, key LimitKey) (int64, error) {
-	redisKey := key.RedisKey()
+//
+// =======================
+// REDIS HELPERS
+// =======================
+//
 
-	// Get current value
-	val, err := rl.redis.Get(ctx, redisKey).Result()
+// Reset deletes the counter for a key
+func (rl *RedisLimiter) Reset(ctx context.Context, key LimitKey) error {
+	return rl.redis.Del(ctx, key.RedisKey()).Err()
+}
+
+// GetCurrent returns the current count (read-only)
+func (rl *RedisLimiter) GetCurrent(ctx context.Context, key LimitKey) (int64, error) {
+	val, err := rl.redis.Get(ctx, key.RedisKey()).Result()
 	if err != nil {
-		// Key doesn't exist yet
 		if err.Error() == "redis: nil" {
 			return 0, nil
 		}
-		return 0, fmt.Errorf("failed to get current count: %w", err)
+		return 0, err
 	}
 
-	// Parse value
-	var count int64
-	if _, err := fmt.Sscanf(val, "%d", &count); err != nil {
-		return 0, fmt.Errorf("failed to parse count: %w", err)
-	}
-
-	return count, nil
+	return strconv.ParseInt(val, 10, 64)
 }
 
-// Helper: getTTL gets the TTL for a key
+// getTTL returns remaining TTL
 func (rl *RedisLimiter) getTTL(ctx context.Context, key LimitKey) (time.Duration, error) {
-	redisKey := key.RedisKey()
-
-	ttl, err := rl.redis.TTL(ctx, redisKey).Result()
-	if err != nil {
-		return key.Window, fmt.Errorf("failed to read TTL: %w", err)
-	}
-
-	// Redis returns -2 when key does not exist, -1 when key exists without expiry.
-	if ttl <= 0 {
+	ttl, err := rl.redis.TTL(ctx, key.RedisKey()).Result()
+	if err != nil || ttl <= 0 {
 		return key.Window, nil
 	}
-
 	return ttl, nil
+}
+
+//
+// =======================
+// INTERNAL LUA HANDLING
+// =======================
+//
+
+type rateLimitScriptResult struct {
+	allowed   bool
+	current   int64
+	remaining int64
+	ttl       time.Duration
+}
+
+func (rl *RedisLimiter) runRateLimitScript(
+	ctx context.Context,
+	key LimitKey,
+) (*rateLimitScriptResult, error) {
+
+	res, err := rateLimitScript.Run(
+		ctx,
+		rl.redis,
+		[]string{key.RedisKey()},
+		key.Limit,
+		int64(key.Window.Seconds()),
+	).Result()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return parseRateLimitScriptResult(res)
+}
+
+func parseRateLimitScriptResult(res any) (*rateLimitScriptResult, error) {
+	values, ok := res.([]any)
+	if !ok || len(values) != 4 {
+		return nil, fmt.Errorf("unexpected script result: %v", res)
+	}
+
+	allowed := toInt64(values[0]) == 1
+	current := toInt64(values[1])
+	remaining := max(toInt64(values[2]), 0)
+	ttl := time.Duration(max(toInt64(values[3]), 0)) * time.Second
+
+	return &rateLimitScriptResult{
+		allowed:   allowed,
+		current:   current,
+		remaining: remaining,
+		ttl:       ttl,
+	}, nil
+}
+
+func toInt64(v any) int64 {
+	switch t := v.(type) {
+	case int64:
+		return t
+	case string:
+		i, _ := strconv.ParseInt(t, 10, 64)
+		return i
+	case []byte:
+		i, _ := strconv.ParseInt(string(t), 10, 64)
+		return i
+	default:
+		return 0
+	}
 }

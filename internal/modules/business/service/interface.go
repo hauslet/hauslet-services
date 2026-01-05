@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"time"
+
 	"hauslet/internal/modules/business/domain"
 
 	"github.com/google/uuid"
@@ -41,4 +43,7 @@ type BusinessService interface {
 	HasPermission(ctx context.Context, userID, businessID uuid.UUID, permission string) (bool, error)
 	IsOwner(ctx context.Context, userID, businessID uuid.UUID) (bool, error)
 	IsAdmin(ctx context.Context, userID, businessID uuid.UUID) (bool, error)
+
+	// Verification
+	SetVerificationStatus(ctx context.Context, businessID uuid.UUID, verified bool, verifiedAt *time.Time) error
 }

@@ -13,6 +13,7 @@ import (
 	bookinghooks "hauslet/internal/modules/booking/port/hooks"
 	bookingrepository "hauslet/internal/modules/booking/repository"
 	bookingservice "hauslet/internal/modules/booking/service"
+	businessadapter "hauslet/internal/modules/business/adapter"
 	businessmiddleware "hauslet/internal/modules/business/middleware"
 	businessnotification "hauslet/internal/modules/business/notification"
 	businesshooks "hauslet/internal/modules/business/port/hooks"
@@ -42,6 +43,7 @@ import (
 	paymentsservice "hauslet/internal/modules/payments/service"
 	pricingrepository "hauslet/internal/modules/pricing/repository"
 	pricingservice "hauslet/internal/modules/pricing/service"
+	profileadapter "hauslet/internal/modules/profile/adapter"
 	profilenotification "hauslet/internal/modules/profile/notification"
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
@@ -58,6 +60,9 @@ import (
 	reviewhooks "hauslet/internal/modules/review/port/hooks"
 	reviewrepository "hauslet/internal/modules/review/repository"
 	reviewservice "hauslet/internal/modules/review/service"
+	verificationhttp "hauslet/internal/modules/verification/port/http"
+	verificationrepository "hauslet/internal/modules/verification/repository"
+	verificationservice "hauslet/internal/modules/verification/service"
 	wishlistrepository "hauslet/internal/modules/wishlist/repository"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
@@ -138,13 +143,15 @@ type Container struct {
 	InteractionTracker interactionsservice.TrackerService
 	InteractionReader  interactionsservice.ReaderService
 	DiscoverySvc       discoveryservice.DiscoveryService
+	VerificationSvc    verificationservice.VerificationService
 	SupplyGate         authorization.SupplyGate
 
 	// HTTP Handlers
-	AuthHTTP           *authhttp.HTTPHandler
-	PropertyHTTP       *propertyhttp.HTTPHandler
-	CalendarHTTP       *calendarhttp.HTTPHandler
-	PaymentWebhookHTTP *paymentshttp.WebhookHandler
+	AuthHTTP                *authhttp.HTTPHandler
+	PropertyHTTP            *propertyhttp.HTTPHandler
+	CalendarHTTP            *calendarhttp.HTTPHandler
+	PaymentWebhookHTTP      *paymentshttp.WebhookHandler
+	VerificationWebhookHTTP *verificationhttp.WebhookHandler
 
 	// Middleware
 	BusinessMW *businessmiddleware.Middleware
@@ -183,6 +190,10 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 
 	if err := c.initBusiness(); err != nil {
 		return nil, fmt.Errorf("failed to initialize business: %w", err)
+	}
+
+	if err := c.initVerification(); err != nil {
+		return nil, fmt.Errorf("failed to initialize verification: %w", err)
 	}
 
 	if err := c.initPayments(); err != nil {
@@ -799,6 +810,31 @@ func (c *Container) initInteractions() error {
 	return nil
 }
 
+// initVerification initializes the verification service with adapters
+func (c *Container) initVerification() error {
+	verificationRepo := verificationrepository.NewVerificationRepo(c.DB)
+
+	// Create adapters to notify profile and business modules on verification success
+	profileVerificationAdapter := profileadapter.NewVerificationAdapter(c.ProfileSvc, c.Logger)
+	businessVerificationAdapter := businessadapter.NewVerificationAdapter(c.BusinessSvc, c.Logger)
+
+	c.VerificationSvc = verificationservice.NewVerificationService(
+		verificationRepo,
+		c.KYCClient,
+		c.SMSClient,
+		c.EvidenceStore,
+		c.RateLimiter,
+		c.CircuitBreaker,
+		*c.Redis,
+		profileVerificationAdapter,
+		businessVerificationAdapter,
+		c.Config,
+		c.Logger,
+	)
+
+	return nil
+}
+
 // initHTTPHandlers initializes HTTP handlers for auth, property, calendar, and payments
 func (c *Container) initHTTPHandlers(ctx context.Context) error {
 	// Initialize auth HTTP handler
@@ -829,6 +865,12 @@ func (c *Container) initHTTPHandlers(ctx context.Context) error {
 		promotionHooksAdapter,
 		c.Queue,
 		c.Config.YAML.Queue.Subjects["payment_webhook"],
+		c.Logger,
+	)
+
+	// Initialize verification webhook handler
+	c.VerificationWebhookHTTP = verificationhttp.NewWebhookHandler(
+		c.VerificationSvc,
 		c.Logger,
 	)
 

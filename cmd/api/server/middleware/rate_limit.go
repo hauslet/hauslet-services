@@ -52,7 +52,16 @@ func RateLimitWithLimiter(limiter ratelimit.Limiter, policy RateLimitPolicy) fun
 			}
 
 			for _, key := range keys {
-				_, _ = limiter.Increment(r.Context(), key)
+				count, err := limiter.Increment(r.Context(), key)
+				if err != nil {
+					// Fail open on limiter errors.
+					next.ServeHTTP(w, r)
+					return
+				}
+				if count < 0 {
+					writeRateLimitResponse(w, key.Window)
+					return
+				}
 			}
 
 			next.ServeHTTP(w, r)

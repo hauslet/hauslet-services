@@ -7,6 +7,9 @@ type Limiter interface {
 	// Check verifies if a single key is within rate limits
 	Check(ctx context.Context, key LimitKey) (*CheckResult, error)
 
+	// CheckAndIncrement atomically checks and increments a key
+	CheckAndIncrement(ctx context.Context, key LimitKey) (*CheckResult, error)
+
 	// CheckMultiple verifies multiple keys (all must pass)
 	CheckMultiple(ctx context.Context, keys ...LimitKey) ([]*CheckResult, error)
 

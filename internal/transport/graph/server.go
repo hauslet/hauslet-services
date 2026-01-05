@@ -21,6 +21,7 @@ import (
 	promotionservice "hauslet/internal/modules/promotions/service"
 	propertyservice "hauslet/internal/modules/property/service"
 	reviewservice "hauslet/internal/modules/review/service"
+	verificationservice "hauslet/internal/modules/verification/service"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
 	"hauslet/internal/platform/ratelimit"
 	"hauslet/internal/platform/xchange"
@@ -56,6 +57,7 @@ func SetupGraphQL(r chi.Router,
 	interactionsTracker interactionsservice.TrackerService,
 	interactionsReader interactionsservice.ReaderService,
 	discoveryService discoveryservice.DiscoveryService,
+	verificationService verificationservice.VerificationService,
 	tenantSlugMiddleware func(http.Handler) http.Handler,
 	fxClient xchange.XChange,
 	rateLimiter ratelimit.Limiter,
@@ -83,6 +85,7 @@ func SetupGraphQL(r chi.Router,
 				interactionsTracker,
 				interactionsReader,
 				discoveryService,
+				verificationService,
 				fxClient,
 				cfg,
 				log,

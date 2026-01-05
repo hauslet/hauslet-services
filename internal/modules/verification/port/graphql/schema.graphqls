@@ -1,0 +1,186 @@
+# internal/modules/verification/port/graphql/schema.graphqls
+
+enum VerificationType {
+  identity
+  phone
+  address
+  business
+}
+
+enum SessionStatus {
+  pending
+  in_progress
+  approved
+  rejected
+  expired
+}
+
+enum VerificationTier {
+  basic
+  standard
+  enhanced
+}
+
+enum DocumentType {
+  passport
+  drivers_license
+  national_id
+  voters_card
+  residence_permit
+  nin
+  bvn
+  vin
+}
+
+enum RejectionReason {
+  document_not_readable
+  document_expired
+  document_fraudulent
+  selfie_mismatch
+  liveness_failed
+  data_mismatch
+  age_requirement
+  blacklisted
+  invalid_address
+  business_not_found
+  max_attempts_exceeded
+  provider_error
+  insufficient_data
+  other
+}
+
+type VerificationSession {
+  id: UUID!
+  userId: UUID!
+  type: VerificationType!
+  tier: VerificationTier!
+  status: SessionStatus!
+  country: String!
+  attemptsUsed: Int!
+  maxAttempts: Int!
+  lastAttemptAt: Time
+  approvedAt: Time
+  rejectedAt: Time
+  rejectionReason: RejectionReason
+  rejectionNotes: String
+  createdAt: Time!
+  updatedAt: Time!
+  expiresAt: Time!
+  completedAt: Time
+}
+
+type VerificationAttempt {
+  id: UUID!
+  sessionId: UUID!
+  status: String!
+  providerName: String!
+  providerSessionId: String
+  processingTimeMs: Int
+  webhookReceivedAt: Time
+  createdAt: Time!
+  completedAt: Time
+}
+
+type OTPResponse {
+  sessionId: UUID!
+  otpSent: Boolean!
+  expiresAt: String!
+  smsProvider: String!
+  message: String!
+}
+
+type OTPVerificationResponse {
+  sessionId: UUID!
+  verified: Boolean!
+  remainingAttempts: Int!
+  message: String!
+  session: VerificationSession
+}
+
+type VerificationSubmitResponse {
+  sessionId: UUID!
+  attemptId: UUID!
+  status: String!
+  providerName: String!
+  message: String!
+}
+
+# Inputs
+input CreatePhoneVerificationInput {
+  phoneNumber: String!
+  country: String!
+}
+
+input CreateIdentityVerificationInput {
+  tier: VerificationTier!
+  country: String!
+  firstName: String!
+  lastName: String!
+  dateOfBirth: Time
+}
+
+input SubmitIdentityVerificationInput {
+  sessionId: UUID!
+  selfieImage: String! # Base64
+  documentImage: String! # Base64
+  documentType: DocumentType!
+  documentNumber: String
+}
+
+input CreateAddressVerificationInput {
+  country: String!
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String
+}
+
+input SubmitAddressVerificationInput {
+  sessionId: UUID!
+  proofDocument: String! # Base64
+  documentType: String! # utility_bill, bank_statement, lease
+}
+
+input CreateBusinessVerificationInput {
+  businessId: UUID!
+  businessName: String!
+  country: String!
+  registrationNumber: String
+}
+
+input SubmitBusinessVerificationInput {
+  sessionId: UUID!
+  registrationDocument: String! # Base64
+  taxIdDocument: String # Base64
+  businessLicenseDocument: String # Base64
+}
+
+extend type Query {
+  # Get my verification session by type
+  myVerificationSession(type: VerificationType!): VerificationSession
+
+  # Get specific verification session (admin or owner)
+  verificationSession(id: UUID!): VerificationSession
+
+  # List verification attempts for a session (admin or owner)
+  verificationAttempts(sessionId: UUID!): [VerificationAttempt!]!
+}
+
+extend type Mutation {
+  # Phone Verification Flow
+  createPhoneVerification(input: CreatePhoneVerificationInput!): VerificationSession!
+  generatePhoneOTP(sessionId: UUID!): OTPResponse!
+  verifyPhoneOTP(sessionId: UUID!, code: String!): OTPVerificationResponse!
+
+  # Identity Verification Flow (KYC)
+  createIdentityVerification(input: CreateIdentityVerificationInput!): VerificationSession!
+  submitIdentityVerification(input: SubmitIdentityVerificationInput!): VerificationSubmitResponse!
+
+  # Address Verification Flow
+  createAddressVerification(input: CreateAddressVerificationInput!): VerificationSession!
+  submitAddressVerification(input: SubmitAddressVerificationInput!): VerificationSubmitResponse!
+
+  # Business Verification Flow
+  createBusinessVerification(input: CreateBusinessVerificationInput!): VerificationSession!
+  submitBusinessVerification(input: SubmitBusinessVerificationInput!): VerificationSubmitResponse!
+}
