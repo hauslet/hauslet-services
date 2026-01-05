@@ -8,9 +8,9 @@ import (
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
+	"log/slog"
 	"time"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -20,7 +20,7 @@ type NotificationService struct {
 	queueClient  *queue.Client
 	queueSubject string
 	baseURL      string
-	log          *lgr.Logger
+	log          *slog.Logger
 }
 
 // NewNotificationService creates a new finance notification service
@@ -29,7 +29,7 @@ func NewNotificationService(
 	queueClient *queue.Client,
 	queueSubject string,
 	baseURL string,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *NotificationService {
 	return &NotificationService{
 		mailClient:   mailClient,
@@ -44,15 +44,15 @@ func NewNotificationService(
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Logf("WARN %s: %v", label, err)
+			s.log.Warn("notification dispatch failed", "label", label, "error", err)
 		}
 	}()
 }
 
-// publishEmailJob tries to enqueue the email job and returns true on success
-func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
+// publishEmailJob tries to enqueue the email job and returns an error on failure.
+func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 	if s.queueClient == nil || s.queueSubject == "" {
-		return false
+		return fmt.Errorf("queue not configured")
 	}
 
 	pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -60,12 +60,12 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to publish finance email job to %s: %v; falling back to direct send", s.queueSubject, err)
+			s.log.Warn("failed to publish finance email job", "queue_subject", s.queueSubject, "error", err)
 		}
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 // SendPaymentReceipt sends a payment receipt email to the guest
@@ -105,7 +105,7 @@ func (s *NotificationService) SendPaymentReceipt(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to render payment receipt template: %v", err)
+			s.log.Error("failed to render payment receipt template", "error", err)
 		}
 		return nil
 	}
@@ -116,8 +116,10 @@ func (s *NotificationService) SendPaymentReceipt(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, guestEmail, subject, htmlBody)
 	})
@@ -141,13 +143,13 @@ func (s *NotificationService) SendPayoutInitiated(
 	preview := "Your payout is being processed."
 
 	emailData := map[string]any{
-		"BookingID":           bookingID.String(),
-		"Amount":              payment.FormatAmount(amount, payment.Currency(currency)),
-		"Currency":            currency,
-		"HostName":            hostName,
-		"InitiatedAt":         time.Now().Format("January 2, 2006 at 3:04 PM"),
-		"ExpectedCompletion":  "1-3 business days",
-		"DashboardURL":        fmt.Sprintf("%s/earnings", s.baseURL),
+		"BookingID":          bookingID.String(),
+		"Amount":             payment.FormatAmount(amount, payment.Currency(currency)),
+		"Currency":           currency,
+		"HostName":           hostName,
+		"InitiatedAt":        time.Now().Format("January 2, 2006 at 3:04 PM"),
+		"ExpectedCompletion": "1-3 business days",
+		"DashboardURL":       fmt.Sprintf("%s/earnings", s.baseURL),
 
 		// Required for the Layout
 		"Subject": subject,
@@ -162,7 +164,7 @@ func (s *NotificationService) SendPayoutInitiated(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to render payout initiated template: %v", err)
+			s.log.Error("failed to render payout initiated template", "error", err)
 		}
 		return nil
 	}
@@ -173,8 +175,10 @@ func (s *NotificationService) SendPayoutInitiated(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, hostEmail, subject, htmlBody)
 	})
@@ -201,16 +205,16 @@ func (s *NotificationService) SendPayoutSuccess(
 	preview := "Your payout has been successfully transferred."
 
 	emailData := map[string]any{
-		"DisbursementID":  disbursementID.String(),
-		"Amount":          payment.FormatAmount(amount, payment.Currency(currency)),
-		"Currency":        currency,
-		"HostName":        hostName,
-		"AccountName":     accountName,
-		"BankName":        bankName,
-		"AccountNumber":   maskedAccountNumber,
-		"CompletedAt":     time.Now().Format("January 2, 2006 at 3:04 PM"),
-		"ArrivalMessage":  "Funds should arrive in your account within 1-3 business days.",
-		"DashboardURL":    fmt.Sprintf("%s/earnings", s.baseURL),
+		"DisbursementID": disbursementID.String(),
+		"Amount":         payment.FormatAmount(amount, payment.Currency(currency)),
+		"Currency":       currency,
+		"HostName":       hostName,
+		"AccountName":    accountName,
+		"BankName":       bankName,
+		"AccountNumber":  maskedAccountNumber,
+		"CompletedAt":    time.Now().Format("January 2, 2006 at 3:04 PM"),
+		"ArrivalMessage": "Funds should arrive in your account within 1-3 business days.",
+		"DashboardURL":   fmt.Sprintf("%s/earnings", s.baseURL),
 
 		// Required for the Layout
 		"Subject": subject,
@@ -225,7 +229,7 @@ func (s *NotificationService) SendPayoutSuccess(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to render payout success template: %v", err)
+			s.log.Error("failed to render payout success template", "error", err)
 		}
 		return nil
 	}
@@ -236,8 +240,10 @@ func (s *NotificationService) SendPayoutSuccess(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, hostEmail, subject, htmlBody)
 	})
@@ -291,7 +297,7 @@ func (s *NotificationService) SendPayoutFailed(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to render payout failed template: %v", err)
+			s.log.Error("failed to render payout failed template", "error", err)
 		}
 		return nil
 	}
@@ -302,8 +308,10 @@ func (s *NotificationService) SendPayoutFailed(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, hostEmail, subject, htmlBody)
 	})
@@ -327,13 +335,13 @@ func (s *NotificationService) SendRefundProcessed(
 	preview := "Your refund has been processed."
 
 	emailData := map[string]any{
-		"BookingID":        bookingID.String(),
-		"RefundAmount":     payment.FormatAmount(refundAmount, payment.Currency(currency)),
-		"Currency":         currency,
-		"GuestName":        guestName,
-		"ProcessedAt":      time.Now().Format("January 2, 2006 at 3:04 PM"),
-		"TimelineMessage":  "Refunds typically appear in your account within 5-10 business days.",
-		"DashboardURL":     fmt.Sprintf("%s/bookings/%s", s.baseURL, bookingID),
+		"BookingID":       bookingID.String(),
+		"RefundAmount":    payment.FormatAmount(refundAmount, payment.Currency(currency)),
+		"Currency":        currency,
+		"GuestName":       guestName,
+		"ProcessedAt":     time.Now().Format("January 2, 2006 at 3:04 PM"),
+		"TimelineMessage": "Refunds typically appear in your account within 5-10 business days.",
+		"DashboardURL":    fmt.Sprintf("%s/bookings/%s", s.baseURL, bookingID),
 
 		// Required for the Layout
 		"Subject": subject,
@@ -348,7 +356,7 @@ func (s *NotificationService) SendRefundProcessed(
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to render refund processed template: %v", err)
+			s.log.Error("failed to render refund processed template", "error", err)
 		}
 		return nil
 	}
@@ -359,8 +367,10 @@ func (s *NotificationService) SendRefundProcessed(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, guestEmail, subject, htmlBody)
 	})

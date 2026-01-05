@@ -35,9 +35,9 @@ func createSession(deps Dependencies, user *schema.User, provider string, metada
 	}
 
 	if err := deps.Repository.CreateSession(ctx, session); err != nil {
-		deps.Log.Logf("ERROR Auth: Error creating session: %v", err)
+		deps.Log.Error("Auth: Error creating session", "error", err)
 	} else {
-		deps.Log.Logf("INFO Auth: Created session %s for user ID: %s", sessionID, user.ID)
+		deps.Log.Info(" Auth: Created session", "sessionID", sessionID, "userID", user.ID)
 	}
 
 	return sessionID

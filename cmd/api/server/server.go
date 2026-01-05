@@ -8,12 +8,12 @@ import (
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/go-pkgz/lgr"
 	"gorm.io/gorm"
 )
 
@@ -21,7 +21,7 @@ func NewHTTPServer(
 	ctx context.Context,
 	db *gorm.DB,
 	rds *redis.RedisClient,
-	log *lgr.Logger,
+	log *slog.Logger,
 	cfg *config.GlobalConfig,
 	mC *email.Client,
 	q *queue.Client,
@@ -41,8 +41,25 @@ func NewHTTPServer(
 		r.Use(securitymiddleware.SecurityHeaders)
 	}
 
-	// Set up routes
-	setupRoutes(r, ctx, db, rds, log, cfg, mC, q, r2)
+	registerHealthRoutes(r, db, rds)
+
+	// Initialize application container
+	container, err := NewContainer(ctx, InfrastructureDependencies{
+		DB:          db,
+		Redis:       rds,
+		Queue:       q,
+		R2:          r2,
+		Logger:      log,
+		Config:      cfg,
+		EmailClient: mC,
+	})
+	if err != nil {
+		log.Error("failed to initialize application container", "error", err)
+		panic(err) // Panic is appropriate here as we can't continue without the container
+	}
+
+	// Set up routes using the initialized container
+	setupRoutes(r, container, cfg)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.App.Port,

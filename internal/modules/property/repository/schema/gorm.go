@@ -120,12 +120,6 @@ type Listing struct {
 	// Moderation
 	LatestReviewStatus ReviewStatus `gorm:"default:'pending'"`
 
-	// Metrics
-	ViewCount     int `gorm:"default:0"`
-	LastViewedAt  *time.Time
-	FeaturedUntil *time.Time `gorm:"index"`
-	BoostLevel    int        `gorm:"default:0"`
-
 	// Audit
 	CreatedBy       *uuid.UUID `gorm:"type:uuid"`
 	UpdatedBy       *uuid.UUID `gorm:"type:uuid"`
@@ -249,8 +243,8 @@ type AmenityHighlight struct {
 }
 
 type RuleItem struct {
-	Name        RuleSubCategory  `json:"name" validate:"required"`
-	Description map[string]any `json:"description" validate:"required,min=1"`
+	Name        RuleSubCategory `json:"name" validate:"required"`
+	Description map[string]any  `json:"description" validate:"required,min=1"`
 }
 
 type RuleGroup struct {
@@ -294,6 +288,14 @@ type ShortletDetail struct {
 	AmenitiesHighlights []AmenityHighlight `json:"amenities_highlights,omitempty"`
 }
 
+// ShowingAvailability defines when viewings can be scheduled
+type ShowingAvailability struct {
+	DayOfWeek string `json:"day_of_week"` // "monday", "tuesday", etc.
+	StartTime string `json:"start_time"`  // HH:MM format (24h)
+	EndTime   string `json:"end_time"`    // HH:MM format (24h)
+	Timezone  string `json:"timezone"`    // IANA timezone (e.g., "Africa/Lagos")
+}
+
 type RentalDetail struct {
 	RentalPrice       float64       `json:"rental_price"`
 	RentalPricePeriod PaymentPeriod `json:"rental_price_period"`
@@ -312,6 +314,9 @@ type RentalDetail struct {
 
 	RentalTerms string      `json:"rental_terms,omitempty"`
 	RentalRules []RuleGroup `json:"rental_rules,omitempty"`
+
+	// Showing availability windows for viewings
+	ShowingAvailability *[]ShowingAvailability `json:"showing_availability,omitempty"`
 }
 
 type SaleDetail struct {
@@ -334,6 +339,9 @@ type SaleDetail struct {
 
 	SaleTerms            string     `json:"sale_terms,omitempty"`
 	SaleAvailabilityFrom *time.Time `json:"sale_availability_from,omitempty"`
+
+	// Showing availability windows for viewings
+	ShowingAvailability *[]ShowingAvailability `json:"showing_availability,omitempty"`
 }
 
 type MediaType string

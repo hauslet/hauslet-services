@@ -67,7 +67,7 @@ func (s *AuthServiceImpl) UpdateIdentityVerified(ctx context.Context, email stri
 			if err := s.repository.UpdateUserIdentity(ctx, &identity); err != nil {
 				return fmt.Errorf("failed to update identity: %w", err)
 			}
-			s.log.Logf("INFO Email verified for identity %s (user: %s)", identity.ID, email)
+			s.log.Info(" Email verified for identity (user)", "identity_id", identity.ID, "email", email)
 			return nil
 		}
 	}

@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -11,8 +12,6 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // NotificationService handles booking-module notifications.
@@ -21,7 +20,7 @@ type NotificationService struct {
 	queueClient  *queue.Client
 	queueSubject string
 	baseURL      string
-	log          *lgr.Logger
+	log          *slog.Logger
 }
 
 // NewNotificationService wires the dependencies needed for booking notifications.
@@ -30,7 +29,7 @@ func NewNotificationService(
 	queueClient *queue.Client,
 	queueSubject string,
 	baseURL string,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *NotificationService {
 	return &NotificationService{
 		mailClient:   mailClient,
@@ -48,7 +47,7 @@ func (s *NotificationService) SendHostApprovalRequest(ctx context.Context, booki
 	}
 
 	subject := fmt.Sprintf("Booking request from %s", booking.GuestName)
-	preview := fmt.Sprintf("%s wants to stay %d night(s) starting %s", booking.GuestName, booking.DurationNights(), s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("%s wants to stay %d night(s) starting %s", booking.GuestName, booking.DurationNights(), s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["HostName"] = s.fallbackName(hostName)
@@ -163,7 +162,7 @@ func (s *NotificationService) SendGuestBookingConfirmed(ctx context.Context, boo
 	}
 
 	subject := "Your booking is confirmed"
-	preview := fmt.Sprintf("You're confirmed for %s.", s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("You're confirmed for %s.", s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["GuestName"] = booking.GuestName
@@ -179,7 +178,7 @@ func (s *NotificationService) SendHostBookingConfirmed(ctx context.Context, book
 	}
 
 	subject := fmt.Sprintf("New confirmed booking from %s", booking.GuestName)
-	preview := fmt.Sprintf("%s booked %d night(s) starting %s", booking.GuestName, booking.DurationNights(), s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("%s booked %d night(s) starting %s", booking.GuestName, booking.DurationNights(), s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["HostName"] = s.fallbackName(hostName)
@@ -196,7 +195,7 @@ func (s *NotificationService) SendGuestBookingCancelled(ctx context.Context, boo
 	}
 
 	subject := "Your booking has been cancelled"
-	preview := fmt.Sprintf("Your booking for %s has been cancelled.", s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("Your booking for %s has been cancelled.", s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["GuestName"] = booking.GuestName
@@ -217,7 +216,7 @@ func (s *NotificationService) SendHostBookingCancelled(ctx context.Context, book
 	}
 
 	subject := fmt.Sprintf("Booking from %s has been cancelled", booking.GuestName)
-	preview := fmt.Sprintf("The booking for %s has been cancelled.", s.formatDate(booking.CheckIn))
+	preview := fmt.Sprintf("The booking for %s has been cancelled.", s.formatDate(booking.ScheduledCheckIn()))
 
 	data := s.baseBookingData(subject, preview, booking)
 	data["HostName"] = s.fallbackName(hostName)
@@ -236,15 +235,15 @@ func (s *NotificationService) SendHostBookingCancelled(ctx context.Context, book
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Logf("[WARN] %s: %v", label, err)
+			s.log.Warn("send email async error", "label", label, "error", err)
 		}
 	}()
 }
 
-// publishEmailJob tries to enqueue the email job and returns true on success.
-func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
+// publishEmailJob tries to enqueue the email job and returns an error on failure.
+func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 	if s.queueClient == nil || s.queueSubject == "" {
-		return false
+		return fmt.Errorf("queue not configured")
 	}
 
 	pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -252,19 +251,19 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("[WARN] failed to publish booking email job to %s: %v; falling back to direct send", s.queueSubject, err)
+			s.log.Warn("failed to publish booking email job", "queue_subject", s.queueSubject, "error", err)
 		}
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 func (s *NotificationService) renderAndSend(ctx context.Context, templateName, to, subject string, data map[string]any, label string) {
 	htmlBody, err := s.mailClient.RenderTemplate(bookingtemplates.FS, templateName, data)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("[ERROR] failed to render %s: %v", templateName, err)
+			s.log.Error("failed to render template", "template", templateName, "error", err)
 		}
 		return
 	}
@@ -275,8 +274,10 @@ func (s *NotificationService) renderAndSend(ctx context.Context, templateName, t
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, to, subject, htmlBody)
 	})
@@ -284,15 +285,15 @@ func (s *NotificationService) renderAndSend(ctx context.Context, templateName, t
 
 func (s *NotificationService) baseBookingData(subject, preview string, booking *domain.Booking) map[string]any {
 	return map[string]any{
-		"Subject":    subject,
-		"Preview":    preview,
-		"Year":       time.Now().Year(),
-		"BookingID":  booking.ID.String(),
-		"CheckIn":    s.formatDate(booking.CheckIn),
-		"CheckOut":   s.formatDate(booking.CheckOut),
-		"GuestCount": booking.GuestCount,
-		"Nights":     booking.DurationNights(),
-		"TotalPrice": s.formatTotal(booking),
+		"Subject":          subject,
+		"Preview":          preview,
+		"Year":             time.Now().Year(),
+		"BookingReference": booking.BookingReference,
+		"CheckIn":          s.formatDate(booking.ScheduledCheckIn()),
+		"CheckOut":         s.formatDate(booking.ScheduledCheckOut()),
+		"GuestCount":       booking.GuestCount,
+		"Nights":           booking.DurationNights(),
+		"TotalPrice":       s.formatTotal(booking),
 		"SpecialRequests": func() string {
 			if booking.SpecialRequests == nil {
 				return ""
@@ -302,7 +303,10 @@ func (s *NotificationService) baseBookingData(subject, preview string, booking *
 	}
 }
 
-func (s *NotificationService) formatDate(t time.Time) string {
+func (s *NotificationService) formatDate(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
 	return t.Format("Mon, Jan 2 2006")
 }
 

@@ -1,0 +1,225 @@
+# internal/modules/review/port/graphql/schema.graphqls
+
+# ========================================================================
+# Review Types
+# ========================================================================
+
+enum ReviewTargetType {
+  listing
+  host
+}
+
+enum ReviewVisibility {
+  hidden
+  visible
+}
+
+enum ModerationReason {
+  profanity
+  spam
+  discrimination
+  personal_info
+  off_topic
+  other
+}
+
+type SubRatings {
+  cleanliness: Int
+  accuracy: Int
+  communication: Int
+  location: Int
+  checkin: Int
+  value: Int
+}
+
+type Review {
+  id: UUID!
+  bookingId: UUID!
+  reviewerId: UUID!
+  targetType: ReviewTargetType!
+  targetId: UUID!
+  rating: Int!
+  title: String!
+  body: String!
+  subRatings: SubRatings
+  visibility: ReviewVisibility!
+  isStandoff: Boolean!
+  language: String
+  countryCode: String
+  moderationReason: ModerationReason
+  publishedAt: Time
+  hiddenAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type ReviewResponse {
+  id: UUID!
+  reviewId: UUID!
+  authorId: UUID!
+  body: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+# ========================================================================
+# Review Statistics
+# ========================================================================
+
+type RatingDistribution {
+  oneStar: Int!
+  twoStar: Int!
+  threeStar: Int!
+  fourStar: Int!
+  fiveStar: Int!
+}
+
+type ListingStats {
+  listingId: UUID!
+  totalReviews: Int!
+  averageRating: Float!
+  ratingDistribution: RatingDistribution!
+  averageCleanliness: Float
+  averageAccuracy: Float
+  averageCommunication: Float
+  averageLocation: Float
+  averageCheckin: Float
+  averageValue: Float
+  updatedAt: Time!
+}
+
+type HostStats {
+  hostId: UUID!
+  totalReviews: Int!
+  averageRating: Float!
+  ratingDistribution: RatingDistribution!
+  updatedAt: Time!
+}
+
+# ========================================================================
+# Input Types
+# ========================================================================
+
+input CreateReviewInput {
+  bookingId: UUID!
+  targetType: ReviewTargetType!
+  targetId: UUID!
+  rating: Int!
+  title: String!
+  body: String!
+  cleanliness: Int
+  accuracy: Int
+  communication: Int
+  location: Int
+  checkin: Int
+  value: Int
+  language: String
+  countryCode: String
+}
+
+input UpdateReviewInput {
+  rating: Int
+  title: String
+  body: String
+  cleanliness: Int
+  accuracy: Int
+  communication: Int
+  location: Int
+  checkin: Int
+  value: Int
+}
+
+input ReviewFilterInput {
+  rating: Int
+  language: String
+  onlyVisible: Boolean
+  sortBy: String
+  limit: Int
+  offset: Int
+}
+
+# ========================================================================
+# Queries
+# ========================================================================
+
+extend type Query {
+  # Get a specific review by ID
+  review(id: UUID!): Review
+
+  # Get review for a booking by reviewer (requires authentication)
+  reviewForBooking(bookingId: UUID!): Review
+
+  # List reviews for a target (listing or host)
+  reviews(
+    targetType: ReviewTargetType!
+    targetId: UUID!
+    filter: ReviewFilterInput
+  ): [Review!]!
+
+  # List reviews written by a user
+  userReviews(
+    userId: UUID!
+    limit: Int
+    offset: Int
+  ): [Review!]!
+
+  # Get listing statistics
+  listingStats(listingId: UUID!): ListingStats
+
+  # Get host statistics
+  hostStats(hostId: UUID!): HostStats
+
+  # Get review response (public)
+  reviewResponse(reviewId: UUID!): ReviewResponse
+}
+
+# ========================================================================
+# Mutations
+# ========================================================================
+
+extend type Mutation {
+  # Create a new review (guest or host, requires completed booking)
+  createReview(input: CreateReviewInput!): Review!
+
+  # Update own review (only before counter-review is published)
+  updateReview(
+    reviewId: UUID!
+    input: UpdateReviewInput!
+  ): Review!
+
+  # Delete own review (only if unpublished)
+  deleteReview(reviewId: UUID!): Boolean!
+
+  # Admin: Publish a standoff review manually (admin only)
+  publishReview(reviewId: UUID!): Review!
+
+  # Admin: Hide a review for moderation (admin only)
+  hideReview(
+    reviewId: UUID!
+    reason: ModerationReason!
+  ): Review!
+
+  # Admin: Unhide a review (admin only)
+  unhideReview(reviewId: UUID!): Review!
+
+  # Report a review for moderation (requires authentication)
+  reportReview(
+    reviewId: UUID!
+    reason: String!
+  ): Boolean!
+
+  # Create a response to a review (target owner only)
+  createResponse(
+    reviewId: UUID!
+    body: String!
+  ): ReviewResponse!
+
+  # Update own response
+  updateResponse(
+    responseId: UUID!
+    body: String!
+  ): ReviewResponse!
+
+  # Delete own response
+  deleteResponse(responseId: UUID!): Boolean!
+}

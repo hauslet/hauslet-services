@@ -8,6 +8,10 @@ config/overrides/
 .cache/
 .gomodcache/
 .gocache
+.hintrc
+AGENTS.md
+CLAUDE.md
+todo.md
 
 # Binary outputs
 /bin/
@@ -66,6 +70,18 @@ hauslet-api
 hauslet-worker
 hauslet
 
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+tfplan
+.terraformrc
+terraform.rc
+
 # Compiled Object files
 *.o
 *.a
@@ -73,3 +89,5 @@ hauslet
 # Debug files
 debug
 __debug_bin
+
+CLAUDE.mdAGENTS.md

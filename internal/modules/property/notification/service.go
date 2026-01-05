@@ -2,13 +2,13 @@ package notification
 
 import (
 	"context"
+	"fmt"
 	propertytemplates "hauslet/internal/modules/property/templates"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
+	"log/slog"
 	"time"
-
-	"github.com/go-pkgz/lgr"
 )
 
 type NotificationService struct {
@@ -16,7 +16,7 @@ type NotificationService struct {
 	queueClient  *queue.Client
 	queueSubject string
 	baseURL      string
-	log          *lgr.Logger
+	log          *slog.Logger
 }
 
 func NewNotificationService(
@@ -24,7 +24,7 @@ func NewNotificationService(
 	queueClient *queue.Client,
 	queueSubject string,
 	baseURL string,
-	logger *lgr.Logger) *NotificationService {
+	logger *slog.Logger) *NotificationService {
 	return &NotificationService{
 		mailClient:   mailClient,
 		queueClient:  queueClient,
@@ -38,18 +38,17 @@ func NewNotificationService(
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Logf("[WARN] %s: %v", label, err)
+			s.log.Warn("send email async error", "label", label, "error", err)
 		}
 	}()
 }
 
-// publishEmailJob tries to enqueue the email job and returns true on success.
+// publishEmailJob tries to enqueue the email job and returns an error on failure.
 // It uses a short-lived background context so request cancellation does not
-// prevent publishing. On failure, it logs a warning and callers can fall back
-// to direct send.
-func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
+// prevent publishing.
+func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 	if s.queueClient == nil || s.queueSubject == "" {
-		return false
+		return fmt.Errorf("queue not configured")
 	}
 
 	pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -57,12 +56,12 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("[WARN] failed to publish business email job to %s: %v; falling back to direct send", s.queueSubject, err)
+			s.log.Warn("failed to publish business email job", "queue_subject", s.queueSubject, "error", err)
 		}
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 // SendPublishListingRequestNotification notifies the listing owner that their listing is under review.
@@ -95,8 +94,10 @@ func (s *NotificationService) SendPublishListingRequestNotification(ctx context.
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, recipientEmail, subject, htmlBody)
 	})

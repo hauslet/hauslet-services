@@ -44,9 +44,6 @@ func (b *EmbeddingDocumentBuilder) WithListing(listing *Listing) *EmbeddingDocum
 	if listing.ListingType != "" {
 		b.addWithLabel("Listing type", string(listing.ListingType))
 	}
-	if listing.FeaturedUntil != nil && listing.FeaturedUntil.After(b.nowFunc()) {
-		b.add("This is a featured listing")
-	}
 
 	return b
 }

@@ -40,6 +40,10 @@ type ProfileHooks interface {
 	OnModerationCompleted(ctx context.Context, aggregate AggregatedModeration) error
 }
 
+type ReviewHooks interface {
+	OnModerationCompleted(ctx context.Context, aggregate AggregatedModeration) error
+}
+
 // AggregatedModeration summarizes moderation state for a target content ID.
 type AggregatedModeration struct {
 	TargetID uuid.UUID

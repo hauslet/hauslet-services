@@ -10,10 +10,11 @@ import (
 
 // ServiceConfig holds all YAML-based service configurations
 type ServiceConfig struct {
-	Calendar CalendarYAMLConfig `yaml:"calendar"`
-	Queue    QueueYAMLConfig    `yaml:"queue"`
-	Features FeatureYAMLConfig  `yaml:"features"`
-	Platform PlatformYAMLConfig `yaml:"platform"`
+	Calendar  CalendarYAMLConfig  `yaml:"calendar"`
+	Queue     QueueYAMLConfig     `yaml:"queue"`
+	Features  FeatureYAMLConfig   `yaml:"features"`
+	Platform  PlatformYAMLConfig  `yaml:"platform"`
+	Promotion PromotionYAMLConfig `yaml:"promotion"`
 }
 
 // CalendarYAMLConfig defines calendar service settings
@@ -26,7 +27,7 @@ type CalendarYAMLConfig struct {
 	RetryDelayMinutes   int  `yaml:"retry_delay_minutes"`
 }
 
-// QueueYAMLConfig defines queue/NATS service settings
+// QueueYAMLConfig defines queue/Cloud Tasks settings
 type QueueYAMLConfig struct {
 	StreamName string            `yaml:"stream_name"`
 	Subjects   map[string]string `yaml:"subjects"`
@@ -47,6 +48,7 @@ type PlatformYAMLConfig struct {
 	Payouts       PlatformPayoutConfig       `yaml:"payouts"`
 	Refunds       PlatformRefundConfig       `yaml:"refunds"`
 	AutoAccept    PlatformAutoAcceptConfig   `yaml:"auto_accept"`
+	Reviews       PlatformReviewConfig       `yaml:"reviews"`
 	Notifications PlatformNotificationConfig `yaml:"notifications"`
 }
 
@@ -63,12 +65,38 @@ type PlatformFeesConfig struct {
 	MaximumServiceFeePercent float64 `yaml:"maximum_service_fee_percent"`
 }
 
+// EscrowReleaseEvent defines when escrow funds become available for payout
+type EscrowReleaseEvent string
+
+const (
+	// EscrowReleaseCheckinConfirmed releases funds N hours after check-in
+	EscrowReleaseCheckinConfirmed EscrowReleaseEvent = "checkin_confirmed"
+	// EscrowReleaseCheckoutConfirmed releases funds N hours after check-out
+	EscrowReleaseCheckoutConfirmed EscrowReleaseEvent = "checkout_confirmed"
+)
+
+// String returns the string representation of EscrowReleaseEvent
+func (e EscrowReleaseEvent) String() string {
+	return string(e)
+}
+
+// IsValid checks if the EscrowReleaseEvent is a valid value
+func (e EscrowReleaseEvent) IsValid() bool {
+	switch e {
+	case EscrowReleaseCheckinConfirmed, EscrowReleaseCheckoutConfirmed:
+		return true
+	default:
+		return false
+	}
+}
+
 type PlatformPayoutConfig struct {
-	EscrowReleaseHours   int    `yaml:"escrow_release_hours"`
-	EscrowReleaseEvent   string `yaml:"escrow_release_event"`
-	BatchIntervalMinutes int    `yaml:"batch_interval_minutes"`
-	MaxRetryAttempts     int    `yaml:"max_retry_attempts"`
-	RetryBackoffMinutes  int    `yaml:"retry_backoff_minutes"`
+	EscrowReleaseHours   int                `yaml:"escrow_release_hours"`
+	EscrowReleaseEvent   EscrowReleaseEvent `yaml:"escrow_release_event"`
+	DisbursementProvider string             `yaml:"disbursement_provider"`
+	BatchIntervalMinutes int                `yaml:"batch_interval_minutes"`
+	MaxRetryAttempts     int                `yaml:"max_retry_attempts"`
+	RetryBackoffMinutes  int                `yaml:"retry_backoff_minutes"`
 }
 
 type PlatformRefundConfig struct {
@@ -100,6 +128,10 @@ type PlatformNotificationConfig struct {
 	SendPaymentReceipts bool `yaml:"send_payment_receipts"`
 	SendPayoutUpdates   bool `yaml:"send_payout_updates"`
 	SendDisputeAlerts   bool `yaml:"send_dispute_alerts"`
+}
+
+type PlatformReviewConfig struct {
+	ReviewWindowDays int `yaml:"review_window_days"`
 }
 
 // LoadYAMLConfig loads service configuration from YAML files
@@ -136,7 +168,7 @@ func loadYAMLConfigFromPaths(defaultsPath, overridesPath string) (*ServiceConfig
 
 // loadYAMLFiles loads all YAML files from a directory into the config
 func loadYAMLFiles(cfg *ServiceConfig, dirPath string) error {
-	files := []string{"calendar.yaml", "queue.yaml", "features.yaml", "platform.yaml"}
+	files := []string{"calendar.yaml", "queue.yaml", "features.yaml", "platform.yaml", "promotion.yaml"}
 
 	for _, filename := range files {
 		filePath := filepath.Join(dirPath, filename)
@@ -221,6 +253,9 @@ func mergeServiceConfig(dst, src *ServiceConfig) {
 
 	// Merge Platform config
 	mergePlatformConfig(&dst.Platform, &src.Platform)
+
+	// Merge Promotion config
+	mergePromotionConfig(&dst.Promotion, &src.Promotion)
 }
 
 func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
@@ -253,6 +288,12 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 	if src.Payouts.EscrowReleaseHours != 0 {
 		dst.Payouts.EscrowReleaseHours = src.Payouts.EscrowReleaseHours
 	}
+	if src.Payouts.EscrowReleaseEvent.IsValid() {
+		dst.Payouts.EscrowReleaseEvent = src.Payouts.EscrowReleaseEvent
+	}
+	if src.Payouts.DisbursementProvider != "" {
+		dst.Payouts.DisbursementProvider = src.Payouts.DisbursementProvider
+	}
 	if src.Payouts.BatchIntervalMinutes != 0 {
 		dst.Payouts.BatchIntervalMinutes = src.Payouts.BatchIntervalMinutes
 	}
@@ -282,6 +323,11 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 		dst.AutoAccept.MinNoticeHours = src.AutoAccept.MinNoticeHours
 	}
 
+	// Reviews
+	if src.Reviews.ReviewWindowDays != 0 {
+		dst.Reviews.ReviewWindowDays = src.Reviews.ReviewWindowDays
+	}
+
 	// Notifications
 	if src.Notifications.SendPaymentReceipts {
 		dst.Notifications.SendPaymentReceipts = src.Notifications.SendPaymentReceipts
@@ -291,5 +337,83 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 	}
 	if src.Notifications.SendDisputeAlerts {
 		dst.Notifications.SendDisputeAlerts = src.Notifications.SendDisputeAlerts
+	}
+}
+
+func mergePromotionConfig(dst, src *PromotionYAMLConfig) {
+	// Currency
+	if src.Currency.Code != "" {
+		dst.Currency.Code = src.Currency.Code
+	}
+	if src.Currency.MinorUnit != 0 {
+		dst.Currency.MinorUnit = src.Currency.MinorUnit
+	}
+
+	// Free Tier
+	if src.FreeTier.MaxListings != 0 {
+		dst.FreeTier.MaxListings = src.FreeTier.MaxListings
+	}
+	if src.FreeTier.MaxPhotosPerListing != 0 {
+		dst.FreeTier.MaxPhotosPerListing = src.FreeTier.MaxPhotosPerListing
+	}
+	if src.FreeTier.MaxVirtualTours != 0 {
+		dst.FreeTier.MaxVirtualTours = src.FreeTier.MaxVirtualTours
+	}
+
+	// Listing Promotions
+	if src.ListingPromotions != nil {
+		if dst.ListingPromotions == nil {
+			dst.ListingPromotions = make(map[string]ListingPromotionConfig)
+		}
+		for k, v := range src.ListingPromotions {
+			dst.ListingPromotions[k] = v
+		}
+	}
+
+	// Subscription Plans
+	if src.SubscriptionPlans != nil {
+		if dst.SubscriptionPlans == nil {
+			dst.SubscriptionPlans = make(map[string]SubscriptionPlanConfig)
+		}
+		for k, v := range src.SubscriptionPlans {
+			dst.SubscriptionPlans[k] = v
+		}
+	}
+
+	// Addons
+	if src.Addons != nil {
+		if dst.Addons == nil {
+			dst.Addons = make(map[string]AddonConfig)
+		}
+		for k, v := range src.Addons {
+			dst.Addons[k] = v
+		}
+	}
+
+	// Billing
+	if src.Billing.TrialPeriodDays != 0 {
+		dst.Billing.TrialPeriodDays = src.Billing.TrialPeriodDays
+	}
+	if src.Billing.GracePeriodDays != 0 {
+		dst.Billing.GracePeriodDays = src.Billing.GracePeriodDays
+	}
+	if src.Billing.UsageResetDay != 0 {
+		dst.Billing.UsageResetDay = src.Billing.UsageResetDay
+	}
+
+	// Analytics
+	if src.Analytics.RetentionDays != 0 {
+		dst.Analytics.RetentionDays = src.Analytics.RetentionDays
+	}
+	if src.Analytics.FunnelEvents != nil {
+		dst.Analytics.FunnelEvents = src.Analytics.FunnelEvents
+	}
+
+	// Rate Limits
+	if src.RateLimits.MaxActivePromotionsPerListing != 0 {
+		dst.RateLimits.MaxActivePromotionsPerListing = src.RateLimits.MaxActivePromotionsPerListing
+	}
+	if src.RateLimits.MinPromotionDurationHours != 0 {
+		dst.RateLimits.MinPromotionDurationHours = src.RateLimits.MinPromotionDurationHours
 	}
 }

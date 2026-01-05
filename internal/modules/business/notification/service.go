@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"hauslet/internal/modules/business/domain"
@@ -10,8 +11,6 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // NotificationService handles business notifications
@@ -20,7 +19,7 @@ type NotificationService struct {
 	queueClient  *queue.Client
 	queueSubject string
 	baseURL      string
-	log          *lgr.Logger
+	log          *slog.Logger
 }
 
 // NewNotificationService creates a new notification service
@@ -29,7 +28,7 @@ func NewNotificationService(
 	queueClient *queue.Client,
 	queueSubject string,
 	baseURL string,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) *NotificationService {
 	return &NotificationService{
 		mailClient:   mailClient,
@@ -44,18 +43,17 @@ func NewNotificationService(
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Logf("[WARN] %s: %v", label, err)
+			s.log.Warn("send email async error", "label", label, "error", err)
 		}
 	}()
 }
 
-// publishEmailJob tries to enqueue the email job and returns true on success.
+// publishEmailJob tries to enqueue the email job and returns an error on failure.
 // It uses a short-lived background context so request cancellation does not
-// prevent publishing. On failure, it logs a warning and callers can fall back
-// to direct send.
-func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
+// prevent publishing.
+func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 	if s.queueClient == nil || s.queueSubject == "" {
-		return false
+		return fmt.Errorf("queue not configured")
 	}
 
 	pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -63,12 +61,12 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("[WARN] failed to publish business email job to %s: %v; falling back to direct send", s.queueSubject, err)
+			s.log.Warn("failed to publish business email job", "queue_subject", s.queueSubject, "error", err)
 		}
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 // SendInvitationEmail sends an invitation email to the invitee
@@ -114,8 +112,10 @@ func (s *NotificationService) SendInvitationEmail(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, invitation.Email, subject, htmlBody)
 	})
@@ -166,8 +166,10 @@ func (s *NotificationService) SendMemberAddedEmail(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, memberEmail, subject, htmlBody)
 	})
@@ -213,8 +215,10 @@ func (s *NotificationService) SendMemberRemovedEmail(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, memberEmail, subject, htmlBody)
 	})
@@ -267,8 +271,10 @@ func (s *NotificationService) SendRoleChangedEmail(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, memberEmail, subject, htmlBody)
 	})
@@ -322,8 +328,10 @@ func (s *NotificationService) SendInvitationAcceptedEmail(
 				Subject: subject,
 				HTML:    htmlBody,
 			}
-			if s.publishEmailJob(job) {
+			if err := s.publishEmailJob(job); err == nil {
 				return nil
+			} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+				return err
 			}
 			return s.mailClient.SendHTML(ctx, email, subject, htmlBody)
 		})
@@ -376,8 +384,10 @@ func (s *NotificationService) SendInvitationDeclinedEmail(
 				Subject: subject,
 				HTML:    htmlBody,
 			}
-			if s.publishEmailJob(job) {
+			if err := s.publishEmailJob(job); err == nil {
 				return nil
+			} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+				return err
 			}
 			return s.mailClient.SendHTML(ctx, email, subject, htmlBody)
 		})
@@ -425,8 +435,10 @@ func (s *NotificationService) SendBusinessCreatedEmail(
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, creatorEmail, subject, htmlBody)
 	})

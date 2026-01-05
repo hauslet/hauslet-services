@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	authtemplates "hauslet/internal/modules/auth/templates"
@@ -16,17 +17,17 @@ import (
 func (s *AuthServiceImpl) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Logf("[WARN] %s: %v", label, err)
+			s.log.Warn("email operation failed", "operation", label, "error", err)
 		}
 	}()
 }
 
-// publishEmailJob tries to enqueue the email job and returns true on success.
+// publishEmailJob tries to enqueue the email job and returns an error on failure.
 // It uses a short-lived background context so cancellation of the request
-// doesn't prevent publishing to NATS.
-func (s *AuthServiceImpl) publishEmailJob(job emailJob.EmailJob) bool {
+// doesn't prevent publishing.
+func (s *AuthServiceImpl) publishEmailJob(job emailJob.EmailJob) error {
 	if s.queueClient == nil || s.queueSubject == "" {
-		return false
+		return fmt.Errorf("queue not configured")
 	}
 
 	pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -34,12 +35,12 @@ func (s *AuthServiceImpl) publishEmailJob(job emailJob.EmailJob) bool {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("[WARN] failed to publish email job to %s: %v; falling back to direct send", s.queueSubject, err)
+			s.log.Warn("failed to publish email job", "subject", s.queueSubject, "error", err)
 		}
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 func (s *AuthServiceImpl) SendWelcomeEmail(ctx context.Context, emailAddr, name string, otpCode string) error {
@@ -84,8 +85,10 @@ func (s *AuthServiceImpl) SendWelcomeEmail(ctx context.Context, emailAddr, name 
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
 	})
@@ -125,8 +128,10 @@ func (s *AuthServiceImpl) SendIdentityLinkedEmail(ctx context.Context, emailAddr
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
 	})
@@ -154,8 +159,10 @@ func (s *AuthServiceImpl) SendPasswordResetEmail(ctx context.Context, emailAddr,
 
 	s.sendEmailAsync("send password reset email", func() error {
 		job := emailJob.EmailJob{To: emailAddr, Subject: subject, HTML: htmlBody}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
 	})
@@ -182,8 +189,10 @@ func (s *AuthServiceImpl) SendPasswordChangedEmail(ctx context.Context, emailAdd
 
 	s.sendEmailAsync("send password changed email", func() error {
 		job := emailJob.EmailJob{To: emailAddr, Subject: subject, HTML: htmlBody}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
 	})

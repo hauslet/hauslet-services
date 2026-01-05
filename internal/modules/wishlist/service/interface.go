@@ -5,8 +5,8 @@ import (
 	"hauslet/internal/modules/wishlist/domain"
 	"hauslet/internal/modules/wishlist/repository"
 	"hauslet/internal/platform/redis"
+	"log/slog"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -43,10 +43,10 @@ type WishlistServiceImpl struct {
 	repo         repository.WishlistRepository
 	cache        redis.RedisClient
 	listingHooks ListingHooks
-	log          *lgr.Logger
+	log          *slog.Logger
 }
 
-func NewWishlistService(repo repository.WishlistRepository, cache redis.RedisClient, listingHooks ListingHooks, log *lgr.Logger) WishlistService {
+func NewWishlistService(repo repository.WishlistRepository, cache redis.RedisClient, listingHooks ListingHooks, log *slog.Logger) WishlistService {
 	return &WishlistServiceImpl{
 		repo:         repo,
 		cache:        cache,

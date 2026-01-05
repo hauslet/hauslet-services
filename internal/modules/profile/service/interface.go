@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"hauslet/internal/modules/profile/domain"
@@ -9,7 +10,6 @@ import (
 	"hauslet/internal/modules/profile/repository"
 	"hauslet/internal/platform/storage"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -34,6 +34,7 @@ type ProfileService interface {
 	ProfileExists(ctx context.Context, userID string) (bool, error)
 
 	// Field-level operations
+	SelectSupplyRoles(ctx context.Context, userID string, userTypes []domain.UserType) (*domain.Profile, error)
 	AddBadge(ctx context.Context, userID string, badge domain.Badge) error
 	RemoveBadge(ctx context.Context, userID string, badge domain.Badge) error
 	AddTravelCompanion(ctx context.Context, userID string, companion domain.TravelCompanion) error
@@ -65,7 +66,7 @@ type ProfileServiceImpl struct {
 	storage             *storage.R2Storage
 	moderationHooks     ModerationHooks
 	notificationService *notification.NotificationService
-	log                 *lgr.Logger
+	log                 *slog.Logger
 }
 
 // NewProfileService creates a new profile service.
@@ -73,7 +74,7 @@ func NewProfileService(repo repository.ProfileRepository,
 	storage *storage.R2Storage,
 	moderationHooks ModerationHooks,
 	notificationService *notification.NotificationService,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) ProfileService {
 	return &ProfileServiceImpl{
 		repo:                repo,

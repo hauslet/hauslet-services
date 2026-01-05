@@ -30,6 +30,7 @@ var (
 	ErrPayoutDetailAlreadyExists = errors.New("payout detail already exists")
 	ErrInvalidBankDetails        = errors.New("invalid bank account details")
 	ErrBankAccountNotVerified    = errors.New("bank account not verified")
+	ErrAccountNameMismatch       = errors.New("account name does not match")
 
 	// Authorization errors
 	ErrUnauthorized           = errors.New("unauthorized to perform this operation")

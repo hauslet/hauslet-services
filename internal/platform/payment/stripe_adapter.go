@@ -278,6 +278,14 @@ func (s *StripeAdapter) VerifyTransfer(ctx context.Context, reference string) (*
 	return nil, fmt.Errorf("Not Supported: Stripe Payouts require Connected Accounts setup")
 }
 
+// ListBanks returns available banks for payouts (not supported for Stripe here).
+func (s *StripeAdapter) ListBanks(ctx context.Context, currency Currency, country string) ([]Bank, error) {
+	_ = ctx
+	_ = currency
+	_ = country
+	return nil, fmt.Errorf("Not Supported: Stripe Payouts require Connected Accounts setup")
+}
+
 // ============================================================================
 // WebhookHandler Implementation
 // ============================================================================

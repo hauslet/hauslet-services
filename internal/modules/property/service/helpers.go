@@ -54,7 +54,6 @@ const (
 	ListingSortCreatedAt   ListingSortBy = "created_at"
 	ListingSortUpdatedAt   ListingSortBy = "updated_at"
 	ListingSortPublishedAt ListingSortBy = "published_at"
-	ListingSortViewCount   ListingSortBy = "view_count"
 )
 
 // PropertyFilter defines optional criteria for querying properties.
@@ -96,7 +95,6 @@ type ListingFilter struct {
 	PublishedBefore *time.Time
 	CreatedAfter    *time.Time
 	CreatedBefore   *time.Time
-	MinViewCount    *int
 	IncludeDeleted  bool
 	SortBy          ListingSortBy
 	SortOrder       SortOrder
@@ -194,7 +192,6 @@ func mapListingFilterToRepo(filter ListingFilter) repository.ListingFilter {
 		CreatedBefore:   filter.CreatedBefore,
 		PublishedAfter:  filter.PublishedAfter,
 		PublishedBefore: filter.PublishedBefore,
-		MinViewCount:    filter.MinViewCount,
 		City:            filter.City,
 		State:           filter.State,
 		Latitude:        filter.Latitude,
@@ -377,8 +374,6 @@ func mapListingSortBy(sortBy ListingSortBy) repository.ListingSortBy {
 		return repository.ListingSortByUpdatedAt
 	case ListingSortPublishedAt:
 		return repository.ListingSortByPublishedAt
-	case ListingSortViewCount:
-		return repository.ListingSortByViewCount
 	default:
 		return repository.ListingSortByCreatedAt
 	}
@@ -559,7 +554,7 @@ func (s *ServiceImpl) unpublishAndEnqueueModeration(ctx context.Context, existin
 	if err != nil {
 		return fmt.Errorf("failed to get listing completeness: %w", err)
 	}
-	s.log.Logf("INFO listing=%s completeness before unpublish: %f%%", listing.ID, float64(lc.CompletionScore))
+	s.log.Info("listing completeness before unpublish", "listing_id", listing.ID, "completeness_score", float64(lc.CompletionScore))
 
 	// Decide next status based on completeness.
 	nextStatus := domain.StatusUnderReview
@@ -587,7 +582,7 @@ func (s *ServiceImpl) unpublishAndEnqueueModeration(ctx context.Context, existin
 
 	// If not ready, stop after unpublishing.
 	if !lc.ReadyToPublish {
-		s.log.Logf("INFO listing=%s not ready to publish; set status=%s and skipped moderation", listing.ID, nextStatus)
+		s.log.Info("listing not ready to publish; skipped moderation", "listing_id", listing.ID, "status", nextStatus)
 		return nil
 	}
 

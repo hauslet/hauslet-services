@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -15,7 +16,6 @@ import (
 	listingJob "hauslet/internal/queue/jobs/listing"
 
 	"github.com/disintegration/imaging"
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -23,15 +23,17 @@ import (
 type ListingMediaThumbnailHandler struct {
 	repo    repository.Repository
 	storage *storage.R2Storage
-	log     *lgr.Logger
+	log     *slog.Logger
 	subject string
 }
 
 // NewListingMediaThumbnailHandler constructs the handler.
-func NewListingMediaThumbnailHandler(repo repository.Repository,
+func NewListingMediaThumbnailHandler(
+	repo repository.Repository,
 	storage *storage.R2Storage,
-	log *lgr.Logger,
-	subject string) *ListingMediaThumbnailHandler {
+	log *slog.Logger,
+	subject string,
+) *ListingMediaThumbnailHandler {
 	return &ListingMediaThumbnailHandler{
 		repo:    repo,
 		storage: storage,
@@ -60,6 +62,11 @@ func (h *ListingMediaThumbnailHandler) Handle(ctx context.Context, data []byte) 
 		return fmt.Errorf("invalid thumbnail job: %w", err)
 	}
 
+	h.log.Info("listing thumbnail job started",
+		"listing", job.ListingID,
+		"media_keys", len(job.MediaKeys),
+	)
+
 	media, err := h.repo.ListListingMedia(ctx, job.ListingID)
 	if err != nil {
 		return fmt.Errorf("list listing media: %w", err)
@@ -80,24 +87,34 @@ func (h *ListingMediaThumbnailHandler) Handle(ctx context.Context, data []byte) 
 		}
 
 		if m.Type != schema.MediaTypeImage {
-			h.log.Logf("INFO skipping non-image media %s (%s)", key, m.Type)
+			h.log.Info("skipping non-image media %s (%s)", key, m.Type)
 			continue
 		}
+
+		h.log.Info(
+			"processing media thumbnail",
+			"listing", job.ListingID,
+			"media", m.Key,
+		)
 
 		if err := h.processThumbnail(ctx, job.ListingID, m); err != nil {
 			return err
 		}
 	}
 
+	h.log.Info("listing thumbnail job completed", "listing", job.ListingID)
+
 	return nil
 }
 
-func (h *ListingMediaThumbnailHandler) processThumbnail(ctx context.Context,
+func (h *ListingMediaThumbnailHandler) processThumbnail(
+	ctx context.Context,
 	listingID uuid.UUID,
-	media *schema.ListingMedia) error {
+	media *schema.ListingMedia,
+) error {
 	// Avoid regeneration if thumbnails already exist
 	if len(media.Thumbnails) > 0 {
-		h.log.Logf("INFO thumbnails already present for %s, skipping", media.Key)
+		h.log.Info("thumbnails already present, skipping", "media", media.Key)
 		return nil
 	}
 
@@ -112,7 +129,6 @@ func (h *ListingMediaThumbnailHandler) processThumbnail(ctx context.Context,
 		return fmt.Errorf("decode image: %w", err)
 	}
 
-	// Define thumbnail targets with aspect ratio preservation
 	targets := []struct {
 		name   string
 		width  int
@@ -123,7 +139,6 @@ func (h *ListingMediaThumbnailHandler) processThumbnail(ctx context.Context,
 		{"large", 1280, 960},
 	}
 
-	// Generate thumbnails concurrently
 	var wg sync.WaitGroup
 	thumbChan := make(chan schema.Thumbnail, len(targets))
 	errChan := make(chan error, len(targets))
@@ -133,10 +148,8 @@ func (h *ListingMediaThumbnailHandler) processThumbnail(ctx context.Context,
 		go func(name string, width, height int) {
 			defer wg.Done()
 
-			// Preserve aspect ratio
 			thumb := imaging.Fit(img, width, height, imaging.Lanczos)
 
-			// Encode as JPEG with optimized quality
 			var buf bytes.Buffer
 			if err := imaging.Encode(&buf, thumb, imaging.JPEG, imaging.JPEGQuality(85)); err != nil {
 				errChan <- fmt.Errorf("encode thumbnail %s: %w", name, err)
@@ -144,7 +157,12 @@ func (h *ListingMediaThumbnailHandler) processThumbnail(ctx context.Context,
 			}
 
 			key := thumbnailKey(media.Key, name)
-			if err := h.storage.UploadObject(ctx, key, bytes.NewReader(buf.Bytes()), "image/jpeg"); err != nil {
+			if err := h.storage.UploadObject(
+				ctx,
+				key,
+				bytes.NewReader(buf.Bytes()),
+				"image/jpeg",
+			); err != nil {
 				errChan <- fmt.Errorf("upload thumbnail %s: %w", name, err)
 				return
 			}
@@ -159,21 +177,26 @@ func (h *ListingMediaThumbnailHandler) processThumbnail(ctx context.Context,
 		}(target.name, target.width, target.height)
 	}
 
-	// Wait for all goroutines to complete
 	wg.Wait()
 	close(thumbChan)
 	close(errChan)
 
-	// Check for errors
 	for err := range errChan {
 		return err
 	}
 
-	// Collect thumbnails
 	thumbs := make(schema.ThumbnailMap)
 	for thumb := range thumbChan {
-		thumbs[strings.TrimPrefix(filepath.Base(thumb.Key), fmt.Sprintf("%s_thumb_", strings.TrimSuffix(filepath.Base(media.Key), filepath.Ext(media.Key))))] = thumb
+		thumbs[strings.TrimPrefix(
+			filepath.Base(thumb.Key),
+			fmt.Sprintf(
+				"%s_thumb_",
+				strings.TrimSuffix(filepath.Base(media.Key), filepath.Ext(media.Key)),
+			),
+		)] = thumb
 	}
+
+	h.log.Info("thumbnails generated media=%s count=%d", media.Key, len(thumbs))
 
 	return h.repo.UpdateListingMedia(ctx, listingID, media.ID, map[string]any{
 		"thumbnails": thumbs,

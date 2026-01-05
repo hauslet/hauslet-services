@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"hauslet/internal/modules/auth/authorization"
 	"hauslet/internal/modules/property/domain"
 
 	"github.com/google/uuid"
@@ -15,13 +16,19 @@ func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Pr
 	var createdProperty *domain.Property
 	var createdListing *domain.Listing
 
-	s.log.Logf("INFO creating property with listing owner=%s", p.OwnerID)
+	if err := s.authorizeSupplyAction(ctx, authorization.SupplyActionCreateListing, &authorization.SupplyOptions{
+		ListingType: string(l.ListingType),
+	}); err != nil {
+		return nil, nil, err
+	}
+
+	s.log.Info("creating property with listing", "owner_id", p.OwnerID)
 
 	err := s.repo.Transaction(ctx, func(tx *gorm.DB) error {
 		// Create property within transaction
 		propertySchema := domain.MapPropertyToSchema(&p)
 		if err := s.repo.CreatePropertyTx(ctx, tx, propertySchema); err != nil {
-			s.log.Logf("ERROR failed to create property in transaction owner=%s: %v", p.OwnerID, err)
+			s.log.Error("failed to create property in transaction", "owner_id", p.OwnerID, "error", err)
 			return fmt.Errorf("failed to create property: %w", err)
 		}
 		createdProperty = domain.MapPropertyFromSchema(propertySchema)
@@ -38,7 +45,7 @@ func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Pr
 				return fmt.Errorf("business authorizer not configured")
 			}
 			if err := s.businessAuthorizer.CanCreateListing(ctx, l.OwnerID); err != nil {
-				s.log.Logf("WARN requester lacks create permission for business=%s listing", l.OwnerID)
+				s.log.Warn("requester lacks create permission for business listing", "business_id", l.OwnerID)
 				return err
 			}
 		}
@@ -49,7 +56,7 @@ func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Pr
 			listingSchema.Slug = generateSlug(l.Title) + "_" + shortid()
 		}
 		if err := s.repo.CreateListingTx(ctx, tx, listingSchema); err != nil {
-			s.log.Logf("ERROR failed to create listing in transaction property=%s: %v", createdProperty.ID, err)
+			s.log.Error("failed to create listing in transaction", "property_id", createdProperty.ID, "error", err)
 			return fmt.Errorf("failed to create listing: %w", err)
 		}
 		createdListing = domain.MapListingFromSchema(listingSchema)
@@ -58,11 +65,11 @@ func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Pr
 	})
 
 	if err != nil {
-		s.log.Logf("ERROR transaction failed for property with listing owner=%s: %v", p.OwnerID, err)
+		s.log.Error("transaction failed for property with listing", "owner_id", p.OwnerID, "error", err)
 		return nil, nil, err
 	}
 
-	s.log.Logf("INFO created property=%s with listing=%s owner=%s", createdProperty.ID, createdListing.ID, p.OwnerID)
+	s.log.Info("created property with listing", "property_id", createdProperty.ID, "listing_id", createdListing.ID, "owner_id", p.OwnerID)
 	return createdProperty, createdListing, nil
 }
 
@@ -77,7 +84,7 @@ func (s *ServiceImpl) UpdateListingWithProperty(ctx context.Context, id uuid.UUI
 
 	existing, err := s.ensureListing(ctx, id, false)
 	if err != nil {
-		s.log.Logf("ERROR listing not found for composite update listing=%s: %v", id, err)
+		s.log.Error("listing not found for composite update", "listing_id", id, "error", err)
 		return nil, err
 	}
 
@@ -85,22 +92,22 @@ func (s *ServiceImpl) UpdateListingWithProperty(ctx context.Context, id uuid.UUI
 		// Allow business members (via authorizer) to update business-owned listings when they have edit permission.
 		if existing.OwnerType == domain.OwnerBusiness {
 			if s.businessAuthorizer == nil {
-				s.log.Logf("WARN business authorizer not configured for update listing=%s", id)
+				s.log.Warn("business authorizer not configured for update listing", "listing_id", id)
 				return nil, domain.ErrForbidden
 			}
 			if err := s.businessAuthorizer.CanEditListing(ctx, existing.OwnerID); err != nil {
-				s.log.Logf("WARN requester=%s lacks edit permission for business listing=%s owner=%s", requesterID, id, existing.OwnerID)
+				s.log.Warn("requester lacks edit permission for business listing", "requester_id", requesterID, "listing_id", id, "owner_id", existing.OwnerID)
 				return nil, domain.ErrForbidden
 			}
 		} else {
-			s.log.Logf("WARN requester=%s forbidden to update listing=%s owner=%s", requesterID, id, existing.OwnerID)
+			s.log.Warn("requester forbidden to update listing", "requester_id", requesterID, "listing_id", id, "owner_id", existing.OwnerID)
 			return nil, domain.ErrForbidden
 		}
 	}
 
 	if len(propertyUpdates) > 0 {
 		if _, err := s.PatchProperty(ctx, existing.PropertyID, propertyUpdates); err != nil {
-			s.log.Logf("ERROR failed to patch property=%s for listing update listing=%s: %v", existing.PropertyID, id, err)
+			s.log.Error("failed to patch property", "property_id", existing.PropertyID, "listing_id", id, "error", err)
 			return nil, err
 		}
 	}
@@ -111,7 +118,7 @@ func (s *ServiceImpl) UpdateListingWithProperty(ctx context.Context, id uuid.UUI
 	} else {
 		updated, err := s.PatchListing(ctx, id, listingUpdates)
 		if err != nil {
-			s.log.Logf("ERROR failed to patch listing=%s: %v", id, err)
+			s.log.Error("failed to patch listing", "listing_id", id, "error", err)
 			return nil, err
 		}
 		listing = updated

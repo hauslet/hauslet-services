@@ -2,24 +2,24 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"hauslet/internal/platform/email"
 	emailJob "hauslet/internal/queue/jobs/emails"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // EmailHandler handles email sending jobs
 type EmailHandler struct {
 	client  *email.Client
-	log     *lgr.Logger
+	log     *slog.Logger
 	subject string
 }
 
 // NewEmailHandler creates a new email handler
-func NewEmailHandler(client *email.Client, log *lgr.Logger, subject string) *EmailHandler {
+func NewEmailHandler(client *email.Client, log *slog.Logger, subject string) *EmailHandler {
 	return &EmailHandler{
 		client:  client,
 		log:     log,
@@ -49,13 +49,32 @@ func (h *EmailHandler) Handle(ctx context.Context, data []byte) error {
 		return fmt.Errorf("invalid email job: %w", err)
 	}
 
-	h.log.Logf("INFO Sending email to %s: %s", job.To, job.Subject)
+	h.log.Info("Sending email", "to", job.To, "subject", job.Subject)
 
-	// Send email
-	if err := h.client.SendHTML(ctx, job.To, job.Subject, job.HTML); err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+	attachments := make([]email.Attachment, 0, len(job.Attachments))
+	for _, attachment := range job.Attachments {
+		payload, err := base64.StdEncoding.DecodeString(attachment.ContentBase64)
+		if err != nil {
+			return fmt.Errorf("failed to decode attachment %s: %w", attachment.Filename, err)
+		}
+		attachments = append(attachments, email.Attachment{
+			Filename:    attachment.Filename,
+			ContentType: attachment.ContentType,
+			Content:     payload,
+		})
 	}
 
-	h.log.Logf("INFO ✅ Email sent successfully to %s", job.To)
+	// Send email
+	if len(attachments) == 0 {
+		if err := h.client.SendHTML(ctx, job.To, job.Subject, job.HTML); err != nil {
+			return fmt.Errorf("failed to send email: %w", err)
+		}
+	} else {
+		if err := h.client.SendHTMLWithAttachments(ctx, job.To, job.Subject, job.HTML, attachments); err != nil {
+			return fmt.Errorf("failed to send email with attachments: %w", err)
+		}
+	}
+
+	h.log.Info("✅ Email sent successfully", slog.String("to", job.To))
 	return nil
 }

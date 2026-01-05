@@ -7,9 +7,9 @@ import (
 	"hauslet/internal/modules/profile/domain"
 	"hauslet/internal/modules/profile/notification"
 	"hauslet/internal/modules/profile/repository"
+	"log/slog"
 	"time"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -24,12 +24,12 @@ type ModerationProfileAdapter struct {
 
 	notifier *notification.NotificationService
 	nowFunc  func() time.Time
-	log      *lgr.Logger
+	log      *slog.Logger
 }
 
 // NewModerationProfileAdapter constructs the adapter with its dependencies.
 func NewModerationProfileAdapter(repo repository.ProfileRepository,
-	notifier *notification.NotificationService, log *lgr.Logger) *ModerationProfileAdapter {
+	notifier *notification.NotificationService, log *slog.Logger) *ModerationProfileAdapter {
 	return &ModerationProfileAdapter{
 		repo:     repo,
 		notifier: notifier,
@@ -50,14 +50,14 @@ func (a *ModerationProfileAdapter) OnModerationCompleted(ctx context.Context,
 		return err
 	}
 	if profile == nil {
-		a.log.Logf("[WARN] profile not found for ID %s", aggregate.TargetID.String())
+		a.log.Warn("profile not found", "id", aggregate.TargetID.String())
 		return domain.ErrProfileNotFound
 
 	}
 	aggDomain := domain.MapModerationAggToDomain(aggregate)
 	if aggDomain.FinalStatus() == domain.ModerationStatusAccepted {
 		// Profile approved
-		a.log.Logf("[INFO] profile %s approved by moderation", profile.UserID)
+		a.log.Info("profile approved by moderation", "user_id", profile.UserID)
 		a.repo.UpdateModerationStatus(ctx, profile.ID, true)
 		return nil
 	}
@@ -65,25 +65,25 @@ func (a *ModerationProfileAdapter) OnModerationCompleted(ctx context.Context,
 	switch aggDomain.FinalStatus() {
 	case domain.ModerationStatusRejected:
 		// Profile rejected
-		a.log.Logf("[INFO] profile %s rejected by moderation", profile.UserID)
+		a.log.Info("profile rejected by moderation", "user_id", profile.UserID)
 		a.repo.UpdateModerationStatus(ctx, profile.ID, false)
 
 		// Notify profile owner of rejection
 		if profile.Email != nil && a.notifier != nil {
-			a.log.Logf("[INFO] sending profile moderation rejection email to user %s", profile.UserID)
+			a.log.Info("sending profile moderation rejection email", "user_id", profile.UserID)
 			err := a.notifier.SendProfileModerationRejectedEmail(ctx, *profile.Email, profile.FullName, profile.ID.String(), aggDomain.Reasons)
 			if err != nil {
-				a.log.Logf("[ERROR] failed to send profile moderation rejection email to user %s: %v", profile.UserID, err)
+				a.log.Error("failed to send profile moderation rejection email", "user_id", profile.UserID, "error", err)
 			}
 		}
 
 	case domain.ModerationStatusAccepted:
 		// Update profile as approved only
-		a.log.Logf("[INFO] profile %s approved by moderation", profile.UserID)
+		a.log.Info("profile approved by moderation", "user_id", profile.UserID)
 		a.repo.UpdateModerationStatus(ctx, profile.ID, true)
 		return nil
 	default:
-		a.log.Logf("[WARN] unhandled moderation status for profile %s: %s", profile.UserID, aggDomain.FinalStatus())
+		a.log.Warn("unhandled moderation status for profile", "user_id", profile.UserID, "status", aggDomain.FinalStatus())
 	}
 
 	return nil

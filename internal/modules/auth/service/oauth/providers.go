@@ -41,7 +41,7 @@ func setupGoogleProvider(service *auth.Service, deps Dependencies) {
 
 func setupDirectProvider(service *auth.Service, deps Dependencies) {
 	if deps.AuthenticatePassword == nil {
-		deps.Log.Logf("ERROR Direct provider is not configured: AuthenticatePassword is nil")
+		deps.Log.Error("Direct provider is not configured: AuthenticatePassword is nil")
 		return
 	}
 

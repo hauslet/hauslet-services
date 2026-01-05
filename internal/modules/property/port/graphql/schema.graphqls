@@ -213,11 +213,6 @@ type Listing {
 
   latestReviewStatus: ReviewStatus!
 
-  viewCount: Int!
-  lastViewedAt: Time
-  featuredUntil: Time
-  boostLevel: Int!
-
   createdBy: UUID
   updatedBy: UUID
   statusChangedAt: Time
@@ -763,7 +758,6 @@ input ListingFilterInput {
   maxBedrooms: Int
   minBathrooms: Int
   maxBathrooms: Int
-  minViewCount: Int
 
   # Type-specific filters
   shortletFilter: ShortletFilterInput

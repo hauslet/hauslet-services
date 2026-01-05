@@ -9,9 +9,10 @@ import (
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/platform/queue"
 	emailJob "hauslet/internal/queue/jobs/emails"
+	"log/slog"
 	"time"
 
-	"github.com/go-pkgz/lgr"
+	"github.com/google/uuid"
 )
 
 // NotificationService handles payment-related email notifications
@@ -20,7 +21,19 @@ type NotificationService struct {
 	queueClient  *queue.Client
 	queueSubject string
 	baseURL      string
-	log          *lgr.Logger
+	log          *slog.Logger
+	userContacts UserContactProvider
+	bizContacts  BusinessContactProvider
+}
+
+// UserContactProvider exposes minimal user contact info.
+type UserContactProvider interface {
+	GetUserContactEmail(ctx context.Context, userID string) (string, error)
+}
+
+// BusinessContactProvider exposes minimal business contact info.
+type BusinessContactProvider interface {
+	GetBusinessContactEmail(ctx context.Context, businessID uuid.UUID) (string, error)
 }
 
 // NewNotificationService creates a new notification service
@@ -29,13 +42,17 @@ func NewNotificationService(
 	queueClient *queue.Client,
 	queueSubject string,
 	baseURL string,
-	log *lgr.Logger,
+	userContacts UserContactProvider,
+	bizContacts BusinessContactProvider,
+	log *slog.Logger,
 ) *NotificationService {
 	return &NotificationService{
 		mailClient:   mailClient,
 		queueClient:  queueClient,
 		queueSubject: queueSubject,
 		baseURL:      baseURL,
+		userContacts: userContacts,
+		bizContacts:  bizContacts,
 		log:          log,
 	}
 }
@@ -44,15 +61,15 @@ func NewNotificationService(
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {
 		if err := fn(); err != nil && s.log != nil {
-			s.log.Logf("[WARN] %s: %v", label, err)
+			s.log.Error("send email async error", "label", label, "error", err)
 		}
 	}()
 }
 
-// publishEmailJob tries to enqueue the email job and returns true on success
-func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
+// publishEmailJob tries to enqueue the email job and returns an error on failure.
+func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) error {
 	if s.queueClient == nil || s.queueSubject == "" {
-		return false
+		return fmt.Errorf("queue not configured")
 	}
 
 	pubCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -60,12 +77,12 @@ func (s *NotificationService) publishEmailJob(job emailJob.EmailJob) bool {
 
 	if err := s.queueClient.Publish(pubCtx, s.queueSubject, job); err != nil {
 		if s.log != nil {
-			s.log.Logf("[WARN] failed to publish payment email job to %s: %v; falling back to direct send", s.queueSubject, err)
+			s.log.Error("failed to publish payment email job", "subject", s.queueSubject, "error", err)
 		}
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
 // SendPaymentReceipt sends a payment receipt email
@@ -98,7 +115,7 @@ func (s *NotificationService) SendPaymentReceipt(pmt *domain.Payment) error {
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("[ERROR] failed to render payment receipt template: %v", err)
+			s.log.Error("failed to render payment receipt template", "error", err)
 		}
 		return nil
 	}
@@ -109,8 +126,10 @@ func (s *NotificationService) SendPaymentReceipt(pmt *domain.Payment) error {
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, pmt.PayerEmail, subject, htmlBody)
 	})
@@ -148,7 +167,7 @@ func (s *NotificationService) SendRefundNotification(pmt *domain.Payment, refund
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("[ERROR] failed to render refund notification template: %v", err)
+			s.log.Error("failed to render refund notification template", "error", err)
 		}
 		return
 	}
@@ -159,8 +178,10 @@ func (s *NotificationService) SendRefundNotification(pmt *domain.Payment, refund
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, pmt.PayerEmail, subject, htmlBody)
 	})
@@ -172,9 +193,65 @@ func (s *NotificationService) SendPayoutNotification(tx *domain.Transaction, pd 
 	subject := fmt.Sprintf("Payout Processed - %s", tx.Reference)
 	preview := "Your payout has been successfully processed."
 
-	// TODO: Get recipient email from user/business service
-	// For now, using a placeholder
-	recipientEmail := "recipient@example.com"
+	recipientEmail := ""
+	switch {
+	case pd != nil && pd.UserID != nil:
+		if s.userContacts == nil {
+			if s.log != nil {
+				s.log.Error("user service not configured; cannot resolve payout recipient for user", "user_id", pd.UserID.String())
+			}
+			return
+		}
+		email, err := s.userContacts.GetUserContactEmail(ctx, pd.UserID.String())
+		if err != nil {
+			if s.log != nil {
+				s.log.Error("failed to fetch payout recipient user", "user_id", pd.UserID.String(), "error", err)
+			}
+			return
+		}
+		recipientEmail = email
+	case pd != nil && pd.BusinessID != nil:
+		if s.bizContacts == nil {
+			if s.log != nil {
+				s.log.Error("business service not configured; cannot resolve payout recipient for business", "business_id", pd.BusinessID.String())
+			}
+			return
+		}
+		email, err := s.bizContacts.GetBusinessContactEmail(ctx, *pd.BusinessID)
+		if err != nil {
+			if s.log != nil {
+				s.log.Error("failed to fetch payout recipient business", "business_id", pd.BusinessID.String(), "error", err)
+			}
+			return
+		}
+		recipientEmail = email
+	case tx != nil && tx.BusinessID != nil:
+		if s.bizContacts == nil {
+			if s.log != nil {
+				s.log.Error("business service not configured; cannot resolve payout recipient for business", "business_id", tx.BusinessID.String())
+			}
+			return
+		}
+		email, err := s.bizContacts.GetBusinessContactEmail(ctx, *tx.BusinessID)
+		if err != nil {
+			if s.log != nil {
+				s.log.Error("failed to fetch payout recipient business", "business_id", tx.BusinessID.String(), "error", err)
+			}
+			return
+		}
+		recipientEmail = email
+	default:
+		if s.log != nil {
+			s.log.Error("payout recipient not found for transaction", "transaction_id", tx.ID)
+		}
+		return
+	}
+	if recipientEmail == "" {
+		if s.log != nil {
+			s.log.Error("payout recipient email missing for transaction", "transaction_id", tx.ID)
+		}
+		return
+	}
 
 	emailData := map[string]any{
 		"TransactionID": tx.ID.String(),
@@ -202,7 +279,7 @@ func (s *NotificationService) SendPayoutNotification(tx *domain.Transaction, pd 
 	)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("[ERROR] failed to render payout notification template: %v", err)
+			s.log.Error("failed to render payout notification template", "error", err)
 		}
 		return
 	}
@@ -213,8 +290,10 @@ func (s *NotificationService) SendPayoutNotification(tx *domain.Transaction, pd 
 			Subject: subject,
 			HTML:    htmlBody,
 		}
-		if s.publishEmailJob(job) {
+		if err := s.publishEmailJob(job); err == nil {
 			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
 		}
 		return s.mailClient.SendHTML(ctx, recipientEmail, subject, htmlBody)
 	})

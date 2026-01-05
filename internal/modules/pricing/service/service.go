@@ -14,15 +14,20 @@ import (
 
 func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.UUID, checkIn, checkOut time.Time, guestCount int) (*domain.PriceBreakdown, error) {
 	if s.log != nil {
-		s.log.Logf("INFO calculating price listing=%s checkin=%s checkout=%s guests=%d", listingID, checkIn.Format("2006-01-02"), checkOut.Format("2006-01-02"), guestCount)
+		s.log.Info("calculating price", "listing_id", listingID, "checkin", checkIn.Format("2006-01-02"), "checkout", checkOut.Format("2006-01-02"), "guests", guestCount)
 	}
 
 	if s.listingHooks == nil {
 		return nil, fmt.Errorf("pricing listing hooks not configured")
 	}
 
+	// Normalize checkIn and checkOut to midnight UTC for consistent date-based calculations
+	// This ensures pricing is based on calendar dates regardless of time-of-day in the input
+	checkInDate := time.Date(checkIn.Year(), checkIn.Month(), checkIn.Day(), 0, 0, 0, 0, time.UTC)
+	checkOutDate := time.Date(checkOut.Year(), checkOut.Month(), checkOut.Day(), 0, 0, 0, 0, time.UTC)
+
 	// Validate date range
-	if !checkOut.After(checkIn) {
+	if !checkOutDate.After(checkInDate) {
 		return nil, domain.ErrInvalidDateRange
 	}
 
@@ -32,8 +37,8 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 		return nil, fmt.Errorf("failed to get listing pricing: %w", err)
 	}
 
-	// Calculate number of nights
-	nights := int(checkOut.Sub(checkIn).Hours() / 24)
+	// Calculate number of nights using normalized dates
+	nights := int(checkOutDate.Sub(checkInDate).Hours() / 24)
 
 	// Get all active pricing rules for the listing
 	schemaRules, err := s.repo.GetRulesForListing(ctx, listingID, true)
@@ -43,8 +48,8 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 
 	rules := domain.MapRulesFromSchema(schemaRules)
 
-	// Calculate daily rates
-	dailyRates := s.calculateDailyRates(listingPricing.BaseRate, checkIn, checkOut, rules)
+	// Calculate daily rates using normalized dates
+	dailyRates := s.calculateDailyRates(listingPricing.BaseRate, checkInDate, checkOutDate, rules)
 
 	// Sum up base total
 	baseTotal := 0.0
@@ -108,8 +113,8 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 
 	breakdown := &domain.PriceBreakdown{
 		ListingID:     listingID,
-		CheckIn:       checkIn,
-		CheckOut:      checkOut,
+		CheckIn:       checkInDate,
+		CheckOut:      checkOutDate,
 		Nights:        nights,
 		GuestCount:    guestCount,
 		BaseTotal:     baseTotal,
@@ -131,7 +136,7 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 	s.cachePriceBreakdown(ctx, breakdown)
 
 	if s.log != nil {
-		s.log.Logf("INFO calculated price total=%.2f %s nights=%d", total, listingPricing.Currency, nights)
+		s.log.Info("calculated price", "total", total, "currency", listingPricing.Currency, "nights", nights)
 	}
 
 	return breakdown, nil
@@ -195,7 +200,7 @@ func (s *PricingServiceImpl) PreviewPricing(ctx context.Context, listingID uuid.
 
 func (s *PricingServiceImpl) CreateRule(ctx context.Context, rule *domain.PricingRule) (*domain.PricingRule, error) {
 	if s.log != nil {
-		s.log.Logf("INFO creating pricing rule listing=%s type=%s", rule.ListingID, rule.RuleType)
+		s.log.Info("creating pricing rule", "listing_id", rule.ListingID, "rule_type", rule.RuleType)
 	}
 
 	schemaRule := domain.MapRuleFromEntityToSchema(rule)

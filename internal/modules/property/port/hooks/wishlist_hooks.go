@@ -3,16 +3,16 @@ package hooks
 import (
 	"context"
 	"hauslet/internal/modules/property/domain"
-	listingService "hauslet/internal/modules/property/service"
+	propertyService "hauslet/internal/modules/property/service"
 
 	"github.com/google/uuid"
 )
 
 type WishlistHooksAdapter struct {
-	svc listingService.Service
+	svc propertyService.PropertyService
 }
 
-func NewWishlistHooksAdapter(svc listingService.Service) *WishlistHooksAdapter {
+func NewWishlistHooksAdapter(svc propertyService.PropertyService) *WishlistHooksAdapter {
 	return &WishlistHooksAdapter{svc: svc}
 }
 

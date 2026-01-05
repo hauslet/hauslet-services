@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -384,6 +385,70 @@ func (p *PaystackAdapter) VerifyTransfer(ctx context.Context, reference string) 
 		Message:    fmt.Sprintf("Transfer is %s", status),
 		CreatedAt:  createdAt,
 	}, nil
+}
+
+// ListBanks returns banks supported by Paystack for the given currency/country.
+func (p *PaystackAdapter) ListBanks(ctx context.Context, currency Currency, country string) ([]Bank, error) {
+	query := url.Values{}
+	if currency != "" {
+		query.Set("currency", currency.String())
+	}
+	if country != "" {
+		query.Set("country", country)
+	}
+
+	endpoint := "/bank"
+	if encoded := query.Encode(); encoded != "" {
+		endpoint += "?" + encoded
+	}
+
+	resp, err := p.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("paystack: list banks failed: %w", err)
+	}
+
+	raw, ok := resp["data"]
+	if !ok {
+		return nil, fmt.Errorf("paystack: bank list missing data")
+	}
+
+	type paystackBank struct {
+		Name      string `json:"name"`
+		Slug      string `json:"slug"`
+		Code      string `json:"code"`
+		LongCode  string `json:"longcode"`
+		Gateway   string `json:"gateway"`
+		Active    bool   `json:"active"`
+		IsDeleted bool   `json:"is_deleted"`
+		Country   string `json:"country"`
+		Currency  string `json:"currency"`
+		Type      string `json:"type"`
+	}
+
+	dataBytes, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("paystack: failed to parse bank list: %w", err)
+	}
+
+	var banks []paystackBank
+	if err := json.Unmarshal(dataBytes, &banks); err != nil {
+		return nil, fmt.Errorf("paystack: failed to decode bank list: %w", err)
+	}
+
+	result := make([]Bank, 0, len(banks))
+	for _, bank := range banks {
+		result = append(result, Bank{
+			Name:      bank.Name,
+			Code:      bank.Code,
+			Country:   bank.Country,
+			Currency:  Currency(strings.ToUpper(bank.Currency)),
+			Type:      bank.Type,
+			Active:    bank.Active,
+			IsDeleted: bank.IsDeleted,
+		})
+	}
+
+	return result, nil
 }
 
 // ============================================================================

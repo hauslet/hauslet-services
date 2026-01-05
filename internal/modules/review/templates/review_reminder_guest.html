@@ -1,0 +1,33 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        ⏰ {{.DaysLeft}} day(s) left to review
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.GuestName}}, you have <strong>{{.DaysLeft}} day(s)</strong> left to share your experience at <strong>{{.ListingTitle}}</strong>.
+    </p>
+
+    <div style="background-color: #FFF9E6; border-left: 4px solid #F59E0B; padding: 16px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #92400E;">
+            <strong>⚠️ Time-sensitive:</strong> Your review window closes soon. After that, you won't be able to leave a review for this stay.
+        </p>
+    </div>
+
+    <p style="font-size: 15px; line-height: 24px; text-align: center; color: #000000;">
+        Your honest feedback helps future guests and supports quality hosts. It only takes a minute!
+    </p>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.ReviewURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            Write Your Review
+        </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        Once both you and the host submit reviews, they'll be published simultaneously.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

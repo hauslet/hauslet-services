@@ -8,7 +8,7 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
-func (ec *executionContext) unmarshalInputUUID(ctx context.Context, v any) (uuid.UUID, error) {
+func (ec *executionContext) unmarshalInputUUID(_ context.Context, v any) (uuid.UUID, error) {
 	return UnmarshalUUID(v)
 }
 

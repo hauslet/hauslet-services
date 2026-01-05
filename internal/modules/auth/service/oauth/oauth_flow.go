@@ -41,48 +41,54 @@ func ensureActiveOnLogin(ctx context.Context, repo Dependencies, user *schema.Us
 	return refreshed, nil
 }
 
-func handleOAuthFlow(ctx context.Context, deps Dependencies, claims token.Claims, provider, providerUserID, email, name string, isLinking bool, linkState *LinkState) (*schema.User, error) {
+func handleOAuthFlow(ctx context.Context, deps Dependencies, _ token.Claims, provider, providerUserID, email, name string, isLinking bool, linkState *LinkState) (*schema.User, error) {
 	if isLinking && linkState != nil {
 		if linkState.Provider != "" && linkState.Provider != provider {
-			deps.Log.Logf("ERROR OAuth Linking: Provider mismatch: expected %s, got %s", linkState.Provider, provider)
+			deps.Log.Error("OAuth Linking: Provider mismatch", "expected", linkState.Provider, "got", provider)
 			return nil, fmt.Errorf("provider mismatch")
 		}
 
 		if deps.LinkIdentity == nil {
-			deps.Log.Logf("ERROR OAuth Linking: LinkIdentity function is not configured")
+			deps.Log.Error("OAuth Linking: LinkIdentity function is not configured")
 			return nil, fmt.Errorf("link identity not configured")
 		}
 
 		if err := deps.LinkIdentity(ctx, linkState, provider, providerUserID, email); err != nil {
-			deps.Log.Logf("ERROR OAuth Linking: Failed to link identity: %v", err)
+			deps.Log.Error("OAuth Linking: Failed to link identity", "error", err)
 			return nil, err
 		}
 
 		user, err := deps.Repository.GetUserByID(ctx, linkState.UserID)
 		if err != nil || user == nil {
-			deps.Log.Logf("ERROR OAuth Linking: Error fetching user after linking: %v", err)
+			deps.Log.Error("OAuth Linking: Error fetching user after linking", "error", err)
 			return nil, err
 		}
 
-		deps.Log.Logf("INFO OAuth Linking: Successfully linked %s to user %s (ID: %s)", provider, maskEmail(user.PrimaryEmail), user.ID)
+		deps.Log.Info("OAuth Linking: Successfully linked identity",
+			"provider", provider,
+			"user", maskEmail(user.PrimaryEmail),
+			"user_id", user.ID)
 		return user, nil
 	}
 
 	identity, err := deps.Repository.GetUserIdentityByProvider(ctx, provider, providerUserID)
 	if err != nil {
-		deps.Log.Logf("ERROR OAuth: Error checking identity: %v", err)
+		deps.Log.Error("OAuth: Error checking identity", "error", err)
 		return nil, err
 	}
 
 	if identity != nil {
 		user, err := deps.Repository.GetUserByID(ctx, identity.UserID.String())
 		if err != nil || user == nil {
-			deps.Log.Logf("ERROR OAuth: Error fetching user for existing identity: %v", err)
+			deps.Log.Error("OAuth: Error fetching user for existing identity", "error", err)
 			return nil, err
 		}
 
 		if provider == "google" && !strings.Contains(identity.Email, "@") && email != "" {
-			deps.Log.Logf("INFO Fixing corrupted Google OAuth email for user %s: %q -> %q", user.ID, identity.Email, email)
+			deps.Log.Info("Fixing corrupted Google OAuth email",
+				"user_id", user.ID,
+				"old_email", identity.Email,
+				"new_email", email)
 			identity.Email = email
 		}
 
@@ -90,14 +96,17 @@ func handleOAuthFlow(ctx context.Context, deps Dependencies, claims token.Claims
 		identity.LastUsedAt = &now
 		_ = deps.Repository.UpdateUserIdentity(ctx, identity)
 
-		deps.Log.Logf("INFO OAuth: Existing user %s (ID: %s) logged in via %s", maskEmail(user.PrimaryEmail), user.ID, provider)
+		deps.Log.Info("OAuth: Existing user logged in via provider",
+			"email", maskEmail(user.PrimaryEmail),
+			"user_id", user.ID,
+			"provider", provider)
 
 		return ensureActiveOnLogin(ctx, deps, user)
 	}
 
 	user, err := deps.Repository.GetUserByEmail(ctx, email)
 	if err != nil {
-		deps.Log.Logf("ERROR OAuth: Error checking user by email: %v", err)
+		deps.Log.Error("OAuth: Error checking user by email", "error", err)
 		return nil, err
 	}
 
@@ -120,24 +129,27 @@ func handleOAuthFlow(ctx context.Context, deps Dependencies, claims token.Claims
 		}
 
 		if err := deps.Repository.CreateUserWithIdentity(ctx, user, identity); err != nil {
-			deps.Log.Logf("ERROR OAuth: Error creating user+identity: %v", err)
+			deps.Log.Error("OAuth: Error creating user+identity", "error", err)
 			return nil, err
 		}
 
 		if deps.ProfileHook != nil {
 			if err := deps.ProfileHook(ctx, user.ID.String(), email, user.Name, nil); err != nil {
-				deps.Log.Logf("WARN OAuth: failed to create default profile for user %s: %v", user.ID, err)
+				deps.Log.Warn("OAuth: failed to create default profile",
+					"user", user.ID, "error", err)
 			}
 		}
 
-		deps.Log.Logf("INFO OAuth: Created new user %s (ID: %s) via %s", maskEmail(user.PrimaryEmail), user.ID, provider)
+		deps.Log.Info("OAuth: Created new user",
+			"user", user.ID,
+			"provider", provider)
 
 		if deps.SendWelcomeEmail != nil {
 			go func(email, name string) {
 				if err := deps.SendWelcomeEmail(context.Background(), email, name, ""); err != nil {
-					deps.Log.Logf("WARN Failed to send OAuth welcome email to %s: %v", email, err)
+					deps.Log.Warn("Failed to send OAuth welcome email", "email", email, "error", err)
 				} else {
-					deps.Log.Logf("INFO OAuth welcome email sent to %s", email)
+					deps.Log.Info("OAuth welcome email sent", "email", email)
 				}
 			}(user.PrimaryEmail, user.Name)
 		}
@@ -156,16 +168,20 @@ func handleOAuthFlow(ctx context.Context, deps Dependencies, claims token.Claims
 	}
 
 	if err := deps.Repository.CreateUserIdentity(ctx, identity); err != nil {
-		deps.Log.Logf("ERROR OAuth: Failed to auto-link %s identity for user %s: %v", provider, user.ID, err)
+		deps.Log.Error("OAuth: Failed to auto-link identity for user ",
+			"provider", provider,
+			"user", user.ID, "error", err)
 		return nil, err
 	}
 
-	deps.Log.Logf("INFO OAuth: Auto-linked %s identity to existing user %s (ID: %s)", provider, maskEmail(user.PrimaryEmail), user.ID)
+	deps.Log.Info("OAuth: Auto-linked identity to existing user",
+		"provider", provider,
+		"user", user.ID)
 
 	if deps.SendIdentityLinked != nil {
 		go func(email, name, provider string) {
 			if err := deps.SendIdentityLinked(context.Background(), email, name, provider); err != nil {
-				deps.Log.Logf("WARN Failed to send identity-linked notification to %s: %v", email, err)
+				deps.Log.Warn("Failed to send identity-linked notification", "email", email, "error", err)
 			}
 		}(user.PrimaryEmail, user.Name, provider)
 	}

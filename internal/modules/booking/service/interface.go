@@ -2,17 +2,30 @@ package service
 
 import (
 	"context"
+	"hauslet/config"
 	"hauslet/internal/modules/booking/domain"
 	"hauslet/internal/modules/booking/notification"
 	"hauslet/internal/modules/booking/repository"
 	calendardomain "hauslet/internal/modules/calendar/domain"
 	pricingdomain "hauslet/internal/modules/pricing/domain"
 	platformQueue "hauslet/internal/platform/queue"
+	"log/slog"
 	"time"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
+
+// FinanceHooks defines callbacks to finance module for booking-related financial events
+type FinanceHooks interface {
+	OnPaymentSucceeded(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
+	OnRefundProcessed(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
+	OnBookingCompleted(ctx context.Context, bookingID, hostID uuid.UUID) error
+}
+
+// ReviewHooks defines callbacks to review module for review-related notifications.
+type ReviewHooks interface {
+	SendReviewInvites(ctx context.Context, bookingID uuid.UUID) error
+}
 
 type BookingService interface {
 	// Quote and pricing
@@ -25,6 +38,9 @@ type BookingService interface {
 	ConfirmBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error)
 	CancelBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID, reason *string) (*domain.Booking, error)
 	GetBooking(ctx context.Context, bookingID uuid.UUID, requestorID uuid.UUID) (*domain.Booking, error)
+	GetBookingByReference(ctx context.Context, reference string, requestorID uuid.UUID) (*domain.Booking, error)
+	CheckInBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error)
+	CheckOutBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error)
 
 	// List methods
 	ListBookingsForGuest(ctx context.Context, guestID uuid.UUID, limit, offset int) ([]*domain.Booking, error)
@@ -35,6 +51,15 @@ type BookingService interface {
 	HandlePaymentFailure(ctx context.Context, bookingID uuid.UUID, paymentID uuid.UUID, reason string) error
 	HandlePaymentRefund(ctx context.Context, bookingID uuid.UUID, paymentID uuid.UUID, refundedAmount int64) error
 	ArchiveExpiredBookings(ctx context.Context, expiredBefore time.Time) ([]uuid.UUID, error)
+
+	// Payout lifecycle methods
+	MarkAsSettled(ctx context.Context, bookingID uuid.UUID) error
+
+	// Completion lifecycle methods
+	CompleteBookings(ctx context.Context) error
+
+	// Check-in/out fallback
+	AutoPopulateCheckInOut(ctx context.Context) (int, int, error)
 }
 
 type ContactInfo struct {
@@ -133,16 +158,19 @@ type ListingConstraints struct {
 }
 
 type BookingServiceImpl struct {
-	repo         repository.BookingRepository
-	calendar     CalendarGateway
-	pricing      PricingService
-	payment      PaymentGateway
-	listingHooks ListingHooks
-	profiles     ProfileProvider
-	notifier     *notification.NotificationService
-	refundQueue  *platformQueue.Client
-	refundSubject string
-	log          *lgr.Logger
+	repo           repository.BookingRepository
+	calendar       CalendarGateway
+	pricing        PricingService
+	payment        PaymentGateway
+	listingHooks   ListingHooks
+	profiles       ProfileProvider
+	notifier       *notification.NotificationService
+	refundQueue    *platformQueue.Client
+	refundSubject  string
+	financeHooks   FinanceHooks
+	reviewHooks    ReviewHooks
+	platformConfig config.PlatformYAMLConfig
+	log            *slog.Logger
 }
 
 func NewBookingService(
@@ -155,18 +183,24 @@ func NewBookingService(
 	notifier *notification.NotificationService,
 	refundQueue *platformQueue.Client,
 	refundSubject string,
-	log *lgr.Logger,
+	financeHooks FinanceHooks,
+	reviewHooks ReviewHooks,
+	platformConfig config.PlatformYAMLConfig,
+	log *slog.Logger,
 ) BookingService {
 	return &BookingServiceImpl{
-		repo:         repo,
-		calendar:     calendar,
-		pricing:      pricing,
-		payment:      payment,
-		listingHooks: listingHooks,
-		profiles:     profiles,
-		notifier:     notifier,
-		refundQueue:  refundQueue,
-		refundSubject: refundSubject,
-		log:          log,
+		repo:           repo,
+		calendar:       calendar,
+		pricing:        pricing,
+		payment:        payment,
+		listingHooks:   listingHooks,
+		profiles:       profiles,
+		notifier:       notifier,
+		refundQueue:    refundQueue,
+		refundSubject:  refundSubject,
+		financeHooks:   financeHooks,
+		reviewHooks:    reviewHooks,
+		platformConfig: platformConfig,
+		log:            log,
 	}
 }

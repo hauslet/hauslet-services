@@ -15,7 +15,8 @@ platform:
 
   payouts:
     escrow_release_hours: 24        # Hours after checkin before funds leave escrow
-    escrow_release_event: checkin_confirmed  # Event triggering escrow release
+    escrow_release_event: checkout_confirmed  # Event triggering escrow release
+    disbursement_provider: paystack # Payout provider (paystack | stripe); must match currency routing
     batch_interval_minutes: 60      # How often the payout worker runs
     max_retry_attempts: 5           # Retries for failed disbursements
     retry_backoff_minutes: 15       # Interval between payout retries
@@ -59,6 +60,9 @@ platform:
   auto_accept:
     default_enabled: true           # Default auto-accept setting for new shortlet listings
     min_notice_hours: 6             # Minimum hours before check-in required for auto-accept
+
+  reviews:
+    review_window_days: 14          # Days after completion to submit reviews
 
   notifications:
     send_payment_receipts: true

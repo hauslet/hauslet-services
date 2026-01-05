@@ -33,6 +33,9 @@ type CalendarRepository interface {
 	// GetEventsForOwner retrieves all events for properties owned by a user
 	GetEventsForOwner(ctx context.Context, ownerID uuid.UUID, startTime, endTime time.Time) ([]*schema.CalendarEvent, error)
 
+	// GetEventsStartingBetween retrieves events starting within a time range.
+	GetEventsStartingBetween(ctx context.Context, startTime, endTime time.Time, eventTypes []schema.EventType, statuses []schema.EventStatus) ([]*schema.CalendarEvent, error)
+
 	// --- Availability Checks ---
 	// CheckAvailability checks if a listing is available for the given time range
 	CheckAvailability(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time) (bool, error)
@@ -70,6 +73,16 @@ type CalendarRepository interface {
 	// --- Archival ---
 	// ArchiveCompletedEvents soft deletes events completed before the given date
 	ArchiveCompletedEvents(ctx context.Context, completedBefore time.Time) (int64, error)
+
+	// --- Atomic Attendee Operations ---
+	// AddOpenHouseAttendee atomically adds an attendee to an open house event
+	AddOpenHouseAttendee(ctx context.Context, eventID uuid.UUID, attendee schema.Attendee) error
+
+	// RemoveOpenHouseAttendee atomically removes an attendee from an open house event
+	RemoveOpenHouseAttendee(ctx context.Context, eventID uuid.UUID, email string) error
+
+	// GetOpenHouseAttendeeCount returns the current number of registered attendees
+	GetOpenHouseAttendeeCount(ctx context.Context, eventID uuid.UUID) (int, error)
 
 	// --- Transactions ---
 	Transaction(ctx context.Context, fn func(tx *gorm.DB) error) error

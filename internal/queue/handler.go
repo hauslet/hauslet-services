@@ -10,6 +10,6 @@ type JobHandler interface {
 	// JobType returns the type this handler processes
 	JobType() string
 
-	// Subject returns the NATS subject this handler listens to
+	// Subject returns the queue name this handler listens to
 	Subject() string
 }

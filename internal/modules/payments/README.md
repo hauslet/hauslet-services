@@ -153,11 +153,15 @@ import (
     paymentsService "hauslet/internal/modules/payments/service"
     paymentsNotification "hauslet/internal/modules/payments/notification"
     platformPayment "hauslet/internal/platform/payment"
+    platformRedis "hauslet/internal/platform/redis"
 )
 
 // Create payment client (platform layer)
 paymentFactory := platformPayment.NewProviderFactory(cfg.Services.Payment)
 paymentClient := platformPayment.New(paymentFactory)
+
+// Get Redis client for caching
+redisClient, _ := platformRedis.GetRedis()
 
 // Create payments repository
 paymentsRepository := paymentsRepo.NewRepository(db)
@@ -176,6 +180,7 @@ paymentsSvc := paymentsService.NewPaymentService(
     paymentsRepository,
     paymentClient,
     paymentsNotificationSvc,
+    redisClient,
     log,
 )
 ```
@@ -382,6 +387,11 @@ import paymentsHTTP "hauslet/internal/modules/payments/port/http"
 webhookHandler := paymentsHTTP.NewWebhookHandler(
     paymentsSvc,
     paymentClient,
+    nil, // booking hooks
+    nil, // finance hooks
+    nil, // payout hooks
+    queueClient,
+    "payment.webhook",
     log,
 )
 

@@ -17,4 +17,6 @@ var (
 	ErrBookingExpired       = errors.New("booking hold has expired")
 	ErrCannotBePaid         = errors.New("booking cannot be paid")
 	ErrTooCloseToCheckIn    = errors.New("too close to check-in for request-to-book")
+	ErrCannotCheckIn        = errors.New("booking cannot be checked in")
+	ErrCannotCheckOut       = errors.New("booking cannot be checked out")
 )

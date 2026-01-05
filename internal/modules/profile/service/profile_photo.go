@@ -24,11 +24,11 @@ func (s *ProfileServiceImpl) UploadProfilePhoto(ctx context.Context, userID, fil
 	objKey := fmt.Sprintf("profiles/%s/profile_photos/%s", userID, time.Now().Format("20060102T150405")+"_"+filename)
 	url, err := s.storage.GenerateSignedUploadURL(ctx, objKey, "image/jpeg", 15*time.Minute)
 	if err != nil {
-		s.log.Logf("[ERROR] failed to generate upload URL for profile photo (user: %s): %v", userID, err)
+		s.log.Error("failed to generate upload URL for profile photo", "user_id", userID, "error", err)
 		return nil, err
 	}
 
-	s.log.Logf("[INFO] generated profile photo upload URL for user %s (key: %s)", userID, objKey)
+	s.log.Info("generated profile photo upload URL for user", "user_id", userID, "key", objKey)
 
 	result := &domain.UploadResult{
 		UserID:   userID,
@@ -52,11 +52,11 @@ func (s *ProfileServiceImpl) UploadTravelCompanionPhoto(ctx context.Context, com
 
 	c, err := s.repo.GetTravelCompanionByID(ctx, userID, companionID)
 	if err != nil {
-		s.log.Logf("[ERROR] failed to fetch travel companion %s for user %s: %v", companionID, userID, err)
+		s.log.Error("failed to fetch travel companion", "companion_id", companionID, "user_id", userID, "error", err)
 		return nil, err
 	}
 	if c == nil {
-		s.log.Logf("[WARN] travel companion %s not found for user %s", companionID, userID)
+		s.log.Warn("travel companion not found", "companion_id", companionID, "user_id", userID)
 		return nil, domain.ErrTravelCompanionNotFound
 	}
 
@@ -64,13 +64,11 @@ func (s *ProfileServiceImpl) UploadTravelCompanionPhoto(ctx context.Context, com
 		time.Now().Format("20060102T150405")+"_"+filename)
 	url, err := s.storage.GenerateSignedUploadURL(ctx, objKey, "image/jpeg", 15*time.Minute)
 	if err != nil {
-		s.log.Logf("[ERROR] failed to generate upload URL for companion photo (user: %s, companion: %s): %v",
-			userID, companionID, err)
+		s.log.Error("failed to generate upload URL for companion photo", "user_id", userID, "companion_id", companionID, "error", err)
 		return nil, err
 	}
 
-	s.log.Logf("[INFO] generated companion photo upload URL for user %s (companion: %s, key: %s)",
-		userID, companionID, objKey)
+	s.log.Info("generated companion photo upload URL for user", "user_id", userID, "companion_id", companionID, "key", objKey)
 
 	result := &domain.UploadResult{
 		TravelCompanionID: companionID,

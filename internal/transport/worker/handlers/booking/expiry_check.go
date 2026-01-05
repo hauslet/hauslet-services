@@ -4,22 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"hauslet/internal/modules/booking/service"
 	bookingJob "hauslet/internal/queue/jobs/booking"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // BookingExpiryCheckHandler archives expired booking holds.
 type BookingExpiryCheckHandler struct {
 	bookingSvc service.BookingService
-	log        *lgr.Logger
+	log        *slog.Logger
 	subject    string
 }
 
 // NewBookingExpiryCheckHandler constructs an expiry check handler.
-func NewBookingExpiryCheckHandler(bookingSvc service.BookingService, log *lgr.Logger, subject string) *BookingExpiryCheckHandler {
+func NewBookingExpiryCheckHandler(bookingSvc service.BookingService, log *slog.Logger, subject string) *BookingExpiryCheckHandler {
 	return &BookingExpiryCheckHandler{
 		bookingSvc: bookingSvc,
 		log:        log,
@@ -44,22 +43,23 @@ func (h *BookingExpiryCheckHandler) Handle(ctx context.Context, data []byte) err
 		return fmt.Errorf("invalid booking expiry job: %w", err)
 	}
 
-	h.log.Logf("INFO processing booking expiry check for time=%s", job.CheckTime.Format("2006-01-02 15:04:05"))
+	checkTime := job.GetCheckTime()
+	h.log.Info("processing booking expiry check", "check_time", checkTime)
 
 	// Archive expired bookings
-	archivedIDs, err := h.bookingSvc.ArchiveExpiredBookings(ctx, job.CheckTime)
+	archivedIDs, err := h.bookingSvc.ArchiveExpiredBookings(ctx, checkTime)
 	if err != nil {
 		return fmt.Errorf("failed to archive expired bookings: %w", err)
 	}
 
 	if len(archivedIDs) == 0 {
-		h.log.Logf("INFO no expired bookings found")
+		h.log.Info("no expired bookings found")
 		return nil
 	}
 
-	h.log.Logf("INFO archived %d expired bookings", len(archivedIDs))
+	h.log.Info("archived expired bookings", "count", len(archivedIDs))
 	for _, id := range archivedIDs {
-		h.log.Logf("INFO archived booking: %s", id)
+		h.log.Info("archived booking", "id", id)
 	}
 
 	return nil

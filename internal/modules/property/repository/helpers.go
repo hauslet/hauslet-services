@@ -40,7 +40,6 @@ const (
 	ListingSortByCreatedAt   ListingSortBy = "created_at"
 	ListingSortByUpdatedAt   ListingSortBy = "updated_at"
 	ListingSortByPublishedAt ListingSortBy = "published_at"
-	ListingSortByViewCount   ListingSortBy = "view_count"
 )
 
 // PaginatedResult wraps paginated data with total count.
@@ -108,7 +107,6 @@ type ListingFilter struct {
 	PublishedBefore *time.Time
 	CreatedAfter    *time.Time
 	CreatedBefore   *time.Time
-	MinViewCount    *int
 	IncludeDeleted  bool
 	SortBy          ListingSortBy
 	SortOrder       SortOrder
@@ -139,9 +137,9 @@ type ShortletFilter struct {
 	BaseGuestCount *int // Exact match for base_guest_count
 
 	// Timing - Range matching
-	CheckInTimeAfter  *string // HH:MM format
-	CheckInTimeBefore *string // HH:MM format
-	CheckOutTimeAfter *string // HH:MM format
+	CheckInTimeAfter   *string // HH:MM format
+	CheckInTimeBefore  *string // HH:MM format
+	CheckOutTimeAfter  *string // HH:MM format
 	CheckOutTimeBefore *string // HH:MM format
 
 	// Type
@@ -304,9 +302,6 @@ func applyListingFilter(db *gorm.DB, f ListingFilter) *gorm.DB {
 	}
 	if f.CreatedBefore != nil {
 		db = db.Where("created_at <= ?", *f.CreatedBefore)
-	}
-	if f.MinViewCount != nil {
-		db = db.Where("view_count >= ?", *f.MinViewCount)
 	}
 
 	return db

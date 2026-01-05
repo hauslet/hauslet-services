@@ -21,13 +21,33 @@ type BookingPayoutInfo struct {
 type BookingRepository interface {
 	CreateBooking(ctx context.Context, booking *schema.Booking) error
 	GetBookingByID(ctx context.Context, id uuid.UUID) (*schema.Booking, error)
+	GetBookingByReference(ctx context.Context, reference string) (*schema.Booking, error)
 	UpdateBooking(ctx context.Context, booking *schema.Booking) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status schema.BookingStatus, confirmedAt, cancelledAt *time.Time) error
 	ListBookingsForGuest(ctx context.Context, guestID uuid.UUID, limit, offset int) ([]*schema.Booking, error)
 	ListBookingsForListing(ctx context.Context, listingID uuid.UUID, limit, offset int) ([]*schema.Booking, error)
 	FindExpiredHolds(ctx context.Context, expiredBefore time.Time) ([]*schema.Booking, error)
-	// FindBookingsReadyForPayout finds completed bookings ready for host payout (checkout + payoutWindowHours passed, not settled, has payment)
-	FindBookingsReadyForPayout(ctx context.Context, payoutWindowHours int, limit int) ([]*BookingPayoutInfo, error)
+
+	// FindBookingsReadyForPayout finds completed bookings ready for host payout
+	// escrowReleaseEvent: "checkin_confirmed" or "checkout_confirmed" - determines which timestamp to use
+	// payoutWindowHours: hours after the event before payout is available
+	FindBookingsReadyForPayout(ctx context.Context, escrowReleaseEvent string, payoutWindowHours int, limit int) ([]*BookingPayoutInfo, error)
+
+	// FindBookingsReadyForCompletion finds active bookings ready to be marked as completed
+	// escrowReleaseEvent: "checkin_confirmed" or "checkout_confirmed" - determines which timestamp to use
+	// escrowReleaseHours: hours after the event before booking is considered completed
+	FindBookingsReadyForCompletion(ctx context.Context, escrowReleaseEvent string, escrowReleaseHours int, limit int) ([]*schema.Booking, error)
+
+	// FindCompletedBookingsInRange finds bookings completed within a specific time range
+	// Used for review reminder system to find bookings that need review invites
+	// limit: maximum number of bookings to return (0 = no limit, but not recommended for production)
+	FindCompletedBookingsInRange(ctx context.Context, startTime, endTime time.Time, limit int) ([]*schema.Booking, error)
+
+	// FindBookingsPendingCheckIn returns bookings past scheduled check-in without actual check-in recorded
+	FindBookingsPendingCheckIn(ctx context.Context, cutoff time.Time, limit int) ([]*schema.Booking, error)
+
+	// FindBookingsPendingCheckOut returns bookings past scheduled check-out without actual check-out recorded
+	FindBookingsPendingCheckOut(ctx context.Context, cutoff time.Time, limit int) ([]*schema.Booking, error)
 }
 
 type BookingRepositoryImpl struct {

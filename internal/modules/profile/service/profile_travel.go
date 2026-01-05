@@ -23,7 +23,7 @@ func (s *ProfileServiceImpl) UpdateTravelCompanion(ctx context.Context, userID s
 
 	schemaCompanion := domain.MapTravelCompanionToSchema(companion)
 	if err := s.repo.UpdateTravelCompanion(ctx, profile.UserID, schemaCompanion); err != nil {
-		s.log.Logf("[ERROR] failed to update travel companion %s for user %s: %v", companion.ID, userID, err)
+		s.log.Error("failed to update travel companion", "companion_id", companion.ID, "user_id", userID, "error", err)
 		return err
 	}
 
@@ -31,8 +31,7 @@ func (s *ProfileServiceImpl) UpdateTravelCompanion(ctx context.Context, userID s
 		// Enqueue name moderation
 		payload := fmt.Sprintf("{travel_companion_name: %s}", companion.Name)
 		if err := s.moderationHooks.EnqueueAIModeration(ctx, profile.ID, "profile_bio", payload); err != nil {
-			s.log.Logf("[ERROR] failed to enqueue travel companion name moderation for user %s companion %s: %v",
-				userID, companion.ID, err)
+			s.log.Error("failed to enqueue travel companion name moderation", "user_id", userID, "companion_id", companion.ID, "error", err)
 			return err
 		}
 	}
@@ -41,13 +40,12 @@ func (s *ProfileServiceImpl) UpdateTravelCompanion(ctx context.Context, userID s
 		// Enqueue photo moderation
 		payload := fmt.Sprintf("{travel_companion_image_key: %s}", *companion.PhotoURL)
 		if err := s.moderationHooks.EnqueueAIModeration(ctx, profile.ID, "tc_image", payload); err != nil {
-			s.log.Logf("[ERROR] failed to enqueue travel companion photo moderation for user %s companion %s: %v",
-				userID, companion.ID, err)
+			s.log.Error("failed to enqueue travel companion photo moderation", "user_id", userID, "companion_id", companion.ID, "error", err)
 			return err
 		}
 	}
 
-	s.log.Logf("[INFO] updated travel companion %s for user %s", companion.ID, userID)
+	s.log.Info("updated travel companion", "companion_id", companion.ID, "user_id", userID)
 	return nil
 }
 
@@ -64,7 +62,7 @@ func (s *ProfileServiceImpl) AddTravelCompanion(ctx context.Context, userID stri
 
 	schemaCompanion := domain.MapTravelCompanionToSchema(companion)
 	if err := s.repo.AddTravelCompanion(ctx, profile.UserID, schemaCompanion); err != nil {
-		s.log.Logf("[ERROR] failed to add travel companion for user %s: %v", userID, err)
+		s.log.Error("failed to add travel companion", "user_id", userID, "error", err)
 		return err
 	}
 
@@ -72,8 +70,7 @@ func (s *ProfileServiceImpl) AddTravelCompanion(ctx context.Context, userID stri
 		// Enqueue name moderation
 		payload := fmt.Sprintf("{travel_companion_name: %s}", companion.Name)
 		if err := s.moderationHooks.EnqueueAIModeration(ctx, profile.ID, "profile_bio", payload); err != nil {
-			s.log.Logf("[ERROR] failed to enqueue travel companion name moderation for user %s companion %s: %v",
-				userID, companion.ID, err)
+			s.log.Error("failed to enqueue travel companion name moderation", "user_id", userID, "companion_id", companion.ID, "error", err)
 			return err
 		}
 	}
@@ -82,12 +79,11 @@ func (s *ProfileServiceImpl) AddTravelCompanion(ctx context.Context, userID stri
 		// Enqueue photo moderation
 		payload := fmt.Sprintf("{travel_companion_image_key: %s}", *companion.PhotoURL)
 		if err := s.moderationHooks.EnqueueAIModeration(ctx, profile.ID, "tc_image", payload); err != nil {
-			s.log.Logf("[ERROR] failed to enqueue travel companion photo moderation for user %s companion %s: %v",
-				userID, companion.ID, err)
+			s.log.Error("failed to enqueue travel companion photo moderation", "user_id", userID, "companion_id", companion.ID, "error", err)
 			return err
 		}
 	}
-	s.log.Logf("[INFO] added travel companion %s for user %s", companion.ID, userID)
+	s.log.Info("added travel companion", "companion_id", companion.ID, "user_id",	 userID)
 	return nil
 }
 
@@ -103,7 +99,7 @@ func (s *ProfileServiceImpl) DeleteTravelCompanion(ctx context.Context, userID s
 
 	companionIDUUID, err := uuid.Parse(companionID)
 	if err != nil {
-		s.log.Logf("[ERROR] invalid companion ID %s for user %s: %v", companionID, userID, err)
+		s.log.Error("invalid companion ID", "companion_id", companionID, "user_id", userID, "error", err)
 		return errors.New("invalid companion ID format")
 	}
 	tc, err := s.repo.GetTravelCompanionByID(ctx, userID, companionIDUUID)
@@ -111,22 +107,22 @@ func (s *ProfileServiceImpl) DeleteTravelCompanion(ctx context.Context, userID s
 		return err
 	}
 	if tc == nil {
-		s.log.Logf("[WARN] travel companion %s not found for user %s", companionID, userID)
+		s.log.Warn("travel companion not found", "companion_id", companionID, "user_id", userID)
 		return domain.ErrTravelCompanionNotFound
 	}
 
 	if err := s.repo.DeleteTravelCompanion(ctx, userID, companionID); err != nil {
-		s.log.Logf("[ERROR] failed to delete travel companion %s for user %s: %v", companionID, userID, err)
+		s.log.Error("failed to delete travel companion", "companion_id", companionID, "user_id", userID, "error", err)
 		return err
 	}
 	go func() {
 		// Delete photo from storage if exists
 		if tc.PhotoURL != nil && *tc.PhotoURL != "" {
 			if err := s.storage.DeleteObject(context.Background(), *tc.PhotoURL); err != nil {
-				s.log.Logf("[ERROR] failed to delete travel companion photo %s for user %s: %v", *tc.PhotoURL, userID, err)
+				s.log.Error("failed to delete travel companion photo", "photo_url", *tc.PhotoURL, "user_id", userID, "error", err)
 			}
 		}
 	}()
-	s.log.Logf("[INFO] deleted travel companion %s for user %s", companionID, userID)
+	s.log.Info("deleted travel companion", "companion_id", companionID, "user_id", userID)
 	return nil
 }

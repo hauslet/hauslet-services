@@ -170,10 +170,6 @@ func MapListingFromSchema(schemaListing *schema.Listing) *Listing {
 		Published:             schemaListing.Published,
 		PublishedAt:           schemaListing.PublishedAt,
 		LatestReviewStatus:    ReviewStatus(schemaListing.LatestReviewStatus),
-		ViewCount:             schemaListing.ViewCount,
-		LastViewedAt:          schemaListing.LastViewedAt,
-		FeaturedUntil:         schemaListing.FeaturedUntil,
-		BoostLevel:            schemaListing.BoostLevel,
 		EmbeddingModel:        schemaListing.EmbeddingModel,
 		EmbeddingVersion:      schemaListing.EmbeddingVersion,
 		EmbeddingGeneratedAt:  schemaListing.EmbeddingGeneratedAt,
@@ -227,10 +223,6 @@ func MapListingToSchema(domainListing *Listing) *schema.Listing {
 		Published:             domainListing.Published,
 		PublishedAt:           domainListing.PublishedAt,
 		LatestReviewStatus:    schema.ReviewStatus(domainListing.LatestReviewStatus),
-		ViewCount:             domainListing.ViewCount,
-		LastViewedAt:          domainListing.LastViewedAt,
-		FeaturedUntil:         domainListing.FeaturedUntil,
-		BoostLevel:            domainListing.BoostLevel,
 		EmbeddingModel:        domainListing.EmbeddingModel,
 		EmbeddingVersion:      domainListing.EmbeddingVersion,
 		EmbeddingGeneratedAt:  domainListing.EmbeddingGeneratedAt,
@@ -462,6 +454,20 @@ func MapRentalDetailFromSchema(schemaDetail *schema.RentalDetail) *RentalDetail 
 	// Map rental rules
 	detail.RentalRules = MapRuleGroupsFromSchema(schemaDetail.RentalRules)
 
+	// Map showing availability
+	if schemaDetail.ShowingAvailability != nil && len(*schemaDetail.ShowingAvailability) > 0 {
+		availability := make([]ShowingAvailability, len(*schemaDetail.ShowingAvailability))
+		for i, slot := range *schemaDetail.ShowingAvailability {
+			availability[i] = ShowingAvailability{
+				DayOfWeek: slot.DayOfWeek,
+				StartTime: slot.StartTime,
+				EndTime:   slot.EndTime,
+				Timezone:  slot.Timezone,
+			}
+		}
+		detail.ShowingAvailability = &availability
+	}
+
 	return detail
 }
 
@@ -500,6 +506,20 @@ func MapRentalDetailToSchema(domainDetail *RentalDetail) *schema.RentalDetail {
 
 	// Map rental rules
 	detail.RentalRules = MapRuleGroupsToSchema(domainDetail.RentalRules)
+
+	// Map showing availability
+	if domainDetail.ShowingAvailability != nil && len(*domainDetail.ShowingAvailability) > 0 {
+		availability := make([]schema.ShowingAvailability, len(*domainDetail.ShowingAvailability))
+		for i, slot := range *domainDetail.ShowingAvailability {
+			availability[i] = schema.ShowingAvailability{
+				DayOfWeek: slot.DayOfWeek,
+				StartTime: slot.StartTime,
+				EndTime:   slot.EndTime,
+				Timezone:  slot.Timezone,
+			}
+		}
+		detail.ShowingAvailability = &availability
+	}
 
 	return detail
 }
@@ -540,6 +560,20 @@ func MapSaleDetailFromSchema(schemaDetail *schema.SaleDetail) *SaleDetail {
 		detail.ServiceChargeBreakdown = &charges
 	}
 
+	// Map showing availability
+	if schemaDetail.ShowingAvailability != nil && len(*schemaDetail.ShowingAvailability) > 0 {
+		availability := make([]ShowingAvailability, len(*schemaDetail.ShowingAvailability))
+		for i, slot := range *schemaDetail.ShowingAvailability {
+			availability[i] = ShowingAvailability{
+				DayOfWeek: slot.DayOfWeek,
+				StartTime: slot.StartTime,
+				EndTime:   slot.EndTime,
+				Timezone:  slot.Timezone,
+			}
+		}
+		detail.ShowingAvailability = &availability
+	}
+
 	return detail
 }
 
@@ -577,6 +611,20 @@ func MapSaleDetailToSchema(domainDetail *SaleDetail) *schema.SaleDetail {
 			}
 		}
 		detail.ServiceChargeBreakdown = &charges
+	}
+
+	// Map showing availability
+	if domainDetail.ShowingAvailability != nil && len(*domainDetail.ShowingAvailability) > 0 {
+		availability := make([]schema.ShowingAvailability, len(*domainDetail.ShowingAvailability))
+		for i, slot := range *domainDetail.ShowingAvailability {
+			availability[i] = schema.ShowingAvailability{
+				DayOfWeek: slot.DayOfWeek,
+				StartTime: slot.StartTime,
+				EndTime:   slot.EndTime,
+				Timezone:  slot.Timezone,
+			}
+		}
+		detail.ShowingAvailability = &availability
 	}
 
 	return detail

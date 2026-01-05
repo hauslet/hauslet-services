@@ -1,17 +1,27 @@
 package graph
 
 import (
+	"log/slog"
 	"net/http"
+	"time"
 
+	"hauslet/cmd/api/server/middleware"
 	"hauslet/config"
 	"hauslet/internal/modules/auth/service"
 	bookingservice "hauslet/internal/modules/booking/service"
 	businessservice "hauslet/internal/modules/business/service"
+	calendarservice "hauslet/internal/modules/calendar/service"
 	financeservice "hauslet/internal/modules/finance/service"
+	discoveryservice "hauslet/internal/modules/discovery/service"
+	interactionsservice "hauslet/internal/modules/interactions/service"
+	leadsservice "hauslet/internal/modules/leads/service"
 	paymentsservice "hauslet/internal/modules/payments/service"
 	profileservice "hauslet/internal/modules/profile/service"
+	promotionservice "hauslet/internal/modules/promotions/service"
 	propertyservice "hauslet/internal/modules/property/service"
+	reviewservice "hauslet/internal/modules/review/service"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
+	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/viewer"
@@ -23,28 +33,59 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-pkgz/lgr"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
 func SetupGraphQL(r chi.Router,
 	authService service.AuthService,
 	profileService profileservice.ProfileService,
-	propertyService propertyservice.Service,
+	propertyService propertyservice.PropertyService,
 	businessService businessservice.BusinessService,
 	paymentsService paymentsservice.PaymentService,
 	financeService financeservice.FinanceService,
 	payoutService financeservice.PayoutService,
 	bookingService bookingservice.BookingService,
+	calendarService calendarservice.CalendarService,
 	wishlistService wishlistservice.WishlistService,
+	reviewService reviewservice.ReviewService,
+	promotionService promotionservice.PromotionService,
+	subscriptionService promotionservice.SubscriptionService,
+	usageService promotionservice.UsageService,
+	leadService leadsservice.LeadService,
+	interactionsTracker interactionsservice.TrackerService,
+	interactionsReader interactionsservice.ReaderService,
+	discoveryService discoveryservice.DiscoveryService,
 	tenantSlugMiddleware func(http.Handler) http.Handler,
 	fxClient xchange.XChange,
+	redisClient *redis.RedisClient,
 	cfg *config.GlobalConfig,
-	log *lgr.Logger) {
+	log *slog.Logger) {
 
 	srv := handler.New(
 		NewExecutableSchema(Config{
-			Resolvers:  NewResolver(authService, profileService, propertyService, businessService, paymentsService, financeService, payoutService, bookingService, wishlistService, fxClient, cfg, log),
+			Resolvers: NewResolver(
+				authService,
+				profileService,
+				propertyService,
+				businessService,
+				paymentsService,
+				financeService,
+				payoutService,
+				bookingService,
+				calendarService,
+				wishlistService,
+				reviewService,
+				promotionService,
+				subscriptionService,
+				usageService,
+				leadService,
+				interactionsTracker,
+				interactionsReader,
+				discoveryService,
+				fxClient,
+				cfg,
+				log,
+			),
 			Complexity: NewComplexityRoot(defaultMaxListLimit),
 		}),
 	)
@@ -82,12 +123,22 @@ func SetupGraphQL(r chi.Router,
 		// DataLoaders to batch profile and property fetches.
 		r.Use(loaders.Middleware(profileService, propertyService))
 
+		// Apply rate limiting in production
+		if cfg.App.Env == "production" && redisClient != nil {
+			rateLimitMiddleware := middleware.RateLimit(middleware.RateLimitConfig{
+				Requests: 60, // 60 requests per minute for GraphQL
+				Window:   time.Minute,
+			}, *redisClient)
+			r.Use(rateLimitMiddleware)
+			log.Info("GraphQL rate limiting enabled: 60 req/min")
+		}
+
 		// The Query Endpoint
 		r.Handle("/query", srv)
 	})
 
 	if cfg.App.Env != "production" {
 		r.Handle("/playground", playground.Handler("Hauslet GraphQL", "/query"))
-		log.Logf("[INFO] GraphQL Playground available at /playground")
+		log.Info("GraphQL Playground available at /playground")
 	}
 }

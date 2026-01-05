@@ -18,8 +18,11 @@ func (s *BookingServiceImpl) QuoteBooking(
 	guestCount int,
 ) (*domain.BookingQuote, error) {
 	if s.log != nil {
-		s.log.Logf("INFO quoting booking listing=%s checkIn=%s checkOut=%s guests=%d",
-			listingID, checkIn.Format("2006-01-02"), checkOut.Format("2006-01-02"), guestCount)
+		s.log.Info("quoting booking",
+			"listing", listingID,
+			"checkIn", checkIn.Format("2006-01-02"),
+			"checkOut", checkOut.Format("2006-01-02"),
+			"guests", guestCount)
 	}
 
 	// Validate guest count
@@ -33,17 +36,19 @@ func (s *BookingServiceImpl) QuoteBooking(
 		return nil, err
 	}
 
+	scheduledCheckIn, scheduledCheckOut := s.buildScheduledTimes(checkIn, checkOut, constraints)
+
 	quote := &domain.BookingQuote{
 		ListingID:    listingID,
-		CheckIn:      checkIn,
-		CheckOut:     checkOut,
+		CheckIn:      scheduledCheckIn,
+		CheckOut:     scheduledCheckOut,
 		GuestCount:   guestCount,
 		Currency:     constraints.Currency,
 		MinNights:    constraints.MinNights,
 		MaxNights:    constraints.MaxNights,
 		MaxGuests:    constraints.MaxGuests,
-		CheckInTime:  constraints.CheckInTime,
-		CheckOutTime: constraints.CheckOutTime,
+		CheckInTime:  &scheduledCheckIn,
+		CheckOutTime: &scheduledCheckOut,
 	}
 
 	// Validate constraints
@@ -55,7 +60,7 @@ func (s *BookingServiceImpl) QuoteBooking(
 	}
 
 	// Check calendar availability
-	availability, err := s.calendar.CheckAvailability(ctx, listingID, checkIn, checkOut)
+	availability, err := s.calendar.CheckAvailability(ctx, listingID, scheduledCheckIn, scheduledCheckOut)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +73,7 @@ func (s *BookingServiceImpl) QuoteBooking(
 	}
 
 	// Determine booking type and response window
-	hoursUntilCheckIn := time.Until(checkIn).Hours()
+	hoursUntilCheckIn := time.Until(scheduledCheckIn).Hours()
 	autoAccept := constraints.AutoAcceptBookings
 
 	// Get calendar config to check instant booking setting
@@ -84,17 +89,20 @@ func (s *BookingServiceImpl) QuoteBooking(
 		quote.ResponseWindowHours = responseWindow.Hours()
 	}
 
-	// Calculate pricing
+	// Calculate pricing using scheduled times to ensure consistency with listing's check-in/out times
 	if s.pricing != nil {
-		priceBreakdown, err := s.pricing.CalculatePrice(ctx, listingID, checkIn, checkOut, guestCount)
+		priceBreakdown, err := s.pricing.CalculatePrice(ctx, listingID, scheduledCheckIn, scheduledCheckOut, guestCount)
 		if err != nil {
 			// Fallback to base price if pricing calculation fails
 			if s.log != nil {
-				s.log.Logf("WARN pricing calculation failed for quote: %v", err)
+				s.log.Warn("pricing calculation failed for quote", "error", err)
 			}
 			baseRate, baseCurrency, baseErr := s.pricing.GetBasePrice(ctx, listingID)
 			if baseErr == nil {
-				nights := int(checkOut.Sub(checkIn).Hours() / 24)
+				// Calculate nights using scheduled times normalized to dates
+				checkInDate := time.Date(scheduledCheckIn.Year(), scheduledCheckIn.Month(), scheduledCheckIn.Day(), 0, 0, 0, 0, scheduledCheckIn.Location())
+				checkOutDate := time.Date(scheduledCheckOut.Year(), scheduledCheckOut.Month(), scheduledCheckOut.Day(), 0, 0, 0, 0, scheduledCheckOut.Location())
+				nights := int(checkOutDate.Sub(checkInDate).Hours() / 24)
 				quote.TotalPrice = baseRate * float64(nights)
 				quote.Currency = baseCurrency
 			}
@@ -108,8 +116,12 @@ func (s *BookingServiceImpl) QuoteBooking(
 	quote.Available = true
 
 	if s.log != nil {
-		s.log.Logf("INFO quote generated: listing=%s available=%t instant=%t total=%.2f %s",
-			listingID, quote.Available, quote.InstantBooking, quote.TotalPrice, quote.Currency)
+		s.log.Info("quote generated",
+			"listing", listingID,
+			"available", quote.Available,
+			"instant", quote.InstantBooking,
+			"total", quote.TotalPrice,
+			"currency", quote.Currency)
 	}
 
 	return quote, nil

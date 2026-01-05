@@ -10,13 +10,13 @@ import (
 	"hauslet/internal/modules/property/repository"
 	"hauslet/internal/modules/property/repository/schema"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
+	"log/slog"
 	"maps"
 	"strings"
 	"time"
 
 	"hauslet/internal/platform/redis"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -35,14 +35,14 @@ type ModerationPropertyAdapter struct {
 	notifier    *notification.NotificationService
 	nowFunc     func() time.Time
 	cache       redis.RedisClient
-	log         *lgr.Logger
+	log         *slog.Logger
 	embedding   *aiembeddings.Client
 	businessSvc businessservice.BusinessService
 }
 
 // NewModerationPropertyAdapter constructs the adapter with its dependencies.
 func NewModerationPropertyAdapter(repo repository.Repository, profiles ProfileProvider,
-	notifier *notification.NotificationService, embedding *aiembeddings.Client, cache redis.RedisClient, log *lgr.Logger,
+	notifier *notification.NotificationService, embedding *aiembeddings.Client, cache redis.RedisClient, log *slog.Logger,
 	businessSvc businessservice.BusinessService) *ModerationPropertyAdapter {
 	return &ModerationPropertyAdapter{
 		repo:        repo,
@@ -70,17 +70,17 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 		return err
 	}
 	if listing == nil {
-		a.log.Logf("[WARN] listing %s not found during moderation completion", aggregate.TargetID.String())
+		a.log.Warn("listing not found during moderation completion", "listing_id", aggregate.TargetID.String())
 		return domain.ErrListingNotFound
 	}
 
 	property, err := a.repo.GetPropertyByID(ctx, listing.PropertyID)
 	if err != nil {
-		a.log.Logf("[WARN] failed to fetch property %s for listing %s: %v", listing.PropertyID.String(), listing.ID.String(), err)
+		a.log.Warn("failed to fetch property for listing during moderation completion", "property_id", listing.PropertyID.String(), "listing_id", listing.ID.String(), "error", err)
 		return domain.ErrPropertyNotFound
 	}
 	if property == nil {
-		a.log.Logf("[WARN] property %s not found for listing %s during moderation completion", listing.PropertyID.String(), listing.ID.String())
+		a.log.Warn("property not found for listing during moderation completion", "property_id", listing.PropertyID.String(), "listing_id", listing.ID.String())
 		return domain.ErrPropertyNotFound
 	}
 
@@ -95,7 +95,7 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 		if ownerProfileEmail != "" && a.notifier != nil {
 			err := a.notifier.SendListingAcceptedNotification(ctx, listing.Title, ownerProfileName, ownerProfileEmail)
 			if err != nil {
-				a.log.Logf("[ERROR] failed to send listing accepted notification to %s: %v", ownerProfileEmail, err)
+				a.log.Error("failed to send listing accepted notification", "email", ownerProfileEmail, "error", err)
 			}
 		}
 
@@ -105,15 +105,15 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 			err := a.notifier.SendListingRejectedNotification(ctx,
 				listing.Title, ownerProfileName, ownerProfileEmail, aggDomain.Reasons)
 			if err != nil {
-				a.log.Logf("[ERROR] failed to send listing rejected notification to %s: %v", ownerProfileEmail, err)
+				a.log.Error("failed to send listing rejected notification", "email", ownerProfileEmail, "error", err)
 			}
 		}
 	case domain.ModerationStatusEscalated:
 		// Escalation would be handled in moderation service directly
 		// Silent on the user side, log only.
-		a.log.Logf("[INFO] listing %s escalated for human review", listing.ID)
+		a.log.Info("listing escalated for human review", "listing_id", listing.ID)
 	default:
-		a.log.Logf("[WARN] listing %s reached unknown moderation status: %s", listing.ID, moderationStatus)
+		a.log.Warn("listing reached unknown moderation status", "listing_id", listing.ID, "status", moderationStatus)
 	}
 
 	updates := a.buildListingUpdates(aggDomain)
@@ -124,7 +124,7 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 			}
 			maps.Copy(updates, embUpdates)
 		}
-		a.log.Logf("[INFO] updated listing %s with new embedding after acceptance", listing.ID)
+		a.log.Info("updated listing with new embedding after acceptance", "listing_id", listing.ID)
 	}
 	if updates == nil {
 		return nil
@@ -161,11 +161,7 @@ func (a *ModerationPropertyAdapter) generateEmbeddingUpdates(
 
 	vec, err := a.embedding.Embed(ctx, doc.Text)
 	if err != nil {
-		a.log.Logf(
-			"[ERROR] failed to generate embedding for listing %s: %v",
-			listing.ID,
-			err,
-		)
+		a.log.Error("failed to generate embedding for listing", "listing_id", listing.ID, "error", err)
 		return nil
 	}
 	if len(vec) == 0 {
@@ -233,7 +229,7 @@ func (a *ModerationPropertyAdapter) resolveOwnerContact(ctx context.Context, lis
 	if listing.OwnerType != schema.OwnerBusiness {
 		name, email, err := a.profiles.GetProfileData(ctx, listing.OwnerID.String())
 		if err != nil {
-			a.log.Logf("[WARN] failed to fetch profile data for owner %s: %v", listing.OwnerID, err)
+			a.log.Warn("failed to fetch profile data for owner", "owner_id", listing.OwnerID, "error", err)
 		}
 		if name == "" {
 			name = "User"
@@ -243,13 +239,13 @@ func (a *ModerationPropertyAdapter) resolveOwnerContact(ctx context.Context, lis
 
 	// Business owner path: notify an owner/admin with publish permission.
 	if a.businessSvc == nil {
-		a.log.Logf("[WARN] business service not configured; cannot resolve contact for business %s", listing.OwnerID)
+		a.log.Warn("business service not configured; cannot resolve contact for business", "business_id", listing.OwnerID)
 		return "User", ""
 	}
 
 	members, err := a.businessSvc.GetBusinessMembers(ctx, listing.OwnerID)
 	if err != nil {
-		a.log.Logf("[WARN] failed to fetch business members for %s: %v", listing.OwnerID, err)
+		a.log.Warn("failed to fetch business members for business", "business_id", listing.OwnerID, "error", err)
 		return "User", ""
 	}
 
@@ -270,7 +266,7 @@ func (a *ModerationPropertyAdapter) resolveOwnerContact(ctx context.Context, lis
 		return name, email
 	}
 
-	a.log.Logf("[WARN] no eligible business contact found for business %s", listing.OwnerID)
+	a.log.Warn("no eligible business contact found for business", "business_id", listing.OwnerID)
 	return "User", ""
 }
 
@@ -296,7 +292,7 @@ func (a *ModerationPropertyAdapter) invalidateListingCache(ctx context.Context, 
 
 	if len(keys) > 0 {
 		if err := a.cache.Del(ctx, keys...).Err(); err != nil {
-			a.log.Logf("[WARN] cache invalidation failed for listing %s: %v", id, err)
+			a.log.Warn("cache invalidation failed for listing", "listing_id", id, "error", err)
 		}
 	}
 }

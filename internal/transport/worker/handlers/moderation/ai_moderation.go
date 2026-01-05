@@ -4,22 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	"hauslet/internal/modules/moderation/service"
 	moderationjobs "hauslet/internal/queue/jobs/moderation"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // AIModerationHandler processes AI moderation jobs.
 type AIModerationHandler struct {
 	service service.ModerationService
-	log     *lgr.Logger
+	log     *slog.Logger
 	subject string
 }
 
 // NewAIModerationHandler constructs an AI moderation handler.
-func NewAIModerationHandler(service service.ModerationService, log *lgr.Logger, subject string) *AIModerationHandler {
+func NewAIModerationHandler(service service.ModerationService, log *slog.Logger, subject string) *AIModerationHandler {
 	return &AIModerationHandler{
 		service: service,
 		log:     log,
@@ -50,8 +49,14 @@ func (h *AIModerationHandler) Handle(ctx context.Context, data []byte) error {
 	}
 
 	if result != nil {
-		h.log.Logf("INFO moderation %s updated: status=%s content_type=%s reviewer=%s attempt=%d/%d",
-			result.ID, result.Status, result.ContentType, result.ReviewerType, result.CurrentAttempt, result.AttemptCount)
+		h.log.Info("moderation updated	",
+			"id", result.ID,
+			"status", result.Status,
+			"content_type", result.ContentType,
+			"reviewer", result.ReviewerType,
+			"current_attempt", result.CurrentAttempt,
+			"attempt_count", result.AttemptCount,
+		)
 	}
 	return nil
 }

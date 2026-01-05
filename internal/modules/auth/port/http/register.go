@@ -23,14 +23,14 @@ func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	// Decode request body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode registration request: %v", err)
+		h.log.Error("failed to decode registration request", "error", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
 
 	// Validate request using domain validation
 	if err := req.Validate(); err != nil {
-		h.log.Logf("WARN Registration validation failed: %v", err)
+		h.log.Warn("registration validation failed", "error", err)
 
 		// Check if it's a validation error with a field
 		if valErr, ok := err.(*domain.ValidationError); ok {
@@ -45,7 +45,7 @@ func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Create user
 	user, err := h.authService.CreatePasswordUser(r.Context(), req.Email, req.Password, req.Name, req.BirthDate)
 	if err != nil {
-		h.log.Logf("ERROR Failed to create user: %v", err)
+		h.log.Error("failed to create user", "error", err)
 
 		// Check for specific errors
 		switch err.Error() {
@@ -58,17 +58,17 @@ func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.log.Logf("INFO User registered successfully: %s", user.PrimaryEmail)
+	h.log.Info("user registered successfully", "email", user.PrimaryEmail)
 
 	// Generate OTP and send welcome email (non-blocking, fire-and-forget)
 	otpCode, err := h.authService.GenerateEmailOTP(r.Context(), user.PrimaryEmail)
 	if err != nil {
-		h.log.Logf("WARN Failed to generate OTP for %s: %v", user.PrimaryEmail, err)
+		h.log.Warn("failed to generate OTP", "email", user.PrimaryEmail, "error", err)
 	} else {
 		if err := h.authService.SendWelcomeEmail(r.Context(), user.PrimaryEmail, user.Name, otpCode); err != nil {
-			h.log.Logf("WARN Failed to send welcome email to %s: %v", user.PrimaryEmail, err)
+			h.log.Warn("failed to send welcome email", "email", user.PrimaryEmail, "error", err)
 		} else {
-			h.log.Logf("INFO Welcome otp email queued to be sent to %s", user.PrimaryEmail)
+			h.log.Info("welcome OTP email queued", "email", user.PrimaryEmail)
 		}
 	}
 

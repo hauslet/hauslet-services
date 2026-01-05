@@ -6,9 +6,9 @@ import (
 	"hauslet/internal/modules/pricing/domain"
 	"hauslet/internal/modules/pricing/repository"
 	"hauslet/internal/platform/redis"
+	"log/slog"
 	"time"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -75,7 +75,7 @@ type PricingServiceImpl struct {
 	repo           repository.PricingRepository
 	cache          redis.RedisClient
 	listingHooks   ListingHooks
-	log            *lgr.Logger
+	log            *slog.Logger
 	platformConfig config.PlatformYAMLConfig
 }
 
@@ -83,7 +83,7 @@ func NewPricingService(
 	repo repository.PricingRepository,
 	cache redis.RedisClient,
 	listingHooks ListingHooks,
-	log *lgr.Logger,
+	log *slog.Logger,
 	platformConfig config.PlatformYAMLConfig,
 ) PricingService {
 	return &PricingServiceImpl{

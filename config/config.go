@@ -1,3 +1,6 @@
+// Package config loads application configuration from environment variables.
+// SECURITY: Never commit . env files or hardcode secrets in this file.
+// Use . env.example for documentation of required variables.
 package config
 
 import (
@@ -26,7 +29,6 @@ func Load() *GlobalConfig {
 			YAML: yamlCfg,
 			App: AppConfig{
 				Env:    must("APP_ENV"),
-				Host:   must("HOST"),
 				Port:   def("PORT", "8080"),
 				Client: def("CLIENT", "http://localhost:3000"),
 				Server: def("SERVER", "http://localhost:3000/v1"),
@@ -48,12 +50,7 @@ func Load() *GlobalConfig {
 			},
 			Storage: StorageConfig{
 				DB: DBConfig{
-					DBHost:     must("DB_HOST"),
-					DBUser:     must("DB_USER"),
-					DbName:     must("DB_NAME"),
-					DBPassword: must("DB_PASSWORD"),
-					DBPort:     must("DB_PORT"),
-					DBSslmode:  def("DB_SSLMODE", "disable"),
+					DatabaseURL: must("DATABASE_URL"),
 				},
 				Redis: RedisConfig{
 					Addr: must("REDIS_ADDR"),
@@ -65,13 +62,6 @@ func Load() *GlobalConfig {
 					BucketName:      must("R2_BUCKET_NAME"),
 					Endpoint:        must("R2_ENDPOINT"),
 					CDNHost:         must("CDN_HOST"),
-				},
-				Elastic: ElasticsearchConfig{
-					URL:      must("ELASTICSEARCH_URL"),
-					Index:    must("ELASTICSEARCH_INDEX"),
-					Username: must("ELASTICSEARCH_USERNAME"),
-					Password: must("ELASTICSEARCH_PASSWORD"),
-					APIKey:   def("ELASTICSEARCH_API_KEY", ""),
 				},
 			},
 			Services: ServicesConfig{
@@ -89,12 +79,12 @@ func Load() *GlobalConfig {
 				},
 				Anthropic: AnthropicConfig{
 					APIKey:   must("ANTHROPIC_API_KEY"),
-					APIURL:   must("ANTHROPIC_API_URL"),
-					APIModel: must("ANTHROPIC_API_MODEL"),
+					APIURL:   def("ANTHROPIC_API_URL", "https://api.anthropic.com/v1"),
+					APIModel: def("ANTHROPIC_API_MODEL", "claude-sonnet-4-20250514"),
 				},
 				Gemini: GeminiConfig{
 					APIKey:     must("GEMINI_API_KEY"),
-					APIModel:   def("GEMINI_API_MODEL", "gemini-2.5-flash"),
+					APIModel:   def("GEMINI_API_MODEL", "gemini-3-flash-preview"),
 					Project:    def("GEMINI_PROJECT", ""),
 					EmbedModel: def("GEMINI_EMBED_MODEL", "gemini-embedding-001"),
 				},
@@ -116,12 +106,11 @@ func Load() *GlobalConfig {
 				},
 			},
 			Infra: InfraConfig{
-				RabbitMQ: RabbitMQConfig{
-					Addr: must("RABBITMQ_URL"),
-				},
-				NATS: NATSConfig{
-					URL: def("NATS_URL", "nats://localhost:4222"),
-					// StreamName, Subjects, and Consumers moved to YAML (cfg.YAML.Queue)
+				CloudTasks: CloudTasksConfig{
+					ProjectID:           def("CLOUD_TASKS_PROJECT_ID", ""),
+					Location:            def("CLOUD_TASKS_LOCATION", ""),
+					WorkerBaseURL:       def("CLOUD_TASKS_WORKER_URL", ""),
+					ServiceAccountEmail: def("CLOUD_TASKS_SERVICE_ACCOUNT", ""),
 				},
 			},
 		}

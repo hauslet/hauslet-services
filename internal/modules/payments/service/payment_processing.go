@@ -13,17 +13,17 @@ import (
 
 // CreatePayment creates a new payment and processes it
 func (s *PaymentServiceImpl) CreatePayment(ctx context.Context, input domain.CreatePaymentInput) (*domain.Payment, error) {
-	s.log.Logf("INFO creating payment: amount=%d, currency=%s, payer=%s", input.Amount, input.Currency, input.PayerID)
+	s.log.Info("creating payment", "amount", input.Amount, "currency", input.Currency, "payer", input.PayerID)
 
 	// Validate input
 	if err := input.Validate(); err != nil {
-		s.log.Logf("ERROR payment validation failed: %v", err)
+		s.log.Error("payment validation failed", "error", err)
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 
 	// Auto-sync polymorphic fields with explicit fields for consistency
 	if input.BookingID != nil && (input.ResourceType == domain.ResourceTypeGeneral || input.ResourceType == "") {
-		s.log.Logf("INFO auto-syncing booking payment: setting ResourceType=booking, ResourceID=%s", input.BookingID)
+		s.log.Info("auto-syncing booking payment", "resource_type", "booking", "resource_id", input.BookingID)
 		input.ResourceType = domain.ResourceTypeBooking
 		input.ResourceID = input.BookingID
 	}
@@ -59,7 +59,7 @@ func (s *PaymentServiceImpl) CreatePayment(ctx context.Context, input domain.Cre
 	if input.PaymentMethodID != nil {
 		method, err := s.repo.GetPaymentMethodByID(ctx, *input.PaymentMethodID)
 		if err != nil {
-			s.log.Logf("ERROR failed to get payment method %s: %v", input.PaymentMethodID, err)
+			s.log.Error("failed to get payment method", "payment_method_id", input.PaymentMethodID, "error", err)
 			return nil, fmt.Errorf("failed to get payment method: %w", err)
 		}
 		if method == nil {
@@ -79,7 +79,7 @@ func (s *PaymentServiceImpl) CreatePayment(ctx context.Context, input domain.Cre
 
 	if paymentMethodAuthCode != nil {
 		// Charge saved payment method
-		s.log.Logf("INFO charging saved payment method for payment=%s", reference)
+		s.log.Info("charging saved payment method", "reference", reference)
 		providerResp, err = s.paymentClient.ChargeAuthorization(ctx, payment.PaymentRequest{
 			Amount:    input.Amount,
 			Currency:  input.Currency,
@@ -90,7 +90,7 @@ func (s *PaymentServiceImpl) CreatePayment(ctx context.Context, input domain.Cre
 		})
 	} else {
 		// Initialize new payment
-		s.log.Logf("INFO initializing new payment for payment=%s", reference)
+		s.log.Info("initializing new payment", "reference", reference)
 		providerResp, err = s.paymentClient.Initialize(ctx, payment.PaymentRequest{
 			Amount:      input.Amount,
 			Currency:    input.Currency,
@@ -102,12 +102,12 @@ func (s *PaymentServiceImpl) CreatePayment(ctx context.Context, input domain.Cre
 	}
 
 	if err != nil {
-		s.log.Logf("ERROR payment processing failed for payment=%s: %v", reference, err)
+		s.log.Error("payment processing failed", "reference", reference, "error", err)
 		pmt.Status = domain.PaymentStatusFailed
 
 		// Save failed payment
 		if saveErr := s.repo.CreatePayment(ctx, domain.MapPaymentToSchema(pmt)); saveErr != nil {
-			s.log.Logf("ERROR failed to save failed payment: %v", saveErr)
+			s.log.Error("failed to save failed payment", "error", saveErr)
 		}
 
 		return nil, fmt.Errorf("payment processing failed: %w", err)
@@ -130,7 +130,7 @@ func (s *PaymentServiceImpl) CreatePayment(ctx context.Context, input domain.Cre
 
 	// Save payment to database
 	if err := s.repo.CreatePayment(ctx, domain.MapPaymentToSchema(pmt)); err != nil {
-		s.log.Logf("ERROR failed to save payment: %v", err)
+		s.log.Error("failed to save payment", "error", err)
 		return nil, fmt.Errorf("failed to save payment: %w", err)
 	}
 
@@ -160,11 +160,11 @@ func (s *PaymentServiceImpl) CreatePayment(ctx context.Context, input domain.Cre
 	}
 
 	if err := s.repo.CreateTransaction(ctx, domain.MapTransactionToSchema(tx)); err != nil {
-		s.log.Logf("WARN failed to create transaction record: %v", err)
+		s.log.Warn("failed to create transaction record", "error", err)
 		// Non-critical, don't fail the payment
 	}
 
-	s.log.Logf("INFO payment created successfully: id=%s, status=%s", pmt.ID, pmt.Status)
+	s.log.Info("payment created successfully", "id", pmt.ID, "status", pmt.Status)
 
 	// Send notification if payment succeeded immediately
 	if pmt.Status == domain.PaymentStatusSucceeded {
@@ -176,11 +176,11 @@ func (s *PaymentServiceImpl) CreatePayment(ctx context.Context, input domain.Cre
 
 // GetPayment retrieves a payment by ID
 func (s *PaymentServiceImpl) GetPayment(ctx context.Context, id uuid.UUID) (*domain.Payment, error) {
-	s.log.Logf("INFO fetching payment: id=%s", id)
+	s.log.Info("fetching payment", "id", id)
 
 	schemaPmt, err := s.repo.GetPaymentByID(ctx, id)
 	if err != nil {
-		s.log.Logf("ERROR failed to get payment %s: %v", id, err)
+		s.log.Error("failed to get payment", "id", id, "error", err)
 		return nil, fmt.Errorf("failed to get payment: %w", err)
 	}
 
@@ -193,11 +193,11 @@ func (s *PaymentServiceImpl) GetPayment(ctx context.Context, id uuid.UUID) (*dom
 
 // GetPaymentByReference retrieves a payment by reference
 func (s *PaymentServiceImpl) GetPaymentByReference(ctx context.Context, reference string) (*domain.Payment, error) {
-	s.log.Logf("INFO fetching payment by reference: ref=%s", reference)
+	s.log.Info("fetching payment by reference", "reference", reference)
 
 	schemaPmt, err := s.repo.GetPaymentByReference(ctx, reference)
 	if err != nil {
-		s.log.Logf("ERROR failed to get payment by reference %s: %v", reference, err)
+		s.log.Error("failed to get payment by reference", "reference", reference, "error", err)
 		return nil, fmt.Errorf("failed to get payment: %w", err)
 	}
 
@@ -210,7 +210,7 @@ func (s *PaymentServiceImpl) GetPaymentByReference(ctx context.Context, referenc
 
 // VerifyPayment verifies a payment with the provider and updates status
 func (s *PaymentServiceImpl) VerifyPayment(ctx context.Context, reference string) (*domain.Payment, error) {
-	s.log.Logf("INFO verifying payment: ref=%s", reference)
+	s.log.Info("verifying payment", "reference", reference)
 
 	// Get payment from database
 	pmt, err := s.GetPaymentByReference(ctx, reference)
@@ -220,15 +220,15 @@ func (s *PaymentServiceImpl) VerifyPayment(ctx context.Context, reference string
 
 	// If already succeeded or failed, return as is
 	if pmt.Status == domain.PaymentStatusSucceeded || pmt.Status == domain.PaymentStatusFailed {
-		s.log.Logf("INFO payment %s already finalized with status=%s", reference, pmt.Status)
+		s.log.Info("payment already finalized", "reference", reference, "status", pmt.Status)
 		return pmt, nil
 	}
 
 	// Verify with provider
-	s.log.Logf("INFO verifying payment with provider: ref=%s", reference)
+	s.log.Info("verifying payment with provider", "reference", reference)
 	providerResp, err := s.paymentClient.Verify(ctx, pmt.Currency, reference)
 	if err != nil {
-		s.log.Logf("ERROR provider verification failed for payment=%s: %v", reference, err)
+		s.log.Error("provider verification failed", "reference", reference, "error", err)
 		return nil, fmt.Errorf("verification failed: %w", err)
 	}
 
@@ -248,7 +248,7 @@ func (s *PaymentServiceImpl) VerifyPayment(ctx context.Context, reference string
 
 	// Save updated payment
 	if err := s.repo.UpdatePayment(ctx, domain.MapPaymentToSchema(pmt)); err != nil {
-		s.log.Logf("ERROR failed to update payment status: %v", err)
+		s.log.Error("failed to update payment status", "error", err)
 		return nil, fmt.Errorf("failed to update payment: %w", err)
 	}
 
@@ -257,7 +257,7 @@ func (s *PaymentServiceImpl) VerifyPayment(ctx context.Context, reference string
 		s.updateTransactionStatus(ctx, pmt)
 	}
 
-	s.log.Logf("INFO payment verified: id=%s, status=%s", pmt.ID, pmt.Status)
+	s.log.Info("payment verified", "id", pmt.ID, "status", pmt.Status)
 
 	// Send receipt if payment succeeded
 	if pmt.Status == domain.PaymentStatusSucceeded && oldStatus != domain.PaymentStatusSucceeded {
@@ -269,11 +269,11 @@ func (s *PaymentServiceImpl) VerifyPayment(ctx context.Context, reference string
 
 // ListPaymentsByPayer lists payments for a payer
 func (s *PaymentServiceImpl) ListPaymentsByPayer(ctx context.Context, payerID uuid.UUID, limit, offset int) ([]domain.Payment, error) {
-	s.log.Logf("INFO listing payments for payer=%s", payerID)
+	s.log.Info("listing payments for payer", "payer_id", payerID)
 
 	schemaPayments, err := s.repo.ListPaymentsByPayerID(ctx, payerID, limit, offset)
 	if err != nil {
-		s.log.Logf("ERROR failed to list payments for payer %s: %v", payerID, err)
+		s.log.Error("failed to list payments for payer", "payer_id", payerID, "error", err)
 		return nil, fmt.Errorf("failed to list payments: %w", err)
 	}
 
@@ -282,11 +282,11 @@ func (s *PaymentServiceImpl) ListPaymentsByPayer(ctx context.Context, payerID uu
 
 // ListPaymentsByBooking lists payments for a booking
 func (s *PaymentServiceImpl) ListPaymentsByBooking(ctx context.Context, bookingID uuid.UUID) ([]domain.Payment, error) {
-	s.log.Logf("INFO listing payments for booking=%s", bookingID)
+	s.log.Info("listing payments for booking", "booking_id", bookingID)
 
 	schemaPayments, err := s.repo.ListPaymentsByBookingID(ctx, bookingID)
 	if err != nil {
-		s.log.Logf("ERROR failed to list payments for booking %s: %v", bookingID, err)
+		s.log.Error("failed to list payments for booking", "booking_id", bookingID, "error", err)
 		return nil, fmt.Errorf("failed to list payments: %w", err)
 	}
 
@@ -297,7 +297,7 @@ func (s *PaymentServiceImpl) ListPaymentsByBooking(ctx context.Context, bookingI
 func (s *PaymentServiceImpl) updateTransactionStatus(ctx context.Context, pmt *domain.Payment) {
 	transactions, err := s.repo.ListTransactionsByPaymentID(ctx, pmt.ID)
 	if err != nil {
-		s.log.Logf("WARN failed to get transactions for payment %s: %v", pmt.ID, err)
+		s.log.Warn("failed to get transactions for payment", "payment_id", pmt.ID, "error", err)
 		return
 	}
 
@@ -309,7 +309,7 @@ func (s *PaymentServiceImpl) updateTransactionStatus(ctx context.Context, pmt *d
 				tx.ProcessedAt = &now
 			}
 			if err := s.repo.UpdateTransaction(ctx, tx); err != nil {
-				s.log.Logf("WARN failed to update transaction %s: %v", tx.ID, err)
+				s.log.Warn("failed to update transaction", "transaction_id", tx.ID, "error", err)
 			}
 		}
 	}

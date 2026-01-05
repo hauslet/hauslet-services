@@ -1,0 +1,122 @@
+# Interactions Module GraphQL Schema
+
+extend type Mutation {
+  """
+  Fire-and-forget tracking. Returns true immediately if queued successfully.
+  Client should throttle events (max 1 per second for scroll events).
+  """
+  trackInteraction(input: TrackInteractionInput!): Boolean!
+}
+
+extend type Query {
+  """
+  For Landlords: Shows performance analytics for their listing.
+  """
+  listingAnalytics(listingId: UUID!, days: Int!): ListingAnalytics!
+
+  """
+  For Users: Recently viewed properties
+  """
+  myInteractionHistory(limit: Int): [Interaction!]!
+}
+
+# Inputs
+
+input TrackInteractionInput {
+  type: InteractionType!
+  entityType: EntityType!
+  entityId: UUID
+  context: Map      # Source, position in list, query, etc.
+
+  # Metadata
+  deviceType: DeviceType
+  platform: Platform
+  referrer: String
+}
+
+# Enums
+
+enum InteractionType {
+  VIEW_LISTING
+  VIEW_LISTING_DETAIL
+  VIEW_MEDIA
+  VIEW_MAP
+  SAVE_LISTING
+  UNSAVE_LISTING
+  SHARE_LISTING
+  CONTACT_OWNER
+  REQUEST_VIEWING
+  BOOKING_REQUEST
+  SEARCH
+  FILTER_APPLY
+  SCROLL_DEEP
+  TIME_MILESTONE
+}
+
+enum EntityType {
+  LISTING
+  SEARCH
+  PROFILE
+}
+
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  UNKNOWN
+}
+
+enum Platform {
+  WEB
+  IOS
+  ANDROID
+  UNKNOWN
+}
+
+# Types
+
+type Interaction {
+  id: UUID!
+  userId: UUID
+  sessionId: String!
+  type: InteractionType!
+  entityType: EntityType!
+  entityId: UUID
+  context: Map
+  isBot: Boolean!
+  createdAt: Time!
+}
+
+type ListingAnalytics {
+  listingId: UUID!
+  period: AnalyticsPeriod!
+
+  # View Metrics
+  totalViews: Int!
+  uniqueViews: Int!
+  mediaViews: Int!
+  mapViews: Int!
+
+  # Engagement Metrics
+  totalSaves: Int!
+  netSaves: Int!
+  totalShares: Int!
+  totalContacts: Int!
+  bookingRequests: Int!
+
+  # Calculated Metrics
+  conversionRate: Float!
+  engagementRate: Float!
+  avgTimeOnPage: Int!
+
+  # Trends (% change from previous period)
+  viewsTrend: Float!
+  savesTrend: Float!
+  engagementTrend: Float!
+}
+
+type AnalyticsPeriod {
+  startDate: Time!
+  endDate: Time!
+  days: Int!
+}

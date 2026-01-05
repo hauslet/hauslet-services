@@ -1,0 +1,129 @@
+# Discovery Module GraphQL Schema
+
+# ===========================
+# TYPES
+# ===========================
+
+type RankedListing {
+  listing: Listing!
+  score: RankingScore!
+  ranking: Int!
+  promotionBoost: PromotionBoostInfo
+}
+
+type RankingScore {
+  finalScore: Float!
+  semanticScore: Float
+  promotionBoost: Float!
+  recencyScore: Float!
+  locationScore: Float
+  personalizedScore: Float
+}
+
+type PromotionBoostInfo {
+  promotionId: UUID!
+  promotionType: String!
+  boostMultiplier: Float!
+  expiresAt: Time!
+}
+
+type HomeFeedSection {
+  sectionType: FeedSectionType!
+  title: String!
+  listings: [RankedListing!]!
+  totalCount: Int!
+}
+
+type SearchResult {
+  listings: [RankedListing!]!
+  totalCount: Int!
+  searchId: UUID!
+  processingTime: Int
+}
+
+# ===========================
+# ENUMS
+# ===========================
+
+enum FeedSectionType {
+  featured
+  premium
+  recent
+  recommended
+  near_you
+}
+
+# ===========================
+# INPUTS
+# ===========================
+
+input DiscoverySearchFilterInput {
+  query: String
+  location: LocationFilterInput
+  priceRange: PriceRangeFilterInput
+  propertyTypes: [PropertyType!]
+  bedrooms: IntRangeFilterInput
+  bathrooms: IntRangeFilterInput
+  listingTypes: [ListingType!]
+  city: String
+  state: String
+  country: String
+  amenities: [String!]
+}
+
+input LocationFilterInput {
+  lat: Float!
+  lng: Float!
+  radiusKm: Float!
+}
+
+input PriceRangeFilterInput {
+  min: Int
+  max: Int
+  currency: String!
+}
+
+input IntRangeFilterInput {
+  min: Int
+  max: Int
+}
+
+input SearchOptionsInput {
+  limit: Int
+  includePromoted: Boolean
+  rankingConfig: RankingConfigInput
+}
+
+input RankingConfigInput {
+  semanticWeight: Float
+  promotionWeight: Float
+  recencyWeight: Float
+  locationWeight: Float
+}
+
+input FeedOptionsInput {
+  location: LocationFilterInput
+  limit: Int
+  sectionsToInclude: [FeedSectionType!]
+}
+
+# ===========================
+# QUERIES
+# ===========================
+
+extend type Query {
+  # Main discovery search endpoint
+  discover(
+    filter: DiscoverySearchFilterInput!
+    options: SearchOptionsInput
+  ): SearchResult!
+
+  # Home feed composition
+  homeFeed(options: FeedOptionsInput): [HomeFeedSection!]!
+
+  # Featured listings (promoted)
+  featuredListings(limit: Int): [RankedListing!]!
+
+  # Similar listings with ranking (use this for discovery with promotion awareness)
+  discoverSimilar(listingId: UUID!, limit: Int): [RankedListing!]!
+}

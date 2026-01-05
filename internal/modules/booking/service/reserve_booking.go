@@ -24,7 +24,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 	specialRequests *string,
 ) (*domain.Booking, *PaymentResult, error) {
 	if s.log != nil {
-		s.log.Logf("INFO reserving instant booking listing=%s guest=%s", listingID, guestID)
+		s.log.Info("reserving instant booking", "listingID", listingID, "guestID", guestID)
 	}
 
 	// Get guest info
@@ -45,7 +45,9 @@ func (s *BookingServiceImpl) ReserveBooking(
 	}
 
 	// Check calendar availability
-	availability, err := s.calendar.CheckAvailability(ctx, listingID, checkIn, checkOut)
+	scheduledCheckIn, scheduledCheckOut := s.buildScheduledTimes(checkIn, checkOut, constraints)
+
+	availability, err := s.calendar.CheckAvailability(ctx, listingID, scheduledCheckIn, scheduledCheckOut)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -70,18 +72,18 @@ func (s *BookingServiceImpl) ReserveBooking(
 	}
 
 	// Check time until check-in
-	hoursUntilCheckIn := time.Until(checkIn).Hours()
+	hoursUntilCheckIn := time.Until(scheduledCheckIn).Hours()
 	if hoursUntilCheckIn < 6 {
 		// For very close bookings, instant is required but we're already in instant flow
 		if s.log != nil {
-			s.log.Logf("INFO booking very close to check-in (%.1fh), instant required", hoursUntilCheckIn)
+			s.log.Info("booking very close to check-in, instant required", "hoursUntilCheckIn", hoursUntilCheckIn)
 		}
 	}
 
 	// Check cleaning buffer availability
 	bufferDuration := cleaningBufferDuration(calendarConfig)
 	if bufferDuration > 0 {
-		bufferAvailability, err := s.calendar.CheckAvailability(ctx, listingID, checkOut, checkOut.Add(bufferDuration))
+		bufferAvailability, err := s.calendar.CheckAvailability(ctx, listingID, scheduledCheckOut, scheduledCheckOut.Add(bufferDuration))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -96,20 +98,23 @@ func (s *BookingServiceImpl) ReserveBooking(
 		return nil, nil, err
 	}
 
-	// Calculate pricing
+	// Calculate pricing using scheduled times to ensure consistency with listing's check-in/out times
 	var priceSnapshot *domain.PriceBreakdownSnapshot
 	var total float64
 	currency := constraints.Currency
 
 	if s.pricing != nil {
-		priceBreakdown, err := s.pricing.CalculatePrice(ctx, listingID, checkIn, checkOut, guestCount)
+		priceBreakdown, err := s.pricing.CalculatePrice(ctx, listingID, scheduledCheckIn, scheduledCheckOut, guestCount)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN pricing calculation failed: %v", err)
+				s.log.Warn("pricing calculation failed", "error", err)
 			}
 			baseRate, baseCurrency, baseErr := s.pricing.GetBasePrice(ctx, listingID)
 			if baseErr == nil {
-				nights := int(checkOut.Sub(checkIn).Hours() / 24)
+				// Calculate nights using scheduled times normalized to dates
+				checkInDate := time.Date(scheduledCheckIn.Year(), scheduledCheckIn.Month(), scheduledCheckIn.Day(), 0, 0, 0, 0, scheduledCheckIn.Location())
+				checkOutDate := time.Date(scheduledCheckOut.Year(), scheduledCheckOut.Month(), scheduledCheckOut.Day(), 0, 0, 0, 0, scheduledCheckOut.Location())
+				nights := int(checkOutDate.Sub(checkInDate).Hours() / 24)
 				total = baseRate * float64(nights)
 				currency = baseCurrency
 			}
@@ -121,7 +126,10 @@ func (s *BookingServiceImpl) ReserveBooking(
 	}
 
 	if total == 0 {
-		nights := int(checkOut.Sub(checkIn).Hours() / 24)
+		// Calculate nights using scheduled times normalized to dates
+		checkInDate := time.Date(scheduledCheckIn.Year(), scheduledCheckIn.Month(), scheduledCheckIn.Day(), 0, 0, 0, 0, scheduledCheckIn.Location())
+		checkOutDate := time.Date(scheduledCheckOut.Year(), scheduledCheckOut.Month(), scheduledCheckOut.Day(), 0, 0, 0, 0, scheduledCheckOut.Location())
+		nights := int(checkOutDate.Sub(checkInDate).Hours() / 24)
 		total = float64(nights) * 1 // fallback
 	}
 
@@ -131,8 +139,8 @@ func (s *BookingServiceImpl) ReserveBooking(
 		ListingID: listingID,
 		EventType: calendardomain.EventTypeBooking,
 		Status:    calendardomain.EventStatusPending,
-		StartTime: checkIn,
-		EndTime:   checkOut,
+		StartTime: scheduledCheckIn,
+		EndTime:   scheduledCheckOut,
 		BookingID: &bookingID,
 	}
 
@@ -140,7 +148,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 	if err != nil {
 		if errors.Is(err, calendardomain.ErrUnauthorized) {
 			if s.log != nil {
-				s.log.Logf("WARN calendar disabled for listing=%s; cannot reserve booking", listingID)
+				s.log.Warn("calendar disabled for listing; cannot reserve booking", "listingID", listingID)
 			}
 			return nil, nil, fmt.Errorf("calendar disabled for listing; enable calendar to allow bookings")
 		}
@@ -150,10 +158,10 @@ func (s *BookingServiceImpl) ReserveBooking(
 	// Create cleaning buffer event if needed
 	var cleaningEventID *uuid.UUID
 	if bufferDuration > 0 {
-		cleaningEvent, err := s.createCleaningBufferEvent(ctx, listingID, bookingID, checkOut, bufferDuration)
+		cleaningEvent, err := s.createCleaningBufferEvent(ctx, listingID, bookingID, scheduledCheckOut, bufferDuration)
 		if err != nil {
 			if s.log != nil {
-				s.log.Logf("ERROR failed to create cleaning buffer event: %v", err)
+				s.log.Error("failed to create cleaning buffer event", "error", err)
 			}
 			_ = s.calendar.DeleteEvent(ctx, createdEvent.ID, ownerID)
 			return nil, nil, fmt.Errorf("failed to create cleaning buffer event: %w", err)
@@ -179,10 +187,10 @@ func (s *BookingServiceImpl) ReserveBooking(
 		GuestCount:      guestCount,
 		Status:          domain.BookingStatusAwaitingPayment,
 		BookingType:     domain.BookingInstant,
-		CheckIn:         checkIn,
-		CheckOut:        checkOut,
-		CheckInTime:     constraints.CheckInTime,
-		CheckOutTime:    constraints.CheckOutTime,
+		CheckIn:         nil,
+		CheckOut:        nil,
+		CheckInTime:     &scheduledCheckIn,
+		CheckOutTime:    &scheduledCheckOut,
 		SpecialRequests: specialRequests,
 		PriceBreakdown:  priceSnapshot,
 		TotalPrice:      total,
@@ -194,9 +202,10 @@ func (s *BookingServiceImpl) ReserveBooking(
 	}
 
 	// Persist booking
-	if err := s.repo.CreateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
+	schemaBooking := domain.MapBookingFromDomain(booking)
+	if err := s.repo.CreateBooking(ctx, schemaBooking); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to persist booking: %v", err)
+			s.log.Error("failed to persist booking", "error", err)
 		}
 		_ = s.calendar.DeleteEvent(ctx, createdEvent.ID, ownerID)
 		if cleaningEventID != nil {
@@ -204,6 +213,8 @@ func (s *BookingServiceImpl) ReserveBooking(
 		}
 		return nil, nil, err
 	}
+
+	booking.BookingReference = schemaBooking.BookingReference
 
 	// Initiate payment immediately
 	if s.payment == nil {
@@ -228,7 +239,7 @@ func (s *BookingServiceImpl) ReserveBooking(
 		booking.Status = domain.BookingStatusPaymentFailed
 		booking.UpdatedAt = time.Now()
 		if updateErr := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); updateErr != nil && s.log != nil {
-			s.log.Logf("ERROR failed to update booking after payment failure: %v", updateErr)
+			s.log.Error("failed to update booking after payment failure", "error", updateErr)
 		}
 		s.notifyPaymentFailed(ctx, booking)
 		return booking, nil, fmt.Errorf("payment initiation failed: %w", err)
@@ -243,10 +254,10 @@ func (s *BookingServiceImpl) ReserveBooking(
 	switch paymentResult.Status {
 	case "succeeded":
 		if s.log != nil {
-			s.log.Logf("INFO payment succeeded immediately for booking=%s", bookingID)
+			s.log.Info(" payment succeeded immediately for booking", "bookingID", bookingID)
 		}
 		if _, err := s.confirmBookingAfterPayment(ctx, booking, ownerID, paymentResult.PaymentID); err != nil && s.log != nil {
-			s.log.Logf("WARN failed to confirm booking after immediate payment success: %v", err)
+			s.log.Warn("failed to confirm booking after immediate payment success", "error", err)
 		}
 	case "failed":
 		booking.Status = domain.BookingStatusPaymentFailed
@@ -258,14 +269,13 @@ func (s *BookingServiceImpl) ReserveBooking(
 	// Save updated booking
 	if err := s.repo.UpdateBooking(ctx, domain.MapBookingFromDomain(booking)); err != nil {
 		if s.log != nil {
-			s.log.Logf("ERROR failed to update booking: %v", err)
+			s.log.Error("failed to update booking", "error", err)
 		}
 		return nil, nil, err
 	}
 
 	if s.log != nil {
-		s.log.Logf("INFO instant booking reserved: booking=%s payment=%s status=%s",
-			bookingID, paymentResult.PaymentID, paymentResult.Status)
+		s.log.Info("instant booking reserved", "bookingID", bookingID, "paymentID", paymentResult.PaymentID, "status", paymentResult.Status)
 	}
 
 	return booking, paymentResult, nil

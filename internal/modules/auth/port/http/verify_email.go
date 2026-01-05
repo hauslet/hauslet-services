@@ -52,14 +52,14 @@ func (h *HTTPHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 	// Decode request body
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode verification request: %v", err)
+		h.log.Error("Failed to decode verification request", "error", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
 
 	// Validate request
 	if err := req.Validate(); err != nil {
-		h.log.Logf("WARN Verification validation failed: %v", err)
+		h.log.Warn("Verification validation failed", "error", err)
 
 		if valErr, ok := err.(*domain.ValidationError); ok {
 			h.sendError(w, valErr.Message, http.StatusBadRequest, valErr.Field)
@@ -72,25 +72,25 @@ func (h *HTTPHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 	// Verify OTP
 	if err := h.authService.VerifyEmailOTP(r.Context(), req.Email, req.Code); err != nil {
-		h.log.Logf("WARN OTP verification failed for %s: %v", req.Email, err)
+		h.log.Warn("OTP verification failed", "email", req.Email, "error", err)
 		h.sendError(w, "Invalid or expired verification code", http.StatusBadRequest, "code")
 		return
 	}
 
 	// Update email verified status in UserIdentity
 	if err := h.authService.UpdateIdentityVerified(r.Context(), req.Email); err != nil {
-		h.log.Logf("ERROR Failed to update identity verified status: %v", err)
+		h.log.Error("Failed to update identity verified status", "error", err)
 		h.sendError(w, "Failed to verify email", http.StatusInternalServerError, "")
 		return
 	}
 
 	// Delete OTP from Redis
 	if err := h.authService.DeleteEmailOTP(r.Context(), req.Email); err != nil {
-		h.log.Logf("WARN Failed to delete OTP for %s: %v", req.Email, err)
+		h.log.Warn("Failed to delete OTP", "email", req.Email, "error", err)
 		// Don't fail the request, OTP will expire anyway
 	}
 
-	h.log.Logf("INFO Email verified successfully for %s", req.Email)
+	h.log.Info("Email verified successfully", "email", req.Email)
 
 	// Send success response
 	h.sendSuccess(w, map[string]string{

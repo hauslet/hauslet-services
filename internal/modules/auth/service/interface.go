@@ -8,11 +8,11 @@ import (
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/go-pkgz/auth"
-	"github.com/go-pkgz/lgr"
 )
 
 type AuthService interface {
@@ -78,7 +78,7 @@ type AuthService interface {
 type AuthServiceImpl struct {
 	repository       repository.AuthRepository
 	cfg              *config.AuthConfig
-	log              *lgr.Logger
+	log              *slog.Logger
 	requestMetadata  *RequestMetadataStore
 	mailClient       *email.Client
 	redisClient      redis.RedisClient
@@ -92,7 +92,7 @@ type AuthServiceImpl struct {
 
 func NewAuthService(cfg *config.AuthConfig,
 	repository repository.AuthRepository,
-	log *lgr.Logger,
+	log *slog.Logger,
 	emailClient *email.Client,
 	redisClient redis.RedisClient,
 	queueClient *queue.Client,

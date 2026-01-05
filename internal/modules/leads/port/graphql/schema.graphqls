@@ -1,0 +1,149 @@
+# Extend root types
+extend type Query {
+  # Get single lead (requires ownership/permission)
+  lead(id: ID!): Lead
+
+  # List leads with filters
+  leadsByListing(listingId: ID!, filter: LeadFilterInput, page: PageInput): LeadConnection!
+  leadsByBusiness(businessId: ID!, filter: LeadFilterInput, page: PageInput): LeadConnection!
+  myLeads(filter: LeadFilterInput, page: PageInput): LeadConnection!
+
+  # Get lead history/events
+  leadHistory(leadId: ID!): [LeadEvent!]!
+}
+
+extend type Mutation {
+  # Public mutation (rate-limited, no auth required)
+  createLead(input: CreateLeadInput!): Lead!
+
+  # Authenticated mutations
+  updateLeadStatus(leadId: ID!, status: LeadStatus!, notes: String): Lead!
+  assignLead(leadId: ID!, assigneeId: ID!, reason: AssignmentReason!): Lead!
+  markLeadAsSpam(leadId: ID!): Boolean!
+  deleteLead(leadId: ID!): Boolean!
+}
+
+# Types
+
+type Lead {
+  id: ID!
+  listingId: ID!
+  businessId: ID
+
+  # Contact info
+  name: String!
+  email: String!
+  phoneNumber: String
+  message: String!
+
+  # Lead details
+  source: LeadSource!
+  status: LeadStatus!
+  spamScore: Float!
+  isSpam: Boolean!
+
+  # Assignment
+  assignedTo: ID
+  assignedAt: Time
+  autoAssigned: Boolean!
+
+  # Response tracking
+  firstResponseAt: Time
+  responseTime: Int
+  responseCount: Int!
+
+  # Timestamps
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type LeadEvent {
+  id: ID!
+  leadId: ID!
+  eventType: LeadEventType!
+  actorId: ID
+  actorType: ActorType!
+  oldStatus: LeadStatus
+  newStatus: LeadStatus
+  notes: String
+  createdAt: Time!
+}
+
+type LeadConnection {
+  items: [Lead!]!
+  totalCount: Int!
+  hasNextPage: Boolean!
+}
+
+# Inputs
+
+input CreateLeadInput {
+  listingId: ID!
+  name: String!
+  email: String!
+  phoneNumber: String
+  message: String!
+  source: LeadSource!
+
+  # Optional tracking (automatically captured from request)
+  utmParams: Map
+}
+
+input LeadFilterInput {
+  status: [LeadStatus!]
+  source: [LeadSource!]
+  isSpam: Boolean
+  assigned: Boolean
+  dateFrom: Time
+  dateTo: Time
+  searchTerm: String
+}
+
+input PageInput {
+  limit: Int
+  offset: Int
+}
+
+# Enums
+
+enum LeadStatus {
+  NEW
+  ASSIGNED
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+  SPAM
+  ARCHIVED
+}
+
+enum LeadSource {
+  WEBSITE
+  MOBILE_APP
+  API
+  WHATSAPP
+  PHONE_CALL
+  EMAIL_CAMPAIGN
+}
+
+enum LeadEventType {
+  CREATED
+  ASSIGNED
+  STATUS_CHANGED
+  CONTACTED
+  NOTE_ADDED
+  MARKED_SPAM
+}
+
+enum ActorType {
+  USER
+  SYSTEM
+  AUTOMATION
+}
+
+enum AssignmentReason {
+  AUTO
+  MANUAL
+  REASSIGN
+  ESCALATE
+}

@@ -1,0 +1,45 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        Your review needs revision
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.ReviewerName}}, we couldn't publish your review in its current form.
+    </p>
+
+    <div style="background-color: #FEE2E2; border-left: 4px solid #DC2626; padding: 16px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 14px; line-height: 22px; color: #7F1D1D; font-weight: bold;">
+            Reason for rejection:
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 15px; line-height: 24px; color: #991B1B;">
+            {{.Reason}}
+        </p>
+    </div>
+
+    <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 14px; line-height: 22px; color: #3F2D52; font-weight: bold;">
+            What to do next:
+        </p>
+        <ul style="margin: 12px 0 0 0; padding-left: 20px; font-size: 14px; line-height: 22px; color: #3F2D52;">
+            <li>Review our <a href="{{.GuidelinesURL}}" style="color: #924DBF; text-decoration: underline;">community guidelines</a></li>
+            <li>Revise your review to meet our standards</li>
+            <li>Focus on your personal experience</li>
+            <li>Avoid personal information (email, phone, etc.)</li>
+            <li>Keep it respectful and constructive</li>
+        </ul>
+    </div>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.ReviewURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            Edit Your Review
+        </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        We value honest feedback and want to ensure all reviews are helpful and appropriate for our community.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

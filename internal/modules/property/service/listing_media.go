@@ -27,11 +27,59 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 
 	listing, err := s.ensureListing(ctx, listingID, true)
 	if err != nil {
-		s.log.Logf("ERROR listing not found for media upload listing=%s: %v", listingID, err)
+		s.log.Error("listing not found for media upload", "listing_id", listingID, "error", err)
 		return nil, err
 	}
 
-	s.log.Logf("INFO uploading %d media items for listing=%s", len(media), listingID)
+	// Check subscription limits - count existing photos + new photos
+	existingMedia, err := s.repo.ListListingMedia(ctx, listingID)
+	if err != nil {
+		s.log.Error("failed to get existing media for quota check", "listing_id", listingID, "error", err)
+		return nil, err
+	}
+
+	// Count existing photos
+	existingPhotoCount := 0
+	for _, m := range existingMedia {
+		if m.Type == schema.MediaTypeImage {
+			existingPhotoCount++
+		}
+	}
+
+	// Count new photos being uploaded
+	newPhotoCount := 0
+	for _, m := range media {
+		if m.Type == domain.MediaTypeImage {
+			newPhotoCount++
+		}
+	}
+
+	totalPhotoCount := existingPhotoCount + newPhotoCount
+
+	// Check if user can add this many photos
+	canAdd, err := s.subscriptionService.CanAddPhotos(ctx, listing.OwnerID, listingID, totalPhotoCount)
+	if err != nil {
+		s.log.Error("failed to check photo limit", "owner_id", listing.OwnerID, "listing_id", listingID, "error", err)
+		return nil, err
+	}
+	if !canAdd {
+		s.log.Warn("photo limit exceeded",
+			"owner_id", listing.OwnerID,
+			"listing_id", listingID,
+			"existing_photos", existingPhotoCount,
+			"new_photos", newPhotoCount,
+			"total", totalPhotoCount,
+		)
+		return nil, fmt.Errorf("photo limit exceeded - your plan allows fewer photos per listing (total would be %d)", totalPhotoCount)
+	}
+
+	s.log.Info("uploading media items for listing",
+		"count", len(media),
+		"listing_id", listingID,
+		"existing_photos", existingPhotoCount,
+		"new_photos", newPhotoCount,
+		"total_photos", totalPhotoCount,
+	)
 
 	mapped := make([]schema.ListingMedia, len(media))
 	result := make([]domain.ListingMediaResult, len(media))
@@ -45,7 +93,7 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 		}
 		url, err := s.storage.GenerateSignedUploadURL(ctx, objKey, string(m.Type), d)
 		if err != nil {
-			s.log.Logf("ERROR failed to generate signed URL for listing=%s key=%s: %v", listingID, objKey, err)
+			s.log.Error("failed to generate signed URL", "listing_id", listingID, "key", objKey, "error", err)
 			return nil, err
 		}
 		mapped[i] = schema.ListingMedia{
@@ -72,7 +120,7 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 	}
 
 	if err := s.repo.AddListingMedia(ctx, listingID, mapped); err != nil {
-		s.log.Logf("ERROR failed to add media to listing=%s: %v", listingID, err)
+		s.log.Error("failed to add media to listing", "listing_id", listingID, "error", err)
 		return nil, err
 	}
 
@@ -83,7 +131,7 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 		}
 	}
 
-	s.log.Logf("INFO successfully prepared %d media uploads for listing=%s", len(result), listingID)
+	s.log.Info("successfully prepared media uploads", "count", len(result), "listing_id", listingID)
 	s.invalidateListingCache(ctx, listingID, listing.Slug, s.getPropertyPublicID(ctx, listing.PropertyID))
 	return result, nil
 }
@@ -102,7 +150,7 @@ func (s *ServiceImpl) UpdateListingMedia(ctx context.Context,
 	// Ensure listing exists
 	listing, err := s.ensureListing(ctx, listingID, true)
 	if err != nil {
-		s.log.Logf("ERROR listing not found for media update listing=%s: %v", listingID, err)
+		s.log.Error("listing not found for media update", "listing_id", listingID, "error", err)
 		return err
 	}
 	updateMap := make(map[string]any)
@@ -121,7 +169,7 @@ func (s *ServiceImpl) UpdateListingMedia(ctx context.Context,
 	}
 
 	if err := s.repo.UpdateListingMedia(ctx, listingID, mediaID, updateMap); err != nil {
-		s.log.Logf("ERROR failed to update media listing=%s media=%s: %v", listingID, mediaID, err)
+		s.log.Error("failed to update media", "listing_id", listingID, "media_id", mediaID, "error", err)
 		return err
 	}
 
@@ -132,7 +180,7 @@ func (s *ServiceImpl) UpdateListingMedia(ctx context.Context,
 		}
 	}
 
-	s.log.Logf("INFO updated media listing=%s media=%s", listingID, mediaID)
+	s.log.Info("updated media", "listing_id", listingID, "media_id", mediaID)
 	s.invalidateListingCache(ctx, listingID, listing.Slug, s.getPropertyPublicID(ctx, listing.PropertyID))
 	return nil
 }
@@ -151,11 +199,11 @@ func (s *ServiceImpl) DeleteListingMedia(ctx context.Context,
 
 	listing, err := s.ensureListing(ctx, listingID, true)
 	if err != nil {
-		s.log.Logf("ERROR listing not found for media deletion listing=%s: %v", listingID, err)
+		s.log.Error("listing not found for media deletion", "listing_id", listingID, "error", err)
 		return err
 	}
 
-	s.log.Logf("INFO deleting %d media items from listing=%s", len(media), listingID)
+	s.log.Info("deleting media items from listing", "count", len(media), "listing_id", listingID)
 
 	var mediaIDs []uuid.UUID
 	for _, m := range media {
@@ -173,7 +221,7 @@ func (s *ServiceImpl) DeleteListingMedia(ctx context.Context,
 	}
 
 	if err := s.repo.DeleteListingMedia(ctx, listingID, mediaIDs); err != nil {
-		s.log.Logf("ERROR failed to delete media from listing=%s: %v", listingID, err)
+		s.log.Error("failed to delete media from listing", "listing_id", listingID, "error", err)
 		return err
 	}
 
@@ -184,7 +232,7 @@ func (s *ServiceImpl) DeleteListingMedia(ctx context.Context,
 		}
 	}
 
-	s.log.Logf("INFO deleted %d media items from listing=%s", len(mediaIDs), listingID)
+	s.log.Info("deleted media items from listing", "count", len(mediaIDs), "listing_id", listingID)
 	s.invalidateListingCache(ctx, listingID, listing.Slug, s.getPropertyPublicID(ctx, listing.PropertyID))
 	return nil
 }
@@ -237,21 +285,21 @@ func (s *ServiceImpl) FinalizeListingMedia(ctx context.Context, data domain.Fina
 		return fmt.Errorf("media keys are required")
 	}
 
-	s.log.Logf("INFO finalizing %d media items for listing=%s", len(data.MediaKeys), data.ListingID)
+	s.log.Info("finalizing media items for listing", "count", len(data.MediaKeys), "listing_id", data.ListingID)
 
 	listing, err := s.ensureListing(ctx, data.ListingID, true)
 	if err != nil {
-		s.log.Logf("ERROR listing not found for media finalization listing=%s: %v", data.ListingID, err)
+		s.log.Error("listing not found for media finalization", "listing_id", data.ListingID, "error", err)
 		return err
 	}
 
 	media, err := s.repo.ListListingMedia(ctx, data.ListingID)
 	if err != nil {
-		s.log.Logf("ERROR failed to list media for finalization listing=%s: %v", data.ListingID, err)
+		s.log.Error("failed to list media for finalization", "listing_id", data.ListingID, "error", err)
 		return err
 	}
 	if len(media) == 0 {
-		s.log.Logf("ERROR no media found for finalization listing=%s", data.ListingID)
+		s.log.Error("no media found for finalization", "listing_id", data.ListingID)
 		return domain.ErrMediaNotFound
 	}
 
@@ -264,17 +312,17 @@ func (s *ServiceImpl) FinalizeListingMedia(ctx context.Context, data domain.Fina
 	for _, key := range data.MediaKeys {
 		m, ok := byKey[key]
 		if !ok {
-			s.log.Logf("ERROR media key not found for finalization listing=%s key=%s", data.ListingID, key)
+			s.log.Error("media key not found for finalization", "listing_id", data.ListingID, "key", key)
 			return domain.ErrMediaNotFound
 		}
 
 		exists, err := s.storage.ObjectExists(ctx, key)
 		if err != nil {
-			s.log.Logf("ERROR failed to check object existence listing=%s key=%s: %v", data.ListingID, key, err)
+			s.log.Error("failed to check object existence", "listing_id", data.ListingID, "key", key, "error", err)
 			return err
 		}
 		if !exists {
-			s.log.Logf("ERROR media object not found in storage listing=%s key=%s", data.ListingID, key)
+			s.log.Error("media object not found in storage", "listing_id", data.ListingID, "key", key)
 			return fmt.Errorf("media object not found")
 		}
 
@@ -287,7 +335,7 @@ func (s *ServiceImpl) FinalizeListingMedia(ctx context.Context, data domain.Fina
 		}
 
 		if err := s.repo.UpdateListingMedia(ctx, data.ListingID, m.ID, updates); err != nil {
-			s.log.Logf("ERROR failed to mark media as uploaded listing=%s media=%s: %v", data.ListingID, m.ID, err)
+			s.log.Error("failed to mark media as uploaded", "listing_id", data.ListingID, "media_id", m.ID, "error", err)
 			return err
 		}
 
@@ -332,13 +380,13 @@ func (s *ServiceImpl) FinalizeListingMedia(ctx context.Context, data domain.Fina
 			MediaKeys: data.MediaKeys,
 		}
 		if err := s.queue.Publish(ctx, s.thumbnailSubject, job); err != nil {
-			s.log.Logf("ERROR failed to enqueue thumbnail job listing=%s: %v", data.ListingID, err)
+			s.log.Error("failed to enqueue thumbnail job", "listing_id", data.ListingID, "error", err)
 			return err
 		}
-		s.log.Logf("INFO enqueued thumbnail generation for listing=%s count=%d", data.ListingID, len(data.MediaKeys))
+		s.log.Info("enqueued thumbnail generation", "listing_id", data.ListingID, "count", len(data.MediaKeys))
 	}
 
-	s.log.Logf("INFO finalized %d media items for listing=%s", len(data.MediaKeys), data.ListingID)
+	s.log.Info("finalized media items", "count", len(data.MediaKeys), "listing_id", data.ListingID)
 
 	// Auto-unpublish if listing is live (finalizing media is material).
 	if listing.Published && listing.Status == domain.StatusActive {

@@ -29,7 +29,7 @@ func (s *AuthServiceImpl) GenerateEmailOTP(ctx context.Context, email string) (s
 		return "", fmt.Errorf("failed to store OTP in Redis: %w", err)
 	}
 
-	s.log.Logf("INFO generated OTP for %s (expires in %v)", email, OTPExpiration)
+	s.log.Info("generated OTP", "email", email, "expires_in", OTPExpiration)
 	return code, nil
 }
 
@@ -49,7 +49,7 @@ func (s *AuthServiceImpl) VerifyEmailOTP(ctx context.Context, email, code string
 		return fmt.Errorf("invalid OTP code")
 	}
 
-	s.log.Logf("INFO OTP verified successfully for %s", email)
+	s.log.Info("OTP verified successfully", "email", email)
 	return nil
 }
 
@@ -61,7 +61,7 @@ func (s *AuthServiceImpl) DeleteEmailOTP(ctx context.Context, email string) erro
 		return fmt.Errorf("failed to delete OTP from Redis: %w", err)
 	}
 
-	s.log.Logf("INFO deleted OTP for %s", email)
+	s.log.Info("deleted OTP", "email", email)
 	return nil
 }
 

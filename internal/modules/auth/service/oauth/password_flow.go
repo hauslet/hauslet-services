@@ -27,16 +27,19 @@ func handlePasswordFlow(ctx context.Context, deps Dependencies, claims token.Cla
 		email = claims.User.Name
 	}
 	if email == "" {
-		deps.Log.Logf("ERROR Password auth failed - missing email in claims")
+		deps.Log.Error("Password auth failed - missing email in claims")
 		return nil, fmt.Errorf("missing email")
 	}
 
 	user, err := deps.Repository.GetUserByEmail(ctx, email)
 	if err != nil || user == nil {
-		deps.Log.Logf("ERROR Auth: Error fetching user for password login: %v", err)
+		deps.Log.Error("Auth: Error fetching user for password login", "error", err)
 		return nil, fmt.Errorf("user not found")
 	}
 
-	deps.Log.Logf("INFO Auth: User %s (ID: %s) logged in via password", maskEmail(user.PrimaryEmail), user.ID)
+	deps.Log.Info(" Auth: User ",
+		"user", user.ID,
+		"email", maskEmail(user.PrimaryEmail),
+		"method", "password")
 	return user, nil
 }

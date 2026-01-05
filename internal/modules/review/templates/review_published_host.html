@@ -1,0 +1,38 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        You have a new review! ⭐
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Hi {{.HostName}}, a guest left a {{.Rating}}-star review for <strong>{{.ListingTitle}}</strong>.
+    </p>
+
+    <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
+            <strong>Rating:</strong> {{.Rating}}/5 ⭐<br/>
+            <strong>Posted:</strong> {{.CreatedAt}}
+        </p>
+
+        {{if .ReviewBody}}
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #E5D9F0;">
+            <p style="margin: 0; font-size: 14px; line-height: 22px; color: #000000; font-style: italic;">
+                "{{.ReviewBody}}"
+            </p>
+        </div>
+        {{end}}
+    </div>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.ReviewURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            View Full Review
+        </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        Want to respond? Log in to reply to this review and share your perspective.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // FallbackOptions controls when and how fallback is triggered.
@@ -20,11 +19,11 @@ type FallbackClient struct {
 	primary   AIClient
 	secondary AIClient
 	opts      FallbackOptions
-	log       *lgr.Logger
+	log       *slog.Logger
 }
 
 // NewFallbackClient wraps two AI providers with fallback behavior.
-func NewFallbackClient(primary, secondary AIClient, opts FallbackOptions, log *lgr.Logger) AIClient {
+func NewFallbackClient(primary, secondary AIClient, opts FallbackOptions, log *slog.Logger) AIClient {
 	// Enforce sane defaults
 	if opts.AttemptThreshold <= 0 {
 		opts.AttemptThreshold = 3
@@ -44,9 +43,9 @@ func (f *FallbackClient) Provider() string {
 // HealthCheck proxies to the primary provider; if fallback is enabled and primary fails, try secondary.
 func (f *FallbackClient) HealthCheck(ctx context.Context) error {
 	if err := f.primary.HealthCheck(ctx); err != nil {
-		f.log.Logf("[WARN] primary provider %s health check failed: %v", f.primary.Provider(), err)
+		f.log.Warn("primary provider health check failed", "provider", f.primary.Provider(), "error", err)
 		if f.opts.Enabled {
-			f.log.Logf("[INFO] attempting health check on secondary provider %s", f.secondary.Provider())
+			f.log.Info("attempting health check on secondary provider", "provider", f.secondary.Provider())
 			return f.secondary.HealthCheck(ctx)
 		}
 		return err
@@ -56,38 +55,40 @@ func (f *FallbackClient) HealthCheck(ctx context.Context) error {
 
 func (f *FallbackClient) Moderate(ctx context.Context, input AIModerationInput) (*AIModerationResult, error) {
 	// Always try primary first.
-	f.log.Logf("[INFO] attempting moderation with primary provider %s (target: %s, attempt: %d/%d)",
-		f.primary.Provider(), input.ContentID, input.AttemptNumber, input.MaxAttempts)
+	f.log.Info("attempting moderation with primary provider",
+		"provider", f.primary.Provider(), "target", input.ContentID, "attempt", input.AttemptNumber, "max_attempts", input.MaxAttempts)
 
 	res, err := f.primary.Moderate(ctx, input)
 	if err == nil {
-		f.log.Logf("[INFO] primary provider %s succeeded for target %s", f.primary.Provider(), input.ContentID)
+		f.log.Info("primary provider succeeded",
+			"provider", f.primary.Provider(), "target", input.ContentID)
 		return res, nil
 	}
 
-	f.log.Logf("[WARN] primary provider %s failed for target %s (attempt %d/%d): %v",
-		f.primary.Provider(), input.ContentID, input.AttemptNumber, input.MaxAttempts, err)
+	f.log.Warn("primary provider failed",
+		"provider", f.primary.Provider(), "target", input.ContentID, "attempt", input.AttemptNumber, "max_attempts", input.MaxAttempts, "error", err)
 
 	// Determine if fallback is allowed for this request.
 	if !f.shouldFallback(input, err) {
-		f.log.Logf("[INFO] fallback not triggered for target %s (enabled=%v, attempt=%d, threshold=%d)",
-			input.ContentID, f.opts.Enabled, input.AttemptNumber, f.opts.AttemptThreshold)
+		f.log.Info("fallback not triggered",
+			"target", input.ContentID, "enabled", f.opts.Enabled, "attempt", input.AttemptNumber, "threshold", f.opts.AttemptThreshold)
 		return nil, err
 	}
 
 	// Fallback to secondary.
-	f.log.Logf("[INFO] triggering fallback to secondary provider %s for target %s",
-		f.secondary.Provider(), input.ContentID)
+	f.log.Info("triggering fallback to secondary provider",
+		"provider", f.secondary.Provider(), "target", input.ContentID)
 
 	res2, err2 := f.secondary.Moderate(ctx, input)
 	if err2 == nil {
-		f.log.Logf("[INFO] secondary provider %s succeeded for target %s after primary failure",
-			f.secondary.Provider(), input.ContentID)
+		f.log.Info("secondary provider succeeded after primary failure",
+			"provider", f.secondary.Provider(), "target", input.ContentID)
 		return res2, nil
 	}
 
-	f.log.Logf("[ERROR] both providers failed for target %s: primary(%s): %v; secondary(%s): %v",
-		input.ContentID, f.primary.Provider(), err, f.secondary.Provider(), err2)
+	f.log.Error("both providers failed",
+		"target", input.ContentID, "primary_provider", f.primary.Provider(), "primary_error", err,
+		"secondary_provider", f.secondary.Provider(), "secondary_error", err2)
 
 	// Return both errors for observability.
 	return nil, fmt.Errorf("primary(%s) failed: %v; secondary(%s) failed: %w", f.primary.Provider(), err, f.secondary.Provider(), err2)
@@ -95,26 +96,29 @@ func (f *FallbackClient) Moderate(ctx context.Context, input AIModerationInput) 
 
 func (f *FallbackClient) shouldFallback(input AIModerationInput, primaryErr error) bool {
 	if !f.opts.Enabled {
-		f.log.Logf("[INFO] fallback disabled for target %s", input.ContentID)
+		f.log.Info("fallback disabled",
+			"target", input.ContentID)
 		return false
 	}
 
 	// Never fallback for video.
 	if input.Video != nil && input.Video.Key != "" {
-		f.log.Logf("[INFO] fallback skipped for video content (target: %s)", input.ContentID)
+		f.log.Info("fallback skipped for video content",
+			"target", input.ContentID)
 		return false
 	}
 
 	// Must meet attempt threshold.
 	if input.AttemptNumber < f.opts.AttemptThreshold {
-		f.log.Logf("[INFO] fallback skipped: attempt %d below threshold %d (target: %s)",
-			input.AttemptNumber, f.opts.AttemptThreshold, input.ContentID)
+		f.log.Info("fallback skipped: attempt below threshold",
+			"attempt", input.AttemptNumber, "threshold", f.opts.AttemptThreshold, "target", input.ContentID)
 		return false
 	}
 
 	// Only fallback for overload-like errors or known model-not-found cases.
 	if !isRetryableFallbackErr(primaryErr) {
-		f.log.Logf("[INFO] fallback skipped: error not retryable (target: %s)", input.ContentID)
+		f.log.Info("fallback skipped: error not retryable",
+			"target", input.ContentID)
 		return false
 	}
 

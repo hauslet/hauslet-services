@@ -22,11 +22,12 @@ func NewBookingQuerierAdapter(bookingRepo repository.BookingRepository) *Booking
 // FindBookingsReadyForPayout queries bookings ready for payout
 func (a *BookingQuerierAdapter) FindBookingsReadyForPayout(
 	ctx context.Context,
+	escrowReleaseEvent string,
 	payoutWindowHours int,
 	limit int,
 ) ([]*financeService.BookingForPayout, error) {
 	// Query from booking repository
-	bookings, err := a.bookingRepo.FindBookingsReadyForPayout(ctx, payoutWindowHours, limit)
+	bookings, err := a.bookingRepo.FindBookingsReadyForPayout(ctx, escrowReleaseEvent, payoutWindowHours, limit)
 	if err != nil {
 		return nil, err
 	}

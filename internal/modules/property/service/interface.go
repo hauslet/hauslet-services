@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+	"log/slog"
 
+	"hauslet/internal/modules/auth/authorization"
 	businessservice "hauslet/internal/modules/business/service"
+	promotionservice "hauslet/internal/modules/promotions/service"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/notification"
 	"hauslet/internal/modules/property/repository"
@@ -12,14 +15,13 @@ import (
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 	"golang.org/x/sync/singleflight"
 )
 
-// Service aggregates property and listing operations.
+// PropertyService aggregates property and listing operations.
 // This intentionally does not split property vs listing at the service layer.
-type Service interface {
+type PropertyService interface {
 	// Property lifecycle
 	CreateProperty(ctx context.Context, p domain.Property) (*domain.Property, error)
 	UpdateProperty(ctx context.Context, p domain.Property) (*domain.Property, error)
@@ -85,10 +87,12 @@ type ServiceImpl struct {
 	profiles            ProfileProvider
 	cache               redis.RedisClient
 	embedding           *aiembeddings.Client
-	log                 *lgr.Logger
+	log                 *slog.Logger
 	embeddingGroup      singleflight.Group
 	businessAuthorizer  BusinessAuthorizer
 	businessService     businessservice.BusinessService
+	subscriptionService promotionservice.SubscriptionService
+	supplyGate          authorization.SupplyGate
 }
 
 // NewPropertyService creates a new property service.
@@ -101,9 +105,11 @@ func NewPropertyService(repo repository.Repository,
 	moderationHooks ModerationHooks,
 	cache redis.RedisClient,
 	embedding *aiembeddings.Client,
-	log *lgr.Logger,
+	log *slog.Logger,
 	businessAuthorizer BusinessAuthorizer,
 	businessService businessservice.BusinessService,
+	subscriptionService promotionservice.SubscriptionService,
+	supplyGate authorization.SupplyGate,
 ) *ServiceImpl {
 	return &ServiceImpl{
 		repo:                repo,
@@ -118,5 +124,7 @@ func NewPropertyService(repo repository.Repository,
 		log:                 log,
 		businessAuthorizer:  businessAuthorizer,
 		businessService:     businessService,
+		subscriptionService: subscriptionService,
+		supplyGate:          supplyGate,
 	}
 }

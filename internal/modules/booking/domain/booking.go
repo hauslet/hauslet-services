@@ -8,10 +8,11 @@ import (
 
 // Booking represents the full booking aggregate in the domain layer.
 type Booking struct {
-	ID              uuid.UUID  `json:"id"`
-	ListingID       uuid.UUID  `json:"listing_id"`
-	CalendarEventID uuid.UUID  `json:"calendar_event_id"`
-	CleaningEventID *uuid.UUID `json:"cleaning_event_id,omitempty"`
+	ID               uuid.UUID  `json:"id"`
+	BookingReference string     `json:"booking_reference"`
+	ListingID        uuid.UUID  `json:"listing_id"`
+	CalendarEventID  uuid.UUID  `json:"calendar_event_id"`
+	CleaningEventID  *uuid.UUID `json:"cleaning_event_id,omitempty"`
 
 	GuestID    uuid.UUID `json:"guest_id"`
 	GuestName  string    `json:"guest_name"`
@@ -23,11 +24,13 @@ type Booking struct {
 	Status      BookingStatus `json:"status"`
 	BookingType BookingType   `json:"booking_type"`
 
-	CheckIn  time.Time `json:"check_in"`
-	CheckOut time.Time `json:"check_out"`
+	// Actual check-in/out timestamps (nullable until populated)
+	CheckIn  *time.Time `json:"check_in,omitempty"`
+	CheckOut *time.Time `json:"check_out,omitempty"`
 
-	CheckInTime  *string `json:"check_in_time,omitempty"`
-	CheckOutTime *string `json:"check_out_time,omitempty"`
+	// Scheduled check-in/out timestamps (derived from listing rules)
+	CheckInTime  *time.Time `json:"check_in_time,omitempty"`
+	CheckOutTime *time.Time `json:"check_out_time,omitempty"`
 
 	HoldExpiresAt *time.Time `json:"hold_expires_at,omitempty"`
 	PaymentDueAt  *time.Time `json:"payment_due_at,omitempty"`
@@ -40,7 +43,7 @@ type Booking struct {
 	LastPaymentID    *uuid.UUID `json:"last_payment_id,omitempty"`
 
 	// Refund tracking
-	RefundAmount      int64      `json:"refund_amount"`       // Amount refunded in minor units
+	RefundAmount      int64      `json:"refund_amount"` // Amount refunded in minor units
 	RefundInitiatedAt *time.Time `json:"refund_initiated_at,omitempty"`
 	RefundProcessedAt *time.Time `json:"refund_processed_at,omitempty"`
 	RefundReason      *string    `json:"refund_reason,omitempty"`
@@ -129,7 +132,17 @@ type PlatformFeeBreakdown struct {
 
 // DurationNights returns the total nights for the booking.
 func (b *Booking) DurationNights() int {
-	return int(b.CheckOut.Sub(b.CheckIn).Hours() / 24)
+	start := b.ScheduledCheckIn()
+	end := b.ScheduledCheckOut()
+	if start == nil || end == nil {
+		return 0
+	}
+	startDate := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, start.Location())
+	endDate := time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, end.Location())
+	if endDate.Before(startDate) {
+		return 0
+	}
+	return int(endDate.Sub(startDate).Hours() / 24)
 }
 
 // IsDraft returns true if the booking is still in draft/hold mode.
@@ -164,7 +177,10 @@ func (b *Booking) IsDisputed() bool {
 
 // CanBeConfirmed determines if the booking can transition to confirmed.
 func (b *Booking) CanBeConfirmed() bool {
-	if b.IsCancelled() || b.IsDisputed() || time.Now().After(b.CheckOut) {
+	if b.IsCancelled() || b.IsDisputed() {
+		return false
+	}
+	if scheduledOut := b.ScheduledCheckOut(); scheduledOut != nil && time.Now().After(*scheduledOut) {
 		return false
 	}
 	return b.Status == BookingStatusAwaitingPayment || b.Status == BookingStatusDraft
@@ -176,10 +192,58 @@ func (b *Booking) CanBeCancelled() bool {
 	case BookingStatusCancelled, BookingStatusArchived, BookingStatusCompleted, BookingStatusSettled:
 		return false
 	}
-	if time.Now().After(b.CheckOut) {
+	if scheduledOut := b.ScheduledCheckOut(); scheduledOut != nil && time.Now().After(*scheduledOut) {
 		return false
 	}
 	return true
+}
+
+// ScheduledCheckIn returns the scheduled check-in time.
+// For legacy records without scheduled timestamps, it falls back to CheckIn.
+func (b *Booking) ScheduledCheckIn() *time.Time {
+	if b == nil {
+		return nil
+	}
+	if b.CheckInTime != nil {
+		return b.CheckInTime
+	}
+	return b.CheckIn
+}
+
+// ScheduledCheckOut returns the scheduled check-out time.
+// For legacy records without scheduled timestamps, it falls back to CheckOut.
+func (b *Booking) ScheduledCheckOut() *time.Time {
+	if b == nil {
+		return nil
+	}
+	if b.CheckOutTime != nil {
+		return b.CheckOutTime
+	}
+	return b.CheckOut
+}
+
+// ActualCheckIn returns the recorded actual check-in time when available.
+// For legacy records, this remains nil to avoid conflating scheduled timestamps.
+func (b *Booking) ActualCheckIn() *time.Time {
+	if b == nil {
+		return nil
+	}
+	if b.CheckInTime != nil || b.CheckOutTime != nil {
+		return b.CheckIn
+	}
+	return nil
+}
+
+// ActualCheckOut returns the recorded actual check-out time when available.
+// For legacy records, this remains nil to avoid conflating scheduled timestamps.
+func (b *Booking) ActualCheckOut() *time.Time {
+	if b == nil {
+		return nil
+	}
+	if b.CheckInTime != nil || b.CheckOutTime != nil {
+		return b.CheckOut
+	}
+	return nil
 }
 
 // CanBePaid determines if the booking can have payment processed.
@@ -198,6 +262,12 @@ func (b *Booking) MarkConfirmed(at time.Time) {
 	b.Status = BookingStatusConfirmed
 	b.ConfirmedAt = &at
 	b.HoldExpiresAt = nil
+}
+
+// MarkActive updates the booking to active status (check-in completed).
+func (b *Booking) MarkActive(at time.Time) {
+	b.Status = BookingStatusActive
+	b.ActiveAt = &at
 }
 
 // MarkCancelled updates the booking to cancelled status.

@@ -33,7 +33,7 @@ func (c *claimsEnricher) EnrichClaims(claims token.Claims) token.Claims {
 	ctx := context.Background()
 
 	if claims.User == nil {
-		c.deps.Log.Logf("WARN Auth: No user in claims")
+		c.deps.Log.Warn("Auth: No user in claims")
 		return claims
 	}
 
@@ -78,7 +78,7 @@ func (c *claimsEnricher) EnrichClaims(claims token.Claims) token.Claims {
 	// Attach avatar URL from profile (best-effort, non-blocking on errors)
 	if c.deps.ProfileAvatarFetcher != nil {
 		if avatarURL, err := c.deps.ProfileAvatarFetcher(ctx, user.ID.String()); err != nil {
-			c.deps.Log.Logf("WARN Auth: failed to fetch avatar for user %s: %v", user.ID, err)
+			c.deps.Log.Warn("Auth: failed to fetch avatar for user", "user_id", user.ID.String(), "error", err)
 		} else if avatarURL != nil && *avatarURL != "" {
 			claims.User.SetStrAttr("avatar_url", *avatarURL)
 			claims.User.Picture = *avatarURL
@@ -104,7 +104,7 @@ func (c *claimsEnricher) detectLinking(claims token.Claims) (bool, *LinkState) {
 
 	linkState, err := c.deps.LinkStateValidator(stateToken)
 	if err != nil {
-		c.deps.Log.Logf("ERROR OAuth Linking: Invalid state token: %v", err)
+		c.deps.Log.Error("OAuth Linking: Invalid state token", "error", err)
 		return false, nil
 	}
 

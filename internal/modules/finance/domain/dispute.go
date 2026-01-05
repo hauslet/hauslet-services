@@ -11,6 +11,7 @@ type Dispute struct {
 	ID          uuid.UUID
 	BookingID   uuid.UUID
 	WalletID    uuid.UUID // The escrow wallet that was frozen
+	PaymentID   uuid.UUID // The payment associated with this booking
 	FiledBy     DisputeParty
 	FiledByID   uuid.UUID // User ID of who filed the dispute
 	Reason      DisputeReason

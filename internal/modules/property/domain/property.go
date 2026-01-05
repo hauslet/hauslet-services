@@ -109,12 +109,6 @@ type Listing struct {
 	// Moderation
 	LatestReviewStatus ReviewStatus `json:"latest_review_status"`
 
-	// Metrics
-	ViewCount     int        `json:"view_count"`
-	LastViewedAt  *time.Time `json:"last_viewed_at,omitempty"`
-	FeaturedUntil *time.Time `json:"featured_until,omitempty"`
-	BoostLevel    int        `json:"boost_level"`
-
 	// Embedding metadata
 	EmbeddingModel        *string    `json:"embedding_model,omitempty"`
 	EmbeddingVersion      *string    `json:"embedding_version,omitempty"`
@@ -214,6 +208,14 @@ type ShortletDetail struct {
 	AmenitiesHighlights []AmenityHighlight `json:"amenities_highlights,omitempty"`
 }
 
+// ShowingAvailability defines when viewings can be scheduled
+type ShowingAvailability struct {
+	DayOfWeek string `json:"day_of_week"` // "monday", "tuesday", etc.
+	StartTime string `json:"start_time"`  // HH:MM format (24h)
+	EndTime   string `json:"end_time"`    // HH:MM format (24h)
+	Timezone  string `json:"timezone"`    // IANA timezone (e.g., "Africa/Lagos")
+}
+
 // RentalDetail represents long-term rental specific details
 type RentalDetail struct {
 	RentalPrice       float64       `json:"rental_price"`
@@ -234,6 +236,9 @@ type RentalDetail struct {
 
 	RentalTerms string      `json:"rental_terms,omitempty"`
 	RentalRules []RuleGroup `json:"rental_rules,omitempty"`
+
+	// Showing availability windows for viewings
+	ShowingAvailability *[]ShowingAvailability `json:"showing_availability,omitempty"`
 }
 
 // SaleDetail represents property sale specific details
@@ -257,6 +262,9 @@ type SaleDetail struct {
 
 	SaleTerms            string     `json:"sale_terms,omitempty"`
 	SaleAvailabilityFrom *time.Time `json:"sale_availability_from,omitempty"`
+
+	// Showing availability windows for viewings
+	ShowingAvailability *[]ShowingAvailability `json:"showing_availability,omitempty"`
 }
 
 // ListingMedia represents media attached to a listing
@@ -396,14 +404,6 @@ func (l *Listing) IsActive() bool {
 // CanPublish checks if the listing can be published
 func (l *Listing) CanPublish() bool {
 	return l.Status == StatusActive && l.LatestReviewStatus == ReviewApproved
-}
-
-// IsFeatured checks if the listing is currently featured
-func (l *Listing) IsFeatured() bool {
-	if l.FeaturedUntil == nil {
-		return false
-	}
-	return time.Now().Before(*l.FeaturedUntil)
 }
 
 // GetPrimaryMedia returns the primary media for the listing

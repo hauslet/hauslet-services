@@ -2,18 +2,17 @@ package setup
 
 import (
 	"context"
+	"log/slog"
 
 	"hauslet/config"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	aimoderation "hauslet/internal/platform/ai/moderation"
 	"hauslet/internal/platform/database"
 	"hauslet/internal/platform/email"
-	"hauslet/internal/platform/logger"
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
 
-	"github.com/go-pkgz/lgr"
 	"gorm.io/gorm"
 )
 
@@ -49,16 +48,8 @@ func (i *Infrastructure) CloseCache() {
 	}
 }
 
-// SetupLogger initializes the logger based on environment.
-func SetupLogger(env string) *lgr.Logger {
-	if env != "development" {
-		return logger.NewProduction()
-	}
-	return logger.New()
-}
-
 // InitInfrastructure establishes DB, storage, AI, and email clients.
-func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *lgr.Logger) (*Infrastructure, error) {
+func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *slog.Logger) (*Infrastructure, error) {
 	// Database
 	db, err := database.NewPostgresWithContext(ctx, &cfg.Storage.DB, cfg.App.Env)
 	if err != nil {
@@ -107,11 +98,11 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *lgr.
 
 	// Redis Cache
 	if err := redis.InitRedis(&cfg.Storage.Redis, ctx); err != nil {
-		log.Logf("WARN failed to initialize Redis: %v", err)
+		log.Warn("failed to initialize Redis", "error", err)
 	}
 	redisClient, err := redis.GetRedis()
 	if err != nil {
-		log.Logf("WARN failed to get Redis client: %v (cache will be disabled)", err)
+		log.Warn("failed to get Redis client (cache will be disabled)", "error", err)
 	}
 
 	return &Infrastructure{

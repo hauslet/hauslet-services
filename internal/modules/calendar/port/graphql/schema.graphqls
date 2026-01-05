@@ -1,0 +1,209 @@
+# internal/modules/calendar/port/graphql/schema.graphqls
+
+# Event types supported by the calendar
+enum EventType {
+  booking
+  showing
+  maintenance
+  block
+  open_house
+}
+
+# Event status lifecycle
+enum EventStatus {
+  pending
+  confirmed
+  in_progress
+  completed
+  cancelled
+  no_show
+}
+
+# Days of week for showing availability
+enum DayOfWeek {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+  sunday
+}
+
+# Core calendar event
+type CalendarEvent {
+  id: UUID!
+  listingId: UUID!
+  eventType: EventType!
+  status: EventStatus!
+  bookingId: UUID
+  startTime: Time!
+  endTime: Time!
+  
+  # Polymorphic details
+  showingDetails: ShowingDetail
+  maintenanceDetails: MaintenanceDetail
+  blockDetails: BlockDetail
+  openHouseDetails: OpenHouseDetail
+  
+  createdBy: UUID
+  updatedBy: UUID
+  completedAt: Time
+  archivedAt: Time
+  version: Int!
+  
+  createdAt: Time!
+  updatedAt: Time!
+  deletedAt: Time
+}
+
+# Details for property showings
+type ShowingDetail {
+  prospectName: String!
+  prospectEmail: String!
+  prospectPhone: String
+  notes: String
+  requestedBy: UUID
+  requestedAt: Time
+  rescheduledAt: Time
+  rescheduleCount: Int!
+  rescheduleReason: String
+  cancelReason: String
+}
+
+# Details for open house events
+type OpenHouseDetail {
+  title: String!
+  description: String
+  maxAttendees: Int!
+  attendees: [Attendee!]!
+  registrationDeadline: Time
+}
+
+# Attendee registration for open houses
+type Attendee {
+  id: UUID!
+  name: String!
+  email: String!
+  phone: String
+  userId: UUID
+  registeredAt: Time!
+  registrationToken: String
+}
+
+# Maintenance event details
+type MaintenanceDetail {
+  title: String!
+  description: String
+  maintenanceType: String!
+  assignedTo: UUID
+  estimatedCost: Float
+  actualCost: Float
+  notes: String
+}
+
+# Block/unavailability details
+type BlockDetail {
+  reason: String!
+  notes: String
+}
+
+# Showing availability windows for rent/sale listings
+type ShowingAvailability {
+  dayOfWeek: DayOfWeek!
+  startTime: String!  # HH:MM format
+  endTime: String!    # HH:MM format
+  timezone: String
+}
+
+# Input for requesting a property showing
+input RequestShowingInput {
+  listingId: UUID!
+  startTime: Time!
+  endTime: Time!
+  notes: String
+}
+
+# Input for registering for an open house
+input RegisterOpenHouseInput {
+  eventId: UUID!
+}
+
+# Input for rescheduling a showing
+input RescheduleShowingInput {
+  eventId: UUID!
+  newStartTime: Time!
+  newEndTime: Time!
+  reason: String
+}
+
+# Input for creating an open house
+input CreateOpenHouseInput {
+  listingId: UUID!
+  startTime: Time!
+  endTime: Time!
+  title: String!
+  description: String
+  maxAttendees: Int!
+  registrationDeadline: Time
+}
+
+# Input for cancelling a showing
+input CancelShowingInput {
+  eventId: UUID!
+  reason: String
+}
+
+# Queries
+extend type Query {
+  # Get a specific calendar event
+  calendarEvent(id: UUID!): CalendarEvent
+  
+  # Get all events for a listing within a time range
+  listingEvents(
+    listingId: UUID!
+    startTime: Time!
+    endTime: Time!
+    eventTypes: [EventType!]
+  ): [CalendarEvent!]!
+  
+  # Get upcoming events for a listing
+  upcomingListingEvents(listingId: UUID!, limit: Int = 10): [CalendarEvent!]!
+  
+  # Get events for properties owned by the current user
+  myCalendarEvents(startTime: Time!, endTime: Time!): [CalendarEvent!]!
+  
+  # Get attendees for an open house
+  openHouseAttendees(eventId: UUID!): [Attendee!]!
+  
+  # Check if a listing has availability in a time range
+  checkListingAvailability(
+    listingId: UUID!
+    startTime: Time!
+    endTime: Time!
+  ): Boolean!
+}
+
+# Mutations
+extend type Mutation {
+  # Request a showing for a rent/sale listing
+  requestShowing(input: RequestShowingInput!): CalendarEvent!
+  
+  # Confirm a pending showing (owner only)
+  confirmShowing(eventId: UUID!): CalendarEvent!
+  
+  # Cancel a showing (owner or prospect)
+  cancelShowing(input: CancelShowingInput!): CalendarEvent!
+  
+  # Reschedule a showing
+  rescheduleShowing(input: RescheduleShowingInput!): CalendarEvent!
+  
+  # Create an open house event
+  createOpenHouse(input: CreateOpenHouseInput!): CalendarEvent!
+  
+  # Register for an open house
+  registerOpenHouse(input: RegisterOpenHouseInput!): Boolean!
+  
+  # Remove an attendee from an open house
+  removeOpenHouseAttendee(eventId: UUID!, attendeeId: UUID!): Boolean!
+}

@@ -104,6 +104,24 @@ func (r *CalendarRepositoryImpl) GetEventsForOwner(ctx context.Context, ownerID 
 	return events, err
 }
 
+func (r *CalendarRepositoryImpl) GetEventsStartingBetween(ctx context.Context, startTime, endTime time.Time, eventTypes []schema.EventType, statuses []schema.EventStatus) ([]*schema.CalendarEvent, error) {
+	query := r.db.WithContext(ctx).
+		Where("start_time >= ?", startTime).
+		Where("start_time <= ?", endTime).
+		Where("deleted_at IS NULL")
+
+	if len(eventTypes) > 0 {
+		query = query.Where("event_type IN ?", eventTypes)
+	}
+	if len(statuses) > 0 {
+		query = query.Where("status IN ?", statuses)
+	}
+
+	var events []*schema.CalendarEvent
+	err := query.Order("start_time ASC").Find(&events).Error
+	return events, err
+}
+
 // --- Availability Checks ---
 
 func (r *CalendarRepositoryImpl) CheckAvailability(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time) (bool, error) {

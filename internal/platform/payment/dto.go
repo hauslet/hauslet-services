@@ -14,6 +14,17 @@ const (
 	GHS Currency = "GHS" // Ghanaian Cedi (Stripe)
 )
 
+// Bank represents a payout bank supported by a provider.
+type Bank struct {
+	Name      string
+	Code      string
+	Country   string
+	Currency  Currency
+	Type      string
+	Active    bool
+	IsDeleted bool
+}
+
 // IsValid checks if currency is supported
 func (c Currency) IsValid() bool {
 	switch c {

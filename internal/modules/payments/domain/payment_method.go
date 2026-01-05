@@ -48,8 +48,20 @@ func (pm *PaymentMethod) IsExpired() bool {
 	}
 
 	now := time.Now()
-	expiry := time.Date(*pm.ExpiryYear, time.Month(*pm.ExpiryMonth), 1, 0, 0, 0, 0, time.UTC)
-	return now.After(expiry)
+	currentYear := now.Year()
+	currentMonth := int(now.Month())
+
+	// Card is expired if the expiry year is in the past
+	if *pm.ExpiryYear < currentYear {
+		return true
+	}
+
+	// Card is expired if it's the same year but the expiry month has passed
+	if *pm.ExpiryYear == currentYear && *pm.ExpiryMonth < currentMonth {
+		return true
+	}
+
+	return false
 }
 
 // CanCharge checks if method can be charged

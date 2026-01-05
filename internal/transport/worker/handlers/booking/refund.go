@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	bookingdomain "hauslet/internal/modules/booking/domain"
@@ -12,15 +13,13 @@ import (
 	paymentdomain "hauslet/internal/modules/payments/domain"
 	paymentservice "hauslet/internal/modules/payments/service"
 	bookingJob "hauslet/internal/queue/jobs/booking"
-
-	"github.com/go-pkgz/lgr"
 )
 
 // BookingRefundHandler processes refund jobs for cancelled bookings.
 type BookingRefundHandler struct {
 	bookingRepo bookingrepository.BookingRepository
 	paymentSvc  paymentservice.PaymentService
-	log         *lgr.Logger
+	log         *slog.Logger
 	subject     string
 }
 
@@ -28,7 +27,7 @@ type BookingRefundHandler struct {
 func NewBookingRefundHandler(
 	bookingRepo bookingrepository.BookingRepository,
 	paymentSvc paymentservice.PaymentService,
-	log *lgr.Logger,
+	log *slog.Logger,
 	subject string,
 ) *BookingRefundHandler {
 	return &BookingRefundHandler{
@@ -56,8 +55,11 @@ func (h *BookingRefundHandler) Handle(ctx context.Context, data []byte) error {
 		return fmt.Errorf("invalid booking refund job: %w", err)
 	}
 
-	h.log.Logf("INFO processing booking refund booking=%s payment=%s amount=%d",
-		job.BookingID, job.PaymentID, job.Amount)
+	h.log.Info("processing booking refund",
+		"booking", job.BookingID,
+		"payment", job.PaymentID,
+		"amount", job.Amount,
+	)
 
 	schemaBooking, err := h.bookingRepo.GetBookingByID(ctx, job.BookingID)
 	if err != nil {
@@ -69,13 +71,16 @@ func (h *BookingRefundHandler) Handle(ctx context.Context, data []byte) error {
 
 	booking := bookingdomain.MapBookingFromSchema(schemaBooking)
 	if booking.RefundProcessedAt != nil {
-		h.log.Logf("INFO booking refund already processed booking=%s", job.BookingID)
+		h.log.Info("booking refund already processed", "booking", job.BookingID)
 		return nil
 	}
 
 	if booking.LastPaymentID != nil && *booking.LastPaymentID != job.PaymentID {
-		h.log.Logf("WARN refund payment mismatch booking=%s payment=%s expected=%s",
-			job.BookingID, job.PaymentID, *booking.LastPaymentID)
+		h.log.Warn("refund payment mismatch",
+			"booking", job.BookingID,
+			"payment", job.PaymentID,
+			"expected", *booking.LastPaymentID,
+		)
 	}
 
 	refundInput := paymentdomain.RefundPaymentInput{
@@ -136,6 +141,6 @@ func (h *BookingRefundHandler) updateBookingRefund(
 		return fmt.Errorf("update booking refund %s: %w", booking.ID, err)
 	}
 
-	h.log.Logf("INFO booking refund recorded booking=%s amount=%d", booking.ID, booking.RefundAmount)
+	h.log.Info("booking refund recorded", "booking", booking.ID, "amount", booking.RefundAmount)
 	return nil
 }

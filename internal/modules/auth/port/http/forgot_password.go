@@ -21,7 +21,7 @@ type ResetPasswordRequest struct {
 func (h *HTTPHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var req ForgotPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode forgot password request: %v", err)
+		h.log.Error("Failed to decode forgot password request", "error", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
@@ -32,7 +32,7 @@ func (h *HTTPHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.authService.RequestPasswordReset(r.Context(), req.Email); err != nil {
-		h.log.Logf("ERROR Failed to process password reset for %s: %v", req.Email, err)
+		h.log.Error("Failed to process password reset", "email", req.Email, "error", err)
 		// Avoid leaking details
 	}
 
@@ -45,7 +45,7 @@ func (h *HTTPHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req ResetPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.log.Logf("ERROR Failed to decode reset password request: %v", err)
+		h.log.Error("Failed to decode reset password request", "error", err)
 		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
 		return
 	}
@@ -64,7 +64,7 @@ func (h *HTTPHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.authService.ResetPassword(r.Context(), req.Email, req.Token, req.NewPassword); err != nil {
-		h.log.Logf("WARN Reset password failed for %s: %v", req.Email, err)
+		h.log.Warn("Reset password failed", "email", req.Email, "error", err)
 		h.sendError(w, "Invalid token or request", http.StatusBadRequest, "")
 		return
 	}

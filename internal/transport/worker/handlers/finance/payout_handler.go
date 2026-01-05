@@ -5,21 +5,20 @@ import (
 	"encoding/json"
 	financeService "hauslet/internal/modules/finance/service"
 	financeJobs "hauslet/internal/queue/jobs/finance"
-
-	"github.com/go-pkgz/lgr"
+	"log/slog"
 )
 
 // PayoutProcessHandler handles automated payout processing
 type PayoutProcessHandler struct {
 	payoutSvc financeService.PayoutService
-	log       *lgr.Logger
+	log       *slog.Logger
 	subject   string
 }
 
 // NewPayoutProcessHandler creates a new handler for processing payouts
 func NewPayoutProcessHandler(
 	payoutSvc financeService.PayoutService,
-	log *lgr.Logger,
+	log *slog.Logger,
 	subject string,
 ) *PayoutProcessHandler {
 	return &PayoutProcessHandler{
@@ -43,21 +42,22 @@ func (h *PayoutProcessHandler) Subject() string {
 func (h *PayoutProcessHandler) Handle(ctx context.Context, data []byte) error {
 	var job financeJobs.ProcessPayoutsJob
 	if err := json.Unmarshal(data, &job); err != nil {
-		h.log.Logf("ERROR failed to unmarshal ProcessPayoutsJob: %v", err)
+		h.log.Error("failed to unmarshal ProcessPayoutsJob", "error", err)
 		return err
 	}
 
+	processTime := job.GetProcessTime()
 	if h.log != nil {
-		h.log.Logf("INFO processing payouts job at %s", job.ProcessTime)
+		h.log.Info("processing payouts job", "time", processTime)
 	}
 
 	if err := h.payoutSvc.ProcessDuePayouts(ctx); err != nil {
-		h.log.Logf("ERROR failed to process due payouts: %v", err)
+		h.log.Error("failed to process due payouts", "error", err)
 		return err
 	}
 
 	if h.log != nil {
-		h.log.Logf("INFO completed payout processing")
+		h.log.Info("completed payout processing")
 	}
 
 	return nil
@@ -66,14 +66,14 @@ func (h *PayoutProcessHandler) Handle(ctx context.Context, data []byte) error {
 // DisbursementRetryHandler handles retrying failed disbursements
 type DisbursementRetryHandler struct {
 	payoutSvc financeService.PayoutService
-	log       *lgr.Logger
+	log       *slog.Logger
 	subject   string
 }
 
 // NewDisbursementRetryHandler creates a new handler for retrying disbursements
 func NewDisbursementRetryHandler(
 	payoutSvc financeService.PayoutService,
-	log *lgr.Logger,
+	log *slog.Logger,
 	subject string,
 ) *DisbursementRetryHandler {
 	return &DisbursementRetryHandler{
@@ -97,21 +97,22 @@ func (h *DisbursementRetryHandler) Subject() string {
 func (h *DisbursementRetryHandler) Handle(ctx context.Context, data []byte) error {
 	var job financeJobs.RetryDisbursementsJob
 	if err := json.Unmarshal(data, &job); err != nil {
-		h.log.Logf("ERROR failed to unmarshal RetryDisbursementsJob: %v", err)
+		h.log.Error("failed to unmarshal RetryDisbursementsJob", "error", err)
 		return err
 	}
 
+	retryTime := job.GetRetryTime()
 	if h.log != nil {
-		h.log.Logf("INFO retrying failed disbursements at %s", job.RetryTime)
+		h.log.Info("retrying failed disbursements", "time", retryTime)
 	}
 
 	if err := h.payoutSvc.RetryFailedDisbursements(ctx); err != nil {
-		h.log.Logf("ERROR failed to retry disbursements: %v", err)
+		h.log.Error("failed to retry disbursements", "error", err)
 		return err
 	}
 
 	if h.log != nil {
-		h.log.Logf("INFO completed disbursement retries")
+		h.log.Info("completed disbursement retries")
 	}
 
 	return nil

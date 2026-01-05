@@ -105,6 +105,9 @@ extend type Query {
   # Admin: List all wallets for a user
   userWallets(userId: UUID!): [Wallet!]!
 
+  # Host: List wallets owned by the current user
+  myWallets: [Wallet!]!
+
   # Admin/Host: View transaction history for a resource (booking, payment, etc)
   financeTransactionHistory(
     resourceType: String!
@@ -118,9 +121,251 @@ extend type Query {
     offset: Int
   ): [LedgerEntry!]!
 
+  # Host: View own wallet ledger
+  myWalletLedger(
+    walletId: UUID!
+    limit: Int
+    offset: Int
+  ): [LedgerEntry!]!
+
   # Admin/Host: View disbursement status
   disbursement(id: UUID!): Disbursement
 
   # Host: My earnings summary (requires authentication)
   myEarnings: EarningsSummary!
+
+  # Host: View payout disbursements for current user
+  myDisbursements(
+    status: DisbursementStatus
+    limit: Int
+    offset: Int
+  ): [Disbursement!]!
+
+  # Host: View finance transactions for current user
+  myFinanceTransactions(
+    type: FinanceTransactionType
+    status: FinanceTransactionStatus
+    limit: Int
+    offset: Int
+  ): [FinanceTransaction!]!
+
+  # Business Host: List wallets owned by a business
+  businessWallets(businessId: UUID!): [Wallet!]!
+
+  # Business Host: View a business wallet ledger
+  businessWalletLedger(
+    walletId: UUID!
+    limit: Int
+    offset: Int
+  ): [LedgerEntry!]!
+
+  # Business Host: View payout disbursements for a business
+  businessDisbursements(
+    businessId: UUID!
+    status: DisbursementStatus
+    limit: Int
+    offset: Int
+  ): [Disbursement!]!
+}
+
+# ========================================================================
+# Dispute Types
+# ========================================================================
+
+enum DisputeStatus {
+  open
+  investigating
+  resolved_refund
+  resolved_release
+  cancelled
+}
+
+enum DisputeReason {
+  property_mismatch
+  uninhabitable
+  safety_issue
+  cleanliness
+  amenity_missing
+  no_show
+  unauthorized_charges
+  other
+}
+
+enum DisputeParty {
+  guest
+  host
+}
+
+type DisputeEvidence {
+  type: String!
+  url: String!
+  description: String!
+  uploadedBy: UUID!
+  uploadedAt: Time!
+}
+
+type DisputeResolution {
+  outcome: DisputeStatus!
+  reason: String!
+  refundAmount: Int!
+  notes: String!
+  resolvedAt: Time!
+}
+
+type Dispute {
+  id: UUID!
+  bookingId: UUID!
+  walletId: UUID!
+  filedBy: DisputeParty!
+  filedById: UUID!
+  reason: DisputeReason!
+  status: DisputeStatus!
+  description: String!
+  amount: Int!
+  currency: String!
+  evidence: [DisputeEvidence!]!
+  adminNotes: String
+  resolution: DisputeResolution
+  resolvedById: UUID
+  resolvedAt: Time
+  refundAmount: Int
+  transactionId: UUID
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+input FileDisputeInput {
+  bookingId: UUID!
+  reason: DisputeReason!
+  description: String!
+  amount: Int!
+  currency: String!
+}
+
+input ResolveDisputeInput {
+  disputeId: UUID!
+  outcome: DisputeStatus!
+  refundAmount: Int!
+  reason: String!
+  notes: String!
+}
+
+input AddDisputeEvidenceInput {
+  disputeId: UUID!
+  type: String!
+  url: String!
+  description: String!
+}
+
+extend type Query {
+  # Get a specific dispute (admin or involved party)
+  dispute(id: UUID!): Dispute
+
+  # Get dispute for a booking (admin or involved party)
+  disputeByBooking(bookingId: UUID!): Dispute
+
+  # List all disputes (admin only)
+  disputes(
+    status: DisputeStatus
+    limit: Int
+    offset: Int
+  ): [Dispute!]!
+
+  # List disputes filed by current user (requires authentication)
+  myDisputes(
+    limit: Int
+    offset: Int
+  ): [Dispute!]!
+}
+
+extend type Mutation {
+  # File a new dispute (guest or host)
+  fileDispute(input: FileDisputeInput!): Dispute!
+
+  # Mark dispute as investigating (admin only)
+  investigateDispute(disputeId: UUID!): Dispute!
+
+  # Resolve a dispute (admin only)
+  resolveDispute(input: ResolveDisputeInput!): Dispute!
+
+  # Cancel a dispute (disputing party only)
+  cancelDispute(disputeId: UUID!): Dispute!
+
+  # Add evidence to a dispute (involved parties only)
+  addDisputeEvidence(input: AddDisputeEvidenceInput!): Dispute!
+}
+
+# ========================================================================
+# Reconciliation Types
+# ========================================================================
+
+enum ReconciliationStatus {
+  running
+  completed
+  failed
+}
+
+enum DiscrepancyType {
+  ledger_imbalance
+  wallet_mismatch
+  provider_mismatch
+  orphaned_transaction
+  invalid_state
+  other
+}
+
+enum DiscrepancySeverity {
+  low
+  medium
+  high
+  critical
+}
+
+type Discrepancy {
+  id: UUID!
+  reportId: UUID!
+  type: DiscrepancyType!
+  severity: DiscrepancySeverity!
+  walletId: UUID
+  transactionId: UUID
+  description: String!
+  expectedValue: Int
+  actualValue: Int
+  details: Map
+  createdAt: Time!
+}
+
+type ReconciliationReport {
+  id: UUID!
+  status: ReconciliationStatus!
+  startedAt: Time!
+  completedAt: Time
+  totalWalletsChecked: Int!
+  totalTransactionsChecked: Int!
+  discrepanciesFound: Int!
+  discrepancies: [Discrepancy!]!
+  summary: String!
+  errorMessage: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+extend type Query {
+  # Get a specific reconciliation report (admin only)
+  reconciliationReport(id: UUID!): ReconciliationReport
+
+  # List all reconciliation reports (admin only)
+  reconciliationReports(
+    limit: Int
+    offset: Int
+  ): [ReconciliationReport!]!
+
+  # Get the latest reconciliation report (admin only)
+  latestReconciliation: ReconciliationReport
+
+  # List discrepancies for a report (admin only)
+  reconciliationDiscrepancies(
+    reportId: UUID!
+    severity: DiscrepancySeverity
+  ): [Discrepancy!]!
 }

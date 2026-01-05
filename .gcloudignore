@@ -1,0 +1,9 @@
+#!include:.gitignore
+
+# Ensure app source directories are included in Cloud Build uploads.
+!cmd/api
+!cmd/api/**
+!cmd/worker
+!cmd/worker/**
+!internal/transport/worker
+!internal/transport/worker/**

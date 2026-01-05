@@ -7,20 +7,23 @@ import (
 	"hauslet/internal/modules/finance/repository"
 	paymentsRepository "hauslet/internal/modules/payments/repository"
 	"hauslet/internal/platform/payment"
+	"log/slog"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 // FinanceServiceImpl implements the FinanceService interface
 type FinanceServiceImpl struct {
-	walletRepo       repository.WalletRepository
-	ledgerRepo       repository.LedgerRepository
-	transactionRepo  repository.TransactionRepository
-	disbursementRepo repository.DisbursementRepository
-	db               *gorm.DB
-	log              *lgr.Logger
+	walletRepo          repository.WalletRepository
+	ledgerRepo          repository.LedgerRepository
+	transactionRepo     repository.TransactionRepository
+	disbursementRepo    repository.DisbursementRepository
+	disputeRepo         repository.DisputeRepository
+	reconciliationRepo  repository.ReconciliationRepository
+	bookingPartyQuerier BookingPartyQuerier
+	db                  *gorm.DB
+	log                 *slog.Logger
 }
 
 // NewFinanceService creates a new finance service
@@ -29,16 +32,22 @@ func NewFinanceService(
 	ledgerRepo repository.LedgerRepository,
 	transactionRepo repository.TransactionRepository,
 	disbursementRepo repository.DisbursementRepository,
+	disputeRepo repository.DisputeRepository,
+	reconciliationRepo repository.ReconciliationRepository,
+	bookingPartyQuerier BookingPartyQuerier,
 	db *gorm.DB,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) FinanceService {
 	return &FinanceServiceImpl{
-		walletRepo:       walletRepo,
-		ledgerRepo:       ledgerRepo,
-		transactionRepo:  transactionRepo,
-		disbursementRepo: disbursementRepo,
-		db:               db,
-		log:              log,
+		walletRepo:          walletRepo,
+		ledgerRepo:          ledgerRepo,
+		transactionRepo:     transactionRepo,
+		disbursementRepo:    disbursementRepo,
+		disputeRepo:         disputeRepo,
+		reconciliationRepo:  reconciliationRepo,
+		bookingPartyQuerier: bookingPartyQuerier,
+		db:                  db,
+		log:                 log,
 	}
 }
 
@@ -58,7 +67,7 @@ type BookingForPayout struct {
 
 // BookingQuerier defines the interface for querying booking data for payouts
 type BookingQuerier interface {
-	FindBookingsReadyForPayout(ctx context.Context, payoutWindowHours int, limit int) ([]*BookingForPayout, error)
+	FindBookingsReadyForPayout(ctx context.Context, escrowReleaseEvent string, payoutWindowHours int, limit int) ([]*BookingForPayout, error)
 }
 
 // PayoutServiceImpl implements PayoutService
@@ -75,7 +84,7 @@ type PayoutServiceImpl struct {
 	profileAdapter   ProfileAdapter
 	platformConfig   config.PlatformYAMLConfig
 	db               *gorm.DB
-	log              *lgr.Logger
+	log              *slog.Logger
 }
 
 // NewPayoutService creates a new payout service
@@ -92,7 +101,7 @@ func NewPayoutService(
 	profileAdapter ProfileAdapter,
 	platformConfig config.PlatformYAMLConfig,
 	db *gorm.DB,
-	log *lgr.Logger,
+	log *slog.Logger,
 ) PayoutService {
 	return &PayoutServiceImpl{
 		walletRepo:       walletRepo,

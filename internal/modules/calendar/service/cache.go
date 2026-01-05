@@ -38,15 +38,15 @@ func (s *CalendarServiceImpl) cacheEvent(ctx context.Context, event *domain.Cale
 	data, err := json.Marshal(event)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to marshal event for cache: %v", err)
+			s.log.Warn("failed to marshal event for cache", "error", err)
 		}
 		return
 	}
 
 	key := eventCacheKey(event.ID)
-	if err := s.cache.Set(ctx, key, data, eventCacheTTL); err != nil {
+	if err := s.cache.Set(ctx, key, data, eventCacheTTL).Err(); err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to cache event: %v", err)
+			s.log.Warn("failed to cache event", "error", err)
 		}
 	}
 }
@@ -59,15 +59,15 @@ func (s *CalendarServiceImpl) cacheAvailability(ctx context.Context, listingID u
 	data, err := json.Marshal(result)
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to marshal availability for cache: %v", err)
+			s.log.Warn("failed to marshal availability for cache", "error", err)
 		}
 		return
 	}
 
 	key := availabilityCacheKey(listingID, startTime, endTime)
-	if err := s.cache.Set(ctx, key, data, availabilityCacheTTL); err != nil {
+	if err := s.cache.Set(ctx, key, data, availabilityCacheTTL).Err(); err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to cache availability: %v", err)
+			s.log.Warn("failed to cache availability", "error", err)
 		}
 	}
 }
@@ -99,9 +99,9 @@ func (s *CalendarServiceImpl) invalidateEventCache(ctx context.Context, eventID 
 	}
 
 	key := eventCacheKey(eventID)
-	if err := s.cache.Del(ctx, key); err != nil {
+	if err := s.cache.Del(ctx, key).Err(); err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to invalidate event cache: %v", err)
+			s.log.Warn("failed to invalidate event cache", "error", err)
 		}
 	}
 }
@@ -116,14 +116,14 @@ func (s *CalendarServiceImpl) invalidateAvailabilityCache(ctx context.Context, l
 	keys, err := s.cache.Keys(ctx, pattern).Result()
 	if err != nil {
 		if s.log != nil {
-			s.log.Logf("WARN failed to find availability cache keys: %v", err)
+			s.log.Warn("failed to find availability cache keys", "error", err)
 		}
 		return
 	}
 	if len(keys) > 0 {
 		if err := s.cache.Del(ctx, keys...).Err(); err != nil {
 			if s.log != nil {
-				s.log.Logf("WARN failed to invalidate availability cache: %v", err)
+				s.log.Warn("failed to invalidate availability cache", "error", err)
 			}
 		}
 	}

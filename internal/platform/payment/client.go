@@ -109,6 +109,15 @@ func (c *Client) VerifyTransfer(ctx context.Context, currency Currency, referenc
 	return client.VerifyTransfer(ctx, reference)
 }
 
+// ListBanks returns banks supported by the payout provider for a currency/country.
+func (c *Client) ListBanks(ctx context.Context, currency Currency, country string) ([]Bank, error) {
+	client, err := c.factory.GetPayoutClient(currency)
+	if err != nil {
+		return nil, err
+	}
+	return client.ListBanks(ctx, currency, country)
+}
+
 // ============================================================================
 // Webhook Operations
 // ============================================================================

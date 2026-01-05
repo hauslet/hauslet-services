@@ -71,3 +71,22 @@ type DisputeRepository interface {
 	// WithTx returns a new repository instance using the provided transaction
 	WithTx(tx *gorm.DB) DisputeRepository
 }
+
+// ReconciliationRepository handles reconciliation report and discrepancy persistence
+type ReconciliationRepository interface {
+	// Report operations
+	CreateReport(ctx context.Context, report *schema.ReconciliationReport) error
+	GetReportByID(ctx context.Context, id uuid.UUID) (*schema.ReconciliationReport, error)
+	UpdateReport(ctx context.Context, report *schema.ReconciliationReport) error
+	ListReports(ctx context.Context, limit, offset int) ([]*schema.ReconciliationReport, error)
+	GetLatestReport(ctx context.Context) (*schema.ReconciliationReport, error)
+	GetRunningReport(ctx context.Context) (*schema.ReconciliationReport, error)
+
+	// Discrepancy operations
+	CreateDiscrepancy(ctx context.Context, discrepancy *schema.Discrepancy) error
+	ListDiscrepanciesByReport(ctx context.Context, reportID uuid.UUID) ([]*schema.Discrepancy, error)
+	ListDiscrepanciesBySeverity(ctx context.Context, reportID uuid.UUID, severity string) ([]*schema.Discrepancy, error)
+
+	// WithTx returns a new repository instance using the provided transaction
+	WithTx(tx *gorm.DB) ReconciliationRepository
+}

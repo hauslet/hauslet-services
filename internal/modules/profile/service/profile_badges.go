@@ -33,11 +33,11 @@ func (s *ProfileServiceImpl) AddBadge(ctx context.Context, userID string, badge 
 	}
 
 	if err := s.repo.UpdateProfile(ctx, schemaProfile); err != nil {
-		s.log.Logf("[ERROR] failed to add badge %s for user %s: %v", badge, userID, err)
+		s.log.Error("failed to add badge", "badge", badge, "user_id", userID, "error", err)
 		return err
 	}
 
-	s.log.Logf("[INFO] added badge %s for user %s (new trust score: %.2f)", badge, userID, profile.TrustScore)
+	s.log.Info("added badge", "badge", badge, "user_id", userID, "new_trust_score", profile.TrustScore)
 	return nil
 }
 
@@ -71,10 +71,10 @@ func (s *ProfileServiceImpl) RemoveBadge(ctx context.Context, userID string, bad
 	}
 
 	if err := s.repo.UpdateProfile(ctx, schemaProfile); err != nil {
-		s.log.Logf("[ERROR] failed to remove badge %s for user %s: %v", badge, userID, err)
+		s.log.Error("failed to remove badge", "badge", badge, "user_id", userID, "error", err)
 		return err
 	}
 
-	s.log.Logf("[INFO] removed badge %s for user %s (new trust score: %.2f)", badge, userID, profile.TrustScore)
+	s.log.Info("removed badge", "badge", badge, "user_id", userID, "new_trust_score", profile.TrustScore)
 	return nil
 }

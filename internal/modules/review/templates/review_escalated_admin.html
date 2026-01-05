@@ -1,0 +1,67 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #F59E0B;">
+        🤖 AI Escalated Review
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; color: #000000;">
+        Our AI moderation system has flagged a review that requires human judgment.
+    </p>
+
+    <div style="background-color: #FFF9E6; border-left: 4px solid #F59E0B; padding: 16px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 14px; line-height: 22px; color: #92400E; font-weight: bold;">
+            AI Confidence: Uncertain
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 15px; line-height: 24px; color: #78350F;">
+            <strong>Reasons:</strong> {{.AIReasons}}
+        </p>
+    </div>
+
+    <div style="background-color: #F3F4F6; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 14px; line-height: 22px; color: #1F2937; font-weight: bold;">
+            Review Details:
+        </p>
+        <div style="margin-top: 12px;">
+            <p style="margin: 0; font-size: 13px; line-height: 20px; color: #6B7280;">
+                <strong>Review ID:</strong> {{.ReviewID}}
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 13px; line-height: 20px; color: #6B7280;">
+                <strong>Rating:</strong> {{.Rating}}/5 ⭐
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 13px; line-height: 20px; color: #6B7280;">
+                <strong>Created:</strong> {{.CreatedAt}}
+            </p>
+        </div>
+
+        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #D1D5DB;">
+            <p style="margin: 0; font-size: 13px; line-height: 20px; color: #6B7280; font-weight: bold;">
+                Review Content:
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 22px; color: #1F2937; font-style: italic; background-color: white; padding: 12px; border-radius: 4px;">
+                "{{.ReviewBody}}"
+            </p>
+        </div>
+    </div>
+
+    <div style="background-color: #EEF2FF; border-radius: 8px; padding: 16px; margin: 24px 0;">
+        <p style="margin: 0; font-size: 13px; line-height: 20px; color: #3730A3; font-weight: bold;">
+            💡 Action Required:
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; line-height: 22px; color: #4338CA;">
+            Please review this content manually and determine if it meets community guidelines. The AI model was uncertain and needs human oversight.
+        </p>
+    </div>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.AdminReviewURL}}" style="display: inline-block; background-color: #F59E0B; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            Review in Admin Panel
+        </a>
+    </div>
+
+    <p style="font-size: 13px; line-height: 22px; color: #666666; text-align: center;">
+        Your decision will help train our AI system for future reviews.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

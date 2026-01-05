@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"hauslet/internal/modules/property/repository"
 	"hauslet/internal/platform/storage"
 	listingJob "hauslet/internal/queue/jobs/listing"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
@@ -18,7 +18,7 @@ import (
 type ListingMediaCleanupHandler struct {
 	repo     repository.Repository
 	storage  *storage.R2Storage
-	log      *lgr.Logger
+	log      *slog.Logger
 	subject  string
 	defaults cleanupDefaults
 }
@@ -29,7 +29,7 @@ type cleanupDefaults struct {
 }
 
 // NewListingMediaCleanupHandler constructs a cleanup handler.
-func NewListingMediaCleanupHandler(repo repository.Repository, storage *storage.R2Storage, log *lgr.Logger, subject string) *ListingMediaCleanupHandler {
+func NewListingMediaCleanupHandler(repo repository.Repository, storage *storage.R2Storage, log *slog.Logger, subject string) *ListingMediaCleanupHandler {
 	return &ListingMediaCleanupHandler{
 		repo:    repo,
 		storage: storage,
@@ -76,7 +76,7 @@ func (h *ListingMediaCleanupHandler) Handle(ctx context.Context, data []byte) er
 	}
 
 	if len(stale) == 0 {
-		h.log.Logf("INFO cleanup: no stale media older than %s", olderThan)
+		h.log.Info("cleanup: no stale media older than", "duration", olderThan)
 		return nil
 	}
 
@@ -91,7 +91,10 @@ func (h *ListingMediaCleanupHandler) Handle(ctx context.Context, data []byte) er
 	}
 
 	if job.DryRun {
-		h.log.Logf("INFO cleanup dry-run: found %d stale media across %d listings", len(stale), len(listingToIDs))
+		h.log.Info("cleanup dry-run: found stale media",
+			"count", len(stale),
+			"listings", len(listingToIDs),
+		)
 		return nil
 	}
 
@@ -105,11 +108,14 @@ func (h *ListingMediaCleanupHandler) Handle(ctx context.Context, data []byte) er
 		for key := range keySet {
 			if err := h.storage.DeleteObject(ctx, key); err != nil {
 				// Best-effort; log and continue.
-				h.log.Logf("ERROR cleanup: failed to delete object %s: %v", key, err)
+				h.log.Error("cleanup: failed to delete object", "key", key, "error", err)
 			}
 		}
 	}
 
-	h.log.Logf("INFO cleanup: removed %d stale media across %d listings", len(stale), len(listingToIDs))
+	h.log.Info("cleanup: removed stale media",
+		"count", len(stale),
+		"listings", len(listingToIDs),
+	)
 	return nil
 }

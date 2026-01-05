@@ -63,7 +63,7 @@ type Transaction struct {
 
 // TableName specifies the table name for Transaction
 func (Transaction) TableName() string {
-	return "transactions"
+	return "finance_transactions"
 }
 
 // Disbursement represents a payout disbursement in the database
@@ -95,6 +95,7 @@ type Dispute struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	BookingID    uuid.UUID  `gorm:"type:uuid;not null;uniqueIndex;index"` // Unique: one dispute per booking
 	WalletID     uuid.UUID  `gorm:"type:uuid;not null;index"`
+	PaymentID    uuid.UUID  `gorm:"type:uuid;not null;index"` // Payment associated with booking
 	FiledBy      string     `gorm:"type:varchar(20);not null"` // guest or host
 	FiledByID    uuid.UUID  `gorm:"type:uuid;not null;index"`
 	Reason       string     `gorm:"type:varchar(50);not null;index"`
@@ -120,4 +121,44 @@ type Dispute struct {
 // TableName specifies the table name for Dispute
 func (Dispute) TableName() string {
 	return "disputes"
+}
+
+// ReconciliationReport represents a reconciliation run in the database
+type ReconciliationReport struct {
+	ID                       uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Status                   string     `gorm:"type:varchar(20);not null;index"`
+	StartedAt                time.Time  `gorm:"not null;index"`
+	CompletedAt              *time.Time `gorm:"index"`
+	TotalWalletsChecked      int        `gorm:"not null;default:0"`
+	TotalTransactionsChecked int        `gorm:"not null;default:0"`
+	DiscrepanciesFound       int        `gorm:"not null;default:0"`
+	Summary                  string     `gorm:"type:text"`
+	ErrorMessage             *string    `gorm:"type:text"`
+	CreatedAt                time.Time  `gorm:"not null;default:now();index"`
+	UpdatedAt                time.Time  `gorm:"not null;default:now()"`
+}
+
+// TableName specifies the table name for ReconciliationReport
+func (ReconciliationReport) TableName() string {
+	return "reconciliation_reports"
+}
+
+// Discrepancy represents a found issue during reconciliation in the database
+type Discrepancy struct {
+	ID            uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ReportID      uuid.UUID  `gorm:"type:uuid;not null;index"`
+	Type          string     `gorm:"type:varchar(50);not null;index"`
+	Severity      string     `gorm:"type:varchar(20);not null;index"`
+	WalletID      *uuid.UUID `gorm:"type:uuid;index"`
+	TransactionID *uuid.UUID `gorm:"type:uuid;index"`
+	Description   string     `gorm:"type:text;not null"`
+	ExpectedValue *int64
+	ActualValue   *int64
+	Details       string     `gorm:"type:jsonb"` // Additional context
+	CreatedAt     time.Time  `gorm:"not null;default:now();index"`
+}
+
+// TableName specifies the table name for Discrepancy
+func (Discrepancy) TableName() string {
+	return "discrepancies"
 }

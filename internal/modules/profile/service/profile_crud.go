@@ -20,11 +20,11 @@ func (s *ProfileServiceImpl) CreateProfile(ctx context.Context, profile domain.P
 
 	exists, err := s.repo.ProfileExists(ctx, profile.UserID)
 	if err != nil {
-		s.log.Logf("[ERROR] failed to check profile existence for user %s: %v", profile.UserID, err)
+		s.log.Error("failed to check profile existence", "user_id", profile.UserID, "error", err)
 		return nil, err
 	}
 	if exists {
-		s.log.Logf("[WARN] profile already exists for user %s", profile.UserID)
+		s.log.Warn("profile already exists for user", "user_id", profile.UserID)
 		return nil, domain.ErrProfileAlreadyExists
 	}
 
@@ -64,11 +64,11 @@ func (s *ProfileServiceImpl) CreateProfile(ctx context.Context, profile domain.P
 	}
 
 	if err := s.repo.CreateProfile(ctx, schemaProfile); err != nil {
-		s.log.Logf("[ERROR] failed to create profile for user %s: %v", profile.UserID, err)
+		s.log.Error("failed to create profile", "user_id", profile.UserID, "error", err)
 		return nil, err
 	}
 
-	s.log.Logf("[INFO] created profile for user %s  profileID=%s (trust score: %.2f)", profile.UserID, profile.ID, profile.TrustScore)
+	s.log.Info("created profile", "user_id", profile.UserID, "trust_score", profile.TrustScore)
 	return domain.MapProfileFromSchema(schemaProfile), nil
 }
 
@@ -109,7 +109,7 @@ func (s *ProfileServiceImpl) UpdateProfile(ctx context.Context, profile domain.P
 	}
 
 	if err := s.repo.UpdateProfile(ctx, schemaProfile); err != nil {
-		s.log.Logf("[ERROR] failed to update profile for user %s: %v", profile.UserID, err)
+		s.log.Error("failed to update profile", "user_id", profile.UserID, "error", err)
 		return nil, err
 	}
 
@@ -141,19 +141,19 @@ func (s *ProfileServiceImpl) UpdateProfile(ctx context.Context, profile domain.P
 	}
 	// Enqueue profile text data moderation
 	if err := s.moderationHooks.EnqueueAIModeration(ctx, profile.ID, "profile_bio", string(payloadJSON)); err != nil {
-		s.log.Logf("[ERROR] failed to enqueue profile moderation for user %s: %v", profile.UserID, err)
+		s.log.Error("failed to enqueue profile moderation", "user_id", profile.UserID, "error", err)
 		return nil, err
 	}
 
 	if profile.PhotoURL != nil && *profile.PhotoURL != "" {
 		// Enqueue profile photo moderation
 		if err := s.moderationHooks.EnqueueAIModeration(ctx, profile.ID, "profile_image", *profile.PhotoURL); err != nil {
-			s.log.Logf("[ERROR] failed to enqueue profile photo moderation for user %s: %v", profile.UserID, err)
+			s.log.Error("failed to enqueue profile photo moderation", "user_id", profile.UserID, "error", err)
 			return nil, err
 		}
 	}
 
-	s.log.Logf("[INFO] updated profile for user %s (new trust score: %.2f)", profile.UserID, profile.TrustScore)
+	s.log.Info("updated profile", "user_id", profile.UserID, "new_trust_score", profile.TrustScore)
 	return domain.MapProfileFromSchema(schemaProfile), nil
 }
 
@@ -202,14 +202,14 @@ func (s *ProfileServiceImpl) PatchProfile(ctx context.Context, id string, update
 	}
 	// Enqueue profile text data moderation
 	if err := s.moderationHooks.EnqueueAIModeration(ctx, updated.ID, "profile_bio", string(payloadJSON)); err != nil {
-		s.log.Logf("[ERROR] failed to enqueue profile moderation for user %s: %v", updated.UserID, err)
+		s.log.Error("failed to enqueue profile moderation", "user_id", updated.UserID, "error", err)
 		return nil, err
 	}
 
 	if updated.PhotoURL != nil && *updated.PhotoURL != "" {
 		// Enqueue profile photo moderation
 		if err := s.moderationHooks.EnqueueAIModeration(ctx, updated.ID, "profile_image", *updated.PhotoURL); err != nil {
-			s.log.Logf("[ERROR] failed to enqueue profile photo moderation for user %s: %v", updated.UserID, err)
+			s.log.Error("failed to enqueue profile photo moderation", "user_id", updated.UserID, "error", err)
 			return nil, err
 		}
 	}
@@ -223,10 +223,10 @@ func (s *ProfileServiceImpl) DeleteProfile(ctx context.Context, userID string) e
 		return domain.ErrInvalidUserID
 	}
 	if err := s.repo.DeleteProfile(ctx, userID); err != nil {
-		s.log.Logf("[ERROR] failed to delete profile for user %s: %v", userID, err)
+		s.log.Error("failed to delete profile", "user_id", userID, "error", err)
 		return err
 	}
-	s.log.Logf("[INFO] soft deleted profile for user %s", userID)
+	s.log.Info("soft deleted profile", "user_id", userID)
 	return nil
 }
 
@@ -236,10 +236,10 @@ func (s *ProfileServiceImpl) RestoreProfile(ctx context.Context, userID string) 
 		return domain.ErrInvalidUserID
 	}
 	if err := s.repo.RestoreProfile(ctx, userID); err != nil {
-		s.log.Logf("[ERROR] failed to restore profile for user %s: %v", userID, err)
+		s.log.Error("failed to restore profile", "user_id", userID, "error", err)
 		return err
 	}
-	s.log.Logf("[INFO] restored profile for user %s", userID)
+	s.log.Info("restored profile", "user_id", userID)
 	return nil
 }
 
@@ -249,10 +249,10 @@ func (s *ProfileServiceImpl) HardDeleteProfile(ctx context.Context, userID strin
 		return domain.ErrInvalidUserID
 	}
 	if err := s.repo.HardDeleteProfile(ctx, userID); err != nil {
-		s.log.Logf("[ERROR] failed to hard delete profile for user %s: %v", userID, err)
+		s.log.Error("failed to hard delete profile", "user_id", userID, "error", err)
 		return err
 	}
-	s.log.Logf("[WARN] permanently deleted profile for user %s", userID)
+	s.log.Warn("permanently deleted profile", "user_id", userID)
 	return nil
 }
 

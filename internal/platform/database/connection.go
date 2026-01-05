@@ -15,25 +15,20 @@ import (
 // NewPostgres creates a new PostgreSQL database connection using GORM
 // It configures logging based on the environment (production = silent, dev = error only)
 func NewPostgres(cfg *config.DBConfig, env string) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
-		cfg.DBHost,
-		cfg.DBUser,
-		cfg.DBPassword,
-		cfg.DbName,
-		cfg.DBPort,
-		cfg.DBSslmode,
-	)
+	if cfg == nil || cfg.DatabaseURL == "" {
+		return nil, fmt.Errorf("DATABASE_URL is required")
+	}
 
 	gormConfig := &gorm.Config{}
 	if env == "production" {
-		// In production, disable SQL logging to prevent PII leakage
+		// In production, we disable SQL logging to prevent PII leakage
 		gormConfig.Logger = gormlogger.Default.LogMode(gormlogger.Silent)
 	} else {
 		// In development, only log errors to avoid exposing sensitive data
 		gormConfig.Logger = gormlogger.Default.LogMode(gormlogger.Error)
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), gormConfig)
+	db, err := gorm.Open(postgres.Open(cfg.DatabaseURL), gormConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}

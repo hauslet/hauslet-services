@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"hauslet/internal/modules/auth/authorization"
 	"hauslet/internal/modules/business/domain"
 
 	"github.com/google/uuid"
@@ -14,6 +15,12 @@ import (
 
 // CreateBusiness creates a new business
 func (s *BusinessServiceImpl) CreateBusiness(ctx context.Context, input domain.CreateBusinessInput, creatorID uuid.UUID) (*domain.Business, error) {
+	if s.supplyGate != nil {
+		if err := s.supplyGate.Authorize(ctx, creatorID, authorization.SupplyActionCreateBusiness, nil); err != nil {
+			return nil, err
+		}
+	}
+
 	// Validate input
 	if input.Name == "" {
 		return nil, fmt.Errorf("business name is required")
@@ -31,7 +38,7 @@ func (s *BusinessServiceImpl) CreateBusiness(ctx context.Context, input domain.C
 	// Check if slug already exists
 	exists, err := s.repo.SlugExists(ctx, slug)
 	if err != nil {
-		s.log.Logf("ERROR Failed to check slug existence: %v", err)
+		s.log.Error("Failed to check slug existence", "error", err)
 		return nil, fmt.Errorf("failed to check slug: %w", err)
 	}
 	if exists {
@@ -73,7 +80,7 @@ func (s *BusinessServiceImpl) CreateBusiness(ctx context.Context, input domain.C
 	// Convert to schema
 	schemaBusiness, err := domain.MapBusinessToSchema(business)
 	if err != nil {
-		s.log.Logf("ERROR Failed to map business to schema: %v", err)
+		s.log.Error("Failed to map business to schema", "error", err)
 		return nil, fmt.Errorf("failed to map business: %w", err)
 	}
 
@@ -110,11 +117,11 @@ func (s *BusinessServiceImpl) CreateBusiness(ctx context.Context, input domain.C
 	})
 
 	if err != nil {
-		s.log.Logf("ERROR Failed to create business: %v", err)
+		s.log.Error("Failed to create business", "error", err)
 		return nil, err
 	}
 
-	s.log.Logf("INFO Business created: %s (ID: %s) by user %s", business.Name, business.ID, creatorID)
+	s.log.Info(" Business created", "name", business.Name, "id", business.ID, "creator_id", creatorID)
 
 	// Fire-and-forget welcome email for the creator/business contact.
 	if s.notifier != nil && business.Email != "" {
@@ -126,7 +133,7 @@ func (s *BusinessServiceImpl) CreateBusiness(ctx context.Context, input domain.C
 			creatorName = business.Name
 		}
 		if err := s.notifier.SendBusinessCreatedEmail(ctx, business, creatorName, business.Email); err != nil {
-			s.log.Logf("WARN Failed to send business created email for %s: %v", business.ID, err)
+			s.log.Warn("Failed to send business created email", "business_id", business.ID, "error", err)
 		}
 	}
 
@@ -214,11 +221,11 @@ func (s *BusinessServiceImpl) UpdateBusiness(ctx context.Context, id uuid.UUID, 
 	}
 
 	if err := s.repo.UpdateBusiness(ctx, schemaBusiness); err != nil {
-		s.log.Logf("ERROR Failed to update business %s: %v", id, err)
+		s.log.Error("Failed to update business", "id", id, "error", err)
 		return nil, fmt.Errorf("failed to update business: %w", err)
 	}
 
-	s.log.Logf("INFO Business updated: %s by user %s", id, updatedBy)
+	s.log.Info(" Business updated", "id", id, "updated_by", updatedBy)
 	return business, nil
 }
 
@@ -246,11 +253,11 @@ func (s *BusinessServiceImpl) DeleteBusiness(ctx context.Context, id uuid.UUID, 
 
 	// Delete business
 	if err := s.repo.DeleteBusiness(ctx, id); err != nil {
-		s.log.Logf("ERROR Failed to delete business %s: %v", id, err)
+		s.log.Error("Failed to delete business", "id", id, "error", err)
 		return fmt.Errorf("failed to delete business: %w", err)
 	}
 
-	s.log.Logf("INFO Business deleted: %s by user %s", id, deletedBy)
+	s.log.Info(" Business deleted", "id", id, "deleted_by", deletedBy)
 	return nil
 }
 
@@ -259,7 +266,7 @@ func (s *BusinessServiceImpl) ListUserBusinesses(ctx context.Context, userID uui
 	// Get user memberships
 	schemaMembers, err := s.repo.ListUserMemberships(ctx, userID)
 	if err != nil {
-		s.log.Logf("ERROR Failed to list user memberships: %v", err)
+		s.log.Error("Failed to list user memberships", "error", err)
 		return nil, fmt.Errorf("failed to list memberships: %w", err)
 	}
 

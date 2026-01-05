@@ -21,6 +21,9 @@ var (
 	ErrUnauthorized = errors.New("unauthorized to access this resource")
 	ErrAccessDenied = errors.New("access denied")
 
+	// Profile errors
+	ErrProfileHooksNotConfigured = errors.New("profile hooks not configured")
+
 	ErrCannotCancelEvent     = errors.New("event cannot be cancelled at this time")
 	ErrEventAlreadyCancelled = errors.New("event already cancelled")
 	ErrEventAlreadyCompleted = errors.New("event already completed")

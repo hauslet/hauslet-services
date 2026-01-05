@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"math"
 	"strings"
 	"time"
@@ -12,19 +13,18 @@ import (
 	"hauslet/internal/platform/xchange"
 	localization "hauslet/internal/transport/middleware/localization"
 
-	"github.com/go-pkgz/lgr"
 	"github.com/google/uuid"
 )
 
 // Resolver handles GraphQL queries and mutations for bookings
 type Resolver struct {
 	bookingService service.BookingService
-	log            *lgr.Logger
+	log            *slog.Logger
 	fx             xchange.XChange
 }
 
 // NewResolver creates a new GraphQL resolver
-func NewResolver(bookingService service.BookingService, fx xchange.XChange, log *lgr.Logger) *Resolver {
+func NewResolver(bookingService service.BookingService, fx xchange.XChange, log *slog.Logger) *Resolver {
 	return &Resolver{
 		bookingService: bookingService,
 		log:            log,
@@ -37,32 +37,15 @@ func NewResolver(bookingService service.BookingService, fx xchange.XChange, log 
 // ============================================================================
 
 // QuoteBooking returns pricing and availability without creating a booking
-func (r *Resolver) QuoteBooking(ctx context.Context, listingID string, checkIn string, checkOut string, guestCount int) (*domain.BookingQuote, error) {
-	// Parse listing ID
-	lID, err := uuid.Parse(listingID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid listing ID")
-	}
-
-	// Parse check-in and check-out times
-	checkInTime, err := time.Parse(time.RFC3339, checkIn)
-	if err != nil {
-		return nil, fmt.Errorf("invalid check-in time format, use RFC3339")
-	}
-
-	checkOutTime, err := time.Parse(time.RFC3339, checkOut)
-	if err != nil {
-		return nil, fmt.Errorf("invalid check-out time format, use RFC3339")
-	}
-
+func (r *Resolver) QuoteBooking(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain.BookingQuote, error) {
 	// Validate guest count
 	if guestCount < 1 {
 		return nil, fmt.Errorf("guest count must be at least 1")
 	}
 
-	quote, err := r.bookingService.QuoteBooking(ctx, lID, checkInTime, checkOutTime, guestCount)
+	quote, err := r.bookingService.QuoteBooking(ctx, listingID, checkIn, checkOut, guestCount)
 	if err != nil {
-		r.log.Logf("ERROR failed to generate quote: %v", err)
+		r.log.Error("failed to generate quote", "error", err)
 		return nil, err
 	}
 
@@ -71,22 +54,33 @@ func (r *Resolver) QuoteBooking(ctx context.Context, listingID string, checkIn s
 }
 
 // Booking retrieves a booking by ID
-func (r *Resolver) Booking(ctx context.Context, id string) (*domain.Booking, error) {
-	bookingID, err := uuid.Parse(id)
-	if err != nil {
-		r.log.Logf("ERROR invalid booking ID %s: %v", id, err)
-		return nil, fmt.Errorf("invalid booking ID")
-	}
-
+func (r *Resolver) Booking(ctx context.Context, id uuid.UUID) (*domain.Booking, error) {
 	// Get current user from context
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	booking, err := r.bookingService.GetBooking(ctx, bookingID, userID)
+	booking, err := r.bookingService.GetBooking(ctx, id, userID)
 	if err != nil {
-		r.log.Logf("ERROR failed to get booking %s: %v", id, err)
+		r.log.Error("failed to get booking", "booking_id", id, "error", err)
+		return nil, err
+	}
+
+	r.localizeBooking(ctx, booking)
+	return booking, nil
+}
+
+// BookingByReference retrieves a booking by reference
+func (r *Resolver) BookingByReference(ctx context.Context, reference string) (*domain.Booking, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	booking, err := r.bookingService.GetBookingByReference(ctx, reference, userID)
+	if err != nil {
+		r.log.Error("failed to get booking by reference", "reference", reference, "error", err)
 		return nil, err
 	}
 
@@ -114,7 +108,7 @@ func (r *Resolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*
 
 	bookings, err := r.bookingService.ListBookingsForGuest(ctx, userID, l, o)
 	if err != nil {
-		r.log.Logf("ERROR failed to list bookings for guest %s: %v", userID, err)
+		r.log.Error("failed to list bookings for guest", "user_id", userID, "error", err)
 		return nil, err
 	}
 
@@ -125,17 +119,11 @@ func (r *Resolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*
 }
 
 // ListingBookings lists bookings for a specific listing (owner/host view)
-func (r *Resolver) ListingBookings(ctx context.Context, listingID string, status *string, limit *int, offset *int) ([]*domain.Booking, error) {
+func (r *Resolver) ListingBookings(ctx context.Context, listingID uuid.UUID, status *domain.BookingStatus, limit *int, offset *int) ([]*domain.Booking, error) {
 	// Get current user from context
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
-	}
-
-	lID, err := uuid.Parse(listingID)
-	if err != nil {
-		r.log.Logf("ERROR invalid listing ID %s: %v", listingID, err)
-		return nil, fmt.Errorf("invalid listing ID")
 	}
 
 	l := 20
@@ -148,15 +136,9 @@ func (r *Resolver) ListingBookings(ctx context.Context, listingID string, status
 		o = *offset
 	}
 
-	var bookingStatus *domain.BookingStatus
-	if status != nil {
-		bs := domain.BookingStatus(*status)
-		bookingStatus = &bs
-	}
-
-	bookings, err := r.bookingService.ListBookingsForListing(ctx, lID, userID, bookingStatus, l, o)
+	bookings, err := r.bookingService.ListBookingsForListing(ctx, listingID, userID, status, l, o)
 	if err != nil {
-		r.log.Logf("ERROR failed to list bookings for listing %s: %v", listingID, err)
+		r.log.Error("failed to list bookings for listing", "listing_id", listingID, "error", err)
 		return nil, err
 	}
 
@@ -172,66 +154,38 @@ func (r *Resolver) ListingBookings(ctx context.Context, listingID string, status
 
 // ReserveBookingInput represents the input for creating an instant booking with payment
 type ReserveBookingInput struct {
-	ListingID       string  `json:"listingId"`
-	CheckIn         string  `json:"checkIn"`
-	CheckOut        string  `json:"checkOut"`
-	GuestCount      int     `json:"guestCount"`
-	PaymentMethodID *string `json:"paymentMethodId"`
-	SpecialRequests *string `json:"specialRequests"`
+	ListingID       uuid.UUID  `json:"listingId"`
+	CheckIn         time.Time  `json:"checkIn"`
+	CheckOut        time.Time  `json:"checkOut"`
+	GuestCount      int        `json:"guestCount"`
+	PaymentMethodID *uuid.UUID `json:"paymentMethodId"`
+	SpecialRequests *string    `json:"specialRequests"`
 }
 
 // ReserveBooking creates an instant booking and initiates payment in one operation
-func (r *Resolver) ReserveBooking(ctx context.Context, input *ReserveBookingInput) (*CompleteBookingPayload, error) {
+func (r *Resolver) ReserveBooking(ctx context.Context, input ReserveBookingInput) (*CompleteBookingPayload, error) {
 	// Get current user from context
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse listing ID
-	listingID, err := uuid.Parse(input.ListingID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid listing ID")
-	}
-
-	// Parse check-in and check-out times
-	checkIn, err := time.Parse(time.RFC3339, input.CheckIn)
-	if err != nil {
-		return nil, fmt.Errorf("invalid check-in time format, use RFC3339")
-	}
-
-	checkOut, err := time.Parse(time.RFC3339, input.CheckOut)
-	if err != nil {
-		return nil, fmt.Errorf("invalid check-out time format, use RFC3339")
-	}
-
-	// Parse payment method ID if provided
-	var paymentMethodID *uuid.UUID
-	if input.PaymentMethodID != nil {
-		pmID, err := uuid.Parse(*input.PaymentMethodID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid payment method ID")
-		}
-		paymentMethodID = &pmID
-	}
-
 	booking, paymentResult, err := r.bookingService.ReserveBooking(
 		ctx,
-		listingID,
+		input.ListingID,
 		userID,
-		checkIn,
-		checkOut,
+		input.CheckIn,
+		input.CheckOut,
 		input.GuestCount,
-		paymentMethodID,
+		input.PaymentMethodID,
 		input.SpecialRequests,
 	)
 	if err != nil {
-		r.log.Logf("ERROR failed to reserve booking: %v", err)
+		r.log.Error("failed to reserve booking", "error", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO instant booking reserved: %s (payment=%s, status=%s)",
-		booking.ID, paymentResult.PaymentID, paymentResult.Status)
+	r.log.Info("instant booking reserved", "booking_id", booking.ID, "payment_id", paymentResult.PaymentID, "status", paymentResult.Status)
 
 	// Build response payload
 	payload := &CompleteBookingPayload{
@@ -249,93 +203,61 @@ func (r *Resolver) ReserveBooking(ctx context.Context, input *ReserveBookingInpu
 
 // RequestBookingInput represents the input for creating a manual-approval booking
 type RequestBookingInput struct {
-	ListingID       string  `json:"listingId"`
-	CheckIn         string  `json:"checkIn"`
-	CheckOut        string  `json:"checkOut"`
-	GuestCount      int     `json:"guestCount"`
-	SpecialRequests *string `json:"specialRequests"`
+	ListingID       uuid.UUID `json:"listingId"`
+	CheckIn         time.Time `json:"checkIn"`
+	CheckOut        time.Time `json:"checkOut"`
+	GuestCount      int       `json:"guestCount"`
+	SpecialRequests *string   `json:"specialRequests"`
 }
 
 // RequestBooking creates a manual-approval booking request
-func (r *Resolver) RequestBooking(ctx context.Context, input *RequestBookingInput) (*domain.Booking, error) {
+func (r *Resolver) RequestBooking(ctx context.Context, input RequestBookingInput) (*domain.Booking, error) {
 	// Get current user from context
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse listing ID
-	listingID, err := uuid.Parse(input.ListingID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid listing ID")
-	}
-
-	// Parse check-in and check-out times
-	checkIn, err := time.Parse(time.RFC3339, input.CheckIn)
-	if err != nil {
-		return nil, fmt.Errorf("invalid check-in time format, use RFC3339")
-	}
-
-	checkOut, err := time.Parse(time.RFC3339, input.CheckOut)
-	if err != nil {
-		return nil, fmt.Errorf("invalid check-out time format, use RFC3339")
-	}
-
 	booking, err := r.bookingService.RequestBooking(
 		ctx,
-		listingID,
+		input.ListingID,
 		userID,
-		checkIn,
-		checkOut,
+		input.CheckIn,
+		input.CheckOut,
 		input.GuestCount,
 		input.SpecialRequests,
 	)
 	if err != nil {
-		r.log.Logf("ERROR failed to create booking request: %v", err)
+		r.log.Error("failed to create booking request", "error", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO booking request created: %s", booking.ID)
+	r.log.Info("booking request created", "booking_id", booking.ID)
 	r.localizeBooking(ctx, booking)
 	return booking, nil
 }
 
 // PayForBookingInput represents the input for paying for an approved booking
 type PayForBookingInput struct {
-	BookingID       string  `json:"bookingId"`
-	PaymentMethodID *string `json:"paymentMethodId"`
+	BookingID       uuid.UUID  `json:"bookingId"`
+	PaymentMethodID *uuid.UUID `json:"paymentMethodId"`
 }
 
 // PayForBooking processes payment for an existing booking
-func (r *Resolver) PayForBooking(ctx context.Context, input *PayForBookingInput) (*CompleteBookingPayload, error) {
+func (r *Resolver) PayForBooking(ctx context.Context, input PayForBookingInput) (*CompleteBookingPayload, error) {
 	// Get current user from context
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	bookingID, err := uuid.Parse(input.BookingID)
+	booking, paymentResult, err := r.bookingService.PayForBooking(ctx, input.BookingID, userID, input.PaymentMethodID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid booking ID")
-	}
-
-	var paymentMethodID *uuid.UUID
-	if input.PaymentMethodID != nil {
-		pmID, err := uuid.Parse(*input.PaymentMethodID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid payment method ID")
-		}
-		paymentMethodID = &pmID
-	}
-
-	booking, paymentResult, err := r.bookingService.PayForBooking(ctx, bookingID, userID, paymentMethodID)
-	if err != nil {
-		r.log.Logf("ERROR failed to process payment for booking %s: %v", input.BookingID, err)
+		r.log.Error("failed to process payment for booking", "booking_id", input.BookingID, "error", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO payment processed for booking %s (payment=%s, status=%s)",
-		booking.ID, paymentResult.PaymentID, paymentResult.Status)
+	r.log.Info("payment processed for booking", "booking_id", booking.ID, "payment_id", paymentResult.PaymentID, "status", paymentResult.Status)
 
 	// Build response payload
 	payload := &CompleteBookingPayload{
@@ -352,55 +274,79 @@ func (r *Resolver) PayForBooking(ctx context.Context, input *PayForBookingInput)
 }
 
 // ConfirmBooking confirms a booking (for request-type bookings)
-func (r *Resolver) ConfirmBooking(ctx context.Context, bookingID string) (*domain.Booking, error) {
+func (r *Resolver) ConfirmBooking(ctx context.Context, bookingID uuid.UUID) (*domain.Booking, error) {
 	// Get current user from context
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	bID, err := uuid.Parse(bookingID)
+	booking, err := r.bookingService.ConfirmBooking(ctx, bookingID, userID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid booking ID")
-	}
-
-	booking, err := r.bookingService.ConfirmBooking(ctx, bID, userID)
-	if err != nil {
-		r.log.Logf("ERROR failed to confirm booking %s: %v", bookingID, err)
+		r.log.Error("failed to confirm booking", "booking_id", bookingID, "error", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO booking confirmed: %s", booking.ID)
+	r.log.Info("booking confirmed", "booking_id", booking.ID)
 	r.localizeBooking(ctx, booking)
 	return booking, nil
 }
 
 // CancelBookingInput represents the input for cancelling a booking
 type CancelBookingInput struct {
-	BookingID string  `json:"bookingId"`
-	Reason    *string `json:"reason"`
+	BookingID uuid.UUID `json:"bookingId"`
+	Reason    *string   `json:"reason"`
 }
 
 // CancelBooking cancels a booking
-func (r *Resolver) CancelBooking(ctx context.Context, input *CancelBookingInput) (*domain.Booking, error) {
+func (r *Resolver) CancelBooking(ctx context.Context, input CancelBookingInput) (*domain.Booking, error) {
 	// Get current user from context
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	bookingID, err := uuid.Parse(input.BookingID)
+	booking, err := r.bookingService.CancelBooking(ctx, input.BookingID, userID, input.Reason)
 	if err != nil {
-		return nil, fmt.Errorf("invalid booking ID")
-	}
-
-	booking, err := r.bookingService.CancelBooking(ctx, bookingID, userID, input.Reason)
-	if err != nil {
-		r.log.Logf("ERROR failed to cancel booking %s: %v", input.BookingID, err)
+		r.log.Error("failed to cancel booking", "booking_id", input.BookingID, "error", err)
 		return nil, err
 	}
 
-	r.log.Logf("INFO booking cancelled: %s", booking.ID)
+	r.log.Info("booking cancelled", "booking_id", booking.ID)
+	r.localizeBooking(ctx, booking)
+	return booking, nil
+}
+
+// CheckInBooking records an actual check-in time for a booking (host-only).
+func (r *Resolver) CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*domain.Booking, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	booking, err := r.bookingService.CheckInBooking(ctx, bookingID, userID)
+	if err != nil {
+		r.log.Error("failed to check in booking", "error", err)
+		return nil, err
+	}
+
+	r.localizeBooking(ctx, booking)
+	return booking, nil
+}
+
+// CheckOutBooking records an actual check-out time for a booking (host-only).
+func (r *Resolver) CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*domain.Booking, error) {
+	userID, err := getUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	booking, err := r.bookingService.CheckOutBooking(ctx, bookingID, userID)
+	if err != nil {
+		r.log.Error("failed to check out booking", "error", err)
+		return nil, err
+	}
+
 	r.localizeBooking(ctx, booking)
 	return booking, nil
 }
@@ -437,7 +383,7 @@ func (r *Resolver) localizeBookingQuote(ctx context.Context, quote *domain.Booki
 	rate, err := r.fx.GetExchangeRate(source, target)
 	if err != nil {
 		if r.log != nil {
-			r.log.Logf("WARN failed to convert booking quote listing=%s from=%s to=%s: %v", quote.ListingID, source, target, err)
+			r.log.Warn("failed to convert booking quote", "listing_id", quote.ListingID, "from", source, "to", target, "error", err)
 		}
 		return
 	}
@@ -473,7 +419,7 @@ func (r *Resolver) localizeBooking(ctx context.Context, booking *domain.Booking)
 	rate, err := r.fx.GetExchangeRate(source, target)
 	if err != nil {
 		if r.log != nil {
-			r.log.Logf("WARN failed to convert booking=%s from=%s to=%s: %v", booking.ID, source, target, err)
+			r.log.Warn("failed to convert booking", "booking_id", booking.ID, "from", source, "to", target, "error", err)
 		}
 		return
 	}

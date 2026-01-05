@@ -35,6 +35,7 @@ type CreatePaymentInput struct {
 
 // Validate validates the create payment input
 func (i *CreatePaymentInput) Validate() error {
+	i.Market = NormalizeMarket(i.Market)
 	if i.Amount <= 0 {
 		return ErrInvalidPaymentAmount
 	}
@@ -133,6 +134,7 @@ type CreatePayoutDetailInput struct {
 
 // Validate validates the create payout detail input
 func (i *CreatePayoutDetailInput) Validate() error {
+	i.Market = NormalizeMarket(i.Market)
 	if i.UserID == nil && i.BusinessID == nil {
 		return ErrMissingRequiredField
 	}

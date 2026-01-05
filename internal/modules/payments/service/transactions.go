@@ -10,11 +10,11 @@ import (
 
 // GetTransaction retrieves a transaction by ID
 func (s *PaymentServiceImpl) GetTransaction(ctx context.Context, id uuid.UUID) (*domain.Transaction, error) {
-	s.log.Logf("INFO fetching transaction: id=%s", id)
+	s.log.Info("fetching transaction", "id", id)
 
 	schemaTx, err := s.repo.GetTransactionByID(ctx, id)
 	if err != nil {
-		s.log.Logf("ERROR failed to get transaction %s: %v", id, err)
+		s.log.Error("failed to get transaction", "id", id, "error", err)
 		return nil, fmt.Errorf("failed to get transaction: %w", err)
 	}
 
@@ -27,11 +27,11 @@ func (s *PaymentServiceImpl) GetTransaction(ctx context.Context, id uuid.UUID) (
 
 // ListTransactionsByPayment lists transactions for a payment
 func (s *PaymentServiceImpl) ListTransactionsByPayment(ctx context.Context, paymentID uuid.UUID) ([]domain.Transaction, error) {
-	s.log.Logf("INFO listing transactions for payment=%s", paymentID)
+	s.log.Info("listing transactions for payment", "payment_id", paymentID)
 
 	schemaTxs, err := s.repo.ListTransactionsByPaymentID(ctx, paymentID)
 	if err != nil {
-		s.log.Logf("ERROR failed to list transactions for payment %s: %v", paymentID, err)
+		s.log.Error("failed to list transactions for payment", "payment_id", paymentID, "error", err)
 		return nil, fmt.Errorf("failed to list transactions: %w", err)
 	}
 
@@ -40,11 +40,11 @@ func (s *PaymentServiceImpl) ListTransactionsByPayment(ctx context.Context, paym
 
 // ListTransactionsByBooking lists transactions for a booking
 func (s *PaymentServiceImpl) ListTransactionsByBooking(ctx context.Context, bookingID uuid.UUID) ([]domain.Transaction, error) {
-	s.log.Logf("INFO listing transactions for booking=%s", bookingID)
+	s.log.Info("listing transactions for booking", "booking_id", bookingID)
 
 	schemaTxs, err := s.repo.ListTransactionsByBookingID(ctx, bookingID)
 	if err != nil {
-		s.log.Logf("ERROR failed to list transactions for booking %s: %v", bookingID, err)
+		s.log.Error("failed to list transactions for booking", "booking_id", bookingID, "error", err)
 		return nil, fmt.Errorf("failed to list transactions: %w", err)
 	}
 

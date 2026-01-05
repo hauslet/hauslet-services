@@ -73,15 +73,15 @@ func (s *BusinessServiceImpl) InviteUser(ctx context.Context, businessID uuid.UU
 	}
 
 	if err := s.repo.CreateInvitation(ctx, schemaInvitation); err != nil {
-		s.log.Logf("ERROR Failed to create invitation: %v", err)
+		s.log.Error("Failed to create invitation", "error", err)
 		return nil, fmt.Errorf("failed to create invitation: %w", err)
 	}
 
-	s.log.Logf("INFO Invitation created for %s to join business %s", email, businessID)
+	s.log.Info("Invitation created", "email", email, "business_id", businessID)
 	if s.notifier != nil {
 		business, err := s.GetBusiness(ctx, businessID)
 		if err != nil {
-			s.log.Logf("WARN Invitation created but failed to load business %s for email: %v", businessID, err)
+			s.log.Warn("Invitation created but failed to load business", "business_id", businessID, "error", err)
 		} else {
 			inviterName := s.getProfileName(ctx, invitedBy)
 			if inviterName == "" {
@@ -91,7 +91,7 @@ func (s *BusinessServiceImpl) InviteUser(ctx context.Context, businessID uuid.UU
 				inviterName = business.Name
 			}
 			if err := s.notifier.SendInvitationEmail(ctx, invitation, business, inviterName); err != nil {
-				s.log.Logf("WARN Failed to send invitation email for business %s: %v", businessID, err)
+				s.log.Warn("Failed to send invitation email", "business_id", businessID, "error", err)
 			}
 		}
 	}
@@ -166,14 +166,14 @@ func (s *BusinessServiceImpl) AcceptInvitation(ctx context.Context, token string
 	})
 
 	if err != nil {
-		s.log.Logf("ERROR Failed to accept invitation: %v", err)
+		s.log.Error("Failed to accept invitation", "error", err)
 		return nil, err
 	}
 
 	if s.notifier != nil {
 		business, err := s.GetBusiness(ctx, invitation.BusinessID)
 		if err != nil {
-			s.log.Logf("WARN Invitation accepted but failed to load business %s for email: %v", invitation.BusinessID, err)
+			s.log.Warn("Invitation accepted but failed to load business", "business_id", invitation.BusinessID, "error", err)
 		} else {
 			acceptedName := s.getProfileName(ctx, userID)
 			if acceptedName == "" {
@@ -189,17 +189,17 @@ func (s *BusinessServiceImpl) AcceptInvitation(ctx context.Context, token string
 
 			if len(ownerEmails) > 0 {
 				if err := s.notifier.SendInvitationAcceptedEmail(ctx, business, acceptedName, invitation.Email, invitation.Role, ownerEmails); err != nil {
-					s.log.Logf("WARN Failed to send invitation accepted email for business %s: %v", business.ID, err)
+					s.log.Warn("Failed to send invitation accepted email", "business_id", business.ID, "error", err)
 				}
 			}
 
 			if err := s.notifier.SendMemberAddedEmail(ctx, member, business, acceptedName, invitation.Email, "Invitation accepted"); err != nil {
-				s.log.Logf("WARN Failed to send member added email for business %s: %v", business.ID, err)
+				s.log.Warn("Failed to send member added email", "business_id", business.ID, "error", err)
 			}
 		}
 	}
 
-	s.log.Logf("INFO User %s accepted invitation to business %s", userID, invitation.BusinessID)
+	s.log.Info("User accepted invitation to business", "user_id", userID, "business_id", invitation.BusinessID)
 	return member, nil
 }
 
@@ -226,14 +226,14 @@ func (s *BusinessServiceImpl) DeclineInvitation(ctx context.Context, token strin
 	schemaInvitation.UpdatedAt = time.Now()
 
 	if err := s.repo.UpdateInvitation(ctx, schemaInvitation); err != nil {
-		s.log.Logf("ERROR Failed to decline invitation: %v", err)
+		s.log.Error("Failed to decline invitation", "error", err)
 		return fmt.Errorf("failed to decline invitation: %w", err)
 	}
 
 	if s.notifier != nil {
 		business, err := s.GetBusiness(ctx, invitation.BusinessID)
 		if err != nil {
-			s.log.Logf("WARN Invitation declined but failed to load business %s for email: %v", invitation.BusinessID, err)
+			s.log.Warn("Invitation declined but failed to load business", "business_id", invitation.BusinessID, "error", err)
 		} else {
 			declinerName := s.getProfileName(ctx, userID)
 			if declinerName == "" {
@@ -248,13 +248,13 @@ func (s *BusinessServiceImpl) DeclineInvitation(ctx context.Context, token strin
 			}
 			if len(ownerEmails) > 0 {
 				if err := s.notifier.SendInvitationDeclinedEmail(ctx, business, declinerName, invitation.Email, ownerEmails); err != nil {
-					s.log.Logf("WARN Failed to send invitation declined email for business %s: %v", business.ID, err)
+					s.log.Warn("Failed to send invitation declined email", "business_id", business.ID, "error", err)
 				}
 			}
 		}
 	}
 
-	s.log.Logf("INFO User %s declined invitation to business %s", userID, invitation.BusinessID)
+	s.log.Info("User declined invitation to business", "user_id", userID, "business_id", invitation.BusinessID)
 	return nil
 }
 
@@ -290,11 +290,11 @@ func (s *BusinessServiceImpl) RevokeInvitation(ctx context.Context, invitationID
 	schemaInvitation.UpdatedAt = time.Now()
 
 	if err := s.repo.UpdateInvitation(ctx, schemaInvitation); err != nil {
-		s.log.Logf("ERROR Failed to revoke invitation: %v", err)
+		s.log.Error("Failed to revoke invitation", "error", err)
 		return fmt.Errorf("failed to revoke invitation: %w", err)
 	}
 
-	s.log.Logf("INFO Invitation %s revoked by user %s", invitationID, revokedBy)
+	s.log.Info("Invitation revoked", "invitation_id", invitationID, "revoked_by", revokedBy)
 	return nil
 }
 

@@ -224,6 +224,7 @@ func MapDisputeFromSchema(s *schema.Dispute) *Dispute {
 		ID:            s.ID,
 		BookingID:     s.BookingID,
 		WalletID:      s.WalletID,
+		PaymentID:     s.PaymentID,
 		FiledBy:       DisputeParty(s.FiledBy),
 		FiledByID:     s.FiledByID,
 		Reason:        DisputeReason(s.Reason),
@@ -266,6 +267,7 @@ func MapDisputeToSchema(d *Dispute) *schema.Dispute {
 		ID:            d.ID,
 		BookingID:     d.BookingID,
 		WalletID:      d.WalletID,
+		PaymentID:     d.PaymentID,
 		FiledBy:       d.FiledBy.String(),
 		FiledByID:     d.FiledByID,
 		Reason:        d.Reason.String(),
@@ -282,5 +284,100 @@ func MapDisputeToSchema(d *Dispute) *schema.Dispute {
 		TransactionID: d.TransactionID,
 		CreatedAt:     d.CreatedAt,
 		UpdatedAt:     d.UpdatedAt,
+	}
+}
+
+// MapReconciliationReportFromSchema converts schema.ReconciliationReport to domain.ReconciliationReport
+func MapReconciliationReportFromSchema(s *schema.ReconciliationReport) *ReconciliationReport {
+	if s == nil {
+		return nil
+	}
+
+	return &ReconciliationReport{
+		ID:                       s.ID,
+		Status:                   ReconciliationStatus(s.Status),
+		StartedAt:                s.StartedAt,
+		CompletedAt:              s.CompletedAt,
+		TotalWalletsChecked:      s.TotalWalletsChecked,
+		TotalTransactionsChecked: s.TotalTransactionsChecked,
+		DiscrepanciesFound:       s.DiscrepanciesFound,
+		Summary:                  s.Summary,
+		ErrorMessage:             s.ErrorMessage,
+		CreatedAt:                s.CreatedAt,
+		UpdatedAt:                s.UpdatedAt,
+	}
+}
+
+// MapReconciliationReportToSchema converts domain.ReconciliationReport to schema.ReconciliationReport
+func MapReconciliationReportToSchema(d *ReconciliationReport) *schema.ReconciliationReport {
+	if d == nil {
+		return nil
+	}
+
+	return &schema.ReconciliationReport{
+		ID:                       d.ID,
+		Status:                   d.Status.String(),
+		StartedAt:                d.StartedAt,
+		CompletedAt:              d.CompletedAt,
+		TotalWalletsChecked:      d.TotalWalletsChecked,
+		TotalTransactionsChecked: d.TotalTransactionsChecked,
+		DiscrepanciesFound:       d.DiscrepanciesFound,
+		Summary:                  d.Summary,
+		ErrorMessage:             d.ErrorMessage,
+		CreatedAt:                d.CreatedAt,
+		UpdatedAt:                d.UpdatedAt,
+	}
+}
+
+// MapDiscrepancyFromSchema converts schema.Discrepancy to domain.Discrepancy
+func MapDiscrepancyFromSchema(s *schema.Discrepancy) *Discrepancy {
+	if s == nil {
+		return nil
+	}
+
+	var details map[string]interface{}
+	if s.Details != "" {
+		json.Unmarshal([]byte(s.Details), &details)
+	}
+
+	return &Discrepancy{
+		ID:            s.ID,
+		ReportID:      s.ReportID,
+		Type:          DiscrepancyType(s.Type),
+		Severity:      DiscrepancySeverity(s.Severity),
+		WalletID:      s.WalletID,
+		TransactionID: s.TransactionID,
+		Description:   s.Description,
+		ExpectedValue: s.ExpectedValue,
+		ActualValue:   s.ActualValue,
+		Details:       details,
+		CreatedAt:     s.CreatedAt,
+	}
+}
+
+// MapDiscrepancyToSchema converts domain.Discrepancy to schema.Discrepancy
+func MapDiscrepancyToSchema(d *Discrepancy) *schema.Discrepancy {
+	if d == nil {
+		return nil
+	}
+
+	var detailsJSON string
+	if d.Details != nil {
+		bytes, _ := json.Marshal(d.Details)
+		detailsJSON = string(bytes)
+	}
+
+	return &schema.Discrepancy{
+		ID:            d.ID,
+		ReportID:      d.ReportID,
+		Type:          d.Type.String(),
+		Severity:      d.Severity.String(),
+		WalletID:      d.WalletID,
+		TransactionID: d.TransactionID,
+		Description:   d.Description,
+		ExpectedValue: d.ExpectedValue,
+		ActualValue:   d.ActualValue,
+		Details:       detailsJSON,
+		CreatedAt:     d.CreatedAt,
 	}
 }
