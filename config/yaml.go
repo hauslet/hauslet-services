@@ -15,6 +15,7 @@ type ServiceConfig struct {
 	Features  FeatureYAMLConfig   `yaml:"features"`
 	Platform  PlatformYAMLConfig  `yaml:"platform"`
 	Promotion PromotionYAMLConfig `yaml:"promotion"`
+	RateLimit RateLimitYAMLConfig `yaml:"ratelimit"`
 }
 
 // CalendarYAMLConfig defines calendar service settings
@@ -134,6 +135,42 @@ type PlatformReviewConfig struct {
 	ReviewWindowDays int `yaml:"review_window_days"`
 }
 
+// RateLimitYAMLConfig defines rate limiting rules
+type RateLimitYAMLConfig struct {
+	Verification VerificationRateLimits `yaml:"verification"`
+	Leads        LeadsRateLimits        `yaml:"leads"`
+}
+
+// VerificationRateLimits defines rate limits for verification operations
+type VerificationRateLimits struct {
+	User    RateLimitRule `yaml:"user"`    // Per user limits
+	IP      RateLimitRule `yaml:"ip"`      // Per IP address limits
+	Phone   RateLimitRule `yaml:"phone"`   // Per phone number limits
+	Country RateLimitRule `yaml:"country"` // Per country limits
+}
+
+// RateLimitRule defines a single rate limit rule
+type RateLimitRule struct {
+	Limit  int64  `yaml:"limit"`  // Maximum allowed requests
+	Window string `yaml:"window"` // Time window (e.g., "24h", "1h")
+}
+
+// LeadsRateLimits defines rate limits for lead submissions.
+type LeadsRateLimits struct {
+	Window        string              `yaml:"window"` // Time window (e.g., "24h")
+	Anonymous     LeadsRateLimitTier  `yaml:"anonymous"`
+	Authenticated LeadsRateLimitTier  `yaml:"authenticated"`
+}
+
+// LeadsRateLimitTier defines rate limits for a requester tier.
+type LeadsRateLimitTier struct {
+	PerEmail        int64 `yaml:"per_email"`
+	PerIP           int64 `yaml:"per_ip"`
+	PerListingEmail int64 `yaml:"per_listing_email"`
+	PerListingIP    int64 `yaml:"per_listing_ip"`
+	PerUser         int64 `yaml:"per_user"`
+}
+
 // LoadYAMLConfig loads service configuration from YAML files
 // It loads from defaults/ and optionally overrides/ directories
 func LoadYAMLConfig() (*ServiceConfig, error) {
@@ -168,7 +205,7 @@ func loadYAMLConfigFromPaths(defaultsPath, overridesPath string) (*ServiceConfig
 
 // loadYAMLFiles loads all YAML files from a directory into the config
 func loadYAMLFiles(cfg *ServiceConfig, dirPath string) error {
-	files := []string{"calendar.yaml", "queue.yaml", "features.yaml", "platform.yaml", "promotion.yaml"}
+	files := []string{"calendar.yaml", "queue.yaml", "features.yaml", "platform.yaml", "promotion.yaml", "ratelimit.yaml"}
 
 	for _, filename := range files {
 		filePath := filepath.Join(dirPath, filename)

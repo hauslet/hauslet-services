@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"fmt"
+	authmiddleware "hauslet/internal/modules/auth/middleware"
 	"hauslet/internal/modules/leads/domain"
 	"hauslet/internal/modules/leads/service"
 	"hauslet/internal/transport/graph/viewer"
@@ -332,21 +333,15 @@ func (r *Resolver) LeadHistory(ctx context.Context, leadID string) ([]*domain.Le
 // Helper functions
 
 func extractIPFromContext(ctx context.Context) string {
-	// This would be implemented to extract IP from request headers
-	// For now, return empty string
-	return ""
+	return authmiddleware.GetIPFromContext(ctx)
 }
 
 func extractUserAgentFromContext(ctx context.Context) string {
-	// This would be implemented to extract User-Agent from request headers
-	// For now, return empty string
-	return ""
+	return authmiddleware.GetUserAgentFromContext(ctx)
 }
 
 func extractReferrerFromContext(ctx context.Context) string {
-	// This would be implemented to extract Referer from request headers
-	// For now, return empty string
-	return ""
+	return authmiddleware.GetReferrerFromContext(ctx)
 }
 
 func mapLeadSource(s string) domain.LeadSource {

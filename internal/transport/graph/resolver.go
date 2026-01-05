@@ -10,12 +10,12 @@ import (
 	businessservice "hauslet/internal/modules/business/service"
 	calendargraphql "hauslet/internal/modules/calendar/port/graphql"
 	calendarservice "hauslet/internal/modules/calendar/service"
+	discoverygraphql "hauslet/internal/modules/discovery/port/graphql"
+	discoveryservice "hauslet/internal/modules/discovery/service"
 	financegraphql "hauslet/internal/modules/finance/port/graphql"
 	financeservice "hauslet/internal/modules/finance/service"
 	interactionsgraphql "hauslet/internal/modules/interactions/port/graphql"
 	interactionsservice "hauslet/internal/modules/interactions/service"
-	discoverygraphql "hauslet/internal/modules/discovery/port/graphql"
-	discoveryservice "hauslet/internal/modules/discovery/service"
 	leadsgraphql "hauslet/internal/modules/leads/port/graphql"
 	leadsservice "hauslet/internal/modules/leads/service"
 	paymentsgraphql "hauslet/internal/modules/payments/port/graphql"
@@ -28,6 +28,8 @@ import (
 	propertyservice "hauslet/internal/modules/property/service"
 	reviewgraphql "hauslet/internal/modules/review/port/graphql"
 	reviewservice "hauslet/internal/modules/review/service"
+	verificationgraphql "hauslet/internal/modules/verification/port/graphql"
+	verificationservice "hauslet/internal/modules/verification/service"
 	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
 	"hauslet/internal/platform/xchange"
@@ -51,6 +53,7 @@ type Resolver struct {
 	LeadResolver         *leadsgraphql.Resolver
 	InteractionsResolver *interactionsgraphql.Resolver
 	DiscoveryResolver    *discoverygraphql.Resolver
+	VerificationResolver *verificationgraphql.Resolver
 }
 
 func NewResolver(
@@ -72,6 +75,7 @@ func NewResolver(
 	interactionsTracker interactionsservice.TrackerService,
 	interactionsReader interactionsservice.ReaderService,
 	discoverySvc discoveryservice.DiscoveryService,
+	verificationSvc verificationservice.VerificationService,
 	fxClient xchange.XChange,
 	appCfg *cfg.GlobalConfig,
 	log *slog.Logger,
@@ -92,5 +96,6 @@ func NewResolver(
 		LeadResolver:         leadsgraphql.NewResolver(leadSvc, log),
 		InteractionsResolver: interactionsgraphql.NewResolver(interactionsTracker, interactionsReader, log),
 		DiscoveryResolver:    discoverygraphql.NewResolver(discoverySvc, log),
+		VerificationResolver: verificationgraphql.NewResolver(verificationSvc, log),
 	}
 }

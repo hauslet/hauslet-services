@@ -10,7 +10,7 @@ import (
 	"hauslet/internal/modules/payments/service"
 	"hauslet/internal/platform/payment"
 	platformQueue "hauslet/internal/platform/queue"
-	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/ratelimit"
 	paymentJob "hauslet/internal/queue/jobs/payments"
 	"io"
 	"log/slog"
@@ -93,10 +93,26 @@ func (h *WebhookHandler) SetupRoutes(r chi.Router) {
 }
 
 // SetupRoutesWithRateLimiting configures webhook routes with rate limiting for production
-func (h *WebhookHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient redis.RedisClient) {
+func (h *WebhookHandler) SetupRoutesWithRateLimiting(r chi.Router, limiter ratelimit.Limiter) {
 	// Helper to apply rate limiting
 	applyRateLimit := func(config middleware.RateLimitConfig) func(http.Handler) http.Handler {
-		return middleware.RateLimit(config, redisClient)
+		policy := middleware.RateLimitPolicy{
+			Keys: func(r *http.Request) []ratelimit.LimitKey {
+				ip := middleware.ClientIP(r)
+				if ip == "" {
+					return nil
+				}
+				return []ratelimit.LimitKey{
+					{
+						Type:   ratelimit.KeyTypeIP,
+						Value:  ip,
+						Limit:  int64(config.Requests),
+						Window: config.Window,
+					},
+				}
+			},
+		}
+		return middleware.RateLimitWithLimiter(limiter, policy)
 	}
 
 	// Webhook endpoint with rate limiting

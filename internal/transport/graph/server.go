@@ -7,12 +7,13 @@ import (
 
 	"hauslet/cmd/api/server/middleware"
 	"hauslet/config"
+	authmiddleware "hauslet/internal/modules/auth/middleware"
 	"hauslet/internal/modules/auth/service"
 	bookingservice "hauslet/internal/modules/booking/service"
 	businessservice "hauslet/internal/modules/business/service"
 	calendarservice "hauslet/internal/modules/calendar/service"
-	financeservice "hauslet/internal/modules/finance/service"
 	discoveryservice "hauslet/internal/modules/discovery/service"
+	financeservice "hauslet/internal/modules/finance/service"
 	interactionsservice "hauslet/internal/modules/interactions/service"
 	leadsservice "hauslet/internal/modules/leads/service"
 	paymentsservice "hauslet/internal/modules/payments/service"
@@ -20,8 +21,9 @@ import (
 	promotionservice "hauslet/internal/modules/promotions/service"
 	propertyservice "hauslet/internal/modules/property/service"
 	reviewservice "hauslet/internal/modules/review/service"
+	verificationservice "hauslet/internal/modules/verification/service"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
-	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/ratelimit"
 	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/viewer"
@@ -55,9 +57,10 @@ func SetupGraphQL(r chi.Router,
 	interactionsTracker interactionsservice.TrackerService,
 	interactionsReader interactionsservice.ReaderService,
 	discoveryService discoveryservice.DiscoveryService,
+	verificationService verificationservice.VerificationService,
 	tenantSlugMiddleware func(http.Handler) http.Handler,
 	fxClient xchange.XChange,
-	redisClient *redis.RedisClient,
+	rateLimiter ratelimit.Limiter,
 	cfg *config.GlobalConfig,
 	log *slog.Logger) {
 
@@ -82,6 +85,7 @@ func SetupGraphQL(r chi.Router,
 				interactionsTracker,
 				interactionsReader,
 				discoveryService,
+				verificationService,
 				fxClient,
 				cfg,
 				log,
@@ -109,6 +113,7 @@ func SetupGraphQL(r chi.Router,
 
 	authMiddleware := authService.OAuthService().Middleware()
 	r.Group(func(r chi.Router) {
+		r.Use(authmiddleware.RequestContext)
 
 		// Optional: Middleware to extract User from JWT and put in Context
 		r.Use(authMiddleware.Trace)
@@ -124,12 +129,24 @@ func SetupGraphQL(r chi.Router,
 		r.Use(loaders.Middleware(profileService, propertyService))
 
 		// Apply rate limiting in production
-		if cfg.App.Env == "production" && redisClient != nil {
-			rateLimitMiddleware := middleware.RateLimit(middleware.RateLimitConfig{
-				Requests: 60, // 60 requests per minute for GraphQL
-				Window:   time.Minute,
-			}, *redisClient)
-			r.Use(rateLimitMiddleware)
+		if cfg.App.Env == "production" && rateLimiter != nil {
+			policy := middleware.RateLimitPolicy{
+				Keys: func(r *http.Request) []ratelimit.LimitKey {
+					ip := middleware.ClientIP(r)
+					if ip == "" {
+						return nil
+					}
+					return []ratelimit.LimitKey{
+						{
+							Type:   ratelimit.KeyTypeIP,
+							Value:  ip,
+							Limit:  60,
+							Window: time.Minute,
+						},
+					}
+				},
+			}
+			r.Use(middleware.RateLimitWithLimiter(rateLimiter, policy))
 			log.Info("GraphQL rate limiting enabled: 60 req/min")
 		}
 

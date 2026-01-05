@@ -302,6 +302,42 @@ func (s *BusinessServiceImpl) SearchBusinesses(ctx context.Context, query string
 	return domain.MapBusinessesFromSchema(schemaBusinesses), nil
 }
 
+// SetVerificationStatus updates the business verification status
+func (s *BusinessServiceImpl) SetVerificationStatus(ctx context.Context, businessID uuid.UUID, verified bool, verifiedAt *time.Time) error {
+	if businessID == uuid.Nil {
+		return fmt.Errorf("business ID is required")
+	}
+
+	schemaBusiness, err := s.repo.GetBusinessByID(ctx, businessID)
+	if err != nil {
+		return fmt.Errorf("failed to get business: %w", err)
+	}
+	if schemaBusiness == nil {
+		return fmt.Errorf("business not found")
+	}
+
+	schemaBusiness.IsVerified = verified
+	if verified {
+		if verifiedAt != nil {
+			schemaBusiness.VerifiedAt = verifiedAt
+		} else {
+			now := time.Now()
+			schemaBusiness.VerifiedAt = &now
+		}
+	} else {
+		schemaBusiness.VerifiedAt = nil
+	}
+	schemaBusiness.UpdatedAt = time.Now()
+
+	if err := s.repo.UpdateBusiness(ctx, schemaBusiness); err != nil {
+		s.log.Error("Failed to update business verification status", "business_id", businessID, "error", err)
+		return fmt.Errorf("failed to update business verification status: %w", err)
+	}
+
+	s.log.Info("Updated business verification status", "business_id", businessID, "verified", verified)
+	return nil
+}
+
 // generateSlug generates a URL-friendly slug from a name
 func generateSlug(name string) string {
 	slug := strings.ToLower(name)

@@ -11,7 +11,7 @@ import (
 func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 	// Setup auth routes with optional rate limiting in production
 	if cfg.App.Env == "production" {
-		container.AuthHTTP.SetupRoutesWithRateLimiting(r, *container.Redis)
+		container.AuthHTTP.SetupRoutesWithRateLimiting(r, container.RateLimiter)
 	} else {
 		container.AuthHTTP.SetupRoutes(r)
 	}
@@ -19,7 +19,7 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 	// Setup property routes with optional rate limiting in production
 	if cfg.App.Env == "production" {
 		r.Group(func(r chi.Router) {
-			container.PropertyHTTP.SetupRoutesWithRateLimiting(r, container.AuthSvc, *container.Redis, container.BusinessMW)
+			container.PropertyHTTP.SetupRoutesWithRateLimiting(r, container.AuthSvc, container.RateLimiter, container.BusinessMW)
 		})
 	} else {
 		r.Group(func(r chi.Router) {
@@ -30,7 +30,7 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 	// Setup calendar routes with optional rate limiting in production
 	if cfg.App.Env == "production" {
 		r.Group(func(r chi.Router) {
-			container.CalendarHTTP.SetupRoutesWithRateLimiting(r, container.AuthSvc, *container.Redis, container.BusinessMW)
+			container.CalendarHTTP.SetupRoutesWithRateLimiting(r, container.AuthSvc, container.RateLimiter, container.BusinessMW)
 		})
 	} else {
 		r.Group(func(r chi.Router) {
@@ -40,9 +40,16 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 
 	// Setup payment webhook routes with optional rate limiting in production
 	if cfg.App.Env == "production" {
-		container.PaymentWebhookHTTP.SetupRoutesWithRateLimiting(r, *container.Redis)
+		container.PaymentWebhookHTTP.SetupRoutesWithRateLimiting(r, container.RateLimiter)
 	} else {
 		container.PaymentWebhookHTTP.SetupRoutes(r)
+	}
+
+	// Setup verification webhook routes with optional rate limiting in production
+	if cfg.App.Env == "production" {
+		container.VerificationWebhookHTTP.SetupRoutesWithRateLimiting(r, container.RateLimiter)
+	} else {
+		container.VerificationWebhookHTTP.SetupRoutes(r)
 	}
 
 	// Setup GraphQL routes
@@ -65,9 +72,10 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		container.InteractionTracker,
 		container.InteractionReader,
 		container.DiscoverySvc,
+		container.VerificationSvc,
 		container.BusinessMW.Auth.WithTenantSlug,
 		container.FXClient,
-		container.Redis,
+		container.RateLimiter,
 		cfg,
 		container.Logger,
 	)

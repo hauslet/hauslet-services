@@ -71,6 +71,8 @@ type ServicesConfig struct {
 	Calendar  CalendarConfig
 	Payment   PaymentConfig
 	FX        FXConfig
+	KYC       KYCConfig
+	SMS       SMSConfig
 }
 
 type EmailConfig struct {
@@ -128,6 +130,23 @@ type PaymentConfig struct {
 type FXConfig struct {
 	APIKey  string
 	BaseURL string
+}
+
+type KYCConfig struct {
+	DojahAPIKey         string
+	DojahSecretKey      string
+	DojahWebhookSecret  string
+	VeriffAPIKey        string
+	VeriffSecretKey     string
+	VeriffWebhookSecret string
+}
+
+type SMSConfig struct {
+	TermiiAPIKey      string
+	TermiiSenderID    string
+	TwilioAccountSID  string
+	TwilioAuthToken   string
+	TwilioFromNumber  string
 }
 
 type InfraConfig struct {

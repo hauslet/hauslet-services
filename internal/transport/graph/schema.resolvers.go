@@ -30,6 +30,8 @@ import (
 	"hauslet/internal/modules/property/domain"
 	domain8 "hauslet/internal/modules/review/domain"
 	graphql3 "hauslet/internal/modules/review/port/graphql"
+	domain12 "hauslet/internal/modules/verification/domain"
+	graphql6 "hauslet/internal/modules/verification/port/graphql"
 	domain4 "hauslet/internal/modules/wishlist/domain"
 	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
 	"hauslet/internal/platform/payment"
@@ -796,6 +798,51 @@ func (r *mutationResolver) DeleteLead(ctx context.Context, leadID string) (bool,
 // TrackInteraction is the resolver for the trackInteraction field.
 func (r *mutationResolver) TrackInteraction(ctx context.Context, input interactionsgraphql.TrackInteractionInput) (bool, error) {
 	return r.InteractionsResolver.TrackInteraction(ctx, input)
+}
+
+// CreatePhoneVerification is the resolver for the createPhoneVerification field.
+func (r *mutationResolver) CreatePhoneVerification(ctx context.Context, input graphql6.CreatePhoneVerificationInput) (*domain12.VerificationSession, error) {
+	return r.VerificationResolver.CreatePhoneVerification(ctx, input)
+}
+
+// GeneratePhoneOtp is the resolver for the generatePhoneOTP field.
+func (r *mutationResolver) GeneratePhoneOtp(ctx context.Context, sessionID uuid.UUID) (*graphql6.OTPResponse, error) {
+	return r.VerificationResolver.GeneratePhoneOTP(ctx, sessionID)
+}
+
+// VerifyPhoneOtp is the resolver for the verifyPhoneOTP field.
+func (r *mutationResolver) VerifyPhoneOtp(ctx context.Context, sessionID uuid.UUID, code string) (*graphql6.OTPVerificationResponse, error) {
+	return r.VerificationResolver.VerifyPhoneOTP(ctx, sessionID, code)
+}
+
+// CreateIdentityVerification is the resolver for the createIdentityVerification field.
+func (r *mutationResolver) CreateIdentityVerification(ctx context.Context, input graphql6.CreateIdentityVerificationInput) (*domain12.VerificationSession, error) {
+	return r.VerificationResolver.CreateIdentityVerification(ctx, input)
+}
+
+// SubmitIdentityVerification is the resolver for the submitIdentityVerification field.
+func (r *mutationResolver) SubmitIdentityVerification(ctx context.Context, input graphql6.SubmitIdentityVerificationInput) (*graphql6.VerificationSubmitResponse, error) {
+	return r.VerificationResolver.SubmitIdentityVerification(ctx, input)
+}
+
+// CreateAddressVerification is the resolver for the createAddressVerification field.
+func (r *mutationResolver) CreateAddressVerification(ctx context.Context, input graphql6.CreateAddressVerificationInput) (*domain12.VerificationSession, error) {
+	return r.VerificationResolver.CreateAddressVerification(ctx, input)
+}
+
+// SubmitAddressVerification is the resolver for the submitAddressVerification field.
+func (r *mutationResolver) SubmitAddressVerification(ctx context.Context, input graphql6.SubmitAddressVerificationInput) (*graphql6.VerificationSubmitResponse, error) {
+	return r.VerificationResolver.SubmitAddressVerification(ctx, input)
+}
+
+// CreateBusinessVerification is the resolver for the createBusinessVerification field.
+func (r *mutationResolver) CreateBusinessVerification(ctx context.Context, input graphql6.CreateBusinessVerificationInput) (*domain12.VerificationSession, error) {
+	return r.VerificationResolver.CreateBusinessVerification(ctx, input)
+}
+
+// SubmitBusinessVerification is the resolver for the submitBusinessVerification field.
+func (r *mutationResolver) SubmitBusinessVerification(ctx context.Context, input graphql6.SubmitBusinessVerificationInput) (*graphql6.VerificationSubmitResponse, error) {
+	return r.VerificationResolver.SubmitBusinessVerification(ctx, input)
 }
 
 // Currency is the resolver for the currency field.
@@ -1676,6 +1723,21 @@ func (r *queryResolver) DiscoverSimilar(ctx context.Context, listingID uuid.UUID
 	return r.DiscoveryResolver.DiscoverSimilar(ctx, listingID, limit)
 }
 
+// MyVerificationSession is the resolver for the myVerificationSession field.
+func (r *queryResolver) MyVerificationSession(ctx context.Context, typeArg domain12.VerificationType) (*domain12.VerificationSession, error) {
+	return r.VerificationResolver.MyVerificationSession(ctx, typeArg)
+}
+
+// VerificationSession is the resolver for the verificationSession field.
+func (r *queryResolver) VerificationSession(ctx context.Context, id uuid.UUID) (*domain12.VerificationSession, error) {
+	return r.VerificationResolver.VerificationSession(ctx, id)
+}
+
+// VerificationAttempts is the resolver for the verificationAttempts field.
+func (r *queryResolver) VerificationAttempts(ctx context.Context, sessionID uuid.UUID) ([]*domain12.VerificationAttempt, error) {
+	return r.VerificationResolver.VerificationAttempts(ctx, sessionID)
+}
+
 // OneStar is the resolver for the oneStar field.
 func (r *ratingDistributionResolver) OneStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
 	return obj.OneStarCount, nil
@@ -1886,6 +1948,16 @@ func (r *usageTrackingResolver) PremiumPromotionsUsed(ctx context.Context, obj *
 		return 0, nil
 	}
 	return obj.PremiumUsed, nil
+}
+
+// Status is the resolver for the status field.
+func (r *verificationAttemptResolver) Status(ctx context.Context, obj *domain12.VerificationAttempt) (string, error) {
+	panic(fmt.Errorf("not implemented: Status - status"))
+}
+
+// ProcessingTimeMs is the resolver for the processingTimeMs field.
+func (r *verificationAttemptResolver) ProcessingTimeMs(ctx context.Context, obj *domain12.VerificationAttempt) (*int, error) {
+	panic(fmt.Errorf("not implemented: ProcessingTimeMs - processingTimeMs"))
 }
 
 // OwnerType is the resolver for the ownerType field.
@@ -2115,6 +2187,11 @@ func (r *Resolver) TravelCompanion() TravelCompanionResolver { return &travelCom
 // UsageTracking returns UsageTrackingResolver implementation.
 func (r *Resolver) UsageTracking() UsageTrackingResolver { return &usageTrackingResolver{r} }
 
+// VerificationAttempt returns VerificationAttemptResolver implementation.
+func (r *Resolver) VerificationAttempt() VerificationAttemptResolver {
+	return &verificationAttemptResolver{r}
+}
+
 // Wallet returns WalletResolver implementation.
 func (r *Resolver) Wallet() WalletResolver { return &walletResolver{r} }
 
@@ -2184,6 +2261,7 @@ type subRatingsResolver struct{ *Resolver }
 type transactionResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }
 type usageTrackingResolver struct{ *Resolver }
+type verificationAttemptResolver struct{ *Resolver }
 type walletResolver struct{ *Resolver }
 type wishlistResolver struct{ *Resolver }
 type wishlistItemResolver struct{ *Resolver }
@@ -2193,16 +2271,3 @@ type createPaymentMethodInputResolver struct{ *Resolver }
 type createPayoutInputResolver struct{ *Resolver }
 type createReviewInputResolver struct{ *Resolver }
 type refundPaymentInputResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *paymentMethodResolver) AccountName(ctx context.Context, obj *domain6.PaymentMethod) (*string, error) {
-	// Bank account name not currently tracked in PaymentMethod domain
-	return nil, nil
-}
-*/

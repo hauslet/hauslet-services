@@ -74,7 +74,7 @@ func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*d
 		ipAddress = *input.IPAddress
 	}
 
-	if err := s.rateLimiter.CheckRateLimit(ctx, input.Email, ipAddress, input.ListingID); err != nil {
+	if err := s.rateLimiter.CheckRateLimit(ctx, input.UserID, input.Email, ipAddress, input.ListingID); err != nil {
 		s.log.Warn("rate limit exceeded", "email", input.Email, "ip", ipAddress, "listing_id", input.ListingID)
 		return nil, err
 	}

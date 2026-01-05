@@ -67,15 +67,17 @@ func (s *AuthServiceImpl) DeleteEmailOTP(ctx context.Context, email string) erro
 
 // generateSecureOTP generates a cryptographically secure 6-digit OTP
 func generateSecureOTP() (string, error) {
-	// Generate a random number between 100000 and 999999
-	min := int64(100000)
-	max := int64(999999)
+	// Define the maximum value (exclusive) for a 6-digit number: 1,000,000
+	// This gives us a range of 0 to 999999
+	max := big.NewInt(1000000)
 
-	n, err := rand.Int(rand.Reader, big.NewInt(max-min+1))
+	// Generate a cryptographically secure random integer
+	n, err := rand.Int(rand.Reader, max)
 	if err != nil {
-		return "", err
+		// In production, this usually indicates a system-level issue (entropy exhaustion)
+		return "", fmt.Errorf("failed to generate secure random number: %w", err)
 	}
 
-	code := n.Int64() + min
-	return fmt.Sprintf("%06d", code), nil
+	// Format as 6 digits with leading zeros (e.g., "004123")
+	return fmt.Sprintf("%06d", n.Int64()), nil
 }

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/ratelimit"
 
 	"github.com/go-chi/chi/v5"
 	authmw "github.com/go-pkgz/auth/middleware"
@@ -88,7 +88,7 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 }
 
 // SetupRoutesWithRateLimiting configures auth routes with rate limiting (caller decides when to use)
-func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient redis.RedisClient) {
+func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, limiter ratelimit.Limiter) {
 	// Mount go-pkgz/auth's built-in routes with metadata capture
 	authRoutes, avatarRoutes := h.authService.OAuthService().Handlers()
 
@@ -100,9 +100,25 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, redisClient redi
 
 	r.Mount("/avatar", avatarRoutes)
 
-	// Helper to conditionally apply rate limiting
+	// Helper to apply rate limiting
 	applyRateLimit := func(config middleware.RateLimitConfig) func(http.Handler) http.Handler {
-		return middleware.RateLimit(config, redisClient)
+		policy := middleware.RateLimitPolicy{
+			Keys: func(r *http.Request) []ratelimit.LimitKey {
+				ip := middleware.ClientIP(r)
+				if ip == "" {
+					return nil
+				}
+				return []ratelimit.LimitKey{
+					{
+						Type:   ratelimit.KeyTypeIP,
+						Value:  ip,
+						Limit:  int64(config.Requests),
+						Window: config.Window,
+					},
+				}
+			},
+		}
+		return middleware.RateLimitWithLimiter(limiter, policy)
 	}
 
 	// Registration: Aggressive rate limiting (prevent bot signups)

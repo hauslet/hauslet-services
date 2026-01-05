@@ -104,6 +104,21 @@ func Load() *GlobalConfig {
 					APIKey:  must("FX_API_KEY"),
 					BaseURL: def("FX_URL", "https://v6.exchangerate-api.com/v6"),
 				},
+				KYC: KYCConfig{
+					DojahAPIKey:         def("DOJAH_API_KEY", ""),
+					DojahSecretKey:      def("DOJAH_SECRET_KEY", ""),
+					DojahWebhookSecret:  def("DOJAH_WEBHOOK_SECRET", ""),
+					VeriffAPIKey:        def("VERIFF_API_KEY", ""),
+					VeriffSecretKey:     def("VERIFF_SECRET_KEY", ""),
+					VeriffWebhookSecret: def("VERIFF_WEBHOOK_SECRET", ""),
+				},
+				SMS: SMSConfig{
+					TermiiAPIKey:     def("TERMII_API_KEY", ""),
+					TermiiSenderID:   def("TERMII_SENDER_ID", "Hauslet"),
+					TwilioAccountSID: def("TWILIO_ACCOUNT_SID", ""),
+					TwilioAuthToken:  def("TWILIO_AUTH_TOKEN", ""),
+					TwilioFromNumber: def("TWILIO_FROM_NUMBER", ""),
+				},
 			},
 			Infra: InfraConfig{
 				CloudTasks: CloudTasksConfig{

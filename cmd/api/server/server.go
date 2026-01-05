@@ -4,9 +4,14 @@ import (
 	"context"
 	securitymiddleware "hauslet/cmd/api/server/middleware"
 	"hauslet/config"
+	"hauslet/internal/platform/breaker"
 	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/evidence"
+	"hauslet/internal/platform/kyc"
 	"hauslet/internal/platform/queue"
+	"hauslet/internal/platform/ratelimit"
 	"hauslet/internal/platform/redis"
+	"hauslet/internal/platform/sms"
 	"hauslet/internal/platform/storage"
 	"log/slog"
 	"net/http"
@@ -26,6 +31,11 @@ func NewHTTPServer(
 	mC *email.Client,
 	q *queue.Client,
 	r2 *storage.R2Storage,
+	kycClient *kyc.Client,
+	smsClient *sms.Client,
+	evidenceStore evidence.Store,
+	rateLimiter ratelimit.Limiter,
+	circuitBreaker breaker.CircuitBreaker,
 ) *http.Server {
 	r := chi.NewRouter()
 
@@ -45,13 +55,18 @@ func NewHTTPServer(
 
 	// Initialize application container
 	container, err := NewContainer(ctx, InfrastructureDependencies{
-		DB:          db,
-		Redis:       rds,
-		Queue:       q,
-		R2:          r2,
-		Logger:      log,
-		Config:      cfg,
-		EmailClient: mC,
+		DB:             db,
+		Redis:          rds,
+		Queue:          q,
+		R2:             r2,
+		Logger:         log,
+		Config:         cfg,
+		EmailClient:    mC,
+		KYC:            kycClient,
+		SMS:            smsClient,
+		Evidence:       evidenceStore,
+		RateLimiter:    rateLimiter,
+		CircuitBreaker: circuitBreaker,
 	})
 	if err != nil {
 		log.Error("failed to initialize application container", "error", err)
