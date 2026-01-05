@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"hauslet/config"
 	paymentDomain "hauslet/internal/modules/payments/domain"
 	paymentService "hauslet/internal/modules/payments/service"
@@ -15,6 +13,9 @@ import (
 	"hauslet/internal/modules/promotions/repository"
 	"hauslet/internal/modules/promotions/repository/schema"
 	"hauslet/internal/platform/payment"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // SubscriptionServiceImpl implements SubscriptionService
@@ -105,6 +106,29 @@ func (s *SubscriptionServiceImpl) CreateSubscription(ctx context.Context, input 
 		trialEnd := calculateTrialEndDate(s.config, now)
 		trialEndsAt = &trialEnd
 		nextBillingDate = &trialEnd
+
+		// If payment method provided, validate and link it
+		if input.PaymentMethodID != nil {
+			// Validate payment method exists and belongs to user
+			paymentMethod, err := s.paymentService.GetPaymentMethod(ctx, *input.PaymentMethodID, input.UserID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get payment method: %w", err)
+			}
+
+			if paymentMethod == nil {
+				return nil, fmt.Errorf("payment method not found")
+			}
+
+			if !paymentMethod.CanCharge() {
+				return nil, fmt.Errorf("payment method cannot be charged (inactive or expired)")
+			}
+
+			s.log.Info("trial subscription with payment method",
+				"subscription_id", subscriptionID,
+				"payment_method_id", *input.PaymentMethodID,
+				"card_last4", paymentMethod.Last4Digits,
+			)
+		}
 	}
 
 	subscription := &domain.AgentSubscription{
@@ -119,6 +143,7 @@ func (s *SubscriptionServiceImpl) CreateSubscription(ctx context.Context, input 
 		Currency:                        planConfig.Currency,
 		NextBillingDate:                 nextBillingDate,
 		TrialEndsAt:                     trialEndsAt,
+		PaymentMethodID:                 input.PaymentMethodID,
 		StartedAt:                       now,
 		MaxListings:                     planConfig.MaxListings,
 		MaxPhotosPerListing:             planConfig.MaxPhotosPerListing,
@@ -810,21 +835,36 @@ func (s *SubscriptionServiceImpl) ProcessBilling(ctx context.Context) error {
 
 		// Create payment for subscription renewal
 		paymentInput := paymentDomain.CreatePaymentInput{
-			Amount:          amountToCharge,
-			Currency:        payment.Currency(currencyToCharge),
-			Market:          paymentDomain.MarketNigeria,
-			PayerID:         subscription.UserID,
-			PayerEmail:      subscription.UserEmail,
-			PayerName:       subscription.UserName,
-			ResourceType:    paymentDomain.ResourceTypeSubscription,
-			ResourceID:      &subscription.ID,
-			PaymentMethodID: &paymentMethod.ID,
-			Description:     fmt.Sprintf("Subscription renewal - %s plan", planForDescription),
+			Amount:       amountToCharge,
+			Currency:     payment.Currency(currencyToCharge),
+			Market:       paymentDomain.MarketNigeria,
+			PayerID:      subscription.UserID,
+			PayerEmail:   subscription.UserEmail,
+			PayerName:    subscription.UserName,
+			ResourceType: paymentDomain.ResourceTypeSubscription,
+			ResourceID:   &subscription.ID,
+			Description:  fmt.Sprintf("Subscription renewal - %s plan", planForDescription),
 			Metadata: map[string]string{
 				"subscription_id": subscription.ID.String(),
 				"plan_type":       planForMetadata,
 				"billing_cycle":   subscription.BillingCycle.String(),
 			},
+		}
+
+		// If subscription has linked payment method, use it for automatic charge
+		// Otherwise, use default payment method
+		if subscription.HasPaymentMethod() {
+			paymentInput.PaymentMethodID = subscription.PaymentMethodID
+			s.log.Info("billing subscription with linked payment method",
+				"subscription_id", subscription.ID,
+				"payment_method_id", *subscription.PaymentMethodID,
+			)
+		} else {
+			paymentInput.PaymentMethodID = &paymentMethod.ID
+			s.log.Info("billing subscription with default payment method",
+				"subscription_id", subscription.ID,
+				"payment_method_id", paymentMethod.ID,
+			)
 		}
 
 		// Create payment (will charge the saved payment method)

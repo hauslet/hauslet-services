@@ -35,6 +35,8 @@ type AgentSubscription {
   cancelAt: Time
   cancelledAt: Time
   trialEndsAt: Time
+  hasPaymentMethod: Boolean!
+  paymentMethodID: UUID
   metadata: Map
   createdAt: Time!
   updatedAt: Time!
@@ -122,6 +124,7 @@ input CreateSubscriptionInput {
   planType: PlanType!
   billingCycle: BillingCycle!
   startTrial: Boolean!
+  paymentMethodID: UUID
 }
 
 # ============================================================================

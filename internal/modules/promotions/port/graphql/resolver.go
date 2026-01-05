@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/google/uuid"
 	"hauslet/config"
 	"hauslet/internal/modules/promotions/domain"
 	"hauslet/internal/modules/promotions/service"
 	"hauslet/internal/transport/graph/viewer"
+
+	"github.com/google/uuid"
 )
 
 // getUserIDFromContext extracts user ID from context
@@ -146,7 +147,7 @@ func (r *Resolver) CancelPromotion(ctx context.Context, id uuid.UUID) (*domain.L
 }
 
 // CreateSubscription creates a new subscription
-func (r *Resolver) CreateSubscription(ctx context.Context, planType domain.PlanType, billingCycle domain.BillingCycle, startTrial bool) (*CreateSubscriptionPayload, error) {
+func (r *Resolver) CreateSubscription(ctx context.Context, planType domain.PlanType, billingCycle domain.BillingCycle, startTrial bool, paymentMethodID *uuid.UUID) (*CreateSubscriptionPayload, error) {
 	// Get user from context
 	userID, err := getUserIDFromContext(ctx)
 	if err != nil {
@@ -155,12 +156,13 @@ func (r *Resolver) CreateSubscription(ctx context.Context, planType domain.PlanT
 
 	// Create subscription via service
 	result, err := r.subscriptionSvc.CreateSubscription(ctx, service.CreateSubscriptionInput{
-		UserID:       userID,
-		UserEmail:    "",
-		UserName:     "",
-		PlanType:     planType,
-		BillingCycle: billingCycle,
-		StartTrial:   startTrial,
+		UserID:          userID,
+		UserEmail:       "",
+		UserName:        "",
+		PlanType:        planType,
+		BillingCycle:    billingCycle,
+		StartTrial:      startTrial,
+		PaymentMethodID: paymentMethodID,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create subscription: %w", err)

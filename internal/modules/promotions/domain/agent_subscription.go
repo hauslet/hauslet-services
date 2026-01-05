@@ -49,6 +49,9 @@ type AgentSubscription struct {
 	PendingPlanType       *PlanType  `json:"pending_plan_type,omitempty"`
 	PendingPlanScheduledAt *time.Time `json:"pending_plan_scheduled_at,omitempty"`
 
+	// Payment Method (for recurring billing)
+	PaymentMethodID *uuid.UUID `json:"payment_method_id,omitempty"`
+
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
@@ -271,6 +274,23 @@ func (s *AgentSubscription) ApplyImmediateUpgrade(newPlan PlanType, newLimits Pl
 	s.UpdatedAt = time.Now()
 
 	return nil
+}
+
+// HasPaymentMethod returns true if subscription has a saved payment method
+func (s *AgentSubscription) HasPaymentMethod() bool {
+	return s.PaymentMethodID != nil && *s.PaymentMethodID != uuid.Nil
+}
+
+// LinkPaymentMethod associates a payment method with this subscription
+func (s *AgentSubscription) LinkPaymentMethod(methodID uuid.UUID) {
+	s.PaymentMethodID = &methodID
+	s.UpdatedAt = time.Now()
+}
+
+// UnlinkPaymentMethod removes the payment method association
+func (s *AgentSubscription) UnlinkPaymentMethod() {
+	s.PaymentMethodID = nil
+	s.UpdatedAt = time.Now()
 }
 
 // PlanLimits holds the configuration for a subscription plan

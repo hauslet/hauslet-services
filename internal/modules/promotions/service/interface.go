@@ -154,10 +154,11 @@ type CreateIncludedPromotionInput struct {
 
 // CreateSubscriptionInput contains the data needed to create a subscription
 type CreateSubscriptionInput struct {
-	UserID       uuid.UUID
-	UserEmail    string
-	UserName     string
-	PlanType     domain.PlanType
-	BillingCycle domain.BillingCycle
-	StartTrial   bool // If true, starts trial period; if false, creates payment
+	UserID          uuid.UUID
+	UserEmail       string
+	UserName        string
+	PlanType        domain.PlanType
+	BillingCycle    domain.BillingCycle
+	StartTrial      bool       // If true, starts trial period; if false, creates payment
+	PaymentMethodID *uuid.UUID // Optional: link saved payment method for recurring billing
 }
