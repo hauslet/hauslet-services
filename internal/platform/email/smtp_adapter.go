@@ -3,6 +3,7 @@ package email
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -14,12 +15,28 @@ type SMTPAdapter struct {
 	from   string
 }
 
+// slogAdapter wraps *slog.Logger to implement go-pkgz/auth/logger.L interface.
+type slogAdapter struct {
+	logger *slog.Logger
+}
+
+// Logf implements the logger.L interface required by go-pkgz/auth.
+func (a *slogAdapter) Logf(format string, args ...interface{}) {
+	a.logger.Info(fmt.Sprintf(format, args...))
+}
+
+// newSlogAdapter creates a logger adapter from *slog.Logger.
+func newSlogAdapter(logger *slog.Logger) *slogAdapter {
+	return &slogAdapter{logger: logger}
+}
+
 // NewSMTPAdapter creates a sender that uses standard SMTP
-func NewSMTPAdapter(host string, port int, user, pass, from string) *SMTPAdapter {
+func NewSMTPAdapter(host string, port int, user, pass, from string, log *slog.Logger) *SMTPAdapter {
 	opts := []email.Option{
 		email.Auth(user, pass),
 		email.Port(port),
 		email.ContentType("text/html"),
+		email.Log(newSlogAdapter(log)),
 	}
 
 	// Use STARTTLS on submission ports (e.g., 587); fall back to implicit TLS on 465.
