@@ -14,6 +14,8 @@
             <strong>When:</strong> {{.StartTime}} - {{.EndTime}}<br/>
             <strong>Email:</strong> {{.ProspectEmail}}
             {{if .ProspectPhone}}<br/><strong>Phone:</strong> {{.ProspectPhone}}{{end}}
+            {{if .Location}}<br/><strong>Where:</strong> {{.Location}}{{end}}
+            {{if .MapsURL}}<br/><strong>Map:</strong> <a href="{{.MapsURL}}" style="color: #924DBF;">Open in Google Maps</a>{{end}}
         </p>
         {{if .Notes}}
         <p style="margin-top: 16px; font-size: 14px; color: #5F4B6B;">

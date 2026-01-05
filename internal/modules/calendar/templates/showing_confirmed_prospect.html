@@ -11,16 +11,11 @@
     <div style="background-color: #F6F0FB; border-radius: 8px; padding: 20px; margin: 24px 0;">
         <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
             <strong>When:</strong> {{.StartTime}} - {{.EndTime}}
+            {{if .Location}}<br/><strong>Where:</strong> {{.Location}}{{end}}
+            {{if .MapsURL}}<br/><strong>Map:</strong> <a href="{{.MapsURL}}" style="color: #924DBF;">Open in Google Maps</a>{{end}}
         </p>
     </div>
 
-    {{if .CalendarURL}}
-    <div style="text-align: center; margin: 28px 0;">
-        <a href="{{.CalendarURL}}" style="display: inline-block; background-color: #111827; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px;">
-            Add to Calendar
-        </a>
-    </div>
-    {{end}}
 
     <div style="text-align: center; margin: 24px 0;">
         <a href="{{.ListingURL}}" style="display: inline-block; background-color: #924DBF; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 15px;">

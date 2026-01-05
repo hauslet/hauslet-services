@@ -69,6 +69,32 @@ func (a *listingRepoHookAdapter) getListing(ctx context.Context, listingID uuid.
 	return mapped, nil
 }
 
+func (a *listingRepoHookAdapter) getListingWithProperty(ctx context.Context, listingID uuid.UUID) (*domain.Listing, *domain.Property, error) {
+	if a.repo == nil {
+		return nil, nil, fmt.Errorf("property repository not configured")
+	}
+
+	listingSchema, propertySchema, err := a.repo.GetListingWithPropertyByID(ctx, listingID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if listingSchema == nil {
+		return nil, nil, domain.ErrListingNotFound
+	}
+
+	listing := domain.MapListingFromSchema(listingSchema)
+	if listing == nil {
+		return nil, nil, domain.ErrListingNotFound
+	}
+
+	var property *domain.Property
+	if propertySchema != nil {
+		property = domain.MapPropertyFromSchema(propertySchema)
+	}
+
+	return listing, property, nil
+}
+
 // GetListingOwner is shared by both calendar and pricing hook implementations.
 func (a *listingHookAdapter) GetListingOwner(ctx context.Context, listingID uuid.UUID) (uuid.UUID, error) {
 	listing, err := a.getListing(ctx, listingID)
@@ -134,12 +160,32 @@ func (a *CalendarHooksAdapter) GetListingInfo(ctx context.Context, listingID uui
 		return nil, err
 	}
 
-	return &calendarnotification.ListingInfo{
-		ID:        listing.ID,
-		Title:     listing.Title,
-		OwnerID:   listing.OwnerID,
-		OwnerType: string(listing.OwnerType),
-	}, nil
+	info := &calendarnotification.ListingInfo{
+		ID:         listing.ID,
+		PropertyID: listing.PropertyID,
+		Title:      listing.Title,
+		OwnerID:    listing.OwnerID,
+		OwnerType:  string(listing.OwnerType),
+	}
+
+	if a.svc != nil {
+		property, err := a.svc.GetPropertyByID(ctx, listing.PropertyID)
+		if err == nil && property != nil {
+			info.Address = property.Address
+			info.City = property.City
+			info.State = property.State
+			info.PostalCode = property.PostalCode
+			info.Country = string(property.Country)
+			if property.Location != nil && property.Location.Valid() {
+				lat := property.Location.Lat
+				lng := property.Location.Lng
+				info.Latitude = &lat
+				info.Longitude = &lng
+			}
+		}
+	}
+
+	return info, nil
 }
 
 func (a *CalendarHooksAdapter) MarkCalendarEnabled(ctx context.Context, listingID uuid.UUID, enabled bool) error {
@@ -258,17 +304,34 @@ func (a *CalendarHooksRepoAdapter) GetListingConstraints(ctx context.Context, li
 
 // GetListingInfo provides minimal listing data for calendar notifications.
 func (a *CalendarHooksRepoAdapter) GetListingInfo(ctx context.Context, listingID uuid.UUID) (*calendarnotification.ListingInfo, error) {
-	listing, err := a.getListing(ctx, listingID)
+	listing, property, err := a.getListingWithProperty(ctx, listingID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &calendarnotification.ListingInfo{
-		ID:        listing.ID,
-		Title:     listing.Title,
-		OwnerID:   listing.OwnerID,
-		OwnerType: string(listing.OwnerType),
-	}, nil
+	info := &calendarnotification.ListingInfo{
+		ID:         listing.ID,
+		PropertyID: listing.PropertyID,
+		Title:      listing.Title,
+		OwnerID:    listing.OwnerID,
+		OwnerType:  string(listing.OwnerType),
+	}
+
+	if property != nil {
+		info.Address = property.Address
+		info.City = property.City
+		info.State = property.State
+		info.PostalCode = property.PostalCode
+		info.Country = string(property.Country)
+		if property.Location != nil && property.Location.Valid() {
+			lat := property.Location.Lat
+			lng := property.Location.Lng
+			info.Latitude = &lat
+			info.Longitude = &lng
+		}
+	}
+
+	return info, nil
 }
 
 func (a *CalendarHooksRepoAdapter) MarkCalendarEnabled(ctx context.Context, listingID uuid.UUID, enabled bool) error {

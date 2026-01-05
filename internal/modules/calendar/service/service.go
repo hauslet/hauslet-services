@@ -397,7 +397,11 @@ func (s *CalendarServiceImpl) UnblockDates(ctx context.Context, eventID uuid.UUI
 
 // --- Open House Management ---
 
-func (s *CalendarServiceImpl) CreateOpenHouse(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time, details *domain.OpenHouseDetail) (*domain.CalendarEvent, error) {
+func (s *CalendarServiceImpl) CreateOpenHouse(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time, details *domain.OpenHouseDetail, createdBy uuid.UUID) (*domain.CalendarEvent, error) {
+	var createdByPtr *uuid.UUID
+	if createdBy != uuid.Nil {
+		createdByPtr = &createdBy
+	}
 	event := &domain.CalendarEvent{
 		ListingID:        listingID,
 		EventType:        domain.EventTypeOpenHouse,
@@ -405,6 +409,8 @@ func (s *CalendarServiceImpl) CreateOpenHouse(ctx context.Context, listingID uui
 		StartTime:        startTime,
 		EndTime:          endTime,
 		OpenHouseDetails: details,
+		CreatedBy:        createdByPtr,
+		UpdatedBy:        createdByPtr,
 	}
 
 	return s.CreateEvent(ctx, event)

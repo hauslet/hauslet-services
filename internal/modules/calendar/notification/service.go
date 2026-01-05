@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strings"
 	"time"
 
@@ -20,10 +21,77 @@ import (
 
 // ListingInfo contains the minimal listing data needed for calendar notifications.
 type ListingInfo struct {
-	ID        uuid.UUID
-	Title     string
-	OwnerID   uuid.UUID
-	OwnerType string
+	ID         uuid.UUID
+	PropertyID uuid.UUID
+	Title      string
+	OwnerID    uuid.UUID
+	OwnerType  string
+	Address    string
+	City       string
+	State      string
+	PostalCode string
+	Country    string
+	Latitude   *float64
+	Longitude  *float64
+}
+
+// FullAddress returns a formatted, human-friendly address for the listing.
+func (l *ListingInfo) FullAddress() string {
+	if l == nil {
+		return ""
+	}
+
+	parts := make([]string, 0, 5)
+	appendPart := func(value string) {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			parts = append(parts, trimmed)
+		}
+	}
+
+	appendPart(l.Address)
+	appendPart(l.City)
+
+	stateLine := strings.TrimSpace(l.State)
+	postal := strings.TrimSpace(l.PostalCode)
+	switch {
+	case stateLine != "" && postal != "":
+		appendPart(fmt.Sprintf("%s %s", stateLine, postal))
+	case stateLine != "":
+		appendPart(stateLine)
+	case postal != "":
+		appendPart(postal)
+	}
+
+	appendPart(l.Country)
+
+	return strings.Join(parts, ", ")
+}
+
+// Coordinates returns the latitude and longitude when both are available.
+func (l *ListingInfo) Coordinates() (float64, float64, bool) {
+	if l == nil || l.Latitude == nil || l.Longitude == nil {
+		return 0, 0, false
+	}
+	return *l.Latitude, *l.Longitude, true
+}
+
+// MapsURL builds a Google Maps link using coordinates when available or the formatted address as fallback.
+func (l *ListingInfo) MapsURL() string {
+	if l == nil {
+		return ""
+	}
+
+	if lat, lng, ok := l.Coordinates(); ok {
+		return fmt.Sprintf("https://www.google.com/maps/search/?api=1&query=%f,%f", lat, lng)
+	}
+
+	address := l.FullAddress()
+	if address == "" {
+		return ""
+	}
+
+	return "https://www.google.com/maps/search/?api=1&query=" + url.QueryEscape(address)
 }
 
 // ContactInfo represents user contact details for notifications.
@@ -98,6 +166,7 @@ func (s *NotificationService) SendShowingRequest(ctx context.Context, event *dom
 		preview := fmt.Sprintf("%s requested a showing on %s", prospect.Name, s.formatEventTime(event.StartTime))
 
 		data := s.baseData(subject, preview)
+		s.applyLocationDetails(data, listing)
 		data["HostName"] = s.fallbackName(host.Name)
 		data["ProspectName"] = prospect.Name
 		data["ProspectEmail"] = prospect.Email
@@ -116,6 +185,7 @@ func (s *NotificationService) SendShowingRequest(ctx context.Context, event *dom
 		preview := fmt.Sprintf("We'll confirm your showing for %s soon.", listing.Title)
 
 		data := s.baseData(subject, preview)
+		s.applyLocationDetails(data, listing)
 		data["ProspectName"] = s.fallbackName(prospect.Name)
 		data["ListingTitle"] = listing.Title
 		data["StartTime"] = s.formatEventTime(event.StartTime)
@@ -149,15 +219,16 @@ func (s *NotificationService) SendShowingConfirmed(ctx context.Context, event *d
 	subject := "Your showing is confirmed"
 	preview := fmt.Sprintf("Your showing for %s is confirmed.", listing.Title)
 
-	calendarURL, attachments := s.buildCalendarAssets(event, s.showingSummary(listing.Title), s.showingDescription(listing.Title))
+	locationLabel := listing.FullAddress()
+	_, attachments := s.buildCalendarAssets(event, s.showingSummary(listing.Title), s.showingDescription(listing.Title), locationLabel)
 
 	data := s.baseData(subject, preview)
+	s.applyLocationDetails(data, listing)
 	data["ProspectName"] = s.fallbackName(prospect.Name)
 	data["ListingTitle"] = listing.Title
 	data["StartTime"] = s.formatEventTime(event.StartTime)
 	data["EndTime"] = s.formatEventTime(event.EndTime)
 	data["ListingURL"] = s.listingURL(listing.ID)
-	data["CalendarURL"] = calendarURL
 
 	s.renderAndSend(ctx, "showing_confirmed_prospect.html", prospect.Email, subject, data, attachments, "send showing confirmed email")
 }
@@ -177,16 +248,17 @@ func (s *NotificationService) SendOpenHouseRegistration(ctx context.Context, eve
 	preview := fmt.Sprintf("Your spot for %s is confirmed.", listing.Title)
 
 	openHouseTitle := s.openHouseTitle(event, listing.Title)
-	calendarURL, attachments := s.buildCalendarAssets(event, openHouseTitle, s.openHouseDescription(openHouseTitle, listing.Title))
+	locationLabel := listing.FullAddress()
+	_, attachments := s.buildCalendarAssets(event, openHouseTitle, s.openHouseDescription(openHouseTitle, listing.Title), locationLabel)
 
 	data := s.baseData(subject, preview)
+	s.applyLocationDetails(data, listing)
 	data["AttendeeName"] = s.fallbackName(attendee.Name)
 	data["ListingTitle"] = listing.Title
 	data["OpenHouseTitle"] = openHouseTitle
 	data["StartTime"] = s.formatEventTime(event.StartTime)
 	data["EndTime"] = s.formatEventTime(event.EndTime)
 	data["ListingURL"] = s.listingURL(listing.ID)
-	data["CalendarURL"] = calendarURL
 
 	s.renderAndSend(ctx, "open_house_registration.html", attendee.Email, subject, data, attachments, "send open house registration email")
 }
@@ -207,6 +279,7 @@ func (s *NotificationService) SendShowingReminder(ctx context.Context, event *do
 	preview := fmt.Sprintf("Your showing for %s starts %s.", listing.Title, reminderLabel)
 
 	data := s.baseData(subject, preview)
+	s.applyLocationDetails(data, listing)
 	data["ListingTitle"] = listing.Title
 	data["StartTime"] = s.formatEventTime(event.StartTime)
 	data["EndTime"] = s.formatEventTime(event.EndTime)
@@ -242,6 +315,7 @@ func (s *NotificationService) SendOpenHouseReminder(ctx context.Context, event *
 	openHouseTitle := s.openHouseTitle(event, listing.Title)
 
 	data := s.baseData(subject, preview)
+	s.applyLocationDetails(data, listing)
 	data["AttendeeName"] = s.fallbackName(attendee.Name)
 	data["ListingTitle"] = listing.Title
 	data["OpenHouseTitle"] = openHouseTitle
@@ -336,6 +410,20 @@ func (s *NotificationService) baseData(subject, preview string) map[string]any {
 	}
 }
 
+func (s *NotificationService) applyLocationDetails(data map[string]any, listing *ListingInfo) {
+	if listing == nil {
+		return
+	}
+
+	if location := listing.FullAddress(); location != "" {
+		data["Location"] = location
+	}
+
+	if mapsURL := listing.MapsURL(); mapsURL != "" {
+		data["MapsURL"] = mapsURL
+	}
+}
+
 func (s *NotificationService) getListingInfo(ctx context.Context, listingID uuid.UUID) (*ListingInfo, error) {
 	if s.listings == nil {
 		return nil, fmt.Errorf("listing provider not configured")
@@ -364,8 +452,8 @@ func (s *NotificationService) getOwnerContact(ctx context.Context, ownerID uuid.
 	return contact
 }
 
-func (s *NotificationService) buildCalendarAssets(event *domain.CalendarEvent, summary, description string) (string, []emailJob.Attachment) {
-	ics, err := BuildICS(event, summary, description, "", ics.MethodPublish)
+func (s *NotificationService) buildCalendarAssets(event *domain.CalendarEvent, summary, description, location string) (string, []emailJob.Attachment) {
+	ics, err := BuildICS(event, summary, description, location, ics.MethodPublish)
 	if err != nil {
 		if s.log != nil {
 			s.log.Warn("failed to build ics", "event_id", event.ID, "error", err)
@@ -391,6 +479,7 @@ func (s *NotificationService) buildCalendarAssets(event *domain.CalendarEvent, s
 		}
 		s.log.Info("Building calendar attachment",
 			"filename", filename,
+			"location", location,
 			"ics_raw_length", len(ics),
 			"ics_raw_preview", ics[:icsPreviewLen],
 			"ics_base64_length", len(icsBase64),

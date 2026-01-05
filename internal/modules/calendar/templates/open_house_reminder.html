@@ -12,6 +12,8 @@
         <p style="margin: 0; font-size: 15px; line-height: 24px; color: #3F2D52;">
             <strong>Listing:</strong> {{.ListingTitle}}<br/>
             <strong>When:</strong> {{.StartTime}} - {{.EndTime}}
+            {{if .Location}}<br/><strong>Where:</strong> {{.Location}}{{end}}
+            {{if .MapsURL}}<br/><strong>Map:</strong> <a href="{{.MapsURL}}" style="color: #924DBF;">Open in Google Maps</a>{{end}}
         </p>
     </div>
 

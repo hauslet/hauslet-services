@@ -150,6 +150,28 @@ func (r *GormRepository) GetListingByID(ctx context.Context, id uuid.UUID, prelo
 	return &listing, nil
 }
 
+// GetListingWithPropertyByID fetches a listing along with its property in a single query.
+func (r *GormRepository) GetListingWithPropertyByID(ctx context.Context, id uuid.UUID) (*schema.Listing, *schema.Property, error) {
+	var listing schema.Listing
+	if err := r.db.WithContext(ctx).
+		Preload("Property").
+		First(&listing, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, fmt.Errorf("listing not found: %w", err)
+		}
+		return nil, nil, fmt.Errorf("failed to get listing: %w", err)
+	}
+
+	var propertyCopy *schema.Property
+	if listing.Property != nil {
+		copy := *listing.Property
+		propertyCopy = &copy
+	}
+
+	listing.Property = nil
+	return &listing, propertyCopy, nil
+}
+
 // GetListingBySlug fetches a listing by slug.
 func (r *GormRepository) GetListingBySlug(ctx context.Context, slug string, preloadMedia bool) (*schema.Listing, error) {
 	var listing schema.Listing
