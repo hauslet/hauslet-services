@@ -24,6 +24,7 @@ import (
 	financerepository "hauslet/internal/modules/finance/repository"
 	financeservice "hauslet/internal/modules/finance/service"
 	interactionrepository "hauslet/internal/modules/interactions/repository"
+	interactionservice "hauslet/internal/modules/interactions/service"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
 	paymentsnotification "hauslet/internal/modules/payments/notification"
@@ -770,15 +771,34 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 
 	// Interactions batch writer handler
 	hasInteractionsBatch := qCfg["interactions_batch"] != ""
-	if hasInteractionsBatch {
+	hasInteractionsAggregator := qCfg["interactions_aggregator"] != ""
+	if hasInteractionsBatch || hasInteractionsAggregator {
 		interactionRepo := interactionrepository.NewInteractionRepository(infra.DB)
-		h := interactionHandler.NewBatchWriterHandler(
-			infra.Redis,
-			interactionRepo,
-			log,
-			qCfg["interactions_batch"],
-		)
-		registry.Register(h)
+
+		if hasInteractionsBatch {
+			h := interactionHandler.NewBatchWriterHandler(
+				infra.Redis,
+				interactionRepo,
+				log,
+				qCfg["interactions_batch"],
+			)
+			registry.Register(h)
+		}
+
+		if hasInteractionsAggregator {
+			analyticsRepo := interactionrepository.NewAnalyticsRepository(infra.DB)
+			aggregatorSvc := interactionservice.NewAggregatorService(
+				interactionRepo,
+				analyticsRepo,
+				log,
+			)
+			h := interactionHandler.NewAggregatorHandler(
+				aggregatorSvc,
+				log,
+				qCfg["interactions_aggregator"],
+			)
+			registry.Register(h)
+		}
 	}
 
 	return registry

@@ -4,6 +4,7 @@ import (
 	"context"
 	"hauslet/internal/modules/interactions/domain"
 	"hauslet/internal/modules/interactions/service"
+	"hauslet/internal/transport/graph/viewer"
 	"log/slog"
 	"strings"
 	"time"
@@ -29,23 +30,31 @@ func NewResolver(tracker service.TrackerService, reader service.ReaderService, l
 
 // TrackInteraction tracks a user interaction (mutation)
 func (r *Resolver) TrackInteraction(ctx context.Context, input TrackInteractionInput) (bool, error) {
-	// Get session ID from context (set by middleware)
-	sessionID, ok := ctx.Value("session_id").(string)
-	if !ok || sessionID == "" {
-		sessionID = uuid.New().String() // Fallback to generated session
-	}
+	// Get viewer from context (viewer middleware)
+	v := viewer.FromContext(ctx)
 
-	// Get user ID if authenticated (optional)
+	// Extract session ID, user ID, and metadata from viewer
+	sessionID := uuid.New().String() // Fallback for anonymous users
 	var userID *uuid.UUID
-	if userIDStr, ok := ctx.Value("user_id").(string); ok && userIDStr != "" {
-		if uid, err := uuid.Parse(userIDStr); err == nil {
-			userID = &uid
-		}
-	}
+	var userAgent, ipAddress string
 
-	// Get metadata from context (set by middleware)
-	userAgent, _ := ctx.Value("user_agent").(string)
-	ipAddress, _ := ctx.Value("ip_address").(string)
+	if v != nil {
+		// Use session ID from token if available
+		if v.SessionID != "" {
+			sessionID = v.SessionID
+		}
+
+		// Get authenticated user ID (optional)
+		if v.UserID != "" {
+			if uid, err := uuid.Parse(v.UserID); err == nil {
+				userID = &uid
+			}
+		}
+
+		// Get request metadata from viewer
+		userAgent = v.UserAgent
+		ipAddress = v.IPAddress
+	}
 
 	trackInput := service.TrackInput{
 		UserID:     userID,
@@ -86,13 +95,13 @@ func (r *Resolver) ListingAnalytics(ctx context.Context, listingID uuid.UUID, da
 
 // MyInteractionHistory retrieves user's interaction history (query)
 func (r *Resolver) MyInteractionHistory(ctx context.Context, limit *int) ([]*InteractionResponse, error) {
-	// Get authenticated user ID from context
-	userIDStr, ok := ctx.Value("user_id").(string)
-	if !ok || userIDStr == "" {
+	// Get authenticated user ID from viewer context
+	v := viewer.FromContext(ctx)
+	if v == nil || v.UserID == "" {
 		return nil, domain.ErrUnauthorized
 	}
 
-	userID, err := uuid.Parse(userIDStr)
+	userID, err := uuid.Parse(v.UserID)
 	if err != nil {
 		return nil, domain.ErrUnauthorized
 	}

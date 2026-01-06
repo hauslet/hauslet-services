@@ -69,6 +69,11 @@ func (t InteractionType) IsHighValue() bool {
 	}
 }
 
+// ParseInteractionType converts a string to InteractionType
+func ParseInteractionType(s string) InteractionType {
+	return InteractionType(s)
+}
+
 // EntityType represents the type of entity being interacted with
 type EntityType string
 
@@ -91,6 +96,11 @@ func (t EntityType) IsValid() bool {
 	default:
 		return false
 	}
+}
+
+// ParseEntityType converts a string to EntityType
+func ParseEntityType(s string) EntityType {
+	return EntityType(s)
 }
 
 // PeriodType represents the aggregation period for analytics

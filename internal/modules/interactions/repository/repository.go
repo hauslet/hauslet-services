@@ -32,6 +32,15 @@ type InteractionRepository interface {
 
 	// CountBySessionAndEntity counts interactions by session and entity (for deduplication)
 	CountBySessionAndEntity(ctx context.Context, sessionID string, entityType domain.EntityType, entityID uuid.UUID, interactionType domain.InteractionType, since time.Time) (int64, error)
+
+	// GetUniqueEntities returns distinct entity combinations within a time range (for aggregation)
+	GetUniqueEntities(ctx context.Context, start, end time.Time) ([]EntityKey, error)
+}
+
+// EntityKey represents a unique entity combination
+type EntityKey struct {
+	EntityType domain.EntityType
+	EntityID   uuid.UUID
 }
 
 // InteractionRepositoryImpl implements InteractionRepository
@@ -135,4 +144,40 @@ func (r *InteractionRepositoryImpl) CountBySessionAndEntity(
 		Count(&count).Error
 
 	return count, err
+}
+
+// GetUniqueEntities returns distinct entity combinations within a time range
+func (r *InteractionRepositoryImpl) GetUniqueEntities(ctx context.Context, start, end time.Time) ([]EntityKey, error) {
+	var results []EntityKey
+
+	// Use raw SQL for efficiency
+	rows, err := r.db.WithContext(ctx).
+		Table("interactions").
+		Select("DISTINCT entity_type, entity_id").
+		Where("created_at >= ? AND created_at < ? AND entity_id IS NOT NULL", start, end).
+		Rows()
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var entityTypeStr string
+		var entityID uuid.UUID
+
+		if err := rows.Scan(&entityTypeStr, &entityID); err != nil {
+			continue
+		}
+
+		entityType := domain.ParseEntityType(entityTypeStr)
+		if entityType.IsValid() {
+			results = append(results, EntityKey{
+				EntityType: entityType,
+				EntityID:   entityID,
+			})
+		}
+	}
+
+	return results, nil
 }
