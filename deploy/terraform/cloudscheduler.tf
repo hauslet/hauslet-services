@@ -601,6 +601,46 @@ resource "google_cloud_scheduler_job" "interactions_batch_writer" {
   ]
 }
 
+# 19. Interactions Aggregator (every hour)
+resource "google_cloud_scheduler_job" "interactions_aggregator" {
+  name        = "interactions-aggregator"
+  description = "Aggregates raw interactions into analytics (hourly rollups)"
+  schedule    = "5 * * * *"  # Every hour at 5 minutes past (gives batch writer time to process)
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 3
+    min_backoff_duration = "10s"
+    max_backoff_duration = "120s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/interactions/aggregate"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Job payload - aggregates previous hour by default
+    # period_type: "hour" or "day"
+    # period_start: optional timestamp (defaults to previous hour)
+    body = base64encode(jsonencode({
+      period_type = "hour"
+    }))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
 # 16. Verification Reconciliation Scheduler (every 6 hours)
 resource "google_cloud_scheduler_job" "verification_reconciliation" {
   name        = "verification-reconciliation-scheduler"
