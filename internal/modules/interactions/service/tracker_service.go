@@ -71,7 +71,7 @@ func (s *TrackerServiceImpl) Track(ctx context.Context, input TrackInput) error 
 	}
 
 	// Push to Redis queue (fire-and-forget, very fast)
-	if err := s.redis.RPush(ctx, RedisQueueKey, string(payload)); err != nil {
+	if err := s.redis.RPush(ctx, RedisQueueKey, string(payload)).Err(); err != nil {
 		if s.log != nil {
 			s.log.Error("failed to push interaction to Redis", "error", err)
 		}
