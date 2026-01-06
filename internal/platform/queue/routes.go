@@ -101,6 +101,10 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/interactions/batch",
 		Timeout: 60 * time.Second,
 	},
+	"interactions_aggregator": {
+		Path:    "/tasks/interactions/aggregate",
+		Timeout: 120 * time.Second,
+	},
 }
 
 func BuildQueueRoutes(queueNames map[string]string) map[string]QueueRoute {
