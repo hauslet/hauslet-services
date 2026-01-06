@@ -46,7 +46,7 @@ workerURL := cfg.Infra.CloudTasks.WorkerBaseURL // From ENV
 
 **Examples:**
 - Calendar settings (maintenance hour, cleanup days)
-- Queue subjects and consumers
+- Queue subjects for Cloud Tasks
 - Feature flags (email queue enabled, OAuth enabled)
 
 **Access in code:**
@@ -69,12 +69,10 @@ Calendar service settings:
 
 ### queue.yaml
 Queue settings:
-- `stream_name` - Legacy field (unused for Cloud Tasks)
 - `subjects` - Map of job types to Cloud Tasks queue names
-  - `email`: Email sending jobs
-  - `notification`: Notification jobs
-  - `moderation`: Moderation jobs
-- `consumers` - Legacy field (unused for Cloud Tasks)
+   - `email`: Email sending jobs
+   - `notification`: Notification jobs
+   - `moderation`: Moderation jobs
 
 ### features.yaml
 Feature toggle flags:
@@ -94,9 +92,8 @@ To override default configurations without modifying the defaults:
 ```yaml
 # config/overrides/queue.yaml
 queue:
-  stream_name: JOBS_DEV  # Override for local development
-  subjects:
-    email: "email.send.dev"
+   subjects:
+      email: "email.send.dev"
 ```
 
 The override will merge with defaults, replacing only the specified values.

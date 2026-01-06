@@ -2,9 +2,6 @@
 # This file defines queue settings for job processing
 
 queue:
-  # Legacy field (unused for Cloud Tasks)
-  stream_name: JOBS
-
   # Queue mappings (key=purpose, value=Cloud Tasks queue name)
   subjects:
     email: "email-queue"
@@ -32,31 +29,6 @@ queue:
     verification_sms: "verification-sms-queue"
     verification_reconciliation: "verification-reconciliation-queue"
     interactions_batch: "interactions-batch-queue"
+    interactions_aggregator: "interactions-aggregator-queue"
 
-  # Legacy field (unused for Cloud Tasks)
-  consumers:
-    email: "email-worker"
-    notification: "notification-worker"
-    moderation: "moderation-worker"
-    media_thumbnail: "media-thumbnail-worker"
-    media_cleanup: "media-cleanup-worker"
-    ai_moderation: "ai-moderation-worker"
-    booking_expiry: "booking-expiry-worker"
-    booking_completion: "booking-completion-worker"
-    booking_checkin_out: "booking-checkin-out-worker"
-    booking_refund: "booking-refund-worker"
-    payment_webhook: "payment-webhook-worker"
-    payout_process: "payout-process-worker"
-    payout_retry: "payout-retry-worker"
-    finance_reconciliation: "finance-reconciliation-worker"
-    review_stats: "review-stats-worker"
-    review_standoff: "review-standoff-worker"
-    review_reminders: "review-reminders-worker"
-    promotion_expiry: "promotion-expiry-worker"
-    subscription_billing: "subscription-billing-worker"
-    calendar_showing_reminders: "calendar-showing-reminders-worker"
-    calendar_open_house_reminders: "calendar-open-house-reminders-worker"
-    verification_submission: "verification-submission-worker"
-    verification_sms: "verification-sms-worker"
-    verification_reconciliation: "verification-reconciliation-worker"
-    interactions_batch: "interactions-batch-worker"
+

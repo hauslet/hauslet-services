@@ -30,9 +30,7 @@ type CalendarYAMLConfig struct {
 
 // QueueYAMLConfig defines queue/Cloud Tasks settings
 type QueueYAMLConfig struct {
-	StreamName string            `yaml:"stream_name"`
-	Subjects   map[string]string `yaml:"subjects"`
-	Consumers  map[string]string `yaml:"consumers"`
+	Subjects map[string]string `yaml:"subjects"`
 }
 
 // FeatureYAMLConfig defines feature flags
@@ -157,9 +155,9 @@ type RateLimitRule struct {
 
 // LeadsRateLimits defines rate limits for lead submissions.
 type LeadsRateLimits struct {
-	Window        string              `yaml:"window"` // Time window (e.g., "24h")
-	Anonymous     LeadsRateLimitTier  `yaml:"anonymous"`
-	Authenticated LeadsRateLimitTier  `yaml:"authenticated"`
+	Window        string             `yaml:"window"` // Time window (e.g., "24h")
+	Anonymous     LeadsRateLimitTier `yaml:"anonymous"`
+	Authenticated LeadsRateLimitTier `yaml:"authenticated"`
 }
 
 // LeadsRateLimitTier defines rate limits for a requester tier.
@@ -257,23 +255,12 @@ func mergeServiceConfig(dst, src *ServiceConfig) {
 	}
 
 	// Merge Queue config
-	if src.Queue.StreamName != "" {
-		dst.Queue.StreamName = src.Queue.StreamName
-	}
 	if src.Queue.Subjects != nil {
 		if dst.Queue.Subjects == nil {
 			dst.Queue.Subjects = make(map[string]string)
 		}
 		for k, v := range src.Queue.Subjects {
 			dst.Queue.Subjects[k] = v
-		}
-	}
-	if src.Queue.Consumers != nil {
-		if dst.Queue.Consumers == nil {
-			dst.Queue.Consumers = make(map[string]string)
-		}
-		for k, v := range src.Queue.Consumers {
-			dst.Queue.Consumers[k] = v
 		}
 	}
 
