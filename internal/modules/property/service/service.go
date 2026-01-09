@@ -225,6 +225,19 @@ func (s *ServiceImpl) UnpublishListing(ctx context.Context, listingID uuid.UUID)
 		return nil, fmt.Errorf("listing is not currently published")
 	}
 
+	statusChangedAt := time.Now()
+	updates := map[string]any{
+		"status":               domain.StatusInactive,
+		"latest_review_status": domain.StatusDraft,
+		"published":            false,
+		"published_at":         nil,
+		"status_changed_at":    statusChangedAt,
+	}
+	if err := s.repo.PatchListing(ctx, existing.ID, updates); err != nil {
+		s.log.Error("failed to update listing status during unpublish", "listing_id", listingID, "error", err)
+		return nil, fmt.Errorf("failed to update listing status: %w", err)
+	}
+
 	updated, err := s.ensureListing(ctx, listingID, false)
 	if err != nil {
 		s.log.Error("failed to fetch listing after unpublish", "listing_id", listingID, "error", err)
