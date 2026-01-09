@@ -44,6 +44,7 @@ type PropertyService interface {
 	DeleteListing(ctx context.Context, id uuid.UUID, hard bool) error
 	GetListingCompleteness(ctx context.Context, listingID uuid.UUID, requesterID uuid.UUID) (*domain.ListingCompleteness, error)
 	PublishListingRequest(ctx context.Context, listingID uuid.UUID) error
+	UnpublishListing(ctx context.Context, listingID uuid.UUID) (*domain.Listing, error)
 
 	// Listing media
 	UploadListingMedia(ctx context.Context, listingID uuid.UUID, media []domain.ListingMediaInput) ([]domain.ListingMediaResult, error)

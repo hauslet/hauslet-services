@@ -639,8 +639,14 @@ func (r *Resolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.
 		return nil, fmt.Errorf("forbidden: not the owner")
 	}
 
-	r.log.Warn("UnpublishListing not supported")
-	return nil, fmt.Errorf("unpublish listing not supported")
+	updatedListing, err := r.propertyService.UnpublishListing(ctx, id)
+	if err != nil {
+		r.log.Error("failed to unpublish listing", "listing_id", id, "error", err)
+		return nil, err
+	}
+
+	r.log.Info("listing unpublished", "listing_id", id, "user_id", v.UserID)
+	return sanitizeListingForViewer(ctx, updatedListing, v), nil
 }
 
 // ===========================

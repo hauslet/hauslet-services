@@ -206,6 +206,35 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 	return nil
 }
 
+// UnpublishListing retracts an active listing and, if ready, re-queues it for moderation.
+func (s *ServiceImpl) UnpublishListing(ctx context.Context, listingID uuid.UUID) (*domain.Listing, error) {
+	if listingID == uuid.Nil {
+		return nil, domain.ErrInvalidListingID
+	}
+
+	s.log.Info("starting unpublish for listing", "listing_id", listingID)
+
+	existing, err := s.ensureListing(ctx, listingID, false)
+	if err != nil {
+		s.log.Error("failed to fetch listing for unpublish", "listing_id", listingID, "error", err)
+		return nil, err
+	}
+
+	if !existing.Published || existing.Status != domain.StatusActive {
+		s.log.Warn("listing not currently published", "listing_id", listingID, "status", existing.Status, "published", existing.Published)
+		return nil, fmt.Errorf("listing is not currently published")
+	}
+
+	updated, err := s.ensureListing(ctx, listingID, false)
+	if err != nil {
+		s.log.Error("failed to fetch listing after unpublish", "listing_id", listingID, "error", err)
+		return nil, err
+	}
+
+	s.log.Info("listing unpublished", "listing_id", listingID, "status", updated.Status)
+	return updated, nil
+}
+
 // ensureProperty fetches a property by ID, returning an error if not found.
 func (s *ServiceImpl) ensureProperty(ctx context.Context, id uuid.UUID) (*domain.Property, error) {
 	p, err := s.repo.GetPropertyByID(ctx, id)
