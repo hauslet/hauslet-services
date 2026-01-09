@@ -138,6 +138,14 @@ type ProfileAdapter interface {
 	GetProfileData(ctx context.Context, userID uuid.UUID) (name string, email string, err error)
 }
 
+// PropertyAdapter provides access to property/listing data
+// Following dependency inversion: interface defined where consumed, implemented in port/hooks
+type PropertyAdapter interface {
+	// CountUserListings returns the total number of listings owned by a user
+	// Can optionally filter by published status and listing statuses
+	CountUserListings(ctx context.Context, userID uuid.UUID, publishedOnly bool) (int, error)
+}
+
 // Input structs
 
 // CreatePromotionInput contains the data needed to create a paid promotion

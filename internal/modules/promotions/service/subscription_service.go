@@ -24,6 +24,7 @@ type SubscriptionServiceImpl struct {
 	usageService     UsageService
 	paymentService   paymentService.PaymentService
 	profileAdapter   ProfileAdapter
+	propertyAdapter  PropertyAdapter
 	config           *config.PromotionYAMLConfig
 	db               *gorm.DB
 	log              *slog.Logger
@@ -35,6 +36,7 @@ func NewSubscriptionService(
 	usageService UsageService,
 	paymentService paymentService.PaymentService,
 	profileAdapter ProfileAdapter,
+	propertyAdapter PropertyAdapter,
 	config *config.PromotionYAMLConfig,
 	db *gorm.DB,
 	log *slog.Logger,
@@ -44,6 +46,7 @@ func NewSubscriptionService(
 		usageService:     usageService,
 		paymentService:   paymentService,
 		profileAdapter:   profileAdapter,
+		propertyAdapter:  propertyAdapter,
 		config:           config,
 		db:               db,
 		log:              log,
@@ -262,26 +265,69 @@ func (s *SubscriptionServiceImpl) GetUserSubscription(ctx context.Context, userI
 
 // CanAddListing checks if user can add another listing
 func (s *SubscriptionServiceImpl) CanAddListing(ctx context.Context, userID uuid.UUID) (bool, error) {
+	// Property adapter is required for this operation
+	// In worker contexts (webhooks, billing), this method shouldn't be called
+	if s.propertyAdapter == nil {
+		s.log.Error("property adapter not initialized - cannot check listing limits",
+			"user_id", userID,
+		)
+		return false, fmt.Errorf("property adapter not available in this context")
+	}
+
 	subscription, err := s.GetUserSubscription(ctx, userID)
 	if err != nil {
 		return false, err
 	}
 
+	// Get actual listing count from property service
+	// We count all listings (published and unpublished) to enforce the limit
+	currentListingCount, err := s.propertyAdapter.CountUserListings(ctx, userID, false)
+	if err != nil {
+		s.log.Warn("failed to count user listings, denying listing creation",
+			"user_id", userID,
+			"error", err,
+		)
+		return false, fmt.Errorf("failed to check listing limit: %w", err)
+	}
+
 	// Free tier
 	if subscription == nil {
-		// TODO: Need to count user's listings - this requires property service integration
-		// For now, return true and let property service handle the check
-		return true, nil
+		freeTierLimit := getFreeTierLimit(s.config, "max_listings")
+		canAdd := currentListingCount < freeTierLimit
+
+		s.log.Info("checking free tier listing limit",
+			"user_id", userID,
+			"current_listings", currentListingCount,
+			"limit", freeTierLimit,
+			"can_add", canAdd,
+		)
+
+		return canAdd, nil
 	}
 
 	// Check subscription limits
 	if subscription.HasUnlimitedListings() {
+		s.log.Info("user has unlimited listings",
+			"user_id", userID,
+			"subscription_id", subscription.ID,
+			"current_listings", currentListingCount,
+		)
 		return true, nil
 	}
 
-	// TODO: Need actual listing count from property service
-	// For now, return based on limit only
-	return subscription.MaxListings > 0, nil
+	// Check against subscription limit
+	canAdd := currentListingCount < subscription.MaxListings
+
+	s.log.Info("checking subscription listing limit",
+		"user_id", userID,
+		"subscription_id", subscription.ID,
+		"plan_type", subscription.PlanType,
+		"current_listings", currentListingCount,
+		"limit", subscription.MaxListings,
+		"can_add", canAdd,
+	)
+
+	return canAdd, nil
 }
 
 // CanAddPhotos checks if user can add photos to a listing
@@ -538,8 +584,24 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, subsc
 
 	// Calculate proration for the upgrade
 	var proratedAmount int64
-	if subscription.NextBillingDate != nil && subscription.NextBillingDate.After(now) {
-		// Calculate days remaining in current cycle
+
+	// CRITICAL: Don't prorate trial upgrades - user hasn't paid yet!
+	// Trial users should pay the full difference between plans
+	if subscription.Status == domain.SubscriptionStatusTrial {
+		// Charge full plan difference - user is upgrading from FREE trial
+		// No credit should be given for unpaid trial period
+		proratedAmount = planConfig.Amount - subscription.Amount
+
+		s.log.Info("trial subscription upgrade - charging full plan difference",
+			"subscription_id", subscriptionID,
+			"old_plan", subscription.PlanType,
+			"new_plan", newPlan,
+			"old_amount", subscription.Amount,
+			"new_amount", planConfig.Amount,
+			"amount_to_charge", proratedAmount,
+		)
+	} else if subscription.NextBillingDate != nil && subscription.NextBillingDate.After(now) {
+		// PAID subscription - prorate based on days remaining in billing cycle
 		daysRemaining := int(subscription.NextBillingDate.Sub(now).Hours() / 24)
 		totalDays := getDaysInBillingCycle(subscription.BillingCycle, now)
 
@@ -551,7 +613,7 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, subsc
 			totalDays,
 		)
 
-		s.log.Info("calculated proration for upgrade",
+		s.log.Info("calculated proration for paid subscription upgrade",
 			"subscription_id", subscriptionID,
 			"old_amount", subscription.Amount,
 			"new_amount", planConfig.Amount,
@@ -562,6 +624,11 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, subsc
 	} else {
 		// No next billing date or already passed - charge full amount
 		proratedAmount = planConfig.Amount
+
+		s.log.Info("no billing date - charging full new plan amount",
+			"subscription_id", subscriptionID,
+			"new_amount", planConfig.Amount,
+		)
 	}
 
 	// CRITICAL FIX #1: Payment Status Handling

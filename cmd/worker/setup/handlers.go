@@ -405,13 +405,56 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		)
 		payoutHooksAdapter := financehooks.NewPayoutHooksAdapter(payoutSvc)
 
+		// Initialize promotions services for subscription activation via webhooks
+		promoRepo := promotionrepository.NewListingPromotionRepository(infra.DB)
+		subscriptionRepo := promotionrepository.NewAgentSubscriptionRepository(infra.DB)
+		usageRepo := promotionrepository.NewUsageTrackingRepository(infra.DB)
+
+		usageSvc := promotionservice.NewUsageService(
+			usageRepo,
+			&cfg.YAML.Promotion,
+			infra.DB,
+			log,
+		)
+
+		// Initialize profile adapter for promotions module
+		profileAdapter := promotionhooks.NewPromotionProfileAdapter(profileSvc)
+
+		// Property adapter is nil in worker context (not needed for webhooks/billing)
+		subscriptionSvc := promotionservice.NewSubscriptionService(
+			subscriptionRepo,
+			usageSvc,
+			paymentsSvc,
+			profileAdapter,
+			nil, // propertyAdapter - not needed in worker context
+			&cfg.YAML.Promotion,
+			infra.DB,
+			log,
+		)
+
+		promotionSvc := promotionservice.NewPromotionService(
+			promoRepo,
+			subscriptionRepo,
+			usageSvc,
+			paymentsSvc,
+			&cfg.YAML.Promotion,
+			infra.DB,
+			log,
+		)
+
+		promotionHooksAdapter := promotionhooks.NewPaymentHooks(
+			promotionSvc,
+			subscriptionSvc,
+			log,
+		)
+
 		webhookHandler := paymentshttp.NewWebhookHandler(
 			paymentsSvc,
 			paymentClient,
 			bookingHooksAdapter,
 			financeHooksAdapter,
 			payoutHooksAdapter,
-			nil, // promotion hooks not needed for worker webhook processing
+			promotionHooksAdapter, // Now properly wired!
 			infra.Queue,
 			qCfg["payment_webhook"],
 			log,
@@ -682,11 +725,13 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		profileAdapter := promotionhooks.NewPromotionProfileAdapter(profileSvc)
 
 		// Initialize subscription service
+		// Property adapter is nil in worker context (not needed for billing/expiry jobs)
 		subscriptionSvc := promotionservice.NewSubscriptionService(
 			subscriptionRepo,
 			usageSvc,
 			paymentsSvc,
 			profileAdapter,
+			nil, // propertyAdapter - not needed in worker context
 			&cfg.YAML.Promotion,
 			infra.DB,
 			log,

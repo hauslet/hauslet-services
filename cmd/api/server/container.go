@@ -442,12 +442,16 @@ func (c *Container) initPromotions() error {
 	// Initialize profile adapter for promotions module
 	profileAdapter := promotionhooks.NewPromotionProfileAdapter(c.ProfileSvc)
 
+	// Initialize property adapter for promotions module
+	propertyAdapter := promotionhooks.NewPromotionPropertyAdapter(c.PropertySvc)
+
 	// Initialize subscription service
 	c.SubscriptionSvc = promotionservice.NewSubscriptionService(
 		subscriptionRepo,
 		c.UsageSvc,
 		c.PaymentsSvc,
 		profileAdapter,
+		propertyAdapter,
 		&c.Config.YAML.Promotion,
 		c.DB,
 		c.Logger,
