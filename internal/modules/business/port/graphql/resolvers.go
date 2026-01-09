@@ -461,15 +461,10 @@ func (r *Resolver) RevokeInvitation(ctx context.Context, invitationID string) (b
 
 // getAuthenticatedUserID extracts and validates the user ID from context
 func (r *Resolver) getAuthenticatedUserID(ctx context.Context, operation string) (uuid.UUID, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("unauthenticated attempt", "operation", operation)
-		return uuid.Nil, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid user ID")
+		r.log.Warn("unauthenticated attempt", "operation", operation)
+		return uuid.Nil, err
 	}
 
 	return userID, nil

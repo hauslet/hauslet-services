@@ -38,6 +38,40 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		})
 	}
 
+	// Setup lead routes with optional rate limiting in production
+	if cfg.App.Env == "production" {
+		r.Group(func(r chi.Router) {
+			container.LeadHTTP.SetupRoutesWithRateLimiting(r, container.AuthSvc, container.RateLimiter, container.BusinessMW)
+		})
+	} else {
+		r.Group(func(r chi.Router) {
+			container.LeadHTTP.SetupRoutes(r, container.AuthSvc, container.BusinessMW)
+		})
+	}
+
+	// Setup finance admin routes with optional rate limiting in production
+	authMiddleware := container.AuthSvc.OAuthService().Middleware()
+	if cfg.App.Env == "production" {
+		r.Group(func(r chi.Router) {
+			container.FinanceHTTP.SetupRoutesWithRateLimiting(r, &authMiddleware, container.RateLimiter)
+		})
+	} else {
+		r.Group(func(r chi.Router) {
+			container.FinanceHTTP.SetupRoutes(r, &authMiddleware)
+		})
+	}
+
+	// Setup review admin routes with optional rate limiting in production
+	if cfg.App.Env == "production" {
+		r.Group(func(r chi.Router) {
+			container.ReviewHTTP.SetupRoutesWithRateLimiting(r, &authMiddleware, container.RateLimiter)
+		})
+	} else {
+		r.Group(func(r chi.Router) {
+			container.ReviewHTTP.SetupRoutes(r, &authMiddleware)
+		})
+	}
+
 	// Setup payment webhook routes with optional rate limiting in production
 	if cfg.App.Env == "production" {
 		container.PaymentWebhookHTTP.SetupRoutesWithRateLimiting(r, container.RateLimiter)
@@ -76,6 +110,7 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		container.BusinessMW.Auth.WithTenantSlug,
 		container.FXClient,
 		container.RateLimiter,
+		container.EventSubscriber,
 		cfg,
 		container.Logger,
 	)

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 
 	"hauslet/internal/modules/business/domain"
 	"hauslet/internal/modules/business/service"
@@ -25,14 +24,10 @@ func NewPropertyAuthHelper(businessService service.BusinessService) *PropertyAut
 
 // CanCreateListing checks if the user can create a listing for the business
 func (h *PropertyAuthHelper) CanCreateListing(ctx context.Context, businessID uuid.UUID) error {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return fmt.Errorf("unauthenticated")
-	}
 
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return fmt.Errorf("invalid user ID")
+		return err
 	}
 
 	// Check if user has permission
@@ -50,14 +45,9 @@ func (h *PropertyAuthHelper) CanCreateListing(ctx context.Context, businessID uu
 
 // CanEditListing checks if the user can edit a listing for the business
 func (h *PropertyAuthHelper) CanEditListing(ctx context.Context, businessID uuid.UUID) error {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return fmt.Errorf("invalid user ID")
+		return err
 	}
 
 	// Check if user has permission
@@ -75,14 +65,9 @@ func (h *PropertyAuthHelper) CanEditListing(ctx context.Context, businessID uuid
 
 // CanDeleteListing checks if the user can delete a listing for the business
 func (h *PropertyAuthHelper) CanDeleteListing(ctx context.Context, businessID uuid.UUID) error {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return fmt.Errorf("invalid user ID")
+		return err
 	}
 
 	// Check if user has permission
@@ -100,14 +85,9 @@ func (h *PropertyAuthHelper) CanDeleteListing(ctx context.Context, businessID uu
 
 // CanPublishListing checks if the user can publish a listing for the business
 func (h *PropertyAuthHelper) CanPublishListing(ctx context.Context, businessID uuid.UUID) error {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return fmt.Errorf("invalid user ID")
+		return err
 	}
 
 	// Check if user has permission
@@ -125,16 +105,10 @@ func (h *PropertyAuthHelper) CanPublishListing(ctx context.Context, businessID u
 
 // CanManageMedia checks if the user can manage media for the business
 func (h *PropertyAuthHelper) CanManageMedia(ctx context.Context, businessID uuid.UUID) error {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return fmt.Errorf("invalid user ID")
+		return err
 	}
-
 	// Check if user has permission
 	hasPermission, err := h.businessService.HasPermission(ctx, userID, businessID, "CanManageMedia")
 	if err != nil {
@@ -151,16 +125,10 @@ func (h *PropertyAuthHelper) CanManageMedia(ctx context.Context, businessID uuid
 // GetBusinessMembership retrieves the user's membership in the business
 // Returns membership if user is a member, error otherwise
 func (h *PropertyAuthHelper) GetBusinessMembership(ctx context.Context, businessID uuid.UUID) (*domain.BusinessMember, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
-
 	membership, err := h.businessService.GetMember(ctx, businessID, userID)
 	if err != nil {
 		return nil, err

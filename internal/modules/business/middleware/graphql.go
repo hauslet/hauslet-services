@@ -26,14 +26,9 @@ func NewGraphQLAuthHelper(businessService service.BusinessService) *GraphQLAuthH
 // RequireMembership checks if the current user is a member of the specified business
 // Returns the membership if successful, error otherwise
 func (h *GraphQLAuthHelper) RequireMembership(ctx context.Context, businessID uuid.UUID) (*domain.BusinessMember, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
 
 	membership, err := h.businessService.GetMember(ctx, businessID, userID)
@@ -143,14 +138,9 @@ func (h *GraphQLAuthHelper) CheckPermission(ctx context.Context, businessID uuid
 
 // GetCurrentUserID returns the current user's ID from the viewer context
 func (h *GraphQLAuthHelper) GetCurrentUserID(ctx context.Context) (uuid.UUID, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return uuid.Nil, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid user ID")
+		return uuid.Nil, err
 	}
 
 	return userID, nil
@@ -168,15 +158,14 @@ func (h *GraphQLAuthHelper) EnrichContextWithBusiness(ctx context.Context, busin
 	ctx = WithBusiness(ctx, business)
 
 	// Try to get membership if user is authenticated
-	v := viewer.FromContext(ctx)
-	if v != nil && v.UserID != "" {
-		userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return ctx, nil
+	} else {
+		membership, err := h.businessService.GetMember(ctx, businessID, userID)
 		if err == nil {
-			membership, err := h.businessService.GetMember(ctx, businessID, userID)
-			if err == nil {
-				ctx = WithMembership(ctx, membership)
-				ctx = WithPermissions(ctx, &membership.Permissions)
-			}
+			ctx = WithMembership(ctx, membership)
+			ctx = WithPermissions(ctx, &membership.Permissions)
 		}
 	}
 

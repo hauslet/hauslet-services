@@ -80,9 +80,9 @@ type Disbursement struct {
 	Attempts         int        `gorm:"not null;default:0"`
 	NextRetryAt      *time.Time `gorm:"index"`
 	CompletedAt      *time.Time
-	FailureReason    *string    `gorm:"type:text"`
-	CreatedAt        time.Time  `gorm:"not null;default:now();index"`
-	UpdatedAt        time.Time  `gorm:"not null;default:now()"`
+	FailureReason    *string   `gorm:"type:text"`
+	CreatedAt        time.Time `gorm:"not null;default:now();index"`
+	UpdatedAt        time.Time `gorm:"not null;default:now()"`
 }
 
 // TableName specifies the table name for Disbursement
@@ -92,27 +92,27 @@ func (Disbursement) TableName() string {
 
 // Dispute represents a financial dispute in the database
 type Dispute struct {
-	ID           uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	BookingID    uuid.UUID  `gorm:"type:uuid;not null;uniqueIndex;index"` // Unique: one dispute per booking
-	WalletID     uuid.UUID  `gorm:"type:uuid;not null;index"`
-	PaymentID    uuid.UUID  `gorm:"type:uuid;not null;index"` // Payment associated with booking
-	FiledBy      string     `gorm:"type:varchar(20);not null"` // guest or host
-	FiledByID    uuid.UUID  `gorm:"type:uuid;not null;index"`
-	Reason       string     `gorm:"type:varchar(50);not null;index"`
-	Status       string     `gorm:"type:varchar(30);not null;index"`
-	Description  string     `gorm:"type:text;not null"`
-	Amount       int64      `gorm:"not null"` // Amount in dispute
-	Currency     string     `gorm:"type:varchar(3);not null"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	BookingID   uuid.UUID `gorm:"type:uuid;not null;uniqueIndex;index"` // Unique: one dispute per booking
+	WalletID    uuid.UUID `gorm:"type:uuid;not null;index"`
+	PaymentID   uuid.UUID `gorm:"type:uuid;not null;index"`  // Payment associated with booking
+	FiledBy     string    `gorm:"type:varchar(20);not null"` // guest or host
+	FiledByID   uuid.UUID `gorm:"type:uuid;not null;index"`
+	Reason      string    `gorm:"type:varchar(50);not null;index"`
+	Status      string    `gorm:"type:varchar(30);not null;index"`
+	Description string    `gorm:"type:text;not null"`
+	Amount      int64     `gorm:"not null"` // Amount in dispute
+	Currency    string    `gorm:"type:varchar(3);not null"`
 
 	// Evidence and resolution (stored as JSONB)
-	Evidence     string     `gorm:"type:jsonb"` // JSON array of DisputeEvidence
-	AdminNotes   *string    `gorm:"type:text"`
-	Resolution   *string    `gorm:"type:jsonb"` // DisputeResolution as JSON
+	Evidence   string  `gorm:"type:jsonb"` // JSON array of DisputeEvidence
+	AdminNotes *string `gorm:"type:text"`
+	Resolution *string `gorm:"type:jsonb"` // DisputeResolution as JSON
 
-	ResolvedByID   *uuid.UUID `gorm:"type:uuid;index"`
-	ResolvedAt     *time.Time `gorm:"index"`
-	RefundAmount   *int64
-	TransactionID  *uuid.UUID `gorm:"type:uuid;index"` // Resolution transaction
+	ResolvedByID  *uuid.UUID `gorm:"type:uuid;index"`
+	ResolvedAt    *time.Time `gorm:"index"`
+	RefundAmount  *int64
+	TransactionID *uuid.UUID `gorm:"type:uuid;index"` // Resolution transaction
 
 	CreatedAt time.Time `gorm:"not null;default:now();index"`
 	UpdatedAt time.Time `gorm:"not null;default:now()"`
@@ -154,8 +154,8 @@ type Discrepancy struct {
 	Description   string     `gorm:"type:text;not null"`
 	ExpectedValue *int64
 	ActualValue   *int64
-	Details       string     `gorm:"type:jsonb"` // Additional context
-	CreatedAt     time.Time  `gorm:"not null;default:now();index"`
+	Details       string    `gorm:"type:jsonb"` // Additional context
+	CreatedAt     time.Time `gorm:"not null;default:now();index"`
 }
 
 // TableName specifies the table name for Discrepancy

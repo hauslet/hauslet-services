@@ -190,18 +190,6 @@ extend type Mutation {
   # Delete own review (only if unpublished)
   deleteReview(reviewId: UUID!): Boolean!
 
-  # Admin: Publish a standoff review manually (admin only)
-  publishReview(reviewId: UUID!): Review!
-
-  # Admin: Hide a review for moderation (admin only)
-  hideReview(
-    reviewId: UUID!
-    reason: ModerationReason!
-  ): Review!
-
-  # Admin: Unhide a review (admin only)
-  unhideReview(reviewId: UUID!): Review!
-
   # Report a review for moderation (requires authentication)
   reportReview(
     reviewId: UUID!

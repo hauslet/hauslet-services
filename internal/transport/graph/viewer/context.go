@@ -2,12 +2,14 @@ package viewer
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	authmiddleware "hauslet/internal/modules/auth/middleware"
 	"hauslet/internal/platform/authz"
 
 	"github.com/go-pkgz/auth/token"
+	"github.com/google/uuid"
 )
 
 type contextKey struct{}
@@ -20,6 +22,14 @@ type Viewer struct {
 	UserAgent string
 	IPAddress string
 }
+
+// Authorization errors
+var (
+	ErrUnauthorized      = fmt.Errorf("unauthorized: authentication required")
+	ErrAdminRequired     = fmt.Errorf("forbidden: admin or root access required")
+	ErrSupportRequired   = fmt.Errorf("forbidden: support, admin, or root access required")
+	ErrOwnershipRequired = fmt.Errorf("forbidden: resource ownership or admin access required")
+)
 
 // WithContext captures token.User (if present) and exposes a lightweight viewer
 // in the request context for downstream resolvers. Safe for public routes as it
@@ -60,6 +70,59 @@ func WithContext(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// GetUserIDFromContext extracts user ID from context
+func GetUserIDFromContext(ctx context.Context) (uuid.UUID, error) {
+	v := FromContext(ctx)
+	if v == nil || v.UserID == "" {
+		return uuid.Nil, ErrUnauthorized
+	}
+
+	userID, err := uuid.Parse(v.UserID)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid user ID in context")
+	}
+
+	return userID, nil
+}
+
+// RequireOwnership ensures user owns the resource
+func RequireOwnership(ctx context.Context, resourceOwnerID uuid.UUID) error {
+	v := FromContext(ctx)
+	if v == nil || v.UserID == "" {
+		return ErrUnauthorized
+	}
+
+	userID, err := uuid.Parse(v.UserID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID")
+	}
+
+	if userID != resourceOwnerID {
+		return ErrOwnershipRequired
+	}
+
+	return nil
+}
+
+// RequireSupport ensures user has support, admin, or root role
+func RequireSupport(ctx context.Context) error {
+	v := FromContext(ctx)
+	if v == nil || v.UserID == "" {
+		return ErrUnauthorized
+	}
+
+	if !isSupportRole(v.Role) {
+		return ErrSupportRequired
+	}
+
+	return nil
+}
+
+// isSupportRole checks if role is support, admin, or root
+func isSupportRole(role string) bool {
+	return role == "support" || role == "admin" || role == "root"
 }
 
 // FromContext extracts the viewer info if present.

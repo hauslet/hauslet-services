@@ -7,6 +7,7 @@ import (
 	businessservice "hauslet/internal/modules/business/service"
 	"hauslet/internal/modules/finance/domain"
 	"hauslet/internal/modules/finance/service"
+	"hauslet/internal/transport/graph/viewer"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -39,51 +40,9 @@ func NewResolver(
 // Query Resolvers
 // ============================================================================
 
-// Wallet retrieves a wallet by ID (admin only)
-func (r *Resolver) Wallet(ctx context.Context, id string) (*domain.Wallet, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	walletID, err := uuid.Parse(id)
-	if err != nil {
-		r.log.Error("invalid wallet ID", "wallet_id", id, "error", err)
-		return nil, fmt.Errorf("invalid wallet ID")
-	}
-
-	wallet, err := r.financeService.GetWallet(ctx, walletID)
-	if err != nil {
-		r.log.Error("failed to get wallet", "wallet_id", id, "error", err)
-		return nil, err
-	}
-
-	return wallet, nil
-}
-
-// UserWallets lists all wallets for a user (admin only)
-func (r *Resolver) UserWallets(ctx context.Context, userID string) ([]*domain.Wallet, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	uid, err := uuid.Parse(userID)
-	if err != nil {
-		r.log.Error("invalid user ID", "user_id", userID, "error", err)
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
-	wallets, err := r.financeService.ListUserWallets(ctx, uid)
-	if err != nil {
-		r.log.Error("failed to list wallets for user", "user_id", userID, "error", err)
-		return nil, err
-	}
-
-	return wallets, nil
-}
-
 // MyWallets lists wallets for the current user
 func (r *Resolver) MyWallets(ctx context.Context) ([]*domain.Wallet, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +56,7 @@ func (r *Resolver) MyWallets(ctx context.Context) ([]*domain.Wallet, error) {
 	return wallets, nil
 }
 
-// BusinessWallets lists wallets for a business (member or admin only)
+// BusinessWallets lists wallets for a business member only
 func (r *Resolver) BusinessWallets(ctx context.Context, businessID string) ([]*domain.Wallet, error) {
 	bID, err := uuid.Parse(businessID)
 	if err != nil {
@@ -129,13 +88,10 @@ func (r *Resolver) FinanceTransactionHistory(
 		return nil, fmt.Errorf("invalid resource ID")
 	}
 
-	// Admin can view any transactions; users can view their own bookings
-	if err := requireAdmin(ctx); err != nil {
-		// If not admin, check if this is the user's own resource
-		// For bookings, check ownership through booking service (TODO)
-		return nil, err
-	}
-
+	// TODO: Get transactions for the resource
+	// For bookings, check ownership through booking service maybe using dataloaders
+	// or This can be done in service layer via adapters but dataloaders is preferred
+	// Same for other resource types as needed
 	transactions, err := r.financeService.GetTransactionHistory(ctx, domain.ResourceType(resourceType), rid)
 	if err != nil {
 		r.log.Error("failed to get transaction history", "error", err)
@@ -145,46 +101,10 @@ func (r *Resolver) FinanceTransactionHistory(
 	return transactions, nil
 }
 
-// WalletLedger retrieves ledger entries for a wallet
-func (r *Resolver) WalletLedger(
-	ctx context.Context,
-	walletID string,
-	limit *int,
-	offset *int,
-) ([]*domain.LedgerEntry, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	wid, err := uuid.Parse(walletID)
-	if err != nil {
-		r.log.Error("invalid wallet ID", "wallet_id", walletID, "error", err)
-		return nil, fmt.Errorf("invalid wallet ID")
-	}
-
-	l := 20
-	if limit != nil && *limit > 0 {
-		l = *limit
-	}
-
-	o := 0
-	if offset != nil && *offset > 0 {
-		o = *offset
-	}
-
-	entries, err := r.financeService.GetWalletHistory(ctx, wid, l, o)
-	if err != nil {
-		r.log.Error("failed to get wallet ledger", "error", err)
-		return nil, err
-	}
-
-	return entries, nil
-}
-
 // MyWalletLedger retrieves ledger entries for the current user's wallet
 func (r *Resolver) MyWalletLedger(ctx context.Context, walletID string, limit *int, offset *int) ([]*domain.LedgerEntry, error) {
 	// To return early if unauthorized, userID would be used later for ownership check
-	_, err := getUserIDFromContext(ctx)
+	_, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -200,10 +120,11 @@ func (r *Resolver) MyWalletLedger(ctx context.Context, walletID string, limit *i
 	}
 
 	if wallet.OwnerType != domain.OwnerTypeUser {
-		return nil, ErrOwnershipRequired
+		return nil, viewer.ErrOwnershipRequired
 	}
 
-	if err := requireOwnershipOrAdmin(ctx, wallet.OwnerID); err != nil {
+	if err := viewer.RequireOwnership(ctx, wallet.OwnerID); err != nil {
+		r.log.Warn("unauthorized access to wallet ledger", "wallet_id", walletID, "error", err)
 		return nil, err
 	}
 
@@ -233,7 +154,7 @@ func (r *Resolver) BusinessWalletLedger(ctx context.Context, walletID string, li
 	}
 
 	if wallet.OwnerType != domain.OwnerTypeBusiness {
-		return nil, ErrOwnershipRequired
+		return nil, viewer.ErrOwnershipRequired
 	}
 
 	if err := r.requireBusinessAccess(ctx, wallet.OwnerID); err != nil {
@@ -253,30 +174,9 @@ func (r *Resolver) BusinessWalletLedger(ctx context.Context, walletID string, li
 	return r.financeService.GetWalletHistory(ctx, wallet.ID, l, o)
 }
 
-// Disbursement retrieves a disbursement by ID
-func (r *Resolver) Disbursement(ctx context.Context, id string) (*domain.Disbursement, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	did, err := uuid.Parse(id)
-	if err != nil {
-		r.log.Error("invalid disbursement ID", "disbursement_id", id, "error", err)
-		return nil, fmt.Errorf("invalid disbursement ID")
-	}
-
-	disbursement, err := r.payoutService.GetDisbursement(ctx, did)
-	if err != nil {
-		r.log.Error("failed to get disbursement", "disbursement_id", id, "error", err)
-		return nil, err
-	}
-
-	return disbursement, nil
-}
-
 // MyDisbursements lists payout disbursements for the current user
 func (r *Resolver) MyDisbursements(ctx context.Context, status *domain.DisbursementStatus, limit *int, offset *int) ([]*domain.Disbursement, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +220,7 @@ func (r *Resolver) BusinessDisbursements(ctx context.Context, businessID string,
 
 // MyFinanceTransactions lists finance transactions for the current user
 func (r *Resolver) MyFinanceTransactions(ctx context.Context, txType *domain.TransactionType, status *domain.TransactionStatus, limit *int, offset *int) ([]*domain.Transaction, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +240,7 @@ func (r *Resolver) MyFinanceTransactions(ctx context.Context, txType *domain.Tra
 
 // MyEarnings returns earnings summary for the current host
 func (r *Resolver) MyEarnings(ctx context.Context) (*EarningsSummary, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -363,6 +263,7 @@ func (r *Resolver) MyEarnings(ctx context.Context) (*EarningsSummary, error) {
 		}
 	}
 
+	// TODO:
 	// Calculate total earned (would need to query completed payouts)
 	// For now, return available balance as totalEarned
 	totalEarned := availableBalance
@@ -380,14 +281,8 @@ func (r *Resolver) MyEarnings(ctx context.Context) (*EarningsSummary, error) {
 }
 
 func (r *Resolver) requireBusinessAccess(ctx context.Context, businessID uuid.UUID) error {
-	if err := requireAdmin(ctx); err == nil {
-		return nil
-	} else if err != ErrAdminRequired {
-		return err
-	}
-
 	if r.businessAuth == nil {
-		return ErrUnauthorized
+		return viewer.ErrUnauthorized
 	}
 
 	_, err := r.businessAuth.RequireMembership(ctx, businessID)

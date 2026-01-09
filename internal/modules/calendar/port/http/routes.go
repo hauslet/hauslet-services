@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"time"
 
 	"hauslet/cmd/api/server/middleware"
@@ -52,27 +51,6 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router, authService authservice.AuthServ
 func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService authservice.AuthService, limiter ratelimit.Limiter, businessMW *businessmiddleware.Middleware) {
 	authMiddleware := authService.OAuthService().Middleware()
 
-	// Helper to apply rate limiting
-	applyRateLimit := func(config middleware.RateLimitConfig) func(http.Handler) http.Handler {
-		policy := middleware.RateLimitPolicy{
-			Keys: func(r *http.Request) []ratelimit.LimitKey {
-				ip := middleware.ClientIP(r)
-				if ip == "" {
-					return nil
-				}
-				return []ratelimit.LimitKey{
-					{
-						Type:   ratelimit.KeyTypeIP,
-						Value:  ip,
-						Limit:  int64(config.Requests),
-						Window: config.Window,
-					},
-				}
-			},
-		}
-		return middleware.RateLimitWithLimiter(limiter, policy)
-	}
-
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware.Auth)
 		if businessMW != nil && businessMW.Auth != nil {
@@ -81,16 +59,12 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService auth
 
 		r.Route("/listings/{listingId}/calendar", func(r chi.Router) {
 			// Create block: 10 requests/minute
-			r.With(applyRateLimit(middleware.RateLimitConfig{
-				Requests: 10,
-				Window:   time.Minute,
-			})).Post("/blocks", h.createBlock)
+			r.With(middleware.RateLimitIP(limiter, 10, time.Minute)).
+				Post("/blocks", h.createBlock)
 
 			// Delete block: 10 requests/minute
-			r.With(applyRateLimit(middleware.RateLimitConfig{
-				Requests: 10,
-				Window:   time.Minute,
-			})).Delete("/blocks/{blockId}", h.deleteBlock)
+			r.With(middleware.RateLimitIP(limiter, 10, time.Minute)).
+				Delete("/blocks/{blockId}", h.deleteBlock)
 		})
 	})
 }

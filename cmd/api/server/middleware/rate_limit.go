@@ -100,3 +100,25 @@ func writeRateLimitResponse(w http.ResponseWriter, window time.Duration) {
 	w.WriteHeader(http.StatusTooManyRequests)
 	_ = json.NewEncoder(w).Encode(responseBody)
 }
+
+// RateLimitIP creates a standard rate limiter that keys off the client's IP address.
+func RateLimitIP(limiter ratelimit.Limiter, requests int, window time.Duration) func(http.Handler) http.Handler {
+	policy := RateLimitPolicy{
+		Keys: func(r *http.Request) []ratelimit.LimitKey {
+			// Reuses your existing ClientIP helper
+			ip := ClientIP(r)
+			if ip == "" {
+				return nil
+			}
+			return []ratelimit.LimitKey{
+				{
+					Type:   ratelimit.KeyTypeIP,
+					Value:  ip,
+					Limit:  int64(requests),
+					Window: window,
+				},
+			}
+		},
+	}
+	return RateLimitWithLimiter(limiter, policy)
+}

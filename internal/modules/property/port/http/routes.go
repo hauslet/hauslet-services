@@ -1,7 +1,6 @@
 package http
 
 import (
-	"net/http"
 	"time"
 
 	"hauslet/cmd/api/server/middleware"
@@ -37,29 +36,10 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router, authService authservice.AuthServ
 }
 
 // SetupRoutesWithRateLimiting configures property routes with rate limiting (for production)
-func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService authservice.AuthService, limiter ratelimit.Limiter, businessMW *businessmiddleware.Middleware) {
-	authMiddleware := authService.OAuthService().Middleware()
+func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService authservice.AuthService,
+	limiter ratelimit.Limiter, businessMW *businessmiddleware.Middleware) {
 
-	// Helper to apply rate limiting
-	applyRateLimit := func(config middleware.RateLimitConfig) func(http.Handler) http.Handler {
-		policy := middleware.RateLimitPolicy{
-			Keys: func(r *http.Request) []ratelimit.LimitKey {
-				ip := middleware.ClientIP(r)
-				if ip == "" {
-					return nil
-				}
-				return []ratelimit.LimitKey{
-					{
-						Type:   ratelimit.KeyTypeIP,
-						Value:  ip,
-						Limit:  int64(config.Requests),
-						Window: config.Window,
-					},
-				}
-			},
-		}
-		return middleware.RateLimitWithLimiter(limiter, policy)
-	}
+	authMiddleware := authService.OAuthService().Middleware()
 
 	// Protected routes (require authentication)
 	r.Group(func(r chi.Router) {
@@ -70,30 +50,22 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, authService auth
 		// Listing media routes
 		r.Route("/listings/{id}/media", func(r chi.Router) {
 			// Upload media: 20 requests/minute
-			r.With(applyRateLimit(middleware.RateLimitConfig{
-				Requests: 20,
-				Window:   time.Minute,
-			})).Post("/", h.UploadListingMedia)
+			r.With(middleware.RateLimitIP(limiter, 20, time.Minute)).
+				Post("/", h.UploadListingMedia)
 
 			// Finalize media: 20 requests/minute
-			r.With(applyRateLimit(middleware.RateLimitConfig{
-				Requests: 20,
-				Window:   time.Minute,
-			})).Post("/finalize", h.FinalizeListingMedia)
+			r.With(middleware.RateLimitIP(limiter, 20, time.Minute)).
+				Post("/finalize", h.FinalizeListingMedia)
 
 			// Delete media: 20 requests/minute
-			r.With(applyRateLimit(middleware.RateLimitConfig{
-				Requests: 20,
-				Window:   time.Minute,
-			})).Delete("/", h.DeleteListingMedia)
+			r.With(middleware.RateLimitIP(limiter, 20, time.Minute)).
+				Delete("/", h.DeleteListingMedia)
 		})
 
 		r.Route(`/listings/{id}/media/{mediaId:[0-9a-fA-F-]{36}}`, func(r chi.Router) {
 			// Update media: 30 requests/minute
-			r.With(applyRateLimit(middleware.RateLimitConfig{
-				Requests: 30,
-				Window:   time.Minute,
-			})).Patch("/", h.UpdateListingMedia)
+			r.With(middleware.RateLimitIP(limiter, 30, time.Minute)).
+				Patch("/", h.UpdateListingMedia)
 		})
 	})
 }

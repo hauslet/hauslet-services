@@ -30,20 +30,11 @@ func (r *Resolver) Dispute(ctx context.Context, id string) (*domain.Dispute, err
 		return nil, err
 	}
 
-	// Check authorization: admin or involved party
-	v := viewer.FromContext(ctx)
-	if v == nil {
-		return nil, ErrUnauthorized
-	}
-
-	userID, err := getUserIDFromContext(ctx)
-	if err != nil {
+	// Check authorization: involved party only
+	// NOTE: ALL admins RELATED operations would be moved to REST layer. Emmanuel I.
+	if err := viewer.RequireOwnership(ctx, dispute.FiledByID); err != nil {
+		r.log.Warn("unauthorized access to dispute", "id", id, "error", err)
 		return nil, err
-	}
-
-	if !isAdminRole(v.Role) && userID != dispute.FiledByID {
-		r.log.Warn("unauthorized access to dispute", "id", id, "user", userID)
-		return nil, fmt.Errorf("unauthorized")
 	}
 
 	return dispute, nil
@@ -66,57 +57,19 @@ func (r *Resolver) DisputeByBooking(ctx context.Context, bookingID string) (*dom
 		return nil, err
 	}
 
-	// Check authorization: admin or involved party
-	v := viewer.FromContext(ctx)
-	if v == nil {
-		return nil, ErrUnauthorized
-	}
-
-	userID, err := getUserIDFromContext(ctx)
-	if err != nil {
+	// Check authorization: involved party only
+	// NOTE: ALL admins RELATED operations would be moved to REST layer. Emmanuel I.
+	if err := viewer.RequireOwnership(ctx, dispute.FiledByID); err != nil {
+		r.log.Warn("unauthorized access to dispute for booking", "id", bookingID, "error", err)
 		return nil, err
-	}
-
-	if !isAdminRole(v.Role) && userID != dispute.FiledByID {
-		r.log.Warn("unauthorized access to dispute for booking", "id", bookingID, "user", userID)
-		return nil, fmt.Errorf("unauthorized")
 	}
 
 	return dispute, nil
 }
 
-// Disputes lists all disputes with optional status filter (admin only)
-func (r *Resolver) Disputes(
-	ctx context.Context,
-	status *domain.DisputeStatus,
-	limit, offset *int,
-) ([]*domain.Dispute, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	l := 50 // default limit
-	if limit != nil && *limit > 0 {
-		l = *limit
-	}
-
-	o := 0 // default offset
-	if offset != nil && *offset > 0 {
-		o = *offset
-	}
-
-	disputes, err := r.financeService.ListDisputes(ctx, status, l, o)
-	if err != nil {
-		r.log.Error("failed to list disputes", "error", err)
-		return nil, err
-	}
-
-	return disputes, nil
-}
-
 // MyDisputes lists disputes filed by the current user
 func (r *Resolver) MyDisputes(ctx context.Context, limit, offset *int) ([]*domain.Dispute, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +108,7 @@ type FileDisputeInput struct {
 
 // FileDispute creates a new dispute
 func (r *Resolver) FileDispute(ctx context.Context, input FileDisputeInput) (*domain.Dispute, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -180,86 +133,9 @@ func (r *Resolver) FileDispute(ctx context.Context, input FileDisputeInput) (*do
 	return dispute, nil
 }
 
-// InvestigateDispute marks a dispute as under investigation (admin only)
-func (r *Resolver) InvestigateDispute(ctx context.Context, disputeID string) (*domain.Dispute, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	adminID, err := getUserIDFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	did, err := uuid.Parse(disputeID)
-	if err != nil {
-		r.log.Error("invalid dispute ID", "id", disputeID, "error", err)
-		return nil, fmt.Errorf("invalid dispute ID")
-	}
-
-	if err := r.financeService.InvestigateDispute(ctx, did, adminID); err != nil {
-		r.log.Error("failed to investigate dispute", "id", disputeID, "error", err)
-		return nil, err
-	}
-
-	// Return updated dispute
-	dispute, err := r.financeService.GetDispute(ctx, did)
-	if err != nil {
-		r.log.Error("failed to get dispute after investigation", "error", err)
-		return nil, err
-	}
-
-	return dispute, nil
-}
-
-// ResolveDisputeInput represents the input for resolving a dispute
-type ResolveDisputeInput struct {
-	DisputeID    uuid.UUID
-	Outcome      domain.DisputeStatus
-	RefundAmount int64
-	Reason       string
-	Notes        string
-}
-
-// ResolveDispute resolves a dispute (admin only)
-func (r *Resolver) ResolveDispute(ctx context.Context, input ResolveDisputeInput) (*domain.Dispute, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	adminID, err := getUserIDFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := r.financeService.ResolveDispute(
-		ctx,
-		input.DisputeID,
-		adminID,
-		input.Outcome,
-		input.RefundAmount,
-		input.Reason,
-		input.Notes,
-	); err != nil {
-		r.log.Error("failed to resolve dispute", "id", input.DisputeID, "error", err)
-		return nil, err
-	}
-
-	// Return updated dispute
-	dispute, err := r.financeService.GetDispute(ctx, input.DisputeID)
-	if err != nil {
-		r.log.Error("failed to get dispute after resolution", "error", err)
-		return nil, err
-	}
-
-	r.log.Info(" dispute resolved", "id", dispute.ID, "outcome", input.Outcome, "admin_id", adminID)
-
-	return dispute, nil
-}
-
 // CancelDispute cancels/withdraws a dispute (disputing party only)
 func (r *Resolver) CancelDispute(ctx context.Context, disputeID string) (*domain.Dispute, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -277,11 +153,10 @@ func (r *Resolver) CancelDispute(ctx context.Context, disputeID string) (*domain
 		return nil, err
 	}
 
-	// Only the person who filed the dispute can cancel it (unless admin)
-	v := viewer.FromContext(ctx)
-	if !isAdminRole(v.Role) && dispute.FiledByID != userID {
+	// Only the person who filed the dispute can cancel it
+	if err := viewer.RequireOwnership(ctx, dispute.FiledByID); err != nil {
 		r.log.Warn("unauthorized cancellation attempt for dispute", "id", disputeID, "user_id", userID)
-		return nil, fmt.Errorf("unauthorized: only the disputing party can cancel")
+		return nil, err
 	}
 
 	if err := r.financeService.CancelDispute(ctx, did, userID); err != nil {
@@ -310,7 +185,7 @@ type AddDisputeEvidenceInput struct {
 
 // AddDisputeEvidence adds evidence to a dispute (involved parties only)
 func (r *Resolver) AddDisputeEvidence(ctx context.Context, input AddDisputeEvidenceInput) (*domain.Dispute, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}

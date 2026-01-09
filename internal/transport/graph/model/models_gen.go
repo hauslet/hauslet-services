@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"fmt"
 	domain1 "hauslet/internal/modules/discovery/domain"
-	domain2 "hauslet/internal/modules/payments/domain"
 	"hauslet/internal/modules/property/domain"
 	"io"
 	"strconv"
@@ -159,12 +158,6 @@ type PageInfo struct {
 	HasPreviousPage bool    `json:"hasPreviousPage"`
 	StartCursor     *string `json:"startCursor,omitempty"`
 	EndCursor       *string `json:"endCursor,omitempty"`
-}
-
-type PaymentInitResponse struct {
-	Payment          *domain2.Payment `json:"payment"`
-	AuthorizationURL *string          `json:"authorizationUrl,omitempty"`
-	AccessCode       *string          `json:"accessCode,omitempty"`
 }
 
 type PlatformFeeBreakdown struct {

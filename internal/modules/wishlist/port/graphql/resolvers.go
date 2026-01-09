@@ -41,7 +41,7 @@ func (r *Resolver) Wishlist(ctx context.Context, id uuid.UUID) (*domain.Wishlist
 
 // MyWishlists lists wishlists belonging to the authenticated user.
 func (r *Resolver) MyWishlists(ctx context.Context, limit *int, offset *int) ([]*domain.Wishlist, error) {
-	userID, err := r.requireViewerID(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (r *Resolver) IsListingInWishlist(ctx context.Context, wishlistID uuid.UUID
 
 // CreateWishlist creates a new wishlist for the authenticated user.
 func (r *Resolver) CreateWishlist(ctx context.Context, input CreateWishlistInput) (*domain.Wishlist, error) {
-	userID, err := r.requireViewerID(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (r *Resolver) CreateWishlist(ctx context.Context, input CreateWishlistInput
 
 // UpdateWishlist updates wishlist metadata for the authenticated owner.
 func (r *Resolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input UpdateWishlistInput) (*domain.Wishlist, error) {
-	userID, err := r.requireViewerID(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (r *Resolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input Updat
 
 // DeleteWishlist deletes a wishlist owned by the authenticated user.
 func (r *Resolver) DeleteWishlist(ctx context.Context, id uuid.UUID) (bool, error) {
-	userID, err := r.requireViewerID(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -138,7 +138,7 @@ func (r *Resolver) DeleteWishlist(ctx context.Context, id uuid.UUID) (bool, erro
 
 // AddWishlistItem adds a listing to a wishlist owned by the authenticated user.
 func (r *Resolver) AddWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID, source *domain.WishlistItemSource) (*domain.WishlistItem, error) {
-	userID, err := r.requireViewerID(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (r *Resolver) AddWishlistItem(ctx context.Context, wishlistID uuid.UUID, li
 
 // RemoveWishlistItem removes a listing from a wishlist owned by the authenticated user.
 func (r *Resolver) RemoveWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID) (bool, error) {
-	userID, err := r.requireViewerID(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -172,7 +172,7 @@ func (r *Resolver) RemoveWishlistItem(ctx context.Context, wishlistID uuid.UUID,
 
 // ImportWishlist clones a source wishlist into a new wishlist for the authenticated user.
 func (r *Resolver) ImportWishlist(ctx context.Context, sourceWishlistID uuid.UUID, newName *string) (*domain.Wishlist, error) {
-	userID, err := r.requireViewerID(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -247,32 +247,12 @@ func (r *Resolver) normalizePagination(limit *int, offset *int) (int, int) {
 }
 
 func (r *Resolver) optionalViewerID(ctx context.Context) uuid.UUID {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return uuid.Nil
-	}
-	id, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		if r.log != nil {
-			r.log.Warn("invalid viewer user ID", "user_id", v.UserID, "error", err)
+			r.log.Warn("invalid viewer user ID", "user_id", userID, "error", err)
 		}
 		return uuid.Nil
 	}
-	return id
-}
-
-func (r *Resolver) requireViewerID(ctx context.Context) (uuid.UUID, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return uuid.Nil, fmt.Errorf("unauthenticated")
-	}
-
-	id, err := uuid.Parse(v.UserID)
-	if err != nil {
-		if r.log != nil {
-			r.log.Error("invalid viewer user ID", "user_id", v.UserID, "error", err)
-		}
-		return uuid.Nil, fmt.Errorf("invalid user id")
-	}
-	return id, nil
+	return userID
 }

@@ -276,10 +276,6 @@ models:
     model: hauslet/internal/modules/payments/domain.PayoutDetail
 
   # Payment Input/Output Types
-  CreatePaymentInput:
-    model: hauslet/internal/modules/payments/port/graphql.CreatePaymentInput
-  RefundPaymentInput:
-    model: hauslet/internal/modules/payments/port/graphql.RefundPaymentInput
   CreatePaymentMethodInput:
     model: hauslet/internal/modules/payments/port/graphql.SavePaymentMethodInput
   AddPayoutDetailInput:
@@ -344,8 +340,6 @@ models:
     model: hauslet/internal/modules/finance/domain.DisputeResolution
   FileDisputeInput:
     model: hauslet/internal/modules/finance/port/graphql.FileDisputeInput
-  ResolveDisputeInput:
-    model: hauslet/internal/modules/finance/port/graphql.ResolveDisputeInput
   AddDisputeEvidenceInput:
     model: hauslet/internal/modules/finance/port/graphql.AddDisputeEvidenceInput
 

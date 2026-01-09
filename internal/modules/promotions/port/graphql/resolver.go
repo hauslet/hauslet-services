@@ -13,21 +13,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// getUserIDFromContext extracts user ID from context
-func getUserIDFromContext(ctx context.Context) (uuid.UUID, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return uuid.Nil, fmt.Errorf("unauthorized: authentication required")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid user ID in context")
-	}
-
-	return userID, nil
-}
-
 // Resolver handles promotion and subscription GraphQL resolvers
 type Resolver struct {
 	promotionSvc    service.PromotionService
@@ -61,7 +46,7 @@ func NewResolver(
 // CreatePromotion creates a new paid promotion
 func (r *Resolver) CreatePromotion(ctx context.Context, listingID uuid.UUID, promoType domain.PromotionType, duration int) (*CreatePromotionPayload, error) {
 	// Get user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -91,7 +76,7 @@ func (r *Resolver) CreatePromotion(ctx context.Context, listingID uuid.UUID, pro
 // CreateIncludedPromotion creates a promotion from subscription quota
 func (r *Resolver) CreateIncludedPromotion(ctx context.Context, listingID uuid.UUID, promoType domain.PromotionType, duration int) (*domain.ListingPromotion, error) {
 	// Get user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -123,7 +108,7 @@ func (r *Resolver) CreateIncludedPromotion(ctx context.Context, listingID uuid.U
 // CancelPromotion cancels a pending or active promotion
 func (r *Resolver) CancelPromotion(ctx context.Context, id uuid.UUID) (*domain.ListingPromotion, error) {
 	// Get user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -149,7 +134,7 @@ func (r *Resolver) CancelPromotion(ctx context.Context, id uuid.UUID) (*domain.L
 // CreateSubscription creates a new subscription
 func (r *Resolver) CreateSubscription(ctx context.Context, planType domain.PlanType, billingCycle domain.BillingCycle, startTrial bool, paymentMethodID *uuid.UUID) (*CreateSubscriptionPayload, error) {
 	// Get user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -202,7 +187,7 @@ func (r *Resolver) CancelSubscription(ctx context.Context, subscriptionID uuid.U
 
 // UseIncludedPromotion marks an included promotion as used
 func (r *Resolver) UseIncludedPromotion(ctx context.Context, promoType domain.PromotionType) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -215,7 +200,7 @@ func (r *Resolver) UseIncludedPromotion(ctx context.Context, promoType domain.Pr
 
 // UseOpenHouse marks an open house slot as used
 func (r *Resolver) UseOpenHouse(ctx context.Context) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -228,7 +213,7 @@ func (r *Resolver) UseOpenHouse(ctx context.Context) (bool, error) {
 
 // UsePrivateShowing marks a private showing slot as used
 func (r *Resolver) UsePrivateShowing(ctx context.Context) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -250,7 +235,7 @@ func (r *Resolver) GetPromotion(ctx context.Context, id uuid.UUID) (*domain.List
 
 // ListMyPromotions lists promotions for the current user
 func (r *Resolver) ListMyPromotions(ctx context.Context, limit, offset int) ([]*domain.ListingPromotion, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -280,7 +265,7 @@ func (r *Resolver) GetSubscription(ctx context.Context, id uuid.UUID) (*domain.A
 
 // GetMySubscription retrieves the current user's subscription
 func (r *Resolver) GetMySubscription(ctx context.Context) (*domain.AgentSubscription, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -290,7 +275,7 @@ func (r *Resolver) GetMySubscription(ctx context.Context) (*domain.AgentSubscrip
 
 // CanAddListing checks if user can add another listing
 func (r *Resolver) CanAddListing(ctx context.Context) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -300,7 +285,7 @@ func (r *Resolver) CanAddListing(ctx context.Context) (bool, error) {
 
 // CanAddPhotos checks if user can add photos to a listing
 func (r *Resolver) CanAddPhotos(ctx context.Context, listingID uuid.UUID, photoCount int) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -310,7 +295,7 @@ func (r *Resolver) CanAddPhotos(ctx context.Context, listingID uuid.UUID, photoC
 
 // CanUseFeature checks if user has access to a feature
 func (r *Resolver) CanUseFeature(ctx context.Context, feature string) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -320,7 +305,7 @@ func (r *Resolver) CanUseFeature(ctx context.Context, feature string) (bool, err
 
 // CanUseIncludedPromotion checks if user can use an included promotion
 func (r *Resolver) CanUseIncludedPromotion(ctx context.Context, promoType domain.PromotionType) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -330,7 +315,7 @@ func (r *Resolver) CanUseIncludedPromotion(ctx context.Context, promoType domain
 
 // CanCreateOpenHouse checks if user can create an open house
 func (r *Resolver) CanCreateOpenHouse(ctx context.Context) (*FeatureLimitCheckResult, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -377,7 +362,7 @@ func (r *Resolver) CanCreateOpenHouse(ctx context.Context) (*FeatureLimitCheckRe
 
 // CanCreatePrivateShowing checks if user can create a private showing
 func (r *Resolver) CanCreatePrivateShowing(ctx context.Context) (*FeatureLimitCheckResult, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -424,7 +409,7 @@ func (r *Resolver) CanCreatePrivateShowing(ctx context.Context) (*FeatureLimitCh
 
 // GetFeatureLimit gets the limit for a specific feature
 func (r *Resolver) GetFeatureLimit(ctx context.Context, feature string) (int, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("unauthorized: %w", err)
 	}
@@ -466,7 +451,7 @@ func (r *Resolver) GetPlanLimits(ctx context.Context, planType domain.PlanType) 
 
 // GetCurrentUsage retrieves the current usage for the user's subscription
 func (r *Resolver) GetCurrentUsage(ctx context.Context) (*domain.UsageTracking, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unauthorized: %w", err)
 	}

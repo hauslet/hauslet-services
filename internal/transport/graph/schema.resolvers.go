@@ -105,22 +105,6 @@ func (r *agentSubscriptionResolver) Metadata(ctx context.Context, obj *domain9.A
 	return metadata, nil
 }
 
-// HasPaymentMethod is the resolver for the hasPaymentMethod field.
-func (r *agentSubscriptionResolver) HasPaymentMethod(ctx context.Context, obj *domain9.AgentSubscription) (bool, error) {
-	if obj == nil {
-		return false, nil
-	}
-	return obj.HasPaymentMethod(), nil
-}
-
-// PaymentMethodID is the resolver for the paymentMethodID field.
-func (r *agentSubscriptionResolver) PaymentMethodID(ctx context.Context, obj *domain9.AgentSubscription) (*uuid.UUID, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	return obj.PaymentMethodID, nil
-}
-
 // Location is the resolver for the location field.
 func (r *businessResolver) Location(ctx context.Context, obj *domain3.Business) (*domain.Location, error) {
 	if obj == nil || obj.Location == nil {
@@ -573,29 +557,6 @@ func (r *mutationResolver) RemoveOpenHouseAttendee(ctx context.Context, eventID 
 	return r.CalendarResolver.RemoveOpenHouseAttendee(ctx, eventID, attendeeID)
 }
 
-// CreatePayment is the resolver for the createPayment field.
-func (r *mutationResolver) CreatePayment(ctx context.Context, input graphql1.CreatePaymentInput) (*model.PaymentInitResponse, error) {
-	payment, err := r.PaymentsResolver.CreatePayment(ctx, &input)
-	if err != nil {
-		return nil, err
-	}
-	// Return PaymentInitResponse with the payment object
-	return &model.PaymentInitResponse{
-		Payment:          payment,
-		AuthorizationURL: payment.RedirectURL,
-	}, nil
-}
-
-// VerifyPayment is the resolver for the verifyPayment field.
-func (r *mutationResolver) VerifyPayment(ctx context.Context, reference string) (*domain6.Payment, error) {
-	return r.PaymentsResolver.VerifyPayment(ctx, reference)
-}
-
-// RefundPayment is the resolver for the refundPayment field.
-func (r *mutationResolver) RefundPayment(ctx context.Context, input graphql1.RefundPaymentInput) (*domain6.Payment, error) {
-	return r.PaymentsResolver.RefundPayment(ctx, &input)
-}
-
 // SavePaymentMethod is the resolver for the savePaymentMethod field.
 func (r *mutationResolver) SavePaymentMethod(ctx context.Context, input graphql1.SavePaymentMethodInput) (*domain6.PaymentMethod, error) {
 	return r.PaymentsResolver.SavePaymentMethod(ctx, &input)
@@ -634,16 +595,6 @@ func (r *mutationResolver) CreatePayout(ctx context.Context, input graphql1.Crea
 // FileDispute is the resolver for the fileDispute field.
 func (r *mutationResolver) FileDispute(ctx context.Context, input graphql2.FileDisputeInput) (*domain7.Dispute, error) {
 	return r.FinanceResolver.FileDispute(ctx, input)
-}
-
-// InvestigateDispute is the resolver for the investigateDispute field.
-func (r *mutationResolver) InvestigateDispute(ctx context.Context, disputeID uuid.UUID) (*domain7.Dispute, error) {
-	return r.FinanceResolver.InvestigateDispute(ctx, disputeID.String())
-}
-
-// ResolveDispute is the resolver for the resolveDispute field.
-func (r *mutationResolver) ResolveDispute(ctx context.Context, input graphql2.ResolveDisputeInput) (*domain7.Dispute, error) {
-	return r.FinanceResolver.ResolveDispute(ctx, input)
 }
 
 // CancelDispute is the resolver for the cancelDispute field.
@@ -699,21 +650,6 @@ func (r *mutationResolver) UpdateReview(ctx context.Context, reviewID uuid.UUID,
 // DeleteReview is the resolver for the deleteReview field.
 func (r *mutationResolver) DeleteReview(ctx context.Context, reviewID uuid.UUID) (bool, error) {
 	return r.ReviewResolver.DeleteReview(ctx, reviewID.String())
-}
-
-// PublishReview is the resolver for the publishReview field.
-func (r *mutationResolver) PublishReview(ctx context.Context, reviewID uuid.UUID) (*domain8.Review, error) {
-	return r.ReviewResolver.PublishReview(ctx, reviewID.String())
-}
-
-// HideReview is the resolver for the hideReview field.
-func (r *mutationResolver) HideReview(ctx context.Context, reviewID uuid.UUID, reason domain8.ModerationReason) (*domain8.Review, error) {
-	return r.ReviewResolver.HideReview(ctx, reviewID.String(), reason)
-}
-
-// UnhideReview is the resolver for the unhideReview field.
-func (r *mutationResolver) UnhideReview(ctx context.Context, reviewID uuid.UUID) (*domain8.Review, error) {
-	return r.ReviewResolver.UnhideReview(ctx, reviewID.String())
 }
 
 // ReportReview is the resolver for the reportReview field.
@@ -1278,36 +1214,6 @@ func (r *queryResolver) MyPayments(ctx context.Context, limit *int, offset *int,
 	return result, nil
 }
 
-// Payments is the resolver for the payments field.
-func (r *queryResolver) Payments(ctx context.Context, bookingID *uuid.UUID, businessID *uuid.UUID, payerID *uuid.UUID, status *domain6.PaymentStatus, limit *int, offset *int) ([]*domain6.Payment, error) {
-	var bookingIDStr, businessIDStr, payerIDStr *string
-
-	if bookingID != nil {
-		s := bookingID.String()
-		bookingIDStr = &s
-	}
-	if businessID != nil {
-		s := businessID.String()
-		businessIDStr = &s
-	}
-	if payerID != nil {
-		s := payerID.String()
-		payerIDStr = &s
-	}
-
-	payments, err := r.PaymentsResolver.ListPayments(ctx, bookingIDStr, businessIDStr, payerIDStr, status, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert []Payment to []*Payment
-	result := make([]*domain6.Payment, len(payments))
-	for i := range payments {
-		result[i] = &payments[i]
-	}
-	return result, nil
-}
-
 // PaymentMethod is the resolver for the paymentMethod field.
 func (r *queryResolver) PaymentMethod(ctx context.Context, id uuid.UUID) (*domain6.PaymentMethod, error) {
 	return r.PaymentsResolver.GetPaymentMethod(ctx, id.String())
@@ -1374,27 +1280,6 @@ func (r *queryResolver) MyTransactions(ctx context.Context, typeArg *domain6.Tra
 	return result, nil
 }
 
-// Transactions is the resolver for the transactions field.
-func (r *queryResolver) Transactions(ctx context.Context, paymentID *uuid.UUID, typeArg *domain6.TransactionType, status *domain6.TransactionStatus, limit *int, offset *int) ([]*domain6.Transaction, error) {
-	var paymentIDStr *string
-	if paymentID != nil {
-		s := paymentID.String()
-		paymentIDStr = &s
-	}
-
-	transactions, err := r.PaymentsResolver.ListTransactions(ctx, paymentIDStr, typeArg, status, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert []Transaction to []*Transaction
-	result := make([]*domain6.Transaction, len(transactions))
-	for i := range transactions {
-		result[i] = &transactions[i]
-	}
-	return result, nil
-}
-
 // PayoutDetail is the resolver for the payoutDetail field.
 func (r *queryResolver) PayoutDetail(ctx context.Context, id uuid.UUID) (*domain6.PayoutDetail, error) {
 	return r.PaymentsResolver.GetPayoutDetail(ctx, id.String())
@@ -1414,30 +1299,6 @@ func (r *queryResolver) MyPayoutDetails(ctx context.Context) ([]*domain6.PayoutD
 	return result, nil
 }
 
-// PayoutDetailsByUserID is the resolver for the payoutDetailsByUserId field.
-func (r *queryResolver) PayoutDetailsByUserID(ctx context.Context, userID uuid.UUID) ([]*domain6.PayoutDetail, error) {
-	details, err := r.PaymentsResolver.PayoutDetailsByUserID(ctx, userID.String())
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*domain6.PayoutDetail, len(details))
-	for i := range details {
-		result[i] = &details[i]
-	}
-	return result, nil
-}
-
-// Wallet is the resolver for the wallet field.
-func (r *queryResolver) Wallet(ctx context.Context, id uuid.UUID) (*domain7.Wallet, error) {
-	return r.FinanceResolver.Wallet(ctx, id.String())
-}
-
-// UserWallets is the resolver for the userWallets field.
-func (r *queryResolver) UserWallets(ctx context.Context, userID uuid.UUID) ([]*domain7.Wallet, error) {
-	return r.FinanceResolver.UserWallets(ctx, userID.String())
-}
-
 // MyWallets is the resolver for the myWallets field.
 func (r *queryResolver) MyWallets(ctx context.Context) ([]*domain7.Wallet, error) {
 	return r.FinanceResolver.MyWallets(ctx)
@@ -1448,19 +1309,9 @@ func (r *queryResolver) FinanceTransactionHistory(ctx context.Context, resourceT
 	return r.FinanceResolver.FinanceTransactionHistory(ctx, resourceType, resourceID.String())
 }
 
-// WalletLedger is the resolver for the walletLedger field.
-func (r *queryResolver) WalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain7.LedgerEntry, error) {
-	return r.FinanceResolver.WalletLedger(ctx, walletID.String(), limit, offset)
-}
-
 // MyWalletLedger is the resolver for the myWalletLedger field.
 func (r *queryResolver) MyWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain7.LedgerEntry, error) {
 	return r.FinanceResolver.MyWalletLedger(ctx, walletID.String(), limit, offset)
-}
-
-// Disbursement is the resolver for the disbursement field.
-func (r *queryResolver) Disbursement(ctx context.Context, id uuid.UUID) (*domain7.Disbursement, error) {
-	return r.FinanceResolver.Disbursement(ctx, id.String())
 }
 
 // MyEarnings is the resolver for the myEarnings field.
@@ -1503,34 +1354,9 @@ func (r *queryResolver) DisputeByBooking(ctx context.Context, bookingID uuid.UUI
 	return r.FinanceResolver.DisputeByBooking(ctx, bookingID.String())
 }
 
-// Disputes is the resolver for the disputes field.
-func (r *queryResolver) Disputes(ctx context.Context, status *domain7.DisputeStatus, limit *int, offset *int) ([]*domain7.Dispute, error) {
-	return r.FinanceResolver.Disputes(ctx, status, limit, offset)
-}
-
 // MyDisputes is the resolver for the myDisputes field.
 func (r *queryResolver) MyDisputes(ctx context.Context, limit *int, offset *int) ([]*domain7.Dispute, error) {
 	return r.FinanceResolver.MyDisputes(ctx, limit, offset)
-}
-
-// ReconciliationReport is the resolver for the reconciliationReport field.
-func (r *queryResolver) ReconciliationReport(ctx context.Context, id uuid.UUID) (*domain7.ReconciliationReport, error) {
-	return r.FinanceResolver.ReconciliationReport(ctx, id.String())
-}
-
-// ReconciliationReports is the resolver for the reconciliationReports field.
-func (r *queryResolver) ReconciliationReports(ctx context.Context, limit *int, offset *int) ([]*domain7.ReconciliationReport, error) {
-	return r.FinanceResolver.ReconciliationReports(ctx, limit, offset)
-}
-
-// LatestReconciliation is the resolver for the latestReconciliation field.
-func (r *queryResolver) LatestReconciliation(ctx context.Context) (*domain7.ReconciliationReport, error) {
-	return r.FinanceResolver.LatestReconciliation(ctx)
-}
-
-// ReconciliationDiscrepancies is the resolver for the reconciliationDiscrepancies field.
-func (r *queryResolver) ReconciliationDiscrepancies(ctx context.Context, reportID uuid.UUID, severity *domain7.DiscrepancySeverity) ([]*domain7.Discrepancy, error) {
-	return r.FinanceResolver.ReconciliationDiscrepancies(ctx, reportID.String(), severity)
 }
 
 // Wishlist is the resolver for the wishlist field.
@@ -2013,64 +1839,6 @@ func (r *addPayoutDetailInputResolver) Currency(ctx context.Context, obj *graphq
 	return nil
 }
 
-// BookingID is the resolver for the bookingId field.
-func (r *createPaymentInputResolver) BookingID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error {
-	if data == nil {
-		obj.BookingID = nil
-		return nil
-	}
-	value := data.String()
-	obj.BookingID = &value
-	return nil
-}
-
-// BusinessID is the resolver for the businessId field.
-func (r *createPaymentInputResolver) BusinessID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error {
-	if data == nil {
-		obj.BusinessID = nil
-		return nil
-	}
-	value := data.String()
-	obj.BusinessID = &value
-	return nil
-}
-
-// Currency is the resolver for the currency field.
-func (r *createPaymentInputResolver) Currency(ctx context.Context, obj *graphql1.CreatePaymentInput, data string) error {
-	obj.Currency = payment.Currency(data)
-	return nil
-}
-
-// Metadata is the resolver for the metadata field.
-func (r *createPaymentInputResolver) Metadata(ctx context.Context, obj *graphql1.CreatePaymentInput, data map[string]any) error {
-	if data == nil {
-		obj.Metadata = nil
-		return nil
-	}
-	metadata := make(map[string]string, len(data))
-	for key, value := range data {
-		switch typed := value.(type) {
-		case string:
-			metadata[key] = typed
-		default:
-			metadata[key] = fmt.Sprint(typed)
-		}
-	}
-	obj.Metadata = metadata
-	return nil
-}
-
-// PaymentMethodID is the resolver for the paymentMethodId field.
-func (r *createPaymentInputResolver) PaymentMethodID(ctx context.Context, obj *graphql1.CreatePaymentInput, data *uuid.UUID) error {
-	if data == nil {
-		obj.PaymentMethodID = nil
-		return nil
-	}
-	value := data.String()
-	obj.PaymentMethodID = &value
-	return nil
-}
-
 // IsDefault is the resolver for the isDefault field.
 func (r *createPaymentMethodInputResolver) IsDefault(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data *bool) error {
 	obj.SetAsDefault = data
@@ -2092,12 +1860,6 @@ func (r *createReviewInputResolver) BookingID(ctx context.Context, obj *graphql3
 // TargetID is the resolver for the targetId field.
 func (r *createReviewInputResolver) TargetID(ctx context.Context, obj *graphql3.CreateReviewInput, data uuid.UUID) error {
 	obj.TargetID = data.String()
-	return nil
-}
-
-// PaymentID is the resolver for the paymentId field.
-func (r *refundPaymentInputResolver) PaymentID(ctx context.Context, obj *graphql1.RefundPaymentInput, data uuid.UUID) error {
-	obj.PaymentID = data.String()
 	return nil
 }
 
@@ -2222,11 +1984,6 @@ func (r *Resolver) AddPayoutDetailInput() AddPayoutDetailInputResolver {
 	return &addPayoutDetailInputResolver{r}
 }
 
-// CreatePaymentInput returns CreatePaymentInputResolver implementation.
-func (r *Resolver) CreatePaymentInput() CreatePaymentInputResolver {
-	return &createPaymentInputResolver{r}
-}
-
 // CreatePaymentMethodInput returns CreatePaymentMethodInputResolver implementation.
 func (r *Resolver) CreatePaymentMethodInput() CreatePaymentMethodInputResolver {
 	return &createPaymentMethodInputResolver{r}
@@ -2240,11 +1997,6 @@ func (r *Resolver) CreatePayoutInput() CreatePayoutInputResolver {
 // CreateReviewInput returns CreateReviewInputResolver implementation.
 func (r *Resolver) CreateReviewInput() CreateReviewInputResolver {
 	return &createReviewInputResolver{r}
-}
-
-// RefundPaymentInput returns RefundPaymentInputResolver implementation.
-func (r *Resolver) RefundPaymentInput() RefundPaymentInputResolver {
-	return &refundPaymentInputResolver{r}
 }
 
 type agentSubscriptionResolver struct{ *Resolver }
@@ -2282,8 +2034,6 @@ type walletResolver struct{ *Resolver }
 type wishlistResolver struct{ *Resolver }
 type wishlistItemResolver struct{ *Resolver }
 type addPayoutDetailInputResolver struct{ *Resolver }
-type createPaymentInputResolver struct{ *Resolver }
 type createPaymentMethodInputResolver struct{ *Resolver }
 type createPayoutInputResolver struct{ *Resolver }
 type createReviewInputResolver struct{ *Resolver }
-type refundPaymentInputResolver struct{ *Resolver }

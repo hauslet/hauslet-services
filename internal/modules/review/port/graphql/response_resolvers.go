@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"hauslet/internal/modules/review/domain"
+	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/google/uuid"
 )
 
 // ============================================================================
-// Response Query Resolvers
+// Response Query Resolvers 
 // ============================================================================
 
 // ReviewResponse retrieves a response for a review
@@ -38,7 +39,7 @@ func (r *Resolver) ReviewResponse(ctx context.Context, reviewID string) (*domain
 
 // CreateResponse creates a response to a review (target owner only)
 func (r *Resolver) CreateResponse(ctx context.Context, reviewID string, body string) (*domain.ReviewResponse, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +63,7 @@ func (r *Resolver) CreateResponse(ctx context.Context, reviewID string, body str
 
 // UpdateResponse updates an existing response
 func (r *Resolver) UpdateResponse(ctx context.Context, responseID string, body string) (*domain.ReviewResponse, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +87,7 @@ func (r *Resolver) UpdateResponse(ctx context.Context, responseID string, body s
 
 // DeleteResponse deletes a response
 func (r *Resolver) DeleteResponse(ctx context.Context, responseID string) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, err
 	}

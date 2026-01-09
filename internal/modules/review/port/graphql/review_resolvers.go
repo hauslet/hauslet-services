@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hauslet/internal/modules/review/domain"
 	"hauslet/internal/modules/review/service"
+	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/google/uuid"
 )
@@ -21,7 +22,7 @@ func (r *Resolver) Review(ctx context.Context, id string) (*domain.Review, error
 		return nil, fmt.Errorf("invalid review ID")
 	}
 
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +47,7 @@ func (r *Resolver) ReviewForBooking(ctx context.Context, bookingID string) (*dom
 		return nil, fmt.Errorf("invalid booking ID")
 	}
 
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +165,7 @@ type CreateReviewInput struct {
 
 // CreateReview creates a new review
 func (r *Resolver) CreateReview(ctx context.Context, input CreateReviewInput) (*domain.Review, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +239,7 @@ type UpdateReviewInput struct {
 
 // UpdateReview updates an existing review
 func (r *Resolver) UpdateReview(ctx context.Context, reviewID string, input UpdateReviewInput) (*domain.Review, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +283,7 @@ func (r *Resolver) UpdateReview(ctx context.Context, reviewID string, input Upda
 
 // DeleteReview deletes a review (only if unpublished)
 func (r *Resolver) DeleteReview(ctx context.Context, reviewID string) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -303,111 +304,10 @@ func (r *Resolver) DeleteReview(ctx context.Context, reviewID string) (bool, err
 	return true, nil
 }
 
-// PublishReview manually publishes a standoff review (admin only)
-func (r *Resolver) PublishReview(ctx context.Context, reviewID string) (*domain.Review, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	adminID, err := getUserIDFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	rid, err := uuid.Parse(reviewID)
-	if err != nil {
-		r.log.Error("invalid review ID", "review_id", reviewID, "error", err)
-		return nil, fmt.Errorf("invalid review ID")
-	}
-
-	if err := r.reviewService.PublishReview(ctx, rid, adminID); err != nil {
-		r.log.Error("failed to publish review", "review_id", reviewID, "error", err)
-		return nil, err
-	}
-
-	// Get updated review
-	review, err := r.reviewService.GetReview(ctx, rid, adminID)
-	if err != nil {
-		r.log.Error("failed to get review after publication", "error", err)
-		return nil, err
-	}
-
-	r.log.Info("review published", "review_id", reviewID, "admin_id", adminID)
-
-	return review, nil
-}
-
-// HideReview hides a review for moderation (admin only)
-func (r *Resolver) HideReview(ctx context.Context, reviewID string, reason domain.ModerationReason) (*domain.Review, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	adminID, err := getUserIDFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	rid, err := uuid.Parse(reviewID)
-	if err != nil {
-		r.log.Error("invalid review ID", "review_id", reviewID, "error", err)
-		return nil, fmt.Errorf("invalid review ID")
-	}
-
-	if err := r.reviewService.HideReview(ctx, rid, adminID, reason); err != nil {
-		r.log.Error("failed to hide review", "review_id", reviewID, "error", err)
-		return nil, err
-	}
-
-	// Get updated review
-	review, err := r.reviewService.GetReview(ctx, rid, adminID)
-	if err != nil {
-		r.log.Error("failed to get review after hiding", "error", err)
-		return nil, err
-	}
-
-	r.log.Info("review hidden", "review_id", reviewID, "reason", reason, "admin_id", adminID)
-
-	return review, nil
-}
-
-// UnhideReview unhides a review (admin only)
-func (r *Resolver) UnhideReview(ctx context.Context, reviewID string) (*domain.Review, error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	adminID, err := getUserIDFromContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	rid, err := uuid.Parse(reviewID)
-	if err != nil {
-		r.log.Error("invalid review ID", "review_id", reviewID, "error", err)
-		return nil, fmt.Errorf("invalid review ID")
-	}
-
-	if err := r.reviewService.UnhideReview(ctx, rid, adminID); err != nil {
-		r.log.Error("failed to unhide review", "review_id", reviewID, "error", err)
-		return nil, err
-	}
-
-	// Get updated review
-	review, err := r.reviewService.GetReview(ctx, rid, adminID)
-	if err != nil {
-		r.log.Error("failed to get review after unhiding", "error", err)
-		return nil, err
-	}
-
-	r.log.Info("review unhidden", "review_id", reviewID, "admin_id", adminID)
-
-	return review, nil
-}
 
 // ReportReview reports a review for moderation
 func (r *Resolver) ReportReview(ctx context.Context, reviewID string, reason string) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, err
 	}

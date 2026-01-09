@@ -30,20 +30,20 @@ func NewResolver(profileService profileservice.ProfileService, cfg *config.Stora
 
 // UpdateProfile is the resolver for the updateProfile field.
 func (r *Resolver) UpdateProfile(ctx context.Context, input UpdateProfileInput) (*domain.Profile, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("Unauthenticated attempt to update profile")
-		return nil, fmt.Errorf("unauthenticated")
-	}
 
-	// Load current profile for the authenticated user
-	profile, err := r.profileService.GetProfileByUserID(ctx, v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("Failed to get profile for user", "user_id", v.UserID, "error", err)
+		r.log.Warn("Unauthenticated attempt to update profile")
+		return nil, err
+	}
+	// Load current profile for the authenticated user
+	profile, err := r.profileService.GetProfileByUserID(ctx, userID.String())
+	if err != nil {
+		r.log.Error("Failed to get profile for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 	if profile == nil {
-		r.log.Warn("Profile not found for user", "user_id", v.UserID)
+		r.log.Warn("Profile not found for user", "user_id", userID)
 		return nil, fmt.Errorf("profile not found")
 	}
 
@@ -52,38 +52,38 @@ func (r *Resolver) UpdateProfile(ctx context.Context, input UpdateProfileInput) 
 
 	// If no updates, return current profile
 	if len(updates) == 0 {
-		r.log.Info("No updates provided for user", "user_id", v.UserID)
-		return sanitizeProfileForViewer(profile, v), nil
+		r.log.Info("No updates provided for user", "user_id", userID)
+		return sanitizeProfileForViewer(profile, userID.String()), nil
 	}
 
 	// Apply updates
 	updated, err := r.profileService.PatchProfile(ctx, profile.ID.String(), updates)
 	if err != nil {
-		r.log.Error("Failed to patch profile for user", "user_id", v.UserID, "error", err)
+		r.log.Error("Failed to patch profile for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 
-	r.log.Info("Profile updated successfully for user", "user_id", v.UserID)
+	r.log.Info("Profile updated successfully for user", "user_id", userID)
 	// Convert photo key back to URL for response
 	if updated.PhotoURL != nil && *updated.PhotoURL != "" {
 		url := r.keyToURL(*updated.PhotoURL)
 		updated.PhotoURL = &url
 	}
 
-	return sanitizeProfileForViewer(updated, v), nil
+	return sanitizeProfileForViewer(updated, userID.String()), nil
 }
 
 // SelectSupplyRoles assigns supply-side roles for the authenticated user.
 func (r *Resolver) SelectSupplyRoles(ctx context.Context, userTypes []domain.UserType) (*domain.Profile, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("Unauthenticated attempt to select supply roles")
-		return nil, fmt.Errorf("unauthenticated")
-	}
 
-	updated, err := r.profileService.SelectSupplyRoles(ctx, v.UserID, userTypes)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("Failed to select supply roles", "user_id", v.UserID, "error", err)
+		r.log.Warn("Unauthenticated attempt to update profile")
+		return nil, err
+	}
+	updated, err := r.profileService.SelectSupplyRoles(ctx, userID.String(), userTypes)
+	if err != nil {
+		r.log.Error("Failed to select supply roles", "user_id", userID, "error", err)
 		return nil, err
 	}
 
@@ -92,8 +92,8 @@ func (r *Resolver) SelectSupplyRoles(ctx context.Context, userTypes []domain.Use
 		updated.PhotoURL = &url
 	}
 
-	r.log.Info("Supply roles updated successfully for user", "user_id", v.UserID)
-	return sanitizeProfileForViewer(updated, v), nil
+	r.log.Info("Supply roles updated successfully for user", "user_id", userID)
+	return sanitizeProfileForViewer(updated, userID.String()), nil
 }
 
 // Profile is the resolver for the profile field.
@@ -107,14 +107,14 @@ func (r *Resolver) Profile(ctx context.Context, id uuid.UUID) (*domain.Profile, 
 		url := r.keyToURL(*p.PhotoURL)
 		p.PhotoURL = &url
 	}
-	return sanitizeProfileForViewer(p, viewer.FromContext(ctx)), nil
+	return sanitizeProfileForViewer(p, ""), nil
 }
 
 // ProfileByUserID is the resolver for the profileByUserId field.
 func (r *Resolver) ProfileByUserID(ctx context.Context, userID string) (*domain.Profile, error) {
 	if l := loaders.For(ctx); l != nil && l.Profile != nil {
 		if p, err := l.Profile.Load(ctx, userID); err == nil {
-			return sanitizeProfileForViewer(p, viewer.FromContext(ctx)), nil
+			return sanitizeProfileForViewer(p, userID), nil
 		}
 	}
 
@@ -127,7 +127,7 @@ func (r *Resolver) ProfileByUserID(ctx context.Context, userID string) (*domain.
 		url := r.keyToURL(*p.PhotoURL)
 		p.PhotoURL = &url
 	}
-	return sanitizeProfileForViewer(p, viewer.FromContext(ctx)), nil
+	return sanitizeProfileForViewer(p, userID), nil
 }
 
 // Profiles is the resolver for the profiles field.
@@ -146,7 +146,7 @@ func (r *Resolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*do
 		r.log.Error("Failed to list profiles", "error", err)
 		return nil, err
 	}
-	return sanitizeProfilesForViewer(profiles, viewer.FromContext(ctx)), nil
+	return sanitizeProfilesForViewer(profiles, ""), nil
 }
 
 // SearchProfiles is the resolver for the searchProfiles field.
@@ -165,20 +165,21 @@ func (r *Resolver) SearchProfiles(ctx context.Context, query string, limit *int,
 		r.log.Error("Failed to search profiles with query", "query", query, "error", err)
 		return nil, err
 	}
-	return sanitizeProfilesForViewer(profiles, viewer.FromContext(ctx)), nil
+	return sanitizeProfilesForViewer(profiles, ""), nil
 }
 
 // MyProfile is the resolver for the myProfile field.
 func (r *Resolver) MyProfile(ctx context.Context) (*domain.Profile, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		r.log.Warn("Unauthenticated attempt to access myProfile")
-		return nil, fmt.Errorf("unauthenticated")
+		return nil, err
 	}
 
-	profile, err := r.profileService.GetProfileByUserID(ctx, v.UserID)
+	profile, err := r.profileService.GetProfileByUserID(ctx, userID.String())
 	if err != nil {
-		r.log.Error("Failed to get profile for user", "user_id", v.UserID, "error", err)
+		r.log.Error("Failed to get profile for user", "user_id", userID, "error", err)
 		return nil, err
 	}
 	if profile != nil && profile.PhotoURL != nil && *profile.PhotoURL != "" {
@@ -186,7 +187,7 @@ func (r *Resolver) MyProfile(ctx context.Context) (*domain.Profile, error) {
 		profile.PhotoURL = &url
 	}
 
-	return sanitizeProfileForViewer(profile, v), nil
+	return sanitizeProfileForViewer(profile, userID.String()), nil
 }
 
 func (r *Resolver) urlToKey(rawURL string) string {

@@ -23,6 +23,7 @@ import (
 	reviewservice "hauslet/internal/modules/review/service"
 	verificationservice "hauslet/internal/modules/verification/service"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
+	"hauslet/internal/platform/events"
 	"hauslet/internal/platform/ratelimit"
 	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph/loaders"
@@ -35,6 +36,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/websocket"
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
@@ -61,6 +63,7 @@ func SetupGraphQL(r chi.Router,
 	tenantSlugMiddleware func(http.Handler) http.Handler,
 	fxClient xchange.XChange,
 	rateLimiter ratelimit.Limiter,
+	eventSubscriber *events.Subscriber,
 	cfg *config.GlobalConfig,
 	log *slog.Logger) {
 
@@ -87,6 +90,7 @@ func SetupGraphQL(r chi.Router,
 				discoveryService,
 				verificationService,
 				fxClient,
+				eventSubscriber,
 				cfg,
 				log,
 			),
@@ -94,6 +98,18 @@ func SetupGraphQL(r chi.Router,
 		}),
 	)
 
+	srv.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 10 * time.Second,
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				origin := r.Header.Get("Origin")
+				return origin == "" || // Allow non-browser clients
+					origin == r.Header.Get("Host") || // Same origin
+					origin == cfg.App.Client || // Configured client origin
+					cfg.App.Env != "production" // Allow all in non-production
+			},
+		},
+	})
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})

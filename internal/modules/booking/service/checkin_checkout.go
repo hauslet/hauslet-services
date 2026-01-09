@@ -166,6 +166,9 @@ func (s *BookingServiceImpl) AutoPopulateCheckInOut(ctx context.Context) (int, i
 		}
 		checkOutUpdated++
 	}
+	s.log.Info("auto-populate check-in/out completed",
+		"checkins_updated", checkInUpdated,
+		"checkouts_updated", checkOutUpdated)
 
 	return checkInUpdated, checkOutUpdated, nil
 }

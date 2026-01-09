@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"slices"
 	"net/http"
 
 	"github.com/go-pkgz/auth/token"
@@ -36,12 +37,10 @@ func RBAC(allowedRoles ...string) func(http.Handler) http.Handler {
 			}
 
 			// Check if user role matches any of the allowed roles
-			for _, allowedRole := range allowedRoles {
-				if userRole == allowedRole {
+			if slices.Contains(allowedRoles, userRole) {
 					next.ServeHTTP(w, r)
 					return
 				}
-			}
 
 			http.Error(w, "Forbidden: insufficient permissions", http.StatusForbidden)
 		})

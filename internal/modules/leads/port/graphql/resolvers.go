@@ -30,20 +30,14 @@ func NewResolver(leadService service.LeadService, log *slog.Logger) *Resolver {
 
 // Lead retrieves a single lead by ID (requires authentication)
 func (r *Resolver) Lead(ctx context.Context, id string) (*domain.Lead, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("unauthenticated attempt to get lead")
-		return nil, domain.ErrUnauthorized
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	leadID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, domain.ErrInvalidLeadID
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, domain.ErrUnauthorized
 	}
 
 	lead, err := r.leadService.GetLead(ctx, leadID, requesterID)
@@ -81,15 +75,12 @@ func (r *Resolver) CreateLead(ctx context.Context, input CreateLeadInput) (*doma
 	}
 
 	// HYBRID: Check if user is authenticated (optional)
-	v := viewer.FromContext(ctx)
-	if v != nil && v.UserID != "" {
-		userID, err := uuid.Parse(v.UserID)
-		if err == nil {
-			serviceInput.UserID = &userID // Pass UserID for auto-fill and verification
-			r.log.Info("authenticated user creating lead", "user_id", userID, "listing_id", listingID)
-		}
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		r.log.Info("creating lead as anonymous user", "listing_id", listingID, "email", input.Email)
 	} else {
-		r.log.Info("anonymous user creating lead", "listing_id", listingID, "email", input.Email)
+		serviceInput.UserID = &userID
+		r.log.Info("authenticated user creating lead", "user_id", userID, "listing_id", listingID)
 	}
 
 	lead, err := r.leadService.CreateLead(ctx, serviceInput)
@@ -111,19 +102,14 @@ func (r *Resolver) CreateLead(ctx context.Context, input CreateLeadInput) (*doma
 
 // UpdateLeadStatus updates the status of a lead
 func (r *Resolver) UpdateLeadStatus(ctx context.Context, leadID string, status domain.LeadStatus, notes *string) (*domain.Lead, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, domain.ErrUnauthorized
 	}
 
 	leadUUID, err := uuid.Parse(leadID)
 	if err != nil {
 		return nil, domain.ErrInvalidLeadID
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, domain.ErrUnauthorized
 	}
 
 	leadStatus := mapLeadStatus(string(status))
@@ -139,8 +125,8 @@ func (r *Resolver) UpdateLeadStatus(ctx context.Context, leadID string, status d
 
 // AssignLead assigns a lead to a user
 func (r *Resolver) AssignLead(ctx context.Context, leadID, assigneeID string, reason domain.AssignmentReason) (*domain.Lead, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, domain.ErrUnauthorized
 	}
 
@@ -152,11 +138,6 @@ func (r *Resolver) AssignLead(ctx context.Context, leadID, assigneeID string, re
 	assigneeUUID, err := uuid.Parse(assigneeID)
 	if err != nil {
 		return nil, domain.ErrInvalidAssignee
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, domain.ErrUnauthorized
 	}
 
 	assignmentReason := mapAssignmentReason(string(reason))
@@ -172,19 +153,14 @@ func (r *Resolver) AssignLead(ctx context.Context, leadID, assigneeID string, re
 
 // MarkLeadAsSpam marks a lead as spam
 func (r *Resolver) MarkLeadAsSpam(ctx context.Context, leadID string) (bool, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return false, domain.ErrUnauthorized
 	}
 
 	leadUUID, err := uuid.Parse(leadID)
 	if err != nil {
 		return false, domain.ErrInvalidLeadID
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return false, domain.ErrUnauthorized
 	}
 
 	err = r.leadService.MarkAsSpam(ctx, leadUUID, requesterID)
@@ -198,19 +174,13 @@ func (r *Resolver) MarkLeadAsSpam(ctx context.Context, leadID string) (bool, err
 
 // DeleteLead soft deletes a lead
 func (r *Resolver) DeleteLead(ctx context.Context, leadID string) (bool, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return false, domain.ErrUnauthorized
 	}
-
 	leadUUID, err := uuid.Parse(leadID)
 	if err != nil {
 		return false, domain.ErrInvalidLeadID
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return false, domain.ErrUnauthorized
 	}
 
 	err = r.leadService.DeleteLead(ctx, leadUUID, requesterID)
@@ -224,19 +194,14 @@ func (r *Resolver) DeleteLead(ctx context.Context, leadID string) (bool, error) 
 
 // LeadsByListing retrieves leads for a specific listing
 func (r *Resolver) LeadsByListing(ctx context.Context, listingID string, filter *LeadFilterInput, page *PageInput) (*LeadConnection, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, domain.ErrUnauthorized
 	}
 
 	listingUUID, err := uuid.Parse(listingID)
 	if err != nil {
 		return nil, domain.ErrInvalidListingID
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, domain.ErrUnauthorized
 	}
 
 	serviceFilter := convertFilter(filter)
@@ -253,19 +218,13 @@ func (r *Resolver) LeadsByListing(ctx context.Context, listingID string, filter 
 
 // LeadsByBusiness retrieves leads for a business
 func (r *Resolver) LeadsByBusiness(ctx context.Context, businessID string, filter *LeadFilterInput, page *PageInput) (*LeadConnection, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, domain.ErrUnauthorized
 	}
-
 	businessUUID, err := uuid.Parse(businessID)
 	if err != nil {
 		return nil, domain.ErrInvalidInput
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, domain.ErrUnauthorized
 	}
 
 	serviceFilter := convertFilter(filter)
@@ -282,12 +241,7 @@ func (r *Resolver) LeadsByBusiness(ctx context.Context, businessID string, filte
 
 // MyLeads retrieves leads assigned to the current user
 func (r *Resolver) MyLeads(ctx context.Context, filter *LeadFilterInput, page *PageInput) (*LeadConnection, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return nil, domain.ErrUnauthorized
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, domain.ErrUnauthorized
 	}
@@ -306,19 +260,14 @@ func (r *Resolver) MyLeads(ctx context.Context, filter *LeadFilterInput, page *P
 
 // LeadHistory retrieves the event history for a lead
 func (r *Resolver) LeadHistory(ctx context.Context, leadID string) ([]*domain.LeadEvent, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, domain.ErrUnauthorized
 	}
 
 	leadUUID, err := uuid.Parse(leadID)
 	if err != nil {
 		return nil, domain.ErrInvalidLeadID
-	}
-
-	requesterID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, domain.ErrUnauthorized
 	}
 
 	events, err := r.leadService.GetLeadHistory(ctx, leadUUID, requesterID)

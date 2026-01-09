@@ -76,7 +76,7 @@ func (h *ListingMediaCleanupHandler) Handle(ctx context.Context, data []byte) er
 	}
 
 	if len(stale) == 0 {
-		h.log.Info("cleanup: no stale media older than", "duration", olderThan)
+		h.log.Info("[cleanup]: no stale media found", "duration", olderThan)
 		return nil
 	}
 

@@ -7,8 +7,11 @@ import (
 
 // Middleware holds all business middleware components
 type Middleware struct {
-	Auth     *BusinessAuthMiddleware
-	GraphQL  *GraphQLAuthHelper
+	// Authentication middleware for business routes
+	Auth *BusinessAuthMiddleware
+	// GraphQL authentication helper
+	GraphQL *GraphQLAuthHelper
+	// Property authentication helper
 	Property *PropertyAuthHelper
 }
 

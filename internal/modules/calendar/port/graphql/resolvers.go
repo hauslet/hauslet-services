@@ -33,7 +33,7 @@ func NewResolver(calendarService service.CalendarService, log *slog.Logger) *Res
 
 // CalendarEvent retrieves a single event by ID.
 func (r *Resolver) CalendarEvent(ctx context.Context, id uuid.UUID) (*domain.CalendarEvent, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (r *Resolver) UpcomingListingEvents(ctx context.Context, listingID uuid.UUI
 
 // MyCalendarEvents retrieves events for all properties owned by the current user.
 func (r *Resolver) MyCalendarEvents(ctx context.Context, startTime, endTime time.Time) ([]*domain.CalendarEvent, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func (r *Resolver) MyCalendarEvents(ctx context.Context, startTime, endTime time
 
 // OpenHouseAttendees retrieves attendees for an open house event.
 func (r *Resolver) OpenHouseAttendees(ctx context.Context, eventID uuid.UUID) ([]*domain.Attendee, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (r *Resolver) CheckListingAvailability(ctx context.Context, listingID uuid.
 
 // RequestShowing creates a new showing request for a rent/sale listing.
 func (r *Resolver) RequestShowing(ctx context.Context, input RequestShowingInput) (*domain.CalendarEvent, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (r *Resolver) RequestShowing(ctx context.Context, input RequestShowingInput
 
 // ConfirmShowing confirms a pending showing (owner only).
 func (r *Resolver) ConfirmShowing(ctx context.Context, eventID uuid.UUID) (*domain.CalendarEvent, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (r *Resolver) ConfirmShowing(ctx context.Context, eventID uuid.UUID) (*doma
 
 // CancelShowing cancels a showing (owner or prospect).
 func (r *Resolver) CancelShowing(ctx context.Context, input CancelShowingInput) (*domain.CalendarEvent, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func (r *Resolver) CancelShowing(ctx context.Context, input CancelShowingInput) 
 
 // RescheduleShowing reschedules a showing to a new time.
 func (r *Resolver) RescheduleShowing(ctx context.Context, input RescheduleShowingInput) (*domain.CalendarEvent, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +240,7 @@ func (r *Resolver) RescheduleShowing(ctx context.Context, input RescheduleShowin
 
 // CreateOpenHouse creates a new open house event.
 func (r *Resolver) CreateOpenHouse(ctx context.Context, input CreateOpenHouseInput) (*domain.CalendarEvent, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +265,7 @@ func (r *Resolver) CreateOpenHouse(ctx context.Context, input CreateOpenHouseInp
 
 // RegisterOpenHouse registers an attendee for an open house.
 func (r *Resolver) RegisterOpenHouse(ctx context.Context, input RegisterOpenHouseInput) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -295,7 +295,7 @@ func (r *Resolver) RegisterOpenHouse(ctx context.Context, input RegisterOpenHous
 
 // RemoveOpenHouseAttendee removes an attendee from an open house.
 func (r *Resolver) RemoveOpenHouseAttendee(ctx context.Context, eventID uuid.UUID, attendeeID uuid.UUID) (bool, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -307,23 +307,4 @@ func (r *Resolver) RemoveOpenHouseAttendee(ctx context.Context, eventID uuid.UUI
 
 	r.log.Info("attendee removed from open house", "event_id", eventID, "attendee_id", attendeeID)
 	return true, nil
-}
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-// getUserIDFromContext extracts the authenticated user ID from the context.
-func getUserIDFromContext(ctx context.Context) (uuid.UUID, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return uuid.Nil, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("invalid user ID")
-	}
-
-	return userID, nil
 }

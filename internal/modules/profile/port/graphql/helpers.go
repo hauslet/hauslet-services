@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"hauslet/internal/modules/profile/domain"
-	"hauslet/internal/transport/graph/viewer"
 )
 
 func isAdminRole(role string) bool {
@@ -18,13 +17,13 @@ func isAdminRole(role string) bool {
 
 // sanitizeProfileForViewer removes sensitive fields from the profile
 // based on the viewer's role and the profile's moderation status.
-func sanitizeProfileForViewer(p *domain.Profile, v *viewer.Viewer) *domain.Profile {
+func sanitizeProfileForViewer(p *domain.Profile, UserID string) *domain.Profile {
 	if p == nil {
 		return nil
 	}
 
-	// Admins and owners see full profile regardless of moderation status
-	if v != nil && (v.UserID == p.UserID || isAdminRole(v.Role)) {
+	// Owners see full profile regardless of moderation status
+	if UserID == p.UserID {
 		return p
 	}
 
@@ -119,13 +118,13 @@ func sanitizeProfileForViewer(p *domain.Profile, v *viewer.Viewer) *domain.Profi
 }
 
 // sanitizeProfilesForViewer applies sanitization to a slice of profiles.
-func sanitizeProfilesForViewer(profiles []domain.Profile, v *viewer.Viewer) []*domain.Profile {
+func sanitizeProfilesForViewer(profiles []domain.Profile, UserID string) []*domain.Profile {
 	if len(profiles) == 0 {
 		return []*domain.Profile{}
 	}
 	out := make([]*domain.Profile, 0, len(profiles))
 	for i := range profiles {
-		if p := sanitizeProfileForViewer(&profiles[i], v); p != nil {
+		if p := sanitizeProfileForViewer(&profiles[i], UserID); p != nil {
 			out = append(out, p)
 		}
 	}

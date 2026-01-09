@@ -20,10 +20,10 @@ func NewResolver(authService service.AuthService) *Resolver {
 
 // Me resolves the currently authenticated user.
 func (r *Resolver) Me(ctx context.Context) (*domain.User, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, errors.New("unauthenticated")
 	}
 
-	return r.authService.GetUser(ctx, v.UserID)
+	return r.authService.GetUser(ctx, userID.String())
 }

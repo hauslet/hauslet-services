@@ -52,21 +52,13 @@ func (r *Resolver) HomeFeed(
 	options *graphmodel.FeedOptionsInput,
 ) ([]*domain.HomeFeedSection, error) {
 	// Get user ID from context if authenticated
-	var userID *uuid.UUID
-	if v := viewer.FromContext(ctx); v != nil && v.UserID != "" {
-		parsedID, err := uuid.Parse(v.UserID)
-		if err != nil {
-			if r.log != nil {
-				r.log.Warn("invalid viewer user ID", "user_id", v.UserID, "error", err)
-			}
-		} else {
-			userID = &parsedID
-		}
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		r.log.Warn("unauthenticated user accessing home feed", "error", err)
 	}
 
 	serviceOptions := mapToFeedOptions(options)
-
-	sections, err := r.discoverySvc.GetHomeFeed(ctx, userID, serviceOptions)
+	sections, err := r.discoverySvc.GetHomeFeed(ctx, &userID, serviceOptions)
 	if err != nil {
 		r.log.Error("home feed query failed", "error", err)
 		return nil, err
@@ -177,7 +169,7 @@ func mapToServiceFilter(input graphmodel.DiscoverySearchFilterInput) service.Sea
 // mapToServiceOptions converts GraphQL options to service options
 func mapToServiceOptions(input *graphmodel.SearchOptionsInput) service.SearchOptions {
 	options := service.SearchOptions{
-		Limit:          20, // default
+		Limit:           20, // default
 		IncludePromoted: true,
 	}
 

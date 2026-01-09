@@ -100,71 +100,41 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, limiter ratelimi
 
 	r.Mount("/avatar", avatarRoutes)
 
-	// Helper to apply rate limiting
-	applyRateLimit := func(config middleware.RateLimitConfig) func(http.Handler) http.Handler {
-		policy := middleware.RateLimitPolicy{
-			Keys: func(r *http.Request) []ratelimit.LimitKey {
-				ip := middleware.ClientIP(r)
-				if ip == "" {
-					return nil
-				}
-				return []ratelimit.LimitKey{
-					{
-						Type:   ratelimit.KeyTypeIP,
-						Value:  ip,
-						Limit:  int64(config.Requests),
-						Window: config.Window,
-					},
-				}
-			},
-		}
-		return middleware.RateLimitWithLimiter(limiter, policy)
-	}
-
 	// Registration: Aggressive rate limiting (prevent bot signups)
-	r.With(applyRateLimit(middleware.RateLimitConfig{
-		Requests: 3,
-		Window:   15 * time.Minute,
-	})).Post("/auth/register", h.Register)
+	r.With(middleware.RateLimitIP(limiter, 3, 15*time.Minute)).
+		Post("/auth/register", h.Register)
 
 	// Email verification: Moderate rate limiting (prevent brute force)
-	r.With(applyRateLimit(middleware.RateLimitConfig{
-		Requests: 5,
-		Window:   10 * time.Minute,
-	})).Post("/auth/verify-email", h.VerifyEmail)
+	r.With(middleware.RateLimitIP(limiter, 5, 10*time.Minute)).
+		Post("/auth/verify-email", h.VerifyEmail)
 
 	// Resend OTP: Strict rate limiting (prevent spam)
-	r.With(applyRateLimit(middleware.RateLimitConfig{
-		Requests: 3,
-		Window:   10 * time.Minute,
-	})).Post("/auth/resend-otp", h.ResendOTP)
-	r.With(applyRateLimit(middleware.RateLimitConfig{
-		Requests: 5,
-		Window:   15 * time.Minute,
-	})).Post("/auth/forgot-password", h.ForgotPassword)
+	r.With(middleware.RateLimitIP(limiter, 3, 10*time.Minute)).
+		Post("/auth/resend-otp", h.ResendOTP)
 
-	r.With(applyRateLimit(middleware.RateLimitConfig{
-		Requests: 5,
-		Window:   15 * time.Minute,
-	})).Post("/auth/reset-password", h.ResetPassword)
+	r.With(middleware.RateLimitIP(limiter, 5, 15*time.Minute)).
+		Post("/auth/forgot-password", h.ForgotPassword)
+
+	r.With(middleware.RateLimitIP(limiter, 5, 15*time.Minute)).
+		Post("/auth/reset-password", h.ResetPassword)
 
 	// Protected routes
 	authMiddleware := h.authService.OAuthService().Middleware()
 	updater := h.userUpdater()
+
 	r.Group(func(r chi.Router) {
 		r.Use(authMiddleware.Auth, authMiddleware.UpdateUser(updater))
 
+		// Baseline rate limiting for all authenticated requests
+		r.Use(middleware.RateLimitIP(limiter, 60, time.Minute))
+
 		// Password change: Strict rate limiting (security-sensitive)
-		r.With(applyRateLimit(middleware.RateLimitConfig{
-			Requests: 5,
-			Window:   time.Hour,
-		})).Post("/me/change-password", h.ChangePassword)
+		r.With(middleware.RateLimitIP(limiter, 5, time.Hour)).
+			Post("/me/change-password", h.ChangePassword)
 
 		// Profile updates: Moderate rate limiting
-		r.With(applyRateLimit(middleware.RateLimitConfig{
-			Requests: 20,
-			Window:   time.Minute,
-		})).Put("/me", h.UpdateCurrentUser)
+		r.With(middleware.RateLimitIP(limiter, 20, time.Minute)).
+			Put("/me", h.UpdateCurrentUser)
 
 		// Other endpoints (no additional rate limiting)
 		r.Get("/me", h.GetCurrentUser)

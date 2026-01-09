@@ -11,6 +11,7 @@ import (
 	"hauslet/internal/modules/booking/domain"
 	"hauslet/internal/modules/booking/service"
 	"hauslet/internal/platform/xchange"
+	"hauslet/internal/transport/graph/viewer"
 	localization "hauslet/internal/transport/middleware/localization"
 
 	"github.com/google/uuid"
@@ -56,7 +57,7 @@ func (r *Resolver) QuoteBooking(ctx context.Context, listingID uuid.UUID, checkI
 // Booking retrieves a booking by ID
 func (r *Resolver) Booking(ctx context.Context, id uuid.UUID) (*domain.Booking, error) {
 	// Get current user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +74,7 @@ func (r *Resolver) Booking(ctx context.Context, id uuid.UUID) (*domain.Booking, 
 
 // BookingByReference retrieves a booking by reference
 func (r *Resolver) BookingByReference(ctx context.Context, reference string) (*domain.Booking, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func (r *Resolver) BookingByReference(ctx context.Context, reference string) (*d
 // MyBookings lists bookings for the authenticated guest
 func (r *Resolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*domain.Booking, error) {
 	// Get current user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func (r *Resolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*
 // ListingBookings lists bookings for a specific listing (owner/host view)
 func (r *Resolver) ListingBookings(ctx context.Context, listingID uuid.UUID, status *domain.BookingStatus, limit *int, offset *int) ([]*domain.Booking, error) {
 	// Get current user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +166,7 @@ type ReserveBookingInput struct {
 // ReserveBooking creates an instant booking and initiates payment in one operation
 func (r *Resolver) ReserveBooking(ctx context.Context, input ReserveBookingInput) (*CompleteBookingPayload, error) {
 	// Get current user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +214,7 @@ type RequestBookingInput struct {
 // RequestBooking creates a manual-approval booking request
 func (r *Resolver) RequestBooking(ctx context.Context, input RequestBookingInput) (*domain.Booking, error) {
 	// Get current user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +247,7 @@ type PayForBookingInput struct {
 // PayForBooking processes payment for an existing booking
 func (r *Resolver) PayForBooking(ctx context.Context, input PayForBookingInput) (*CompleteBookingPayload, error) {
 	// Get current user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +277,7 @@ func (r *Resolver) PayForBooking(ctx context.Context, input PayForBookingInput) 
 // ConfirmBooking confirms a booking (for request-type bookings)
 func (r *Resolver) ConfirmBooking(ctx context.Context, bookingID uuid.UUID) (*domain.Booking, error) {
 	// Get current user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +302,7 @@ type CancelBookingInput struct {
 // CancelBooking cancels a booking
 func (r *Resolver) CancelBooking(ctx context.Context, input CancelBookingInput) (*domain.Booking, error) {
 	// Get current user from context
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +320,7 @@ func (r *Resolver) CancelBooking(ctx context.Context, input CancelBookingInput) 
 
 // CheckInBooking records an actual check-in time for a booking (host-only).
 func (r *Resolver) CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*domain.Booking, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -336,7 +337,7 @@ func (r *Resolver) CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*do
 
 // CheckOutBooking records an actual check-out time for a booking (host-only).
 func (r *Resolver) CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*domain.Booking, error) {
-	userID, err := getUserIDFromContext(ctx)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}

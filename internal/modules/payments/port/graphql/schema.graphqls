@@ -107,32 +107,6 @@ type PayoutDetail {
   updatedAt: Time!
 }
 
-type PaymentInitResponse {
-  payment: Payment!
-  authorizationUrl: String
-  accessCode: String
-}
-
-input CreatePaymentInput {
-  bookingId: UUID
-  businessId: UUID
-  amount: Int!
-  currency: String!
-  market: Market!
-  payerEmail: String!
-  payerName: String!
-  description: String
-  metadata: Map
-  callbackUrl: String
-  paymentMethodId: UUID
-}
-
-input RefundPaymentInput {
-  paymentId: UUID!
-  amount: Int
-  reason: String
-}
-
 input CreatePaymentMethodInput {
   authorizationCode: String!
   provider: String!
@@ -161,14 +135,6 @@ extend type Query {
   payment(id: UUID!): Payment
   paymentByReference(reference: String!): Payment
   myPayments(limit: Int, offset: Int, status: PaymentStatus): [Payment!]!
-  payments(
-    bookingId: UUID
-    businessId: UUID
-    payerId: UUID
-    status: PaymentStatus
-    limit: Int
-    offset: Int
-  ): [Payment!]!
 
   paymentMethod(id: UUID!): PaymentMethod
   paymentMethods(userId: UUID!): [PaymentMethod!]!
@@ -182,25 +148,12 @@ extend type Query {
     limit: Int
     offset: Int
   ): [Transaction!]!
-  transactions(
-    paymentId: UUID
-    type: TransactionType
-    status: TransactionStatus
-    limit: Int
-    offset: Int
-  ): [Transaction!]!
 
   payoutDetail(id: UUID!): PayoutDetail
   myPayoutDetails: [PayoutDetail!]!
-  payoutDetailsByUserId(userId: UUID!): [PayoutDetail!]!
 }
 
 extend type Mutation {
-  # Payment mutations
-  createPayment(input: CreatePaymentInput!): PaymentInitResponse!
-  verifyPayment(reference: String!): Payment!
-  refundPayment(input: RefundPaymentInput!): Payment!
-
   # Payment method mutations
   savePaymentMethod(input: CreatePaymentMethodInput!): PaymentMethod!
   setDefaultPaymentMethod(id: UUID!): PaymentMethod!

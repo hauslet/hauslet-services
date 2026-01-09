@@ -32,6 +32,7 @@ import (
 	verificationservice "hauslet/internal/modules/verification/service"
 	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
+	"hauslet/internal/platform/events"
 	"hauslet/internal/platform/xchange"
 	"log/slog"
 )
@@ -39,6 +40,7 @@ import (
 // Resolver wires domain-specific resolvers into gqlgen.
 type Resolver struct {
 	log                  *slog.Logger
+	eventSubscriber      *events.Subscriber
 	AuthResolver         *authgraphql.Resolver
 	ProfileResolver      *profilegraphql.Resolver
 	PropertyResolver     *propertygraphql.Resolver
@@ -77,11 +79,13 @@ func NewResolver(
 	discoverySvc discoveryservice.DiscoveryService,
 	verificationSvc verificationservice.VerificationService,
 	fxClient xchange.XChange,
+	eventSubscriber *events.Subscriber,
 	appCfg *cfg.GlobalConfig,
 	log *slog.Logger,
 ) *Resolver {
 	return &Resolver{
 		log:                  log,
+		eventSubscriber:      eventSubscriber,
 		AuthResolver:         authgraphql.NewResolver(authSvc),
 		ProfileResolver:      profilegraphql.NewResolver(profileSvc, &appCfg.Storage, log),
 		PropertyResolver:     propertygraphql.NewResolver(propertySvc, &appCfg.Storage, fxClient, log),

@@ -28,10 +28,12 @@ import (
 	discoveryservice "hauslet/internal/modules/discovery/service"
 	financenotification "hauslet/internal/modules/finance/notification"
 	financehooks "hauslet/internal/modules/finance/port/hooks"
+	financehttp "hauslet/internal/modules/finance/port/http"
 	financerepository "hauslet/internal/modules/finance/repository"
 	financeservice "hauslet/internal/modules/finance/service"
 	interactionsrepository "hauslet/internal/modules/interactions/repository"
 	interactionsservice "hauslet/internal/modules/interactions/service"
+	leadhttp "hauslet/internal/modules/leads/port/http"
 	leadsrepository "hauslet/internal/modules/leads/repository"
 	leadsservice "hauslet/internal/modules/leads/service"
 	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
@@ -58,6 +60,7 @@ import (
 	propertyservice "hauslet/internal/modules/property/service"
 	reviewnotification "hauslet/internal/modules/review/notification"
 	reviewhooks "hauslet/internal/modules/review/port/hooks"
+	reviewhttp "hauslet/internal/modules/review/port/http"
 	reviewrepository "hauslet/internal/modules/review/repository"
 	reviewservice "hauslet/internal/modules/review/service"
 	verificationhttp "hauslet/internal/modules/verification/port/http"
@@ -68,6 +71,7 @@ import (
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	"hauslet/internal/platform/breaker"
 	"hauslet/internal/platform/email"
+	"hauslet/internal/platform/events"
 	"hauslet/internal/platform/evidence"
 	"hauslet/internal/platform/kyc"
 	"hauslet/internal/platform/payment"
@@ -82,6 +86,7 @@ import (
 
 	authhttp "hauslet/internal/modules/auth/port/http"
 
+	redisclient "github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -110,17 +115,21 @@ type Container struct {
 	R2     *storage.R2Storage
 	Logger *slog.Logger
 	Config *config.GlobalConfig
+	redis  redisclient.Client
 
 	// Platform Services
-	EmailClient    *email.Client
-	PaymentClient  *payment.Client
-	FXClient       *xchange.Client
-	EmbeddingAI    *aiembeddings.Client
-	KYCClient      *kyc.Client
-	SMSClient      *sms.Client
-	EvidenceStore  evidence.Store
-	RateLimiter    ratelimit.Limiter
-	CircuitBreaker breaker.CircuitBreaker
+	EmailClient     *email.Client
+	PaymentClient   *payment.Client
+	FXClient        *xchange.Client
+	EmbeddingAI     *aiembeddings.Client
+	KYCClient       *kyc.Client
+	SMSClient       *sms.Client
+	EvidenceStore   evidence.Store
+	RateLimiter     ratelimit.Limiter
+	CircuitBreaker  breaker.CircuitBreaker
+	EventBroker     events.Broker
+	EventPublisher  *events.Publisher
+	EventSubscriber *events.Subscriber
 
 	// Module Services
 	AuthSvc            authservice.AuthService
@@ -150,6 +159,9 @@ type Container struct {
 	AuthHTTP                *authhttp.HTTPHandler
 	PropertyHTTP            *propertyhttp.HTTPHandler
 	CalendarHTTP            *calendarhttp.HTTPHandler
+	LeadHTTP                *leadhttp.HTTPHandler
+	FinanceHTTP             *financehttp.HTTPHandler
+	ReviewHTTP              *reviewhttp.AdminHandler
 	PaymentWebhookHTTP      *paymentshttp.WebhookHandler
 	VerificationWebhookHTTP *verificationhttp.WebhookHandler
 
@@ -263,7 +275,7 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 	return c, nil
 }
 
-// initPlatformServices initializes payment, FX, and AI clients
+// initPlatformServices initializes payment, FX, AI clients, and event infrastructure
 func (c *Container) initPlatformServices(ctx context.Context) error {
 	// Initialize payment client
 	paymentFactory := payment.NewProviderFactory(c.Config.Services.Payment)
@@ -285,6 +297,34 @@ func (c *Container) initPlatformServices(ctx context.Context) error {
 		c.EmbeddingAI = aiembeddings.New(provider)
 	}
 
+	// Initialize event infrastructure (Redis pub/sub for GraphQL subscriptions)
+	if err := c.initEventInfrastructure(); err != nil {
+		c.Logger.Warn("failed to initialize event infrastructure", "error", err)
+		// Non-critical: subscriptions won't work but API can still function
+	}
+
+	return nil
+}
+
+// initEventInfrastructure initializes the event broker, publisher, and subscriber
+func (c *Container) initEventInfrastructure() error {
+	// Get the raw Redis client from the interface
+	// The redis.RedisClient interface wraps *redis.Client
+	rawClient, ok := (*c.Redis).(*redisclient.Client)
+	if !ok {
+		return fmt.Errorf("redis client is not *redis.Client")
+	}
+
+	// Initialize event broker
+	c.EventBroker = events.NewRedisBroker(rawClient, c.Logger)
+
+	// Initialize publisher (for services to emit events)
+	c.EventPublisher = events.NewPublisher(c.EventBroker, c.Logger)
+
+	// Initialize subscriber (for GraphQL resolvers)
+	c.EventSubscriber = events.NewSubscriber(c.EventBroker, c.Logger)
+
+	c.Logger.Info("✅ Event infrastructure initialized (Redis pub/sub)")
 	return nil
 }
 
@@ -846,6 +886,15 @@ func (c *Container) initHTTPHandlers(ctx context.Context) error {
 
 	// Initialize calendar HTTP handler
 	c.CalendarHTTP = calendarhttp.NewHTTPHandler(ctx, c.CalendarSvc, c.Logger)
+
+	// Initialize lead HTTP handler
+	c.LeadHTTP = leadhttp.NewHTTPHandler(ctx, c.LeadSvc, c.Logger)
+
+	// Initialize finance HTTP handler (admin routes)
+	c.FinanceHTTP = financehttp.NewHTTPHandler(ctx, c.FinanceSvc, c.PayoutSvc, c.Logger)
+
+	// Initialize review HTTP handler (admin routes)
+	c.ReviewHTTP = reviewhttp.NewAdminHandler(c.ReviewSvc, ctx, c.Logger)
 
 	// Initialize payment webhook handler
 	bookingHooksAdapter := bookinghooks.NewBookingHooksAdapter(c.BookingSvc)

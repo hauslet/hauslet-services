@@ -5,12 +5,13 @@ This directory contains the hybrid configuration system for the Hauslet services
 ## Overview
 
 The configuration system uses two sources:
+
 1. **Environment Variables** (`.env`) - For secrets and deployment-specific values
 2. **YAML Files** (`config/defaults/*.yaml`) - For service configuration and business logic
 
 ## Directory Structure
 
-```
+```txt
 config/
 ├── config.go              # ENV variable loader
 ├── structs.go             # Configuration type definitions
@@ -26,15 +27,18 @@ config/
 ## Configuration Categories
 
 ### Environment Variables (.env)
+
 **Purpose:** Deployment-specific values and secrets
 
 **Examples:**
+
 - Database connection string (`DATABASE_URL`)
 - API keys (`GOOGLE_CLIENT_SECRET`, `RESEND_API_KEY`)
 - Service endpoints (`REDIS_ADDR`, `CLOUD_TASKS_WORKER_URL`)
 - Encryption keys (`JWT_SECRET`, `ENCRYPTION_KEY`)
 
 **Access in code:**
+
 ```go
 cfg := config.Load()
 dbURL := cfg.Storage.DB.DatabaseURL  // From ENV
@@ -42,14 +46,17 @@ workerURL := cfg.Infra.CloudTasks.WorkerBaseURL // From ENV
 ```
 
 ### YAML Configuration (config/defaults/*.yaml)
+
 **Purpose:** Service behavior, feature flags, and business rules
 
 **Examples:**
+
 - Calendar settings (maintenance hour, cleanup days)
 - Queue subjects for Cloud Tasks
 - Feature flags (email queue enabled, OAuth enabled)
 
 **Access in code:**
+
 ```go
 cfg := config.Load()
 maintenanceHour := cfg.YAML.Calendar.MaintenanceHour  // From YAML
@@ -59,7 +66,9 @@ emailSubject := cfg.YAML.Queue.Subjects["email"]      // From YAML
 ## Configuration Files
 
 ### calendar.yaml
+
 Calendar service settings:
+
 - `maintenance_hour` - Hour for maintenance operations (0-23)
 - `weekly_check_day` - Day for weekly checks (0=Sunday)
 - `cleanup_old_days` - Days to keep old data
@@ -68,14 +77,18 @@ Calendar service settings:
 - `retry_delay_minutes` - Retry delay for failed ops
 
 ### queue.yaml
+
 Queue settings:
+
 - `subjects` - Map of job types to Cloud Tasks queue names
-   - `email`: Email sending jobs
-   - `notification`: Notification jobs
-   - `moderation`: Moderation jobs
+  - `email`: Email sending jobs
+  - `notification`: Notification jobs
+  - `moderation`: Moderation jobs
 
 ### features.yaml
+
 Feature toggle flags:
+
 - `email_queue_enabled` - Use queue for email sending
 - `oauth_enabled` - Enable OAuth authentication
 - `rate_limiting_enabled` - Enable rate limiting
@@ -89,6 +102,7 @@ To override default configurations without modifying the defaults:
 3. Modify only the values you want to change
 
 **Example:**
+
 ```yaml
 # config/overrides/queue.yaml
 queue:
@@ -123,6 +137,7 @@ func main() {
 ### Common Patterns
 
 **Queue Setup:**
+
 ```go
 q, err := queue.New(ctx, queue.Config{
     ProjectID:     cfg.Infra.CloudTasks.ProjectID,
@@ -134,6 +149,7 @@ q, err := queue.New(ctx, queue.Config{
 ## Migration from ENV-only Config
 
 **Before (ENV):**
+
 ```bash
 QUEUE_EMAIL=email.send
 CALENDAR_MAINTENANCE_HOUR=2
@@ -144,6 +160,7 @@ subject := "email.send"
 ```
 
 **After (YAML):**
+
 ```yaml
 # config/defaults/queue.yaml
 queue:
@@ -180,6 +197,7 @@ subject := cfg.YAML.Queue.Subjects["email"]
 ## Troubleshooting
 
 **Config load failures:**
+
 ```bash
 # Check if YAML files exist
 ls -la config/defaults/
@@ -189,11 +207,13 @@ yamllint config/defaults/*.yaml
 ```
 
 **Override not working:**
+
 - Ensure override file is in `config/overrides/` (not `defaults/`)
 - Check YAML indentation (use spaces, not tabs)
 - Verify override structure matches defaults
 
 **Missing values:**
+
 - Check if ENV variable is set: `echo $CLOUD_TASKS_WORKER_URL`
 - Verify YAML file exists and is readable
 - Review config loading logs for errors
