@@ -105,6 +105,14 @@ func (r *agentSubscriptionResolver) Metadata(ctx context.Context, obj *domain9.A
 	return metadata, nil
 }
 
+// HasPaymentMethod is the resolver for the hasPaymentMethod field.
+func (r *agentSubscriptionResolver) HasPaymentMethod(ctx context.Context, obj *domain9.AgentSubscription) (bool, error) {
+	if obj == nil {
+		return false, nil
+	}
+	return obj.HasPaymentMethod(), nil
+}
+
 // Location is the resolver for the location field.
 func (r *businessResolver) Location(ctx context.Context, obj *domain3.Business) (*domain.Location, error) {
 	if obj == nil || obj.Location == nil {

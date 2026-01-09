@@ -23,6 +23,7 @@ type SubscriptionServiceImpl struct {
 	subscriptionRepo repository.AgentSubscriptionRepository
 	usageService     UsageService
 	paymentService   paymentService.PaymentService
+	profileAdapter   ProfileAdapter
 	config           *config.PromotionYAMLConfig
 	db               *gorm.DB
 	log              *slog.Logger
@@ -33,6 +34,7 @@ func NewSubscriptionService(
 	subscriptionRepo repository.AgentSubscriptionRepository,
 	usageService UsageService,
 	paymentService paymentService.PaymentService,
+	profileAdapter ProfileAdapter,
 	config *config.PromotionYAMLConfig,
 	db *gorm.DB,
 	log *slog.Logger,
@@ -41,6 +43,7 @@ func NewSubscriptionService(
 		subscriptionRepo: subscriptionRepo,
 		usageService:     usageService,
 		paymentService:   paymentService,
+		profileAdapter:   profileAdapter,
 		config:           config,
 		db:               db,
 		log:              log,
@@ -49,6 +52,39 @@ func NewSubscriptionService(
 
 // CreateSubscription creates a new subscription and initiates payment (or starts trial)
 func (s *SubscriptionServiceImpl) CreateSubscription(ctx context.Context, input CreateSubscriptionInput) (*CreateSubscriptionResult, error) {
+	// TRUST NO ONE: Fetch user details from profile if not provided
+	if input.UserEmail == "" || input.UserName == "" {
+		name, email, err := s.profileAdapter.GetProfileData(ctx, input.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch user profile data: %w", err)
+		}
+		if email == "" {
+			return nil, fmt.Errorf("user profile missing email address")
+		}
+		if name == "" {
+			return nil, fmt.Errorf("user profile missing name")
+		}
+		input.UserEmail = email
+		input.UserName = name
+
+		s.log.Info("populated user details from profile",
+			"user_id", input.UserID,
+			"email", email,
+			"name", name,
+		)
+	}
+
+	// SERVICE LAYER VALIDATION: Validate required fields
+	if input.UserID == uuid.Nil {
+		return nil, fmt.Errorf("user ID is required")
+	}
+	if input.UserEmail == "" {
+		return nil, fmt.Errorf("user email is required")
+	}
+	if input.UserName == "" {
+		return nil, fmt.Errorf("user name is required")
+	}
+
 	// Load plan configuration
 	planConfig, err := loadPlanConfig(s.config, input.PlanType, input.BillingCycle)
 	if err != nil {
@@ -388,6 +424,36 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, subsc
 		return fmt.Errorf("failed to get subscription: %w", err)
 	}
 
+	// SERVICE LAYER VALIDATION: Ensure subscription has required user data
+	// TRUST NO ONE: Validate subscription data before proceeding with payment
+	if subscription.UserEmail == "" || subscription.UserName == "" {
+		s.log.Warn("subscription missing user details, fetching from profile",
+			"subscription_id", subscriptionID,
+			"user_id", subscription.UserID,
+		)
+
+		name, email, err := s.profileAdapter.GetProfileData(ctx, subscription.UserID)
+		if err != nil {
+			return fmt.Errorf("subscription has invalid user data and failed to fetch from profile: %w", err)
+		}
+		if email == "" {
+			return fmt.Errorf("subscription has invalid user data: missing email")
+		}
+		if name == "" {
+			return fmt.Errorf("subscription has invalid user data: missing name")
+		}
+
+		// Update subscription with fetched data
+		subscription.UserEmail = email
+		subscription.UserName = name
+
+		s.log.Info("populated subscription user details from profile",
+			"subscription_id", subscriptionID,
+			"email", email,
+			"name", name,
+		)
+	}
+
 	// Validate upgrade is possible
 	if !subscription.CanUpgrade() {
 		return domain.ErrCannotUpgrade
@@ -398,10 +464,74 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, subsc
 		return fmt.Errorf("new plan must be higher tier than current plan")
 	}
 
-	// Load new plan configuration
+	// Load new plan configuration early to check if it requires payment
 	planConfig, err := loadPlanConfig(s.config, newPlan, subscription.BillingCycle)
 	if err != nil {
 		return fmt.Errorf("failed to load new plan config: %w", err)
+	}
+
+	// SERVICE LAYER VALIDATION: Check payment method exists for paid plans
+	// TRUST NO ONE: Verify payment capability before attempting upgrade
+	var paymentMethodID *uuid.UUID
+	if planConfig.Amount > 0 {
+		var paymentMethodAvailable bool
+
+		// Check 1: Does subscription have a linked payment method?
+		if subscription.HasPaymentMethod() {
+			paymentMethod, err := s.paymentService.GetPaymentMethod(ctx, *subscription.PaymentMethodID, subscription.UserID)
+			if err != nil {
+				s.log.Warn("failed to get subscription payment method",
+					"subscription_id", subscriptionID,
+					"payment_method_id", *subscription.PaymentMethodID,
+					"error", err,
+				)
+			} else if paymentMethod != nil && paymentMethod.CanCharge() {
+				paymentMethodAvailable = true
+				paymentMethodID = subscription.PaymentMethodID
+				s.log.Info("using subscription's linked payment method for upgrade",
+					"subscription_id", subscriptionID,
+					"payment_method_id", *paymentMethodID,
+				)
+			} else if paymentMethod != nil && !paymentMethod.CanCharge() {
+				s.log.Warn("subscription payment method cannot be charged",
+					"subscription_id", subscriptionID,
+					"payment_method_id", *subscription.PaymentMethodID,
+					"is_active", paymentMethod.IsActive,
+					"is_expired", paymentMethod.IsExpired(),
+				)
+			}
+		}
+
+		// Check 2: If no valid subscription payment method, try user's default
+		if !paymentMethodAvailable {
+			paymentMethod, err := s.paymentService.GetDefaultPaymentMethod(ctx, subscription.UserID)
+			if err != nil {
+				s.log.Warn("failed to get default payment method",
+					"subscription_id", subscriptionID,
+					"user_id", subscription.UserID,
+					"error", err,
+				)
+			} else if paymentMethod != nil && paymentMethod.CanCharge() {
+				paymentMethodAvailable = true
+				paymentMethodID = &paymentMethod.ID
+				s.log.Info("using user's default payment method for upgrade",
+					"subscription_id", subscriptionID,
+					"payment_method_id", *paymentMethodID,
+				)
+			} else if paymentMethod != nil && !paymentMethod.CanCharge() {
+				s.log.Warn("default payment method cannot be charged",
+					"subscription_id", subscriptionID,
+					"payment_method_id", paymentMethod.ID,
+					"is_active", paymentMethod.IsActive,
+					"is_expired", paymentMethod.IsExpired(),
+				)
+			}
+		}
+
+		// Fail fast if no valid payment method found
+		if !paymentMethodAvailable {
+			return fmt.Errorf("cannot upgrade to paid plan: no valid payment method found. Please add a payment method before upgrading")
+		}
 	}
 
 	now := time.Now()
@@ -439,15 +569,16 @@ func (s *SubscriptionServiceImpl) UpgradeSubscription(ctx context.Context, subsc
 	var paymentID *uuid.UUID
 	if proratedAmount > 0 {
 		paymentInput := paymentDomain.CreatePaymentInput{
-			Amount:       proratedAmount,
-			Currency:     payment.Currency(planConfig.Currency),
-			Market:       paymentDomain.MarketNigeria,
-			PayerID:      subscription.UserID,
-			PayerEmail:   subscription.UserEmail,
-			PayerName:    subscription.UserName,
-			ResourceType: paymentDomain.ResourceTypeSubscription,
-			ResourceID:   &subscriptionID,
-			Description:  fmt.Sprintf("Subscription upgrade to %s (prorated)", newPlan),
+			Amount:          proratedAmount,
+			Currency:        payment.Currency(planConfig.Currency),
+			Market:          paymentDomain.MarketNigeria,
+			PayerID:         subscription.UserID,
+			PayerEmail:      subscription.UserEmail,
+			PayerName:       subscription.UserName,
+			ResourceType:    paymentDomain.ResourceTypeSubscription,
+			ResourceID:      &subscriptionID,
+			PaymentMethodID: paymentMethodID, // Use validated payment method for automatic charging
+			Description:     fmt.Sprintf("Subscription upgrade to %s (prorated)", newPlan),
 			Metadata: map[string]string{
 				"subscription_id": subscriptionID.String(),
 				"old_plan":        subscription.PlanType.String(),

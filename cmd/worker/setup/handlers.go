@@ -37,6 +37,7 @@ import (
 	profileport "hauslet/internal/modules/profile/port/hooks"
 	profilerepository "hauslet/internal/modules/profile/repository"
 	profileservice "hauslet/internal/modules/profile/service"
+	promotionhooks "hauslet/internal/modules/promotions/port/hooks"
 	promotionrepository "hauslet/internal/modules/promotions/repository"
 	promotionservice "hauslet/internal/modules/promotions/service"
 	propertynotification "hauslet/internal/modules/property/notification"
@@ -671,11 +672,21 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			)
 		}
 
+		// Initialize profile service if not already initialized
+		if profileSvc == nil {
+			profileRepo = profilerepository.NewProfileRepository(infra.DB)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+		}
+
+		// Initialize profile adapter for promotions module
+		profileAdapter := promotionhooks.NewPromotionProfileAdapter(profileSvc)
+
 		// Initialize subscription service
 		subscriptionSvc := promotionservice.NewSubscriptionService(
 			subscriptionRepo,
 			usageSvc,
 			paymentsSvc,
+			profileAdapter,
 			&cfg.YAML.Promotion,
 			infra.DB,
 			log,

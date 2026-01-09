@@ -131,6 +131,13 @@ type UsageService interface {
 	ResetUsage(ctx context.Context, subscriptionID, userID uuid.UUID) error
 }
 
+// ProfileAdapter provides access to user profile data
+// Following dependency inversion: interface defined where consumed, implemented in port/hooks
+type ProfileAdapter interface {
+	// GetProfileData returns the full name and email of the user profile
+	GetProfileData(ctx context.Context, userID uuid.UUID) (name string, email string, err error)
+}
+
 // Input structs
 
 // CreatePromotionInput contains the data needed to create a paid promotion

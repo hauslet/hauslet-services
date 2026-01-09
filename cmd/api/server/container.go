@@ -439,11 +439,15 @@ func (c *Container) initPromotions() error {
 		c.Logger,
 	)
 
+	// Initialize profile adapter for promotions module
+	profileAdapter := promotionhooks.NewPromotionProfileAdapter(c.ProfileSvc)
+
 	// Initialize subscription service
 	c.SubscriptionSvc = promotionservice.NewSubscriptionService(
 		subscriptionRepo,
 		c.UsageSvc,
 		c.PaymentsSvc,
+		profileAdapter,
 		&c.Config.YAML.Promotion,
 		c.DB,
 		c.Logger,
