@@ -313,6 +313,11 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 		dst.Fees.MaximumServiceFeePercent = src.Fees.MaximumServiceFeePercent
 	}
 
+	// Taxes
+	if src.Taxes.VATPercent != 0 {
+		dst.Taxes.VATPercent = src.Taxes.VATPercent
+	}
+
 	// Payouts
 	if src.Payouts.EscrowReleaseHours != 0 {
 		dst.Payouts.EscrowReleaseHours = src.Payouts.EscrowReleaseHours
