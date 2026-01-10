@@ -1,6 +1,7 @@
 package service
 
 import (
+	calendardomain "hauslet/internal/modules/calendar/domain"
 	"strings"
 	"time"
 )
@@ -42,6 +43,37 @@ func applyScheduleTime(date time.Time, timeOfDay *string, log Logger) time.Time 
 		0,
 		date.Location(),
 	)
+}
+
+// normalizeScheduledTimes aligns input check-in/out to the listing timezone and applies scheduled times.
+func (s *BookingServiceImpl) normalizeScheduledTimes(
+	checkIn, checkOut time.Time,
+	constraints *ListingConstraints,
+	calendarConfig *calendardomain.CalendarConfig,
+) (time.Time, time.Time, *time.Location) {
+	tz := ""
+	if constraints != nil {
+		tz = constraints.Timezone
+	}
+	if calendarConfig != nil && calendarConfig.Timezone != "" {
+		tz = calendarConfig.Timezone
+	}
+
+	loc := checkIn.Location()
+	if tz != "" {
+		if l, err := time.LoadLocation(tz); err == nil {
+			loc = l
+		} else if s.log != nil {
+			s.log.Warn("failed to load timezone, falling back to check-in location", "timezone", tz, "error", err)
+		}
+	}
+
+	checkInInLoc := checkIn.In(loc)
+	checkOutInLoc := checkOut.In(loc)
+
+	scheduledCheckIn, scheduledCheckOut := s.buildScheduledTimes(checkInInLoc, checkOutInLoc, constraints)
+
+	return scheduledCheckIn, scheduledCheckOut, loc
 }
 
 // Logger is a minimal interface to avoid importing slog in helpers.

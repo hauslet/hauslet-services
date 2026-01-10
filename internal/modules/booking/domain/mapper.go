@@ -120,6 +120,8 @@ func mapPriceBreakdownFromSchema(s *schema.PriceBreakdownSnapshot) *PriceBreakdo
 		CautionFee:    s.CautionFee,
 		ExtraGuestFee: s.ExtraGuestFee,
 		Subtotal:      s.Subtotal,
+		VATPercent:    s.VATPercent,
+		VATAmount:     s.VATAmount,
 		Total:         s.Total,
 		Currency:      s.Currency,
 	}
@@ -174,6 +176,8 @@ func mapPriceBreakdownToSchema(d *PriceBreakdownSnapshot) *schema.PriceBreakdown
 		CautionFee:    d.CautionFee,
 		ExtraGuestFee: d.ExtraGuestFee,
 		Subtotal:      d.Subtotal,
+		VATPercent:    d.VATPercent,
+		VATAmount:     d.VATAmount,
 		Total:         d.Total,
 		Currency:      d.Currency,
 	}

@@ -13,6 +13,9 @@ platform:
     minimum_service_fee_minor: 1000    # Minimum guest service fee in minor units (₦10.00)
     maximum_service_fee_percent: 12.0  # Cap to prevent excessive effective fees on edge cases
 
+  taxes:
+    vat_percent: 5.0               # VAT applied to guest totals
+
   payouts:
     escrow_release_hours: 24        # Hours after checkin before funds leave escrow
     escrow_release_event: checkout_confirmed  # Event triggering escrow release

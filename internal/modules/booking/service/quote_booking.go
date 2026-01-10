@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hauslet/internal/modules/booking/domain"
+	calendardomain "hauslet/internal/modules/calendar/domain"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,7 +37,12 @@ func (s *BookingServiceImpl) QuoteBooking(
 		return nil, err
 	}
 
-	scheduledCheckIn, scheduledCheckOut := s.buildScheduledTimes(checkIn, checkOut, constraints)
+	var calendarConfig *calendardomain.CalendarConfig
+	if cfg, cfgErr := s.calendar.GetCalendarConfig(ctx, listingID); cfgErr == nil {
+		calendarConfig = cfg
+	}
+
+	scheduledCheckIn, scheduledCheckOut, _ := s.normalizeScheduledTimes(checkIn, checkOut, constraints, calendarConfig)
 
 	quote := &domain.BookingQuote{
 		ListingID:    listingID,
@@ -52,7 +58,7 @@ func (s *BookingServiceImpl) QuoteBooking(
 	}
 
 	// Validate constraints
-	if err := s.validateBookingConstraints(checkIn, checkOut, guestCount, constraints); err != nil {
+	if err := s.validateBookingConstraints(checkIn, checkOut, guestCount, constraints, calendarConfig); err != nil {
 		quote.Available = false
 		reason := err.Error()
 		quote.UnavailabilityReason = &reason
@@ -76,8 +82,7 @@ func (s *BookingServiceImpl) QuoteBooking(
 	hoursUntilCheckIn := time.Until(scheduledCheckIn).Hours()
 	autoAccept := constraints.AutoAcceptBookings
 
-	// Get calendar config to check instant booking setting
-	if calendarConfig, err := s.calendar.GetCalendarConfig(ctx, listingID); err == nil && calendarConfig != nil {
+	if calendarConfig != nil {
 		autoAccept = calendarConfig.InstantBooking
 	}
 

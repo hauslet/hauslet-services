@@ -1,6 +1,7 @@
 # Hauslet Booking System - Complete Guide
 
 ## Table of Contents
+
 1. [Overview](#overview)
 2. [Booking Lifecycle](#booking-lifecycle)
 3. [Booking Types](#booking-types)
@@ -135,17 +136,20 @@ Day 9 (48h After Check-out): Settlement
 **Flow**: Reserve → Pay → Confirmed (instant)
 
 **Advantages**:
+
 - ✅ Immediate confirmation (higher conversion)
 - ✅ Faster checkout experience
 - ✅ Better for competitive markets
 - ✅ Higher search ranking
 
 **Use Cases**:
+
 - Professional hosts with consistent availability
 - High-trust properties (verified hosts)
 - Standardized listings (apartments, condos)
 
 **GraphQL Mutation**:
+
 ```graphql
 mutation {
   reserveBooking(input: {
@@ -173,18 +177,21 @@ mutation {
 **Flow**: Request → Host Approves → Guest Pays → Confirmed (multi-step)
 
 **Advantages**:
+
 - ✅ Host vets guests (reduces bad bookings)
 - ✅ Flexible for unique properties
 - ✅ Control over calendar availability
 - ✅ Negotiate special requests
 
 **Use Cases**:
+
 - Luxury/high-value properties (₦500k+/night)
 - Shared spaces (host lives on-site)
 - Properties requiring special care
 - New hosts building trust
 
 **GraphQL Mutations**:
+
 ```graphql
 # Step 1: Guest requests booking
 mutation {
@@ -360,7 +367,7 @@ query {
 
 **Example**: 7-night stay in Lekki apartment
 
-```
+```txt
 Base Rate: ₦25,000/night × 7 nights = ₦175,000
 ├─ Night 1 (Fri): ₦30,000 (weekend rate)
 ├─ Night 2 (Sat): ₦30,000 (weekend rate)
@@ -419,9 +426,11 @@ Platform keeps: ₦16,600
 
 ## Reservation Flow
 
+Same-day bookings: allowed when a listing's calendar config sets `same_day_booking = true` and the configured `lead_time_hours` window is respected (computed in the listing timezone). Otherwise, same-day requests are rejected during validation.
+
 ### Instant Booking Flow (Fast Path)
 
-```
+```txt
 1. GET QUOTE
    ↓
    query { quoteBooking(...) }
@@ -470,7 +479,7 @@ Platform keeps: ₦16,600
 
 ### Request Booking Flow (Approval Path)
 
-```
+```txt
 1. GET QUOTE
    ↓
    query { quoteBooking(...) }
@@ -526,6 +535,7 @@ Platform keeps: ₦16,600
 **Supported**: Flutterwave (backup/alternative)
 
 **Accepted Methods**:
+
 - Card (Visa, Mastercard, Verve)
 - Bank transfer
 - USSD
@@ -555,13 +565,14 @@ result := paymentGateway.InitiatePayment(ctx, paymentInput)
 #### 2. Guest Completes Payment
 
 Guest redirected to `authorizationURL`:
-```
+
+```sh
 https://checkout.paystack.com/xxxxxx
 ```
 
 #### 3. Webhook Processing
 
-```
+```txt
 Paystack → POST /api/webhooks/paystack
 
 Headers:
@@ -620,6 +631,7 @@ mutation {
 #### 1. Flexible (60% of bookings)
 
 **Rules**:
+
 - Cancel before check-in: Full refund
 - Cancel after check-in: No refund
 
@@ -628,6 +640,7 @@ mutation {
 #### 2. Moderate (30% of bookings)
 
 **Rules**:
+
 - Cancel 7+ days before: Full refund
 - Cancel 3-6 days before: 50% refund
 - Cancel < 3 days: No refund
@@ -637,6 +650,7 @@ mutation {
 #### 3. Strict (10% of bookings)
 
 **Rules**:
+
 - Cancel 30+ days before: 90% refund (10% fee)
 - Cancel 14-29 days: 50% refund
 - Cancel < 14 days: No refund
@@ -660,6 +674,7 @@ mutation {
 ```
 
 **System Actions**:
+
 1. Calculate refund (policy + timing)
 2. Update booking status → cancelled
 3. Release calendar dates
@@ -675,7 +690,7 @@ mutation {
 **Policy**: Moderate  
 **Original Payment**: ₦220,125
 
-```
+```txt
 Cancellation: 10 days before (qualifies for full refund)
 
 Refundable Amount: ₦220,125
@@ -720,6 +735,7 @@ mutation {
 
 **When**: Guest arrives at property  
 **Effect**:
+
 - Status: confirmed → active
 - Records actual check-in time
 - Sends welcome message to guest
@@ -740,6 +756,7 @@ mutation {
 
 **When**: Guest leaves property  
 **Effect**:
+
 - Status: active → completed
 - Records actual check-out time
 - Starts 48h payout window
@@ -751,7 +768,8 @@ mutation {
 **Job**: `AutoPopulateCheckInOut()` (runs daily at 3:00 AM)
 
 **Logic**:
-```
+
+```txt
 For all bookings in confirmed status:
   IF current_time >= scheduled_check_in_time:
     - Set checkIn = scheduled_check_in_time
@@ -824,6 +842,7 @@ query QuoteBooking(
 ```
 
 **Input**:
+
 ```json
 {
   "listingId": "550e8400-e29b-41d4-a716-446655440000",
@@ -834,6 +853,7 @@ query QuoteBooking(
 ```
 
 **Response**:
+
 ```json
 {
   "data": {
@@ -956,6 +976,7 @@ mutation ReserveBooking($input: ReserveBookingInput!) {
 ```
 
 **Input**:
+
 ```json
 {
   "input": {
@@ -1235,6 +1256,7 @@ query {
 ```
 
 **Response**:
+
 ```json
 {
   "data": {
@@ -1313,12 +1335,14 @@ mutation {
 #### 1. **Choose Appropriate Booking Type**
 
 **Use Instant Booking If**:
+
 - ✅ Calendar always updated
 - ✅ Property consistently available
 - ✅ Standardized space (apartment)
 - ✅ Want higher conversion rates
 
 **Use Request Booking If**:
+
 - ✅ Need to vet guests
 - ✅ Shared/unique property
 - ✅ Flexible availability
@@ -1343,6 +1367,7 @@ mutation { checkOutBooking(bookingId: "...") }
 ```
 
 **Benefits**:
+
 - Accurate payout timing (starts 48h from actual check-out)
 - Better dispute resolution (timestamps matter)
 - Shows professionalism
@@ -1447,12 +1472,14 @@ func ReserveBooking(...) error {
 **Symptom**: `quoteBooking` returns `available: false`
 
 **Possible Causes**:
+
 1. Dates already blocked by another booking
 2. Check-in/out violates min/max nights rules
 3. Guest count exceeds max guests
 4. Listing is paused/delisted
 
 **Diagnosis**:
+
 ```graphql
 query {
   quoteBooking(...) {
@@ -1463,6 +1490,7 @@ query {
 ```
 
 **Common Reasons**:
+
 - "Dates are already booked"
 - "Stay must be at least 2 nights"
 - "Maximum 4 guests allowed"
@@ -1473,11 +1501,13 @@ query {
 **Symptom**: Booking remains in `draft` status > 10 minutes
 
 **Possible Causes**:
+
 1. Payment webhook not received (Paystack issue)
 2. Guest abandoned payment page
 3. Card declined (insufficient funds)
 
 **Solution**:
+
 ```graphql
 # Check booking status
 query {
@@ -1504,6 +1534,7 @@ mutation {
 **Symptom**: Booking marked `settled` but host didn't receive money
 
 **Diagnosis**:
+
 ```graphql
 query {
   booking(id: "booking-uuid") {
@@ -1524,6 +1555,7 @@ query {
 ```
 
 **Common Issues**:
+
 - Invalid bank account details (fix in profile)
 - Provider outage (auto-retries scheduled)
 - Insufficient provider balance (contact support)
@@ -1533,11 +1565,13 @@ query {
 **Symptom**: Cancellation confirmed but refund not in bank account
 
 **Expected Timeline**:
+
 - Paystack: 5-10 business days
 - Weekends/holidays: Add 2-3 days
 - International cards: 7-14 days
 
 **Verification**:
+
 ```graphql
 query {
   booking(id: "booking-uuid") {
@@ -1735,10 +1769,11 @@ CREATE INDEX idx_bookings_payment ON bookings(last_payment_id) WHERE deleted_at 
 ## Support & Contact
 
 For questions about the Booking System:
-- **Technical Issues**: backend-team@hauslet.com
-- **Payment Problems**: payments@hauslet.com
-- **Cancellation Support**: support@hauslet.com
-- **Host Assistance**: hosts@hauslet.com
+
+- **Technical Issues**: <backend-team@hauslet.com>
+- **Payment Problems**: <payments@hauslet.com>
+- **Cancellation Support**: <support@hauslet.com>
+- **Host Assistance**: <hosts@hauslet.com>
 
 ---
 

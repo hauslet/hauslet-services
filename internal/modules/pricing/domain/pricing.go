@@ -69,6 +69,8 @@ type PriceBreakdown struct {
 	DailyRates []DailyRate `json:"daily_rates"`
 
 	Subtotal     float64               `json:"subtotal"`
+	VATPercent   float64               `json:"vat_percent,omitempty"`
+	VATAmount    float64               `json:"vat_amount,omitempty"`
 	Total        float64               `json:"total"`
 	Currency     string                `json:"currency"`
 	PlatformFees *PlatformFeeBreakdown `json:"platform_fees,omitempty"`

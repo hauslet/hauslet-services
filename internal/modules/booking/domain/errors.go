@@ -10,6 +10,7 @@ var (
 	ErrGuestProfileNotFound = errors.New("guest profile not found")
 	ErrGuestCountExceeded   = errors.New("guest count exceeds property capacity")
 	ErrBookingInPast        = errors.New("cannot create booking in the past")
+	ErrLeadTimeNotMet       = errors.New("booking does not meet lead time requirement")
 	ErrInvalidDateRange     = errors.New("checkout must be after checkin")
 	ErrUnauthorized         = errors.New("unauthorized to access booking")
 	ErrCannotConfirm        = errors.New("booking cannot be confirmed")

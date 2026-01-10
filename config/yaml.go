@@ -44,6 +44,7 @@ type FeatureYAMLConfig struct {
 type PlatformYAMLConfig struct {
 	Currency      PlatformCurrencyConfig     `yaml:"currency"`
 	Fees          PlatformFeesConfig         `yaml:"fees"`
+	Taxes         PlatformTaxConfig          `yaml:"taxes"`
 	Payouts       PlatformPayoutConfig       `yaml:"payouts"`
 	Refunds       PlatformRefundConfig       `yaml:"refunds"`
 	AutoAccept    PlatformAutoAcceptConfig   `yaml:"auto_accept"`
@@ -62,6 +63,10 @@ type PlatformFeesConfig struct {
 	PayoutProcessingPercent  float64 `yaml:"payout_processing_percent"`
 	MinimumServiceFeeMinor   int64   `yaml:"minimum_service_fee_minor"`
 	MaximumServiceFeePercent float64 `yaml:"maximum_service_fee_percent"`
+}
+
+type PlatformTaxConfig struct {
+	VATPercent float64 `yaml:"vat_percent"`
 }
 
 // EscrowReleaseEvent defines when escrow funds become available for payout

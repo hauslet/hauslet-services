@@ -109,7 +109,13 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 		guestServiceFee = guestFee
 	}
 
-	total := grossBeforePlatform + guestServiceFee
+	vatPercent := s.platformConfig.Taxes.VATPercent
+	vatAmount := 0.0
+	if vatPercent > 0 {
+		vatAmount = (grossBeforePlatform + guestServiceFee) * vatPercent / 100
+	}
+
+	total := grossBeforePlatform + guestServiceFee + vatAmount
 
 	breakdown := &domain.PriceBreakdown{
 		ListingID:     listingID,
@@ -125,6 +131,8 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 		DailyRates:    dailyRates,
 		Subtotal:      subtotal,
 		ExtraGuestFee: extraGuestFee,
+		VATPercent:    vatPercent,
+		VATAmount:     vatAmount,
 		Total:         total,
 		Currency:      listingPricing.Currency,
 		PlatformFees:  platformFees,

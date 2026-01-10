@@ -75,6 +75,8 @@ type PriceBreakdownSnapshot {
   discounts: [DiscountSnapshot!]
   nightlyRates: [DailyRate!]
   subtotal: Float!
+  vatPercent: Float
+  vatAmount: Float
   total: Float!
   currency: String!
   platformFees: PlatformFeeBreakdown

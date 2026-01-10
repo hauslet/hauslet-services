@@ -26,11 +26,18 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		return nil, err
 	}
 
-	if err := s.validateBookingConstraints(checkIn, checkOut, guestCount, constraints); err != nil {
-		return nil, err
+	var calendarConfig *calendardomain.CalendarConfig
+	if cfg, cfgErr := s.calendar.GetCalendarConfig(ctx, listingID); cfgErr == nil {
+		calendarConfig = cfg
+	} else if s.log != nil {
+		s.log.Warn("calendar config unavailable for listing", "listing_id", listingID, "error", cfgErr)
 	}
 
-	scheduledCheckIn, scheduledCheckOut := s.buildScheduledTimes(checkIn, checkOut, constraints)
+	scheduledCheckIn, scheduledCheckOut, _ := s.normalizeScheduledTimes(checkIn, checkOut, constraints, calendarConfig)
+
+	if err := s.validateBookingConstraints(checkIn, checkOut, guestCount, constraints, calendarConfig); err != nil {
+		return nil, err
+	}
 
 	availability, err := s.calendar.CheckAvailability(ctx, listingID, scheduledCheckIn, scheduledCheckOut)
 	if err != nil {
@@ -38,13 +45,6 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 	}
 	if availability == nil || !availability.Available {
 		return nil, domain.ErrDatesUnavailable
-	}
-
-	var calendarConfig *calendardomain.CalendarConfig
-	if cfg, cfgErr := s.calendar.GetCalendarConfig(ctx, listingID); cfgErr == nil {
-		calendarConfig = cfg
-	} else if s.log != nil {
-		s.log.Warn("calendar config unavailable for listing", "listing_id", listingID, "error", cfgErr)
 	}
 
 	autoAcceptBookings := false
@@ -202,13 +202,20 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 	return booking, nil
 }
 
-func (s *BookingServiceImpl) validateBookingConstraints(checkIn, checkOut time.Time, guestCount int, constraints *ListingConstraints) error {
+func (s *BookingServiceImpl) validateBookingConstraints(
+	checkIn, checkOut time.Time,
+	guestCount int,
+	constraints *ListingConstraints,
+	calendarConfig *calendardomain.CalendarConfig,
+) error {
 	if constraints == nil {
 		return nil
 	}
 
-	checkInDate := time.Date(checkIn.Year(), checkIn.Month(), checkIn.Day(), 0, 0, 0, 0, checkIn.Location())
-	checkOutDate := time.Date(checkOut.Year(), checkOut.Month(), checkOut.Day(), 0, 0, 0, 0, checkOut.Location())
+	scheduledCheckIn, scheduledCheckOut, loc := s.normalizeScheduledTimes(checkIn, checkOut, constraints, calendarConfig)
+
+	checkInDate := time.Date(scheduledCheckIn.Year(), scheduledCheckIn.Month(), scheduledCheckIn.Day(), 0, 0, 0, 0, loc)
+	checkOutDate := time.Date(scheduledCheckOut.Year(), scheduledCheckOut.Month(), scheduledCheckOut.Day(), 0, 0, 0, 0, loc)
 
 	if !checkOutDate.After(checkInDate) {
 		return domain.ErrInvalidDateRange
@@ -227,7 +234,38 @@ func (s *BookingServiceImpl) validateBookingConstraints(checkIn, checkOut time.T
 		return domain.ErrGuestCountExceeded
 	}
 
-	if checkInDate.Before(time.Now()) {
+	now := time.Now().In(loc)
+	nowDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+
+	// Prevent bookings for past calendar days
+	if checkInDate.Before(nowDate) {
+		return domain.ErrBookingInPast
+	}
+
+	leadTimeHours := 24
+	if calendarConfig != nil {
+		leadTimeHours = calendarConfig.LeadTimeHours
+		if leadTimeHours < 0 {
+			leadTimeHours = 0
+		}
+	}
+
+	allowSameDay := false
+	if calendarConfig != nil {
+		allowSameDay = calendarConfig.SameDayBooking
+	}
+
+	isSameDay := checkInDate.Equal(nowDate)
+	if isSameDay && !allowSameDay {
+		return domain.ErrLeadTimeNotMet
+	}
+
+	leadTime := time.Duration(leadTimeHours) * time.Hour
+	if leadTimeHours > 0 {
+		if scheduledCheckIn.Before(now.Add(leadTime)) {
+			return domain.ErrLeadTimeNotMet
+		}
+	} else if scheduledCheckIn.Before(now) {
 		return domain.ErrBookingInPast
 	}
 

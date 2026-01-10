@@ -37,6 +37,8 @@ func (s *BookingServiceImpl) RequestBooking(
 		calendarConfig = cfg
 	}
 
+	scheduledCheckIn, _, _ := s.normalizeScheduledTimes(checkIn, checkOut, constraints, calendarConfig)
+
 	autoAcceptBookings := constraints.AutoAcceptBookings
 	if calendarConfig != nil {
 		autoAcceptBookings = calendarConfig.InstantBooking
@@ -47,8 +49,12 @@ func (s *BookingServiceImpl) RequestBooking(
 		return nil, fmt.Errorf("listing supports instant booking; use reserveBooking mutation instead")
 	}
 
+	// Validate constraints including lead time
+	if err := s.validateBookingConstraints(checkIn, checkOut, guestCount, constraints, calendarConfig); err != nil {
+		return nil, err
+	}
+
 	// Check time until scheduled check-in
-	scheduledCheckIn, _ := s.buildScheduledTimes(checkIn, checkOut, constraints)
 	hoursUntilCheckIn := time.Until(scheduledCheckIn).Hours()
 	if hoursUntilCheckIn < 6 {
 		return nil, domain.ErrTooCloseToCheckIn

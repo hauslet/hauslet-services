@@ -39,13 +39,18 @@ func (s *BookingServiceImpl) ReserveBooking(
 		return nil, nil, err
 	}
 
-	// Validate constraints
-	if err := s.validateBookingConstraints(checkIn, checkOut, guestCount, constraints); err != nil {
-		return nil, nil, err
+	// Get calendar config to check instant booking
+	var calendarConfig *calendardomain.CalendarConfig
+	if cfg, cfgErr := s.calendar.GetCalendarConfig(ctx, listingID); cfgErr == nil {
+		calendarConfig = cfg
 	}
 
-	// Check calendar availability
-	scheduledCheckIn, scheduledCheckOut := s.buildScheduledTimes(checkIn, checkOut, constraints)
+	scheduledCheckIn, scheduledCheckOut, _ := s.normalizeScheduledTimes(checkIn, checkOut, constraints, calendarConfig)
+
+	// Validate constraints
+	if err := s.validateBookingConstraints(checkIn, checkOut, guestCount, constraints, calendarConfig); err != nil {
+		return nil, nil, err
+	}
 
 	availability, err := s.calendar.CheckAvailability(ctx, listingID, scheduledCheckIn, scheduledCheckOut)
 	if err != nil {
@@ -53,12 +58,6 @@ func (s *BookingServiceImpl) ReserveBooking(
 	}
 	if availability == nil || !availability.Available {
 		return nil, nil, domain.ErrDatesUnavailable
-	}
-
-	// Get calendar config to check instant booking
-	var calendarConfig *calendardomain.CalendarConfig
-	if cfg, cfgErr := s.calendar.GetCalendarConfig(ctx, listingID); cfgErr == nil {
-		calendarConfig = cfg
 	}
 
 	autoAcceptBookings := constraints.AutoAcceptBookings

@@ -17,6 +17,8 @@ func NewPriceBreakdownSnapshotFromPricing(src *pricingdomain.PriceBreakdown) *Pr
 		CautionFee:    src.CautionFee,
 		ExtraGuestFee: src.ExtraGuestFee,
 		Subtotal:      src.Subtotal,
+		VATPercent:    src.VATPercent,
+		VATAmount:     src.VATAmount,
 		Total:         src.Total,
 		Currency:      src.Currency,
 	}

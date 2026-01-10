@@ -17,5 +17,11 @@ calendar:
   # Generate calendars immediately on creation
   immediate_generation: true
 
+  # Minimum hours before check-in required to accept a booking (listing timezone)
+  lead_time_hours: 24
+
+  # Allow same-day bookings when within lead_time_hours
+  same_day_booking: true
+
   # Delay in minutes before retrying failed operations
   retry_delay_minutes: 10

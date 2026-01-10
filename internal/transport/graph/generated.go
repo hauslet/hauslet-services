@@ -881,6 +881,8 @@ type ComplexityRoot struct {
 		ServiceFee   func(childComplexity int) int
 		Subtotal     func(childComplexity int) int
 		Total        func(childComplexity int) int
+		VATAmount    func(childComplexity int) int
+		VATPercent   func(childComplexity int) int
 	}
 
 	Profile struct {
@@ -5912,6 +5914,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PriceBreakdownSnapshot.Total(childComplexity), true
+	case "PriceBreakdownSnapshot.vatAmount":
+		if e.complexity.PriceBreakdownSnapshot.VATAmount == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdownSnapshot.VATAmount(childComplexity), true
+	case "PriceBreakdownSnapshot.vatPercent":
+		if e.complexity.PriceBreakdownSnapshot.VATPercent == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdownSnapshot.VATPercent(childComplexity), true
 
 	case "Profile.address":
 		if e.complexity.Profile.Address == nil {
@@ -10522,6 +10536,8 @@ type PriceBreakdownSnapshot {
   discounts: [DiscountSnapshot!]
   nightlyRates: [DailyRate!]
   subtotal: Float!
+  vatPercent: Float
+  vatAmount: Float
   total: Float!
   currency: String!
   platformFees: PlatformFeeBreakdown
@@ -16733,6 +16749,10 @@ func (ec *executionContext) fieldContext_Booking_priceBreakdown(_ context.Contex
 				return ec.fieldContext_PriceBreakdownSnapshot_nightlyRates(ctx, field)
 			case "subtotal":
 				return ec.fieldContext_PriceBreakdownSnapshot_subtotal(ctx, field)
+			case "vatPercent":
+				return ec.fieldContext_PriceBreakdownSnapshot_vatPercent(ctx, field)
+			case "vatAmount":
+				return ec.fieldContext_PriceBreakdownSnapshot_vatAmount(ctx, field)
 			case "total":
 				return ec.fieldContext_PriceBreakdownSnapshot_total(ctx, field)
 			case "currency":
@@ -17132,6 +17152,10 @@ func (ec *executionContext) fieldContext_BookingQuote_priceBreakdown(_ context.C
 				return ec.fieldContext_PriceBreakdownSnapshot_nightlyRates(ctx, field)
 			case "subtotal":
 				return ec.fieldContext_PriceBreakdownSnapshot_subtotal(ctx, field)
+			case "vatPercent":
+				return ec.fieldContext_PriceBreakdownSnapshot_vatPercent(ctx, field)
+			case "vatAmount":
+				return ec.fieldContext_PriceBreakdownSnapshot_vatAmount(ctx, field)
 			case "total":
 				return ec.fieldContext_PriceBreakdownSnapshot_total(ctx, field)
 			case "currency":
@@ -36501,6 +36525,64 @@ func (ec *executionContext) _PriceBreakdownSnapshot_subtotal(ctx context.Context
 }
 
 func (ec *executionContext) fieldContext_PriceBreakdownSnapshot_subtotal(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdownSnapshot_vatPercent(ctx context.Context, field graphql.CollectedField, obj *domain6.PriceBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdownSnapshot_vatPercent,
+		func(ctx context.Context) (any, error) {
+			return obj.VATPercent, nil
+		},
+		nil,
+		ec.marshalOFloat2float64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdownSnapshot_vatPercent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdownSnapshot_vatAmount(ctx context.Context, field graphql.CollectedField, obj *domain6.PriceBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdownSnapshot_vatAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.VATAmount, nil
+		},
+		nil,
+		ec.marshalOFloat2float64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdownSnapshot_vatAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PriceBreakdownSnapshot",
 		Field:      field,
@@ -66161,6 +66243,10 @@ func (ec *executionContext) _PriceBreakdownSnapshot(ctx context.Context, sel ast
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "vatPercent":
+			out.Values[i] = ec._PriceBreakdownSnapshot_vatPercent(ctx, field, obj)
+		case "vatAmount":
+			out.Values[i] = ec._PriceBreakdownSnapshot_vatAmount(ctx, field, obj)
 		case "total":
 			out.Values[i] = ec._PriceBreakdownSnapshot_total(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
