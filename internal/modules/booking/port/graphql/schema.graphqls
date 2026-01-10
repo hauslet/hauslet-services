@@ -23,6 +23,7 @@ type Booking {
   id: UUID!
   bookingReference: String!
   listingId: UUID!
+  listing: Listing
   calendarEventId: UUID!
   cleaningEventId: UUID
 

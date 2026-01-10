@@ -105,6 +105,11 @@ func (r *agentSubscriptionResolver) Metadata(ctx context.Context, obj *domain9.A
 	return metadata, nil
 }
 
+// Listing is the resolver for the listing field.
+func (r *bookingResolver) Listing(ctx context.Context, obj *domain5.Booking) (*domain.Listing, error) {
+	return r.BookingResolver.Listing(ctx, obj)
+}
+
 // Location is the resolver for the location field.
 func (r *businessResolver) Location(ctx context.Context, obj *domain3.Business) (*domain.Location, error) {
 	if obj == nil || obj.Location == nil {
@@ -128,6 +133,11 @@ func (r *businessResolver) Members(ctx context.Context, obj *domain3.Business) (
 		result[i] = &members[i]
 	}
 	return result, nil
+}
+
+// Booking is the resolver for the booking field.
+func (r *calendarEventResolver) Booking(ctx context.Context, obj *calendardomain.CalendarEvent) (*domain5.Booking, error) {
+	return r.CalendarResolver.Booking(ctx, obj)
 }
 
 // PaymentID is the resolver for the paymentId field.
@@ -1868,8 +1878,14 @@ func (r *Resolver) AgentSubscription() AgentSubscriptionResolver {
 	return &agentSubscriptionResolver{r}
 }
 
+// Booking returns BookingResolver implementation.
+func (r *Resolver) Booking() BookingResolver { return &bookingResolver{r} }
+
 // Business returns BusinessResolver implementation.
 func (r *Resolver) Business() BusinessResolver { return &businessResolver{r} }
+
+// CalendarEvent returns CalendarEventResolver implementation.
+func (r *Resolver) CalendarEvent() CalendarEventResolver { return &calendarEventResolver{r} }
 
 // CompleteBookingPayload returns CompleteBookingPayloadResolver implementation.
 func (r *Resolver) CompleteBookingPayload() CompleteBookingPayloadResolver {
@@ -2000,7 +2016,9 @@ func (r *Resolver) CreateReviewInput() CreateReviewInputResolver {
 }
 
 type agentSubscriptionResolver struct{ *Resolver }
+type bookingResolver struct{ *Resolver }
 type businessResolver struct{ *Resolver }
+type calendarEventResolver struct{ *Resolver }
 type completeBookingPayloadResolver struct{ *Resolver }
 type disbursementResolver struct{ *Resolver }
 type financeTransactionResolver struct{ *Resolver }
@@ -2037,18 +2055,3 @@ type addPayoutDetailInputResolver struct{ *Resolver }
 type createPaymentMethodInputResolver struct{ *Resolver }
 type createPayoutInputResolver struct{ *Resolver }
 type createReviewInputResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *agentSubscriptionResolver) HasPaymentMethod(ctx context.Context, obj *domain9.AgentSubscription) (bool, error) {
-	if obj == nil {
-		return false, nil
-	}
-	return obj.HasPaymentMethod(), nil
-}
-*/

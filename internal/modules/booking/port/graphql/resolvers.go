@@ -10,7 +10,9 @@ import (
 
 	"hauslet/internal/modules/booking/domain"
 	"hauslet/internal/modules/booking/service"
+	propertydomain "hauslet/internal/modules/property/domain"
 	"hauslet/internal/platform/xchange"
+	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/viewer"
 	localization "hauslet/internal/transport/middleware/localization"
 
@@ -147,6 +149,17 @@ func (r *Resolver) ListingBookings(ctx context.Context, listingID uuid.UUID, sta
 		r.localizeBooking(ctx, bookings[i])
 	}
 	return bookings, nil
+}
+
+// Listing resolves the listing for a booking
+func (r *Resolver) Listing(ctx context.Context, obj *domain.Booking) (*propertydomain.Listing, error) {
+	loaders := loaders.For(ctx)
+	if loaders == nil || loaders.Listing == nil {
+		r.log.Warn("listing loader not found in context")
+		return nil, nil
+	}
+
+	return loaders.Listing.Load(ctx, obj.ListingID)
 }
 
 // ============================================================================

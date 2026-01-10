@@ -37,6 +37,7 @@ type CalendarEvent {
   eventType: EventType!
   status: EventStatus!
   bookingId: UUID
+  booking: Booking
   startTime: Time!
   endTime: Time!
   

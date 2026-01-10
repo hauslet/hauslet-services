@@ -21,6 +21,18 @@ func (s *BookingServiceImpl) GetBooking(ctx context.Context, bookingID uuid.UUID
 	return booking, nil
 }
 
+func (s *BookingServiceImpl) GetBookingsByIDs(ctx context.Context, bookingIDs []uuid.UUID) ([]*domain.Booking, error) {
+	schemaBookings, err := s.repo.GetBookingsByIDs(ctx, bookingIDs)
+	if err != nil {
+		return nil, err
+	}
+	bookings := make([]*domain.Booking, len(schemaBookings))
+	for i, sb := range schemaBookings {
+		bookings[i] = domain.MapBookingFromSchema(sb)
+	}
+	return bookings, nil
+}
+
 func (s *BookingServiceImpl) GetBookingByReference(ctx context.Context, reference string, requestorID uuid.UUID) (*domain.Booking, error) {
 	schemaBooking, err := s.repo.GetBookingByReference(ctx, reference)
 	if err != nil {

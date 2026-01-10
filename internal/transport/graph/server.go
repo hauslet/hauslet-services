@@ -142,7 +142,7 @@ func SetupGraphQL(r chi.Router,
 		// Preferred currency for price localization.
 		r.Use(localization.WithPreferredCurrency)
 		// DataLoaders to batch profile and property fetches.
-		r.Use(loaders.Middleware(profileService, propertyService))
+		r.Use(loaders.Middleware(profileService, propertyService, bookingService))
 
 		// Apply rate limiting in production
 		if cfg.App.Env == "production" && rateLimiter != nil {

@@ -68,7 +68,9 @@ type Config struct {
 
 type ResolverRoot interface {
 	AgentSubscription() AgentSubscriptionResolver
+	Booking() BookingResolver
 	Business() BusinessResolver
+	CalendarEvent() CalendarEventResolver
 	CompleteBookingPayload() CompleteBookingPayloadResolver
 	Disbursement() DisbursementResolver
 	FinanceTransaction() FinanceTransactionResolver
@@ -188,6 +190,7 @@ type ComplexityRoot struct {
 		HoldExpiresAt    func(childComplexity int) int
 		ID               func(childComplexity int) int
 		LastPaymentID    func(childComplexity int) int
+		Listing          func(childComplexity int) int
 		ListingID        func(childComplexity int) int
 		PaymentDueAt     func(childComplexity int) int
 		PaymentReference func(childComplexity int) int
@@ -286,6 +289,7 @@ type ComplexityRoot struct {
 	CalendarEvent struct {
 		ArchivedAt         func(childComplexity int) int
 		BlockDetails       func(childComplexity int) int
+		Booking            func(childComplexity int) int
 		BookingID          func(childComplexity int) int
 		CompletedAt        func(childComplexity int) int
 		CreatedAt          func(childComplexity int) int
@@ -1429,10 +1433,16 @@ type AgentSubscriptionResolver interface {
 
 	Metadata(ctx context.Context, obj *domain3.AgentSubscription) (map[string]any, error)
 }
+type BookingResolver interface {
+	Listing(ctx context.Context, obj *domain6.Booking) (*domain11.Listing, error)
+}
 type BusinessResolver interface {
 	Location(ctx context.Context, obj *domain.Business) (*domain11.Location, error)
 
 	Members(ctx context.Context, obj *domain.Business) ([]*domain.BusinessMember, error)
+}
+type CalendarEventResolver interface {
+	Booking(ctx context.Context, obj *domain7.CalendarEvent) (*domain6.Booking, error)
 }
 type CompleteBookingPayloadResolver interface {
 	PaymentID(ctx context.Context, obj *graphql4.CompleteBookingPayload) (uuid.UUID, error)
@@ -2174,6 +2184,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Booking.LastPaymentID(childComplexity), true
+	case "Booking.listing":
+		if e.complexity.Booking.Listing == nil {
+			break
+		}
+
+		return e.complexity.Booking.Listing(childComplexity), true
 	case "Booking.listingId":
 		if e.complexity.Booking.ListingID == nil {
 			break
@@ -2660,6 +2676,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CalendarEvent.BlockDetails(childComplexity), true
+	case "CalendarEvent.booking":
+		if e.complexity.CalendarEvent.Booking == nil {
+			break
+		}
+
+		return e.complexity.CalendarEvent.Booking(childComplexity), true
 	case "CalendarEvent.bookingId":
 		if e.complexity.CalendarEvent.BookingID == nil {
 			break
@@ -10484,6 +10506,7 @@ type Booking {
   id: UUID!
   bookingReference: String!
   listingId: UUID!
+  listing: Listing
   calendarEventId: UUID!
   cleaningEventId: UUID
 
@@ -10713,6 +10736,7 @@ type CalendarEvent {
   eventType: EventType!
   status: EventStatus!
   bookingId: UUID
+  booking: Booking
   startTime: Time!
   endTime: Time!
   
@@ -16102,6 +16126,93 @@ func (ec *executionContext) fieldContext_Booking_listingId(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Booking_listing(ctx context.Context, field graphql.CollectedField, obj *domain6.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_listing,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Booking().Listing(ctx, obj)
+		},
+		nil,
+		ec.marshalOListing2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListing,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_listing(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Listing_id(ctx, field)
+			case "propertyId":
+				return ec.fieldContext_Listing_propertyId(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_Listing_ownerId(ctx, field)
+			case "ownerType":
+				return ec.fieldContext_Listing_ownerType(ctx, field)
+			case "ownerProfile":
+				return ec.fieldContext_Listing_ownerProfile(ctx, field)
+			case "slug":
+				return ec.fieldContext_Listing_slug(ctx, field)
+			case "title":
+				return ec.fieldContext_Listing_title(ctx, field)
+			case "description":
+				return ec.fieldContext_Listing_description(ctx, field)
+			case "extraDescription":
+				return ec.fieldContext_Listing_extraDescription(ctx, field)
+			case "currency":
+				return ec.fieldContext_Listing_currency(ctx, field)
+			case "listingType":
+				return ec.fieldContext_Listing_listingType(ctx, field)
+			case "status":
+				return ec.fieldContext_Listing_status(ctx, field)
+			case "published":
+				return ec.fieldContext_Listing_published(ctx, field)
+			case "publishedAt":
+				return ec.fieldContext_Listing_publishedAt(ctx, field)
+			case "latestReviewStatus":
+				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Listing_createdBy(ctx, field)
+			case "updatedBy":
+				return ec.fieldContext_Listing_updatedBy(ctx, field)
+			case "statusChangedAt":
+				return ec.fieldContext_Listing_statusChangedAt(ctx, field)
+			case "changeReason":
+				return ec.fieldContext_Listing_changeReason(ctx, field)
+			case "hasCalendar":
+				return ec.fieldContext_Listing_hasCalendar(ctx, field)
+			case "shortletDetails":
+				return ec.fieldContext_Listing_shortletDetails(ctx, field)
+			case "rentalDetails":
+				return ec.fieldContext_Listing_rentalDetails(ctx, field)
+			case "saleDetails":
+				return ec.fieldContext_Listing_saleDetails(ctx, field)
+			case "property":
+				return ec.fieldContext_Listing_property(ctx, field)
+			case "media":
+				return ec.fieldContext_Listing_media(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Listing_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Listing_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Booking_calendarEventId(ctx context.Context, field graphql.CollectedField, obj *domain6.Booking) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -19240,6 +19351,103 @@ func (ec *executionContext) fieldContext_CalendarEvent_bookingId(_ context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _CalendarEvent_booking(ctx context.Context, field graphql.CollectedField, obj *domain7.CalendarEvent) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CalendarEvent_booking,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.CalendarEvent().Booking(ctx, obj)
+		},
+		nil,
+		ec.marshalOBooking2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBooking,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CalendarEvent_booking(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CalendarEvent",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
+			case "listingId":
+				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
+			case "calendarEventId":
+				return ec.fieldContext_Booking_calendarEventId(ctx, field)
+			case "cleaningEventId":
+				return ec.fieldContext_Booking_cleaningEventId(ctx, field)
+			case "guestId":
+				return ec.fieldContext_Booking_guestId(ctx, field)
+			case "guestName":
+				return ec.fieldContext_Booking_guestName(ctx, field)
+			case "guestEmail":
+				return ec.fieldContext_Booking_guestEmail(ctx, field)
+			case "guestPhone":
+				return ec.fieldContext_Booking_guestPhone(ctx, field)
+			case "guestCount":
+				return ec.fieldContext_Booking_guestCount(ctx, field)
+			case "status":
+				return ec.fieldContext_Booking_status(ctx, field)
+			case "bookingType":
+				return ec.fieldContext_Booking_bookingType(ctx, field)
+			case "checkIn":
+				return ec.fieldContext_Booking_checkIn(ctx, field)
+			case "checkOut":
+				return ec.fieldContext_Booking_checkOut(ctx, field)
+			case "checkInTime":
+				return ec.fieldContext_Booking_checkInTime(ctx, field)
+			case "checkOutTime":
+				return ec.fieldContext_Booking_checkOutTime(ctx, field)
+			case "holdExpiresAt":
+				return ec.fieldContext_Booking_holdExpiresAt(ctx, field)
+			case "paymentDueAt":
+				return ec.fieldContext_Booking_paymentDueAt(ctx, field)
+			case "activeAt":
+				return ec.fieldContext_Booking_activeAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Booking_completedAt(ctx, field)
+			case "archivedAt":
+				return ec.fieldContext_Booking_archivedAt(ctx, field)
+			case "paymentReference":
+				return ec.fieldContext_Booking_paymentReference(ctx, field)
+			case "lastPaymentId":
+				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "specialRequests":
+				return ec.fieldContext_Booking_specialRequests(ctx, field)
+			case "priceBreakdown":
+				return ec.fieldContext_Booking_priceBreakdown(ctx, field)
+			case "totalPrice":
+				return ec.fieldContext_Booking_totalPrice(ctx, field)
+			case "currency":
+				return ec.fieldContext_Booking_currency(ctx, field)
+			case "confirmedAt":
+				return ec.fieldContext_Booking_confirmedAt(ctx, field)
+			case "cancelledAt":
+				return ec.fieldContext_Booking_cancelledAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Booking_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Booking_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Booking_deletedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CalendarEvent_startTime(ctx context.Context, field graphql.CollectedField, obj *domain7.CalendarEvent) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -19732,6 +19940,8 @@ func (ec *executionContext) fieldContext_CompleteBookingPayload_booking(_ contex
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -30044,6 +30254,8 @@ func (ec *executionContext) fieldContext_Mutation_requestBooking(ctx context.Con
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -30206,6 +30418,8 @@ func (ec *executionContext) fieldContext_Mutation_confirmBooking(ctx context.Con
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -30313,6 +30527,8 @@ func (ec *executionContext) fieldContext_Mutation_cancelBooking(ctx context.Cont
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -30420,6 +30636,8 @@ func (ec *executionContext) fieldContext_Mutation_checkInBooking(ctx context.Con
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -30527,6 +30745,8 @@ func (ec *executionContext) fieldContext_Mutation_checkOutBooking(ctx context.Co
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -30638,6 +30858,8 @@ func (ec *executionContext) fieldContext_Mutation_requestShowing(ctx context.Con
 				return ec.fieldContext_CalendarEvent_status(ctx, field)
 			case "bookingId":
 				return ec.fieldContext_CalendarEvent_bookingId(ctx, field)
+			case "booking":
+				return ec.fieldContext_CalendarEvent_booking(ctx, field)
 			case "startTime":
 				return ec.fieldContext_CalendarEvent_startTime(ctx, field)
 			case "endTime":
@@ -30719,6 +30941,8 @@ func (ec *executionContext) fieldContext_Mutation_confirmShowing(ctx context.Con
 				return ec.fieldContext_CalendarEvent_status(ctx, field)
 			case "bookingId":
 				return ec.fieldContext_CalendarEvent_bookingId(ctx, field)
+			case "booking":
+				return ec.fieldContext_CalendarEvent_booking(ctx, field)
 			case "startTime":
 				return ec.fieldContext_CalendarEvent_startTime(ctx, field)
 			case "endTime":
@@ -30800,6 +31024,8 @@ func (ec *executionContext) fieldContext_Mutation_cancelShowing(ctx context.Cont
 				return ec.fieldContext_CalendarEvent_status(ctx, field)
 			case "bookingId":
 				return ec.fieldContext_CalendarEvent_bookingId(ctx, field)
+			case "booking":
+				return ec.fieldContext_CalendarEvent_booking(ctx, field)
 			case "startTime":
 				return ec.fieldContext_CalendarEvent_startTime(ctx, field)
 			case "endTime":
@@ -30881,6 +31107,8 @@ func (ec *executionContext) fieldContext_Mutation_rescheduleShowing(ctx context.
 				return ec.fieldContext_CalendarEvent_status(ctx, field)
 			case "bookingId":
 				return ec.fieldContext_CalendarEvent_bookingId(ctx, field)
+			case "booking":
+				return ec.fieldContext_CalendarEvent_booking(ctx, field)
 			case "startTime":
 				return ec.fieldContext_CalendarEvent_startTime(ctx, field)
 			case "endTime":
@@ -30962,6 +31190,8 @@ func (ec *executionContext) fieldContext_Mutation_createOpenHouse(ctx context.Co
 				return ec.fieldContext_CalendarEvent_status(ctx, field)
 			case "bookingId":
 				return ec.fieldContext_CalendarEvent_bookingId(ctx, field)
+			case "booking":
+				return ec.fieldContext_CalendarEvent_booking(ctx, field)
 			case "startTime":
 				return ec.fieldContext_CalendarEvent_startTime(ctx, field)
 			case "endTime":
@@ -41329,6 +41559,8 @@ func (ec *executionContext) fieldContext_Query_booking(ctx context.Context, fiel
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -41436,6 +41668,8 @@ func (ec *executionContext) fieldContext_Query_bookingByReference(ctx context.Co
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -41543,6 +41777,8 @@ func (ec *executionContext) fieldContext_Query_myBookings(ctx context.Context, f
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -41650,6 +41886,8 @@ func (ec *executionContext) fieldContext_Query_listingBookings(ctx context.Conte
 				return ec.fieldContext_Booking_bookingReference(ctx, field)
 			case "listingId":
 				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
 			case "calendarEventId":
 				return ec.fieldContext_Booking_calendarEventId(ctx, field)
 			case "cleaningEventId":
@@ -41761,6 +41999,8 @@ func (ec *executionContext) fieldContext_Query_calendarEvent(ctx context.Context
 				return ec.fieldContext_CalendarEvent_status(ctx, field)
 			case "bookingId":
 				return ec.fieldContext_CalendarEvent_bookingId(ctx, field)
+			case "booking":
+				return ec.fieldContext_CalendarEvent_booking(ctx, field)
 			case "startTime":
 				return ec.fieldContext_CalendarEvent_startTime(ctx, field)
 			case "endTime":
@@ -41842,6 +42082,8 @@ func (ec *executionContext) fieldContext_Query_listingEvents(ctx context.Context
 				return ec.fieldContext_CalendarEvent_status(ctx, field)
 			case "bookingId":
 				return ec.fieldContext_CalendarEvent_bookingId(ctx, field)
+			case "booking":
+				return ec.fieldContext_CalendarEvent_booking(ctx, field)
 			case "startTime":
 				return ec.fieldContext_CalendarEvent_startTime(ctx, field)
 			case "endTime":
@@ -41923,6 +42165,8 @@ func (ec *executionContext) fieldContext_Query_upcomingListingEvents(ctx context
 				return ec.fieldContext_CalendarEvent_status(ctx, field)
 			case "bookingId":
 				return ec.fieldContext_CalendarEvent_bookingId(ctx, field)
+			case "booking":
+				return ec.fieldContext_CalendarEvent_booking(ctx, field)
 			case "startTime":
 				return ec.fieldContext_CalendarEvent_startTime(ctx, field)
 			case "endTime":
@@ -42004,6 +42248,8 @@ func (ec *executionContext) fieldContext_Query_myCalendarEvents(ctx context.Cont
 				return ec.fieldContext_CalendarEvent_status(ctx, field)
 			case "bookingId":
 				return ec.fieldContext_CalendarEvent_bookingId(ctx, field)
+			case "booking":
+				return ec.fieldContext_CalendarEvent_booking(ctx, field)
 			case "startTime":
 				return ec.fieldContext_CalendarEvent_startTime(ctx, field)
 			case "endTime":
@@ -60607,56 +60853,89 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 		case "id":
 			out.Values[i] = ec._Booking_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "bookingReference":
 			out.Values[i] = ec._Booking_bookingReference(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "listingId":
 			out.Values[i] = ec._Booking_listingId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "listing":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Booking_listing(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "calendarEventId":
 			out.Values[i] = ec._Booking_calendarEventId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "cleaningEventId":
 			out.Values[i] = ec._Booking_cleaningEventId(ctx, field, obj)
 		case "guestId":
 			out.Values[i] = ec._Booking_guestId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "guestName":
 			out.Values[i] = ec._Booking_guestName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "guestEmail":
 			out.Values[i] = ec._Booking_guestEmail(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "guestPhone":
 			out.Values[i] = ec._Booking_guestPhone(ctx, field, obj)
 		case "guestCount":
 			out.Values[i] = ec._Booking_guestCount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "status":
 			out.Values[i] = ec._Booking_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "bookingType":
 			out.Values[i] = ec._Booking_bookingType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "checkIn":
 			out.Values[i] = ec._Booking_checkIn(ctx, field, obj)
@@ -60687,12 +60966,12 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 		case "totalPrice":
 			out.Values[i] = ec._Booking_totalPrice(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "currency":
 			out.Values[i] = ec._Booking_currency(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "confirmedAt":
 			out.Values[i] = ec._Booking_confirmedAt(ctx, field, obj)
@@ -60701,12 +60980,12 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 		case "createdAt":
 			out.Values[i] = ec._Booking_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Booking_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "deletedAt":
 			out.Values[i] = ec._Booking_deletedAt(ctx, field, obj)
@@ -61248,34 +61527,67 @@ func (ec *executionContext) _CalendarEvent(ctx context.Context, sel ast.Selectio
 		case "id":
 			out.Values[i] = ec._CalendarEvent_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "listingId":
 			out.Values[i] = ec._CalendarEvent_listingId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "eventType":
 			out.Values[i] = ec._CalendarEvent_eventType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "status":
 			out.Values[i] = ec._CalendarEvent_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "bookingId":
 			out.Values[i] = ec._CalendarEvent_bookingId(ctx, field, obj)
+		case "booking":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._CalendarEvent_booking(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "startTime":
 			out.Values[i] = ec._CalendarEvent_startTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "endTime":
 			out.Values[i] = ec._CalendarEvent_endTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "showingDetails":
 			out.Values[i] = ec._CalendarEvent_showingDetails(ctx, field, obj)
@@ -61296,17 +61608,17 @@ func (ec *executionContext) _CalendarEvent(ctx context.Context, sel ast.Selectio
 		case "version":
 			out.Values[i] = ec._CalendarEvent_version(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "createdAt":
 			out.Values[i] = ec._CalendarEvent_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "updatedAt":
 			out.Values[i] = ec._CalendarEvent_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "deletedAt":
 			out.Values[i] = ec._CalendarEvent_deletedAt(ctx, field, obj)

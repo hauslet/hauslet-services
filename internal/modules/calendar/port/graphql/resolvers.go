@@ -6,8 +6,10 @@ import (
 	"log/slog"
 	"time"
 
+	bookingdomain "hauslet/internal/modules/booking/domain"
 	"hauslet/internal/modules/calendar/domain"
 	"hauslet/internal/modules/calendar/service"
+	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/google/uuid"
@@ -131,6 +133,21 @@ func (r *Resolver) CheckListingAvailability(ctx context.Context, listingID uuid.
 	}
 
 	return result.Available, nil
+}
+
+// Booking resolves the nested booking for a calendar event.
+func (r *Resolver) Booking(ctx context.Context, obj *domain.CalendarEvent) (*bookingdomain.Booking, error) {
+	if obj.BookingID == nil {
+		return nil, nil
+	}
+
+	loaders := loaders.For(ctx)
+	if loaders == nil || loaders.Booking == nil {
+		r.log.Warn("booking loader not found in context")
+		return nil, nil
+	}
+
+	return loaders.Booking.Load(ctx, *obj.BookingID)
 }
 
 // ============================================================================

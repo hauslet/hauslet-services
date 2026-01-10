@@ -21,6 +21,7 @@ type BookingPayoutInfo struct {
 type BookingRepository interface {
 	CreateBooking(ctx context.Context, booking *schema.Booking) error
 	GetBookingByID(ctx context.Context, id uuid.UUID) (*schema.Booking, error)
+	GetBookingsByIDs(ctx context.Context, ids []uuid.UUID) ([]*schema.Booking, error)
 	GetBookingByReference(ctx context.Context, reference string) (*schema.Booking, error)
 	UpdateBooking(ctx context.Context, booking *schema.Booking) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status schema.BookingStatus, confirmedAt, cancelledAt *time.Time) error
