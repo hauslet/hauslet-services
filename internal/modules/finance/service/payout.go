@@ -237,6 +237,9 @@ func (s *PayoutServiceImpl) processSinglePayout(
 		if err != nil {
 			return fmt.Errorf("failed to get platform wallet: %w", err)
 		}
+		if platformWalletSchema == nil {
+			return fmt.Errorf("platform fee wallet not found for platform ID: %s", platformID)
+		}
 		platformWallet := domain.MapWalletFromSchema(platformWalletSchema)
 
 		// Step 3: Record commission ledger entry (escrow → platform_fee)
@@ -259,7 +262,10 @@ func (s *PayoutServiceImpl) processSinglePayout(
 			hostID,
 			string(domain.WalletTypeHostAvailable),
 		)
-		if err == gorm.ErrRecordNotFound {
+		if err != nil {
+			return fmt.Errorf("failed to get host wallet: %w", err)
+		}
+		if hostWalletSchema == nil {
 			// Create host wallet
 			newWallet := &financeSchema.Wallet{
 				ID:         uuid.New(),
@@ -276,8 +282,6 @@ func (s *PayoutServiceImpl) processSinglePayout(
 				return fmt.Errorf("failed to create host wallet: %w", err)
 			}
 			hostWalletSchema = newWallet
-		} else if err != nil {
-			return fmt.Errorf("failed to get host wallet: %w", err)
 		}
 		hostWallet := domain.MapWalletFromSchema(hostWalletSchema)
 
