@@ -125,8 +125,20 @@ func (s *PayoutServiceImpl) ProcessDuePayouts(ctx context.Context) error {
 			if s.log != nil {
 				s.log.Error("[AUDIT] payout_failed",
 					"booking_id", booking.ID,
-					"reason", "escrow_wallet_not_found",
+					"reason", "escrow_wallet_query_error",
 					"error", err,
+				)
+			}
+			failureCount++
+			continue
+		}
+
+		// Check if wallet exists
+		if escrowWallet == nil {
+			if s.log != nil {
+				s.log.Error("[AUDIT] payout_failed",
+					"booking_id", booking.ID,
+					"reason", "escrow_wallet_not_found",
 				)
 			}
 			failureCount++
