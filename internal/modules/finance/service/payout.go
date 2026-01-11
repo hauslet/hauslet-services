@@ -15,7 +15,11 @@ import (
 )
 
 // QueuePayout creates a pending payout record for later processing
-func (s *PayoutServiceImpl) QueuePayout(ctx context.Context, bookingID, hostID uuid.UUID, totalAmount int64, currency string) error {
+func (s *PayoutServiceImpl) QueuePayout(ctx context.Context,
+	bookingID,
+	hostID uuid.UUID,
+	totalAmount int64,
+	currency string) error {
 	if s.log != nil {
 		s.log.Info("queueing payout",
 			"booking_id", bookingID,
@@ -207,7 +211,8 @@ func (s *PayoutServiceImpl) processSinglePayout(
 	}
 
 	// Use database transaction to ensure atomicity
-	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	var disbursement *financeSchema.Disbursement
+	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Create transaction-aware repositories
 		walletRepo := s.walletRepo.WithTx(tx)
 		disbursementRepo := s.disbursementRepo.WithTx(tx)
@@ -332,7 +337,7 @@ func (s *PayoutServiceImpl) processSinglePayout(
 			}
 		}
 
-		disbursement := &financeSchema.Disbursement{
+		disbursement = &financeSchema.Disbursement{
 			ID:            uuid.New(),
 			WalletID:      hostWallet.ID,
 			TransactionID: payoutTx.ID,
@@ -355,23 +360,6 @@ func (s *PayoutServiceImpl) processSinglePayout(
 			)
 		}
 
-		// Step 7: Initiate transfer via payment provider
-		if err := s.initiateDisbursement(ctx, disbursement); err != nil {
-			// Don't fail the whole transaction - we'll retry later
-			if s.log != nil {
-				s.log.Warn("failed to initiate disbursement (will retry)",
-					"error", err,
-				)
-			}
-			// Set next retry time
-			nextRetry := time.Now().Add(s.calculateRetryDelay(0))
-			disbursement.NextRetryAt = &nextRetry
-			disbursement.Status = string(domain.DisbursementStatusFailed)
-			if err := s.disbursementRepo.UpdateStatus(ctx, disbursement.ID, disbursement.Status, nil); err != nil {
-				return fmt.Errorf("failed to update disbursement status: %w", err)
-			}
-		}
-
 		// Step 8: Mark booking as settled via hooks
 		if s.bookingHooks != nil {
 			if err := s.bookingHooks.MarkAsSettled(ctx, bookingID); err != nil {
@@ -385,5 +373,34 @@ func (s *PayoutServiceImpl) processSinglePayout(
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	if disbursement == nil {
+		return fmt.Errorf("disbursement creation failed")
+	}
+
+	// Step 7: Initiate transfer via payment provider (run after transaction commit)
+	if err := s.initiateDisbursement(ctx, disbursement); err != nil {
+		// Don't fail the whole payout; we mark for retry
+		if s.log != nil {
+			s.log.Warn("failed to initiate disbursement (will retry)",
+				"error", err,
+			)
+		}
+		nextRetry := time.Now().Add(s.calculateRetryDelay(0))
+		disbursement.NextRetryAt = &nextRetry
+		disbursement.Status = string(domain.DisbursementStatusFailed)
+		if updateErr := s.disbursementRepo.UpdateStatus(
+			ctx,
+			disbursement.ID,
+			disbursement.Status,
+			nil,
+		); updateErr != nil {
+			return fmt.Errorf("failed to update disbursement status: %w", updateErr)
+		}
+	}
+
+	return nil
 }
