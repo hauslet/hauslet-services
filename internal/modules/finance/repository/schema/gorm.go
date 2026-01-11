@@ -15,7 +15,7 @@ type Wallet struct {
 	Balance    int64     `gorm:"not null;default:0"`
 	Currency   string    `gorm:"type:varchar(3);not null"`
 	Status     string    `gorm:"type:varchar(20);not null;default:'active'"`
-	Metadata   string    `gorm:"type:jsonb"`
+	Metadata   *string   `gorm:"type:jsonb"`
 	CreatedAt  time.Time `gorm:"not null;default:now()"`
 	UpdatedAt  time.Time `gorm:"not null;default:now()"`
 }
@@ -56,7 +56,7 @@ type Transaction struct {
 	Currency     string     `gorm:"type:varchar(3);not null"`
 	PaymentID    *uuid.UUID `gorm:"type:uuid;index"`
 	ErrorMessage *string    `gorm:"type:text"`
-	Metadata     string     `gorm:"type:jsonb"`
+	Metadata     *string    `gorm:"type:jsonb"`
 	CreatedAt    time.Time  `gorm:"not null;default:now();index"`
 	UpdatedAt    time.Time  `gorm:"not null;default:now()"`
 }
@@ -105,7 +105,7 @@ type Dispute struct {
 	Currency    string    `gorm:"type:varchar(3);not null"`
 
 	// Evidence and resolution (stored as JSONB)
-	Evidence   string  `gorm:"type:jsonb"` // JSON array of DisputeEvidence
+	Evidence   *string `gorm:"type:jsonb"` // JSON array of DisputeEvidence
 	AdminNotes *string `gorm:"type:text"`
 	Resolution *string `gorm:"type:jsonb"` // DisputeResolution as JSON
 
@@ -154,7 +154,7 @@ type Discrepancy struct {
 	Description   string     `gorm:"type:text;not null"`
 	ExpectedValue *int64
 	ActualValue   *int64
-	Details       string    `gorm:"type:jsonb"` // Additional context
+	Details       *string   `gorm:"type:jsonb"` // Additional context
 	CreatedAt     time.Time `gorm:"not null;default:now();index"`
 }
 

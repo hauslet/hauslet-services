@@ -12,8 +12,8 @@ func MapWalletFromSchema(s *schema.Wallet) *Wallet {
 	}
 
 	var metadata map[string]interface{}
-	if s.Metadata != "" {
-		json.Unmarshal([]byte(s.Metadata), &metadata)
+	if s.Metadata != nil && *s.Metadata != "" {
+		json.Unmarshal([]byte(*s.Metadata), &metadata)
 	}
 
 	return &Wallet{
@@ -36,10 +36,11 @@ func MapWalletToSchema(d *Wallet) *schema.Wallet {
 		return nil
 	}
 
-	var metadataJSON string
+	var metadataJSON *string
 	if d.Metadata != nil {
 		bytes, _ := json.Marshal(d.Metadata)
-		metadataJSON = string(bytes)
+		jsonStr := string(bytes)
+		metadataJSON = &jsonStr
 	}
 
 	return &schema.Wallet{
@@ -105,8 +106,8 @@ func MapTransactionFromSchema(s *schema.Transaction) *Transaction {
 	}
 
 	var metadata map[string]interface{}
-	if s.Metadata != "" {
-		json.Unmarshal([]byte(s.Metadata), &metadata)
+	if s.Metadata != nil && *s.Metadata != "" {
+		json.Unmarshal([]byte(*s.Metadata), &metadata)
 	}
 
 	return &Transaction{
@@ -131,10 +132,11 @@ func MapTransactionToSchema(d *Transaction) *schema.Transaction {
 		return nil
 	}
 
-	var metadataJSON string
+	var metadataJSON *string
 	if d.Metadata != nil {
 		bytes, _ := json.Marshal(d.Metadata)
-		metadataJSON = string(bytes)
+		jsonStr := string(bytes)
+		metadataJSON = &jsonStr
 	}
 
 	return &schema.Transaction{
@@ -210,8 +212,8 @@ func MapDisputeFromSchema(s *schema.Dispute) *Dispute {
 	}
 
 	var evidence []DisputeEvidence
-	if s.Evidence != "" {
-		json.Unmarshal([]byte(s.Evidence), &evidence)
+	if s.Evidence != nil && *s.Evidence != "" {
+		json.Unmarshal([]byte(*s.Evidence), &evidence)
 	}
 
 	var resolution *DisputeResolution
@@ -250,10 +252,11 @@ func MapDisputeToSchema(d *Dispute) *schema.Dispute {
 		return nil
 	}
 
-	var evidenceJSON string
+	var evidenceJSON *string
 	if d.Evidence != nil {
 		bytes, _ := json.Marshal(d.Evidence)
-		evidenceJSON = string(bytes)
+		jsonStr := string(bytes)
+		evidenceJSON = &jsonStr
 	}
 
 	var resolutionJSON *string
@@ -336,8 +339,8 @@ func MapDiscrepancyFromSchema(s *schema.Discrepancy) *Discrepancy {
 	}
 
 	var details map[string]interface{}
-	if s.Details != "" {
-		json.Unmarshal([]byte(s.Details), &details)
+	if s.Details != nil && *s.Details != "" {
+		json.Unmarshal([]byte(*s.Details), &details)
 	}
 
 	return &Discrepancy{
@@ -361,10 +364,11 @@ func MapDiscrepancyToSchema(d *Discrepancy) *schema.Discrepancy {
 		return nil
 	}
 
-	var detailsJSON string
+	var detailsJSON *string
 	if d.Details != nil {
 		bytes, _ := json.Marshal(d.Details)
-		detailsJSON = string(bytes)
+		jsonStr := string(bytes)
+		detailsJSON = &jsonStr
 	}
 
 	return &schema.Discrepancy{

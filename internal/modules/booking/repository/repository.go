@@ -45,7 +45,8 @@ func (r *BookingRepositoryImpl) UpdateBooking(ctx context.Context, booking *sche
 
 func (r *BookingRepositoryImpl) UpdateStatus(ctx context.Context, id uuid.UUID, status schema.BookingStatus, confirmedAt, cancelledAt *time.Time) error {
 	update := map[string]any{
-		"status": status,
+		"status":     status,
+		"updated_at": time.Now(),
 	}
 	if confirmedAt != nil {
 		update["confirmed_at"] = confirmedAt
@@ -56,7 +57,7 @@ func (r *BookingRepositoryImpl) UpdateStatus(ctx context.Context, id uuid.UUID, 
 	return r.db.WithContext(ctx).
 		Model(&schema.Booking{}).
 		Where("id = ?", id).
-		Updates(update).Error
+		UpdateColumns(update).Error
 }
 
 func (r *BookingRepositoryImpl) ListBookingsForGuest(ctx context.Context, guestID uuid.UUID, limit, offset int) ([]*schema.Booking, error) {
