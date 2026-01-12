@@ -17,6 +17,8 @@ type WalletRepository interface {
 	UpdateBalance(ctx context.Context, id uuid.UUID, newBalance int64) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
 	ListByOwner(ctx context.Context, ownerType string, ownerID uuid.UUID) ([]*schema.Wallet, error)
+	// FindBalanceMismatches finds wallets where balance doesn't match sum of ledger entries
+	FindBalanceMismatches(ctx context.Context) ([]*schema.WalletBalanceMismatch, error)
 	// WithTx returns a new repository instance using the provided transaction
 	WithTx(tx *gorm.DB) WalletRepository
 }
@@ -29,6 +31,9 @@ type LedgerRepository interface {
 	ListByTransaction(ctx context.Context, txID uuid.UUID) ([]*schema.LedgerEntry, error)
 	ListByResource(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*schema.LedgerEntry, error)
 	ListByWallet(ctx context.Context, walletID uuid.UUID, limit, offset int) ([]*schema.LedgerEntry, error)
+	// FindImbalancedTransactions finds internal transactions where debits don't equal credits
+	// External transactions (charges with only credits, refunds with only debits) are excluded
+	FindImbalancedTransactions(ctx context.Context) ([]*schema.TransactionBalance, error)
 	// WithTx returns a new repository instance using the provided transaction
 	WithTx(tx *gorm.DB) LedgerRepository
 }

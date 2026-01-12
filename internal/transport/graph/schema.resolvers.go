@@ -23,6 +23,8 @@ import (
 	leadsgraphql "hauslet/internal/modules/leads/port/graphql"
 	domain6 "hauslet/internal/modules/payments/domain"
 	graphql1 "hauslet/internal/modules/payments/port/graphql"
+	domain13 "hauslet/internal/modules/pricing/domain"
+	graphql7 "hauslet/internal/modules/pricing/port/graphql"
 	domain1 "hauslet/internal/modules/profile/domain"
 	profilegraphql "hauslet/internal/modules/profile/port/graphql"
 	domain9 "hauslet/internal/modules/promotions/domain"
@@ -602,6 +604,36 @@ func (r *mutationResolver) CreatePayout(ctx context.Context, input graphql1.Crea
 	return r.PaymentsResolver.CreatePayout(ctx, &input)
 }
 
+// CreatePricingRule is the resolver for the createPricingRule field.
+func (r *mutationResolver) CreatePricingRule(ctx context.Context, input graphql7.CreatePricingRuleInput) (*domain13.PricingRule, error) {
+	return r.PricingResolver.CreatePricingRule(ctx, input)
+}
+
+// UpdatePricingRule is the resolver for the updatePricingRule field.
+func (r *mutationResolver) UpdatePricingRule(ctx context.Context, input graphql7.UpdatePricingRuleInput) (*domain13.PricingRule, error) {
+	return r.PricingResolver.UpdatePricingRule(ctx, input)
+}
+
+// DeletePricingRule is the resolver for the deletePricingRule field.
+func (r *mutationResolver) DeletePricingRule(ctx context.Context, id uuid.UUID) (bool, error) {
+	return r.PricingResolver.DeletePricingRule(ctx, id)
+}
+
+// CreateMultiPropertyDiscount is the resolver for the createMultiPropertyDiscount field.
+func (r *mutationResolver) CreateMultiPropertyDiscount(ctx context.Context, input graphql7.CreateMultiPropertyDiscountInput) (*domain13.MultiPropertyDiscount, error) {
+	return r.PricingResolver.CreateMultiPropertyDiscount(ctx, input)
+}
+
+// UpdateMultiPropertyDiscount is the resolver for the updateMultiPropertyDiscount field.
+func (r *mutationResolver) UpdateMultiPropertyDiscount(ctx context.Context, input graphql7.UpdateMultiPropertyDiscountInput) (*domain13.MultiPropertyDiscount, error) {
+	return r.PricingResolver.UpdateMultiPropertyDiscount(ctx, input)
+}
+
+// DeleteMultiPropertyDiscount is the resolver for the deleteMultiPropertyDiscount field.
+func (r *mutationResolver) DeleteMultiPropertyDiscount(ctx context.Context, id uuid.UUID) (bool, error) {
+	return r.PricingResolver.DeleteMultiPropertyDiscount(ctx, id)
+}
+
 // FileDispute is the resolver for the fileDispute field.
 func (r *mutationResolver) FileDispute(ctx context.Context, input graphql2.FileDisputeInput) (*domain7.Dispute, error) {
 	return r.FinanceResolver.FileDispute(ctx, input)
@@ -849,6 +881,11 @@ func (r *paymentMethodResolver) CardBrand(ctx context.Context, obj *domain6.Paym
 func (r *paymentMethodResolver) AccountNumberLast4(ctx context.Context, obj *domain6.PaymentMethod) (*string, error) {
 	// Bank account number not currently tracked - using card Last4Digits as fallback
 	return obj.Last4Digits, nil
+}
+
+// PlatformFees is the resolver for the platformFees field.
+func (r *priceBreakdownResolver) PlatformFees(ctx context.Context, obj *domain13.PriceBreakdown) (*model.PlatformFeeBreakdown, error) {
+	panic(fmt.Errorf("not implemented: PlatformFees - platformFees"))
 }
 
 // PlatformFees is the resolver for the platformFees field.
@@ -1305,6 +1342,55 @@ func (r *queryResolver) MyPayoutDetails(ctx context.Context) ([]*domain6.PayoutD
 	result := make([]*domain6.PayoutDetail, len(details))
 	for i := range details {
 		result[i] = &details[i]
+	}
+	return result, nil
+}
+
+// PricingRule is the resolver for the pricingRule field.
+func (r *queryResolver) PricingRule(ctx context.Context, id uuid.UUID) (*domain13.PricingRule, error) {
+	return r.PricingResolver.PricingRule(ctx, id)
+}
+
+// PricingRulesForListing is the resolver for the pricingRulesForListing field.
+func (r *queryResolver) PricingRulesForListing(ctx context.Context, listingID uuid.UUID, activeOnly *bool) ([]*domain13.PricingRule, error) {
+	return r.PricingResolver.PricingRulesForListing(ctx, listingID, activeOnly)
+}
+
+// MultiPropertyDiscountsForOwner is the resolver for the multiPropertyDiscountsForOwner field.
+func (r *queryResolver) MultiPropertyDiscountsForOwner(ctx context.Context) ([]*domain13.MultiPropertyDiscount, error) {
+	return r.PricingResolver.MultiPropertyDiscountsForOwner(ctx)
+}
+
+// CalculatePrice is the resolver for the calculatePrice field.
+func (r *queryResolver) CalculatePrice(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain13.PriceBreakdown, error) {
+	return r.PricingResolver.CalculatePrice(ctx, listingID, checkIn, checkOut, guestCount)
+}
+
+// CalculateMultiPropertyPrice is the resolver for the calculateMultiPropertyPrice field.
+func (r *queryResolver) CalculateMultiPropertyPrice(ctx context.Context, bookings []*graphql7.MultiPropertyBookingInput) (*domain13.PriceBreakdown, error) {
+	inputs := make([]graphql7.MultiPropertyBookingInput, len(bookings))
+	for i, b := range bookings {
+		if b != nil {
+			inputs[i] = *b
+		}
+	}
+	return r.PricingResolver.CalculateMultiPropertyPrice(ctx, inputs)
+}
+
+// BasePrice is the resolver for the basePrice field.
+func (r *queryResolver) BasePrice(ctx context.Context, listingID uuid.UUID) (*graphql7.BasePriceResult, error) {
+	return r.PricingResolver.BasePrice(ctx, listingID)
+}
+
+// PreviewPricing is the resolver for the previewPricing field.
+func (r *queryResolver) PreviewPricing(ctx context.Context, listingID uuid.UUID, month time.Time) ([]*domain13.DailyRate, error) {
+	rates, err := r.PricingResolver.PreviewPricing(ctx, listingID, month)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*domain13.DailyRate, len(rates))
+	for i := range rates {
+		result[i] = &rates[i]
 	}
 	return result, nil
 }
@@ -1938,6 +2024,9 @@ func (r *Resolver) Payment() PaymentResolver { return &paymentResolver{r} }
 // PaymentMethod returns PaymentMethodResolver implementation.
 func (r *Resolver) PaymentMethod() PaymentMethodResolver { return &paymentMethodResolver{r} }
 
+// PriceBreakdown returns PriceBreakdownResolver implementation.
+func (r *Resolver) PriceBreakdown() PriceBreakdownResolver { return &priceBreakdownResolver{r} }
+
 // PriceBreakdownSnapshot returns PriceBreakdownSnapshotResolver implementation.
 func (r *Resolver) PriceBreakdownSnapshot() PriceBreakdownSnapshotResolver {
 	return &priceBreakdownSnapshotResolver{r}
@@ -2034,6 +2123,7 @@ type maintenanceDetailResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type paymentResolver struct{ *Resolver }
 type paymentMethodResolver struct{ *Resolver }
+type priceBreakdownResolver struct{ *Resolver }
 type priceBreakdownSnapshotResolver struct{ *Resolver }
 type profileResolver struct{ *Resolver }
 type propertyResolver struct{ *Resolver }
@@ -2055,3 +2145,36 @@ type addPayoutDetailInputResolver struct{ *Resolver }
 type createPaymentMethodInputResolver struct{ *Resolver }
 type createPayoutInputResolver struct{ *Resolver }
 type createReviewInputResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *createPricingRuleInputResolver) RuleType(ctx context.Context, obj *graphql7.CreatePricingRuleInput, data domain13.RuleType) error {
+	obj.RuleType = data
+	return nil
+}
+func (r *createPricingRuleInputResolver) ModifierType(ctx context.Context, obj *graphql7.CreatePricingRuleInput, data domain13.ModifierType) error {
+	obj.ModifierType = data
+	return nil
+}
+func (r *updatePricingRuleInputResolver) RuleType(ctx context.Context, obj *graphql7.UpdatePricingRuleInput, data *domain13.RuleType) error {
+	obj.RuleType = data
+	return nil
+}
+func (r *updatePricingRuleInputResolver) ModifierType(ctx context.Context, obj *graphql7.UpdatePricingRuleInput, data *domain13.ModifierType) error {
+	obj.ModifierType = data
+	return nil
+}
+func (r *Resolver) CreatePricingRuleInput() CreatePricingRuleInputResolver {
+	return &createPricingRuleInputResolver{r}
+}
+func (r *Resolver) UpdatePricingRuleInput() UpdatePricingRuleInputResolver {
+	return &updatePricingRuleInputResolver{r}
+}
+type createPricingRuleInputResolver struct{ *Resolver }
+type updatePricingRuleInputResolver struct{ *Resolver }
+*/

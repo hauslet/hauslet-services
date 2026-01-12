@@ -121,10 +121,9 @@ func mapListingFilterToService(filter *model.ListingFilterInput) service.Listing
 	}
 
 	serviceFilter := service.ListingFilter{
-		Query:      filter.Query,
-		OwnerID:    filter.OwnerID,
-		PropertyID: filter.PropertyID,
-		// NOTE: Published field removed from GraphQL for security - service layer will enforce published=true
+		Query:        filter.Query,
+		OwnerID:      filter.OwnerID,
+		PropertyID:   filter.PropertyID,
 		HasCalendar:  filter.HasCalendar,
 		City:         filter.City,
 		State:        filter.State,

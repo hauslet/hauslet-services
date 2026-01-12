@@ -1,0 +1,212 @@
+# internal/modules/pricing/port/graphql/schema.graphqls
+
+# ===========================
+# ENUMS
+# ===========================
+
+enum RuleType {
+  base
+  seasonal
+  weekend
+  weekday
+  holiday
+  length_of_stay
+  last_minute
+  early_bird
+  gap_filler
+  custom
+}
+
+enum ModifierType {
+  percentage
+  fixed
+  absolute
+}
+
+# ===========================
+# INPUT TYPES
+# ===========================
+
+input CreatePricingRuleInput {
+  listingId: UUID!
+  name: String!
+  description: String
+  ruleType: RuleType!
+  active: Boolean!
+  priority: Int!
+  startDate: Time
+  endDate: Time
+  daysOfWeek: String
+  modifierType: ModifierType!
+  modifierValue: Float!
+  minNights: Int
+  maxNights: Int
+  minLeadTimeDays: Int
+  maxLeadTimeDays: Int
+}
+
+input UpdatePricingRuleInput {
+  id: UUID!
+  name: String
+  description: String
+  ruleType: RuleType
+  active: Boolean
+  priority: Int
+  startDate: Time
+  endDate: Time
+  daysOfWeek: String
+  modifierType: ModifierType
+  modifierValue: Float
+  minNights: Int
+  maxNights: Int
+  minLeadTimeDays: Int
+  maxLeadTimeDays: Int
+}
+
+input CreateMultiPropertyDiscountInput {
+  name: String!
+  description: String
+  listingIds: [UUID!]!
+  minProperties: Int!
+  discountPercent: Int!
+  validFrom: Time
+  validUntil: Time
+  active: Boolean!
+}
+
+input UpdateMultiPropertyDiscountInput {
+  id: UUID!
+  name: String
+  description: String
+  listingIds: [UUID!]
+  minProperties: Int
+  discountPercent: Int
+  validFrom: Time
+  validUntil: Time
+  active: Boolean
+}
+
+input MultiPropertyBookingInput {
+  listingId: UUID!
+  checkIn: Time!
+  checkOut: Time!
+  guestCount: Int!
+}
+
+# ===========================
+# TYPES
+# ===========================
+
+type PricingRule {
+  id: UUID!
+  listingId: UUID!
+  name: String!
+  description: String
+  ruleType: RuleType!
+  active: Boolean!
+  priority: Int!
+  startDate: Time
+  endDate: Time
+  daysOfWeek: String
+  modifierType: ModifierType!
+  modifierValue: Float!
+  minNights: Int
+  maxNights: Int
+  minLeadTimeDays: Int
+  maxLeadTimeDays: Int
+  createdBy: UUID
+  updatedBy: UUID
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type MultiPropertyDiscount {
+  id: UUID!
+  ownerId: UUID!
+  name: String!
+  description: String
+  listingIds: [UUID!]!
+  minProperties: Int!
+  discountPercent: Int!
+  validFrom: Time
+  validUntil: Time
+  active: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type PriceBreakdown {
+  listingId: UUID!
+  checkIn: Time!
+  checkOut: Time!
+  nights: Int!
+  guestCount: Int!
+  baseTotal: Float!
+  cleaningFee: Float
+  serviceFee: Float
+  cautionFee: Float
+  extraGuestFee: Float!
+  discounts: [PricingDiscount!]!
+  dailyRates: [PricingDailyRate!]!
+  subtotal: Float!
+  vatPercent: Float!
+  vatAmount: Float!
+  total: Float!
+  currency: String!
+  platformFees: PlatformFeeBreakdown
+  calculatedAt: Time!
+  validUntil: Time!
+}
+
+type PricingDiscount {
+  name: String!
+  amount: Float!
+  type: String!
+}
+
+type PricingDailyRate {
+  date: Time!
+  baseRate: Float!
+  appliedRules: [String!]!
+  finalRate: Float!
+}
+
+# ===========================
+# QUERY EXTENSIONS
+# ===========================
+
+extend type Query {
+  # Pricing Rule Queries
+  pricingRule(id: UUID!): PricingRule
+  pricingRulesForListing(listingId: UUID!, activeOnly: Boolean): [PricingRule!]!
+
+  # Multi-Property Discount Queries
+  multiPropertyDiscountsForOwner: [MultiPropertyDiscount!]!
+
+  # Price Calculation Queries
+  calculatePrice(listingId: UUID!, checkIn: Time!, checkOut: Time!, guestCount: Int!): PriceBreakdown!
+  calculateMultiPropertyPrice(bookings: [MultiPropertyBookingInput!]!): PriceBreakdown!
+  basePrice(listingId: UUID!): BasePriceResult!
+  previewPricing(listingId: UUID!, month: Time!): [PricingDailyRate!]!
+}
+
+type BasePriceResult {
+  baseRate: Float!
+  currency: String!
+}
+
+# ===========================
+# MUTATION EXTENSIONS
+# ===========================
+
+extend type Mutation {
+  # Pricing Rule Mutations
+  createPricingRule(input: CreatePricingRuleInput!): PricingRule!
+  updatePricingRule(input: UpdatePricingRuleInput!): PricingRule!
+  deletePricingRule(id: UUID!): Boolean!
+
+  # Multi-Property Discount Mutations
+  createMultiPropertyDiscount(input: CreateMultiPropertyDiscountInput!): MultiPropertyDiscount!
+  updateMultiPropertyDiscount(input: UpdateMultiPropertyDiscountInput!): MultiPropertyDiscount!
+  deleteMultiPropertyDiscount(id: UUID!): Boolean!
+}

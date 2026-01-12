@@ -141,7 +141,8 @@ func (r *Resolver) MyPayoutDetails(ctx context.Context) ([]domain.PayoutDetail, 
 }
 
 // MyTransactions lists transactions for the current user.
-func (r *Resolver) MyTransactions(ctx context.Context, txType *domain.TransactionType, status *domain.TransactionStatus, limit *int, offset *int) ([]domain.Transaction, error) {
+func (r *Resolver) MyTransactions(ctx context.Context, txType *domain.TransactionType,
+	status *domain.TransactionStatus, limit *int, offset *int) ([]domain.Transaction, error) {
 	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -527,6 +528,7 @@ func (r *Resolver) GetPayoutDetail(ctx context.Context, id string) (*domain.Payo
 }
 
 // CreatePayout creates a new payout transaction
+// Deprecated: Use REST API for payouts instead.
 func (r *Resolver) CreatePayout(ctx context.Context, input *CreatePayoutInput) (*domain.Transaction, error) {
 	// Authorization: Admin or business owner (can be extended with business ownership check)
 	_, err := viewer.GetUserIDFromContext(ctx)

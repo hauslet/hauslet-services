@@ -84,6 +84,33 @@ func (r *LedgerRepositoryImpl) ListByWallet(ctx context.Context, walletID uuid.U
 	return entries, nil
 }
 
+// FindImbalancedTransactions finds internal transactions where debits don't equal credits
+// External transactions (charges with only credits, refunds with only debits) are excluded
+func (r *LedgerRepositoryImpl) FindImbalancedTransactions(ctx context.Context) ([]*schema.TransactionBalance, error) {
+	var imbalances []*schema.TransactionBalance
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT
+			transaction_id,
+			COALESCE(SUM(CASE WHEN debit_wallet_id IS NOT NULL THEN amount ELSE 0 END), 0) as total_debit,
+			COALESCE(SUM(CASE WHEN credit_wallet_id IS NOT NULL THEN amount ELSE 0 END), 0) as total_credit
+		FROM ledger_entries
+		GROUP BY transaction_id
+		HAVING
+			-- Only validate internal transactions (those with BOTH debit and credit entries)
+			-- External transactions (charges: only credits, refunds: only debits) are excluded
+			COUNT(CASE WHEN debit_wallet_id IS NOT NULL THEN 1 END) > 0
+			AND COUNT(CASE WHEN credit_wallet_id IS NOT NULL THEN 1 END) > 0
+			-- Check if debits and credits don't balance
+			AND SUM(CASE WHEN debit_wallet_id IS NOT NULL THEN amount ELSE 0 END) !=
+			    SUM(CASE WHEN credit_wallet_id IS NOT NULL THEN amount ELSE 0 END)
+	`).Scan(&imbalances).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return imbalances, nil
+}
+
 // WithTx returns a new repository instance using the provided transaction
 func (r *LedgerRepositoryImpl) WithTx(tx *gorm.DB) LedgerRepository {
 	return &LedgerRepositoryImpl{db: tx}

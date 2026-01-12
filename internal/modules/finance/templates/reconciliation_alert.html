@@ -1,0 +1,110 @@
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 28px; font-weight: bold; margin-top: 48px; text-align: center; color: #dc3545;">
+        Financial Reconciliation Alert
+    </h1>
+
+    <p style="font-size: 16px; line-height: 26px; text-align: center; margin-bottom: 30px; color: #000000;">
+        Discrepancies detected during the latest reconciliation run.
+    </p>
+
+    <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; border-radius: 4px; padding: 16px; margin: 30px 0;">
+        <p style="font-size: 14px; line-height: 22px; color: #721c24; margin: 0;">
+            <strong>Alert:</strong> {{.TotalDiscrepancies}} discrepancies require attention
+        </p>
+    </div>
+
+    <!-- Report Summary -->
+    <div style="background-color: #f4f4f4; border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <h3 style="font-size: 18px; font-weight: bold; margin-top: 0; color: #000000;">Report Details</h3>
+
+        <div style="margin: 15px 0;">
+            <p style="font-size: 14px; color: #666666; margin: 5px 0;">
+                <strong style="color: #000000;">Report ID:</strong> {{.ReportID}}
+            </p>
+            <p style="font-size: 14px; color: #666666; margin: 5px 0;">
+                <strong style="color: #000000;">Started:</strong> {{.StartedAt}}
+            </p>
+            <p style="font-size: 14px; color: #666666; margin: 5px 0;">
+                <strong style="color: #000000;">Completed:</strong> {{.CompletedAt}}
+            </p>
+            <p style="font-size: 14px; color: #666666; margin: 5px 0;">
+                <strong style="color: #000000;">Wallets Checked:</strong> {{.WalletsChecked}}
+            </p>
+            <p style="font-size: 14px; color: #666666; margin: 5px 0;">
+                <strong style="color: #000000;">Transactions Checked:</strong> {{.TransactionsChecked}}
+            </p>
+        </div>
+
+        <!-- Severity Breakdown -->
+        <h3 style="font-size: 18px; font-weight: bold; margin-top: 25px; color: #000000;">Severity Breakdown</h3>
+
+        <div style="margin: 15px 0;">
+            {{if gt .CriticalCount 0}}
+            <p style="font-size: 14px; margin: 5px 0;">
+                <span style="background-color: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;">CRITICAL</span>
+                <span style="margin-left: 10px; color: #000000;">{{.CriticalCount}} issues</span>
+            </p>
+            {{end}}
+            {{if gt .HighCount 0}}
+            <p style="font-size: 14px; margin: 5px 0;">
+                <span style="background-color: #fd7e14; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;">HIGH</span>
+                <span style="margin-left: 10px; color: #000000;">{{.HighCount}} issues</span>
+            </p>
+            {{end}}
+            {{if gt .MediumCount 0}}
+            <p style="font-size: 14px; margin: 5px 0;">
+                <span style="background-color: #ffc107; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: bold;">MEDIUM</span>
+                <span style="margin-left: 10px; color: #000000;">{{.MediumCount}} issues</span>
+            </p>
+            {{end}}
+            {{if gt .LowCount 0}}
+            <p style="font-size: 14px; margin: 5px 0;">
+                <span style="background-color: #6c757d; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold;">LOW</span>
+                <span style="margin-left: 10px; color: #000000;">{{.LowCount}} issues</span>
+            </p>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- Discrepancy List -->
+    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; padding: 16px; margin: 30px 0;">
+        <h3 style="font-size: 16px; font-weight: bold; margin-top: 0; color: #856404;">Detected Issues</h3>
+
+        {{range .Discrepancies}}
+        <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+            <p style="margin: 5px 0; font-size: 14px;">
+                <strong style="color: #000;">{{.Type}}</strong>
+                <span style="background-color:
+                    {{if eq .Severity "critical"}}#dc3545
+                    {{else if eq .Severity "high"}}#fd7e14
+                    {{else if eq .Severity "medium"}}#ffc107
+                    {{else}}#6c757d{{end}};
+                    color: white; padding: 2px 6px; border-radius: 3px; font-size: 12px; margin-left: 8px;">
+                    {{.Severity}}
+                </span>
+            </p>
+            <p style="margin: 5px 0; color: #666; font-size: 13px;">{{.Description}}</p>
+            {{if .Expected}}
+            <p style="margin: 5px 0; color: #666; font-size: 13px;">
+                Expected: {{.Expected}} | Actual: {{.Actual}} | Diff: {{.Difference}}
+            </p>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Action Button -->
+    <div style="text-align: center; margin: 40px 0;">
+        <a href="{{.DashboardURL}}" style="display: inline-block; background-color: #dc3545; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            View Full Report
+        </a>
+    </div>
+
+    <p style="font-size: 14px; line-height: 22px; color: #666666; text-align: center; margin-top: 30px;">
+        Automated alert from the finance reconciliation system.
+    </p>
+</div>
+{{end}}
+
+{{template "layout" .}}

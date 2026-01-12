@@ -9,6 +9,9 @@ import (
 	"syscall"
 
 	"hauslet/config"
+	authrepository "hauslet/internal/modules/auth/repository"
+	authservice "hauslet/internal/modules/auth/service"
+	authsession "hauslet/internal/modules/auth/session"
 	bookingnotification "hauslet/internal/modules/booking/notification"
 	bookinghooks "hauslet/internal/modules/booking/port/hooks"
 	bookingrepository "hauslet/internal/modules/booking/repository"
@@ -204,17 +207,17 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			listingHooks := bookinghooks.NewPropertyHooksAdapter(propertyRepo)
 
 			var calendarSvc calendarservice.CalendarService
-			var pricingSvc pricingservice.PricingService
+
+			// Initialize Pricing Service (needed for booking service)
+			pricingRepo := pricingrepository.NewPricingRepository(infra.DB)
+			pricingSvc := pricingservice.NewPricingService(pricingRepo, nil, nil, log, cfg.YAML.Platform)
+
 			if hasBookingExpiry {
 				// Calendar gateway (needed to cancel expired booking events)
 				calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
 				calendarHooksAdapter := propertyhooks.NewCalendarHooksRepoAdapter(propertyRepo)
 				calendarProfileAdapter := profileport.NewCalendarProfileAdapter(profileSvc)
 				calendarSvc = calendarservice.NewCalendarService(calendarRepo, infra.Cache, calendarHooksAdapter, calendarProfileAdapter, nil, log)
-
-				// Pricing service with minimal dependencies
-				pricingRepo := pricingrepository.NewPricingRepository(infra.DB)
-				pricingSvc = pricingservice.NewPricingService(pricingRepo, nil, nil, log, cfg.YAML.Platform)
 			}
 
 			// Finance service and hooks (needed for booking completion)
@@ -232,6 +235,9 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				financeDisputeRepo,
 				financeReconciliationRepo,
 				nil, // bookingPartyQuerier not needed for worker payment tasks
+				nil, // adminProvider not needed
+				nil, // notificationService not needed
+				cfg.YAML.Platform,
 				infra.DB,
 				log,
 			)
@@ -343,6 +349,9 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			financeDisputeRepo,
 			financeReconciliationRepo,
 			nil, // bookingPartyQuerier not needed for worker expiry tasks
+			nil, // adminProvider not needed
+			nil, // notificationService not needed
+			cfg.YAML.Platform,
 			infra.DB,
 			log,
 		)
@@ -536,6 +545,38 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
 		financeReconciliationRepo := financerepository.NewReconciliationRepository(infra.DB)
 
+		// Initialize auth dependencies for admin notifications
+		// SessionStore is required by AuthRepository constructor, even though GetUsersByRole doesn't use it
+		sessionStore := authsession.NewSessionStore(infra.Redis)
+		authRepo := authrepository.NewAuthRepository(infra.DB, sessionStore)
+		authSvc := authservice.NewAuthService(
+			&cfg.Auth,
+			authRepo,
+			log,
+			nil, // emailClient not needed for GetUsersByRole
+			infra.Redis,
+			nil, // queueClient not needed for GetUsersByRole
+			"",  // queueSubject not needed for GetUsersByRole
+			nil, // profileHooks not needed for GetUsersByRole
+		)
+
+		// Create auth adapter for admin notifications
+		adminRoles := cfg.YAML.Platform.Reconciliation.AdminRoles
+		if len(adminRoles) == 0 {
+			adminRoles = []string{"admin", "root"} // fallback default
+		}
+		authAdminAdapter := financehooks.NewFinanceAuthAdapter(authSvc, adminRoles)
+
+		// Initialize finance notification service
+		emailSubject := qCfg["email"]
+		financeNotificationSvc := financenotification.NewNotificationService(
+			infra.Email,
+			infra.Queue,
+			emailSubject,
+			cfg.App.Client,
+			log,
+		)
+
 		// Initialize finance service
 		financeSvc := financeservice.NewFinanceService(
 			financeWalletRepo,
@@ -545,6 +586,9 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			financeDisputeRepo,
 			financeReconciliationRepo,
 			nil, // bookingPartyQuerier not needed for reconciliation
+			authAdminAdapter,
+			financeNotificationSvc,
+			cfg.YAML.Platform,
 			infra.DB,
 			log,
 		)

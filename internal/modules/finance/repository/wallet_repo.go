@@ -80,6 +80,36 @@ func (r *WalletRepositoryImpl) ListByOwner(ctx context.Context, ownerType string
 	return wallets, nil
 }
 
+// FindBalanceMismatches finds wallets where balance doesn't match sum of ledger entries
+func (r *WalletRepositoryImpl) FindBalanceMismatches(ctx context.Context) ([]*schema.WalletBalanceMismatch, error) {
+	var mismatches []*schema.WalletBalanceMismatch
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT
+			w.id as wallet_id,
+			w.balance as actual_balance,
+			COALESCE(
+				SUM(CASE WHEN le.credit_wallet_id = w.id THEN le.amount ELSE 0 END) -
+				SUM(CASE WHEN le.debit_wallet_id = w.id THEN le.amount ELSE 0 END),
+				0
+			) as ledger_balance,
+			w.currency
+		FROM wallets w
+		LEFT JOIN ledger_entries le ON (le.credit_wallet_id = w.id OR le.debit_wallet_id = w.id)
+		WHERE w.status != 'closed'
+		GROUP BY w.id, w.balance, w.currency
+		HAVING w.balance != COALESCE(
+			SUM(CASE WHEN le.credit_wallet_id = w.id THEN le.amount ELSE 0 END) -
+			SUM(CASE WHEN le.debit_wallet_id = w.id THEN le.amount ELSE 0 END),
+			0
+		)
+	`).Scan(&mismatches).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return mismatches, nil
+}
+
 // WithTx returns a new repository instance using the provided transaction
 func (r *WalletRepositoryImpl) WithTx(tx *gorm.DB) WalletRepository {
 	return &WalletRepositoryImpl{db: tx}

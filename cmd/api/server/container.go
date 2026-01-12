@@ -240,6 +240,10 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 		return nil, fmt.Errorf("failed to initialize pricing: %w", err)
 	}
 
+	if err := c.initAuth(); err != nil {
+		return nil, fmt.Errorf("failed to initialize auth: %w", err)
+	}
+
 	if err := c.initFinance(); err != nil {
 		return nil, fmt.Errorf("failed to initialize finance: %w", err)
 	}
@@ -258,10 +262,6 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 
 	if err := c.initReview(); err != nil {
 		return nil, fmt.Errorf("failed to initialize review: %w", err)
-	}
-
-	if err := c.initAuth(); err != nil {
-		return nil, fmt.Errorf("failed to initialize auth: %w", err)
 	}
 
 	if err := c.initInteractions(); err != nil {
@@ -648,6 +648,23 @@ func (c *Container) initFinance() error {
 	financeDisputeRepo := financerepository.NewDisputeRepository(c.DB)
 	financeReconciliationRepo := financerepository.NewReconciliationRepository(c.DB)
 
+	// Create auth adapter for admin notifications
+	adminRoles := c.Config.YAML.Platform.Reconciliation.AdminRoles
+	if len(adminRoles) == 0 {
+		adminRoles = []string{"admin", "root"} // fallback default
+	}
+	authAdminAdapter := financehooks.NewFinanceAuthAdapter(c.AuthSvc, adminRoles)
+
+	// Initialize finance notification service
+	emailSubject := c.Config.YAML.Queue.Subjects["email"]
+	financeNotificationSvc := financenotification.NewNotificationService(
+		c.EmailClient,
+		c.Queue,
+		emailSubject,
+		c.Config.App.Client,
+		c.Logger,
+	)
+
 	c.FinanceSvc = financeservice.NewFinanceService(
 		financeWalletRepo,
 		financeLedgerRepo,
@@ -656,6 +673,9 @@ func (c *Container) initFinance() error {
 		financeDisputeRepo,
 		financeReconciliationRepo,
 		bookingPartyQuerier,
+		authAdminAdapter,
+		financeNotificationSvc,
+		c.Config.YAML.Platform,
 		c.DB,
 		c.Logger,
 	)

@@ -48,8 +48,9 @@ type PlatformYAMLConfig struct {
 	Payouts       PlatformPayoutConfig       `yaml:"payouts"`
 	Refunds       PlatformRefundConfig       `yaml:"refunds"`
 	AutoAccept    PlatformAutoAcceptConfig   `yaml:"auto_accept"`
-	Reviews       PlatformReviewConfig       `yaml:"reviews"`
-	Notifications PlatformNotificationConfig `yaml:"notifications"`
+	Reviews        PlatformReviewConfig        `yaml:"reviews"`
+	Notifications  PlatformNotificationConfig  `yaml:"notifications"`
+	Reconciliation PlatformReconciliationConfig `yaml:"reconciliation"`
 }
 
 type PlatformCurrencyConfig struct {
@@ -136,6 +137,12 @@ type PlatformNotificationConfig struct {
 
 type PlatformReviewConfig struct {
 	ReviewWindowDays int `yaml:"review_window_days"`
+}
+
+type PlatformReconciliationConfig struct {
+	SendAlerts  bool     `yaml:"send_alerts"`
+	AdminRoles  []string `yaml:"admin_roles"`
+	MinSeverity string   `yaml:"min_severity"` // critical | high | medium | low
 }
 
 // RateLimitYAMLConfig defines rate limiting rules
@@ -371,6 +378,17 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 	}
 	if src.Notifications.SendDisputeAlerts {
 		dst.Notifications.SendDisputeAlerts = src.Notifications.SendDisputeAlerts
+	}
+
+	// Reconciliation
+	if src.Reconciliation.SendAlerts {
+		dst.Reconciliation.SendAlerts = src.Reconciliation.SendAlerts
+	}
+	if len(src.Reconciliation.AdminRoles) > 0 {
+		dst.Reconciliation.AdminRoles = src.Reconciliation.AdminRoles
+	}
+	if src.Reconciliation.MinSeverity != "" {
+		dst.Reconciliation.MinSeverity = src.Reconciliation.MinSeverity
 	}
 }
 

@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"hauslet/internal/modules/finance/domain"
 	"hauslet/internal/modules/finance/templates"
 	"hauslet/internal/platform/email"
 	"hauslet/internal/platform/payment"
@@ -375,4 +376,119 @@ func (s *NotificationService) SendRefundProcessed(
 		return s.mailClient.SendHTML(ctx, guestEmail, subject, htmlBody)
 	})
 	return nil
+}
+
+// SendReconciliationAlert sends alert to admins when discrepancies are found
+func (s *NotificationService) SendReconciliationAlert(
+	ctx context.Context,
+	adminEmails []string,
+	report *domain.ReconciliationReport,
+) error {
+	if s.mailClient == nil || len(adminEmails) == 0 {
+		return nil
+	}
+
+	subject := fmt.Sprintf("[FINANCE ALERT] Reconciliation Discrepancies - Report %s",
+		report.ID.String()[:8])
+	preview := fmt.Sprintf("Found %d discrepancies during financial reconciliation",
+		report.DiscrepanciesFound)
+
+	// Categorize discrepancies by severity
+	critical, high, medium, low := 0, 0, 0, 0
+	for _, d := range report.Discrepancies {
+		switch d.Severity {
+		case domain.DiscrepancySeverityCritical:
+			critical++
+		case domain.DiscrepancySeverityHigh:
+			high++
+		case domain.DiscrepancySeverityMedium:
+			medium++
+		case domain.DiscrepancySeverityLow:
+			low++
+		}
+	}
+
+	emailData := map[string]any{
+		"ReportID":            report.ID.String(),
+		"StartedAt":           report.StartedAt.Format("January 2, 2006 at 3:04 PM"),
+		"CompletedAt":         report.CompletedAt.Format("January 2, 2006 at 3:04 PM"),
+		"TotalDiscrepancies":  report.DiscrepanciesFound,
+		"CriticalCount":       critical,
+		"HighCount":           high,
+		"MediumCount":         medium,
+		"LowCount":            low,
+		"WalletsChecked":      report.TotalWalletsChecked,
+		"TransactionsChecked": report.TotalTransactionsChecked,
+		"Summary":             report.Summary,
+		"Discrepancies":       formatDiscrepancies(report.Discrepancies),
+		"DashboardURL":        fmt.Sprintf("%s/admin/finance/reconciliation/%s", s.baseURL, report.ID),
+		"Subject":             subject,
+		"Preview":             preview,
+		"Year":                time.Now().Year(),
+	}
+
+	htmlBody, err := s.mailClient.RenderTemplate(
+		templates.FS,
+		"reconciliation_alert.html",
+		emailData,
+	)
+	if err != nil {
+		if s.log != nil {
+			s.log.Error("failed to render reconciliation alert template", "error", err)
+		}
+		return fmt.Errorf("failed to render template: %w", err)
+	}
+
+	// Send to all admins (fire async for each)
+	for _, email := range adminEmails {
+		adminEmail := email
+		s.sendEmailAsync(fmt.Sprintf("send reconciliation alert to %s", adminEmail), func() error {
+			job := emailJob.EmailJob{
+				To:      adminEmail,
+				Subject: subject,
+				HTML:    htmlBody,
+			}
+			if err := s.publishEmailJob(job); err == nil {
+				return nil
+			} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+				return err
+			}
+			return s.mailClient.SendHTML(ctx, adminEmail, subject, htmlBody)
+		})
+	}
+
+	return nil
+}
+
+// formatDiscrepancies converts discrepancies to email-friendly format
+func formatDiscrepancies(discrepancies []domain.Discrepancy) []map[string]any {
+	result := make([]map[string]any, 0, len(discrepancies))
+
+	for _, d := range discrepancies {
+		item := map[string]any{
+			"Type":        string(d.Type),
+			"Severity":    string(d.Severity),
+			"Description": d.Description,
+		}
+
+		if d.WalletID != nil {
+			item["WalletID"] = d.WalletID.String()[:8]
+		}
+		if d.TransactionID != nil {
+			item["TransactionID"] = d.TransactionID.String()[:8]
+		}
+		if d.ExpectedValue != nil && d.ActualValue != nil {
+			item["Expected"] = formatMinorUnits(*d.ExpectedValue)
+			item["Actual"] = formatMinorUnits(*d.ActualValue)
+			item["Difference"] = formatMinorUnits(*d.ActualValue - *d.ExpectedValue)
+		}
+
+		result = append(result, item)
+	}
+
+	return result
+}
+
+func formatMinorUnits(amount int64) string {
+	return fmt.Sprintf("₦%.2f", float64(amount)/100.0)
 }

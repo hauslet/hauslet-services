@@ -130,13 +130,37 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 		"discrepancies", len(result.Discrepancies),
 	)
 
-	// TODO: Send alert email to admins if discrepancies found
-	// This will require:
-	// - Admin module that exposes GetAdminEmails() via adapter
-	// - Email notification service integration
+	// Send alert email to admins if discrepancies found
 	if result.HasIssues() {
-		s.log.Warn("reconciliation found issues - admin notification needed")
-		// TODO: s.notifyAdmins(ctx, report)
+		s.log.Warn("reconciliation found issues - sending admin notifications",
+			"discrepancies", len(result.Discrepancies),
+		)
+
+		// Check if alerts are enabled in config
+		if s.platformConfig.Reconciliation.SendAlerts {
+			// Get admin emails via adapter
+			adminEmails, err := s.adminProvider.GetAdminEmails(ctx)
+			if err != nil {
+				s.log.Error("failed to get admin emails for reconciliation alert",
+					"error", err,
+				)
+			} else if len(adminEmails) > 0 {
+				// Filter discrepancies by minimum severity
+				filteredReport := filterReportBySeverity(report, s.platformConfig.Reconciliation.MinSeverity)
+
+				if len(filteredReport.Discrepancies) > 0 {
+					if err := s.notificationSvc.SendReconciliationAlert(ctx, adminEmails, filteredReport); err != nil {
+						s.log.Error("failed to send reconciliation alert",
+							"error", err,
+						)
+					} else {
+						s.log.Info("reconciliation alerts sent",
+							"recipient_count", len(adminEmails),
+						)
+					}
+				}
+			}
+		}
 	}
 
 	return report, nil
@@ -146,26 +170,8 @@ func (s *FinanceServiceImpl) RunReconciliation(ctx context.Context) (*domain.Rec
 func (s *FinanceServiceImpl) ValidateLedgerBalance(ctx context.Context) ([]domain.Discrepancy, error) {
 	var discrepancies []domain.Discrepancy
 
-	// Query to find transactions where debit != credit
-	// This requires summing ledger entries grouped by transaction_id
-	type TransactionBalance struct {
-		TransactionID uuid.UUID
-		TotalDebit    int64
-		TotalCredit   int64
-	}
-
-	var imbalances []TransactionBalance
-	err := s.db.WithContext(ctx).Raw(`
-		SELECT
-			transaction_id,
-			COALESCE(SUM(CASE WHEN debit_wallet_id IS NOT NULL THEN amount ELSE 0 END), 0) as total_debit,
-			COALESCE(SUM(CASE WHEN credit_wallet_id IS NOT NULL THEN amount ELSE 0 END), 0) as total_credit
-		FROM ledger_entries
-		GROUP BY transaction_id
-		HAVING SUM(CASE WHEN debit_wallet_id IS NOT NULL THEN amount ELSE 0 END) !=
-		       SUM(CASE WHEN credit_wallet_id IS NOT NULL THEN amount ELSE 0 END)
-	`).Scan(&imbalances).Error
-
+	// Find imbalanced transactions using repository
+	imbalances, err := s.ledgerRepo.FindImbalancedTransactions(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query ledger imbalances: %w", err)
 	}
@@ -202,36 +208,8 @@ func (s *FinanceServiceImpl) ValidateLedgerBalance(ctx context.Context) ([]domai
 func (s *FinanceServiceImpl) ValidateWalletBalance(ctx context.Context) ([]domain.Discrepancy, error) {
 	var discrepancies []domain.Discrepancy
 
-	// Get all active wallets
-	type WalletBalance struct {
-		WalletID      uuid.UUID
-		ActualBalance int64
-		LedgerBalance int64
-		Currency      string
-	}
-
-	var mismatches []WalletBalance
-	err := s.db.WithContext(ctx).Raw(`
-		SELECT
-			w.id as wallet_id,
-			w.balance as actual_balance,
-			COALESCE(
-				SUM(CASE WHEN le.credit_wallet_id = w.id THEN le.amount ELSE 0 END) -
-				SUM(CASE WHEN le.debit_wallet_id = w.id THEN le.amount ELSE 0 END),
-				0
-			) as ledger_balance,
-			w.currency
-		FROM wallets w
-		LEFT JOIN ledger_entries le ON (le.credit_wallet_id = w.id OR le.debit_wallet_id = w.id)
-		WHERE w.status != 'closed'
-		GROUP BY w.id, w.balance, w.currency
-		HAVING w.balance != COALESCE(
-			SUM(CASE WHEN le.credit_wallet_id = w.id THEN le.amount ELSE 0 END) -
-			SUM(CASE WHEN le.debit_wallet_id = w.id THEN le.amount ELSE 0 END),
-			0
-		)
-	`).Scan(&mismatches).Error
-
+	// Find wallet balance mismatches using repository
+	mismatches, err := s.walletRepo.FindBalanceMismatches(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query wallet balance mismatches: %w", err)
 	}
@@ -373,4 +351,40 @@ func (s *FinanceServiceImpl) failReconciliation(ctx context.Context, report *dom
 	}
 
 	return report, err
+}
+
+// filterReportBySeverity filters discrepancies by minimum severity threshold
+func filterReportBySeverity(report *domain.ReconciliationReport, minSeverity string) *domain.ReconciliationReport {
+	if minSeverity == "" || minSeverity == "low" {
+		return report
+	}
+
+	severityOrder := map[domain.DiscrepancySeverity]int{
+		domain.DiscrepancySeverityLow:      0,
+		domain.DiscrepancySeverityMedium:   1,
+		domain.DiscrepancySeverityHigh:     2,
+		domain.DiscrepancySeverityCritical: 3,
+	}
+
+	minLevel := severityOrder[domain.DiscrepancySeverity(minSeverity)]
+
+	filtered := &domain.ReconciliationReport{
+		ID:                       report.ID,
+		Status:                   report.Status,
+		StartedAt:                report.StartedAt,
+		CompletedAt:              report.CompletedAt,
+		TotalWalletsChecked:      report.TotalWalletsChecked,
+		TotalTransactionsChecked: report.TotalTransactionsChecked,
+		Summary:                  report.Summary,
+		Discrepancies:            make([]domain.Discrepancy, 0),
+	}
+
+	for _, d := range report.Discrepancies {
+		if severityOrder[d.Severity] >= minLevel {
+			filtered.Discrepancies = append(filtered.Discrepancies, d)
+		}
+	}
+
+	filtered.DiscrepanciesFound = len(filtered.Discrepancies)
+	return filtered
 }

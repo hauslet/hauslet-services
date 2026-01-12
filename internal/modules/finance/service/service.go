@@ -22,6 +22,9 @@ type FinanceServiceImpl struct {
 	disputeRepo         repository.DisputeRepository
 	reconciliationRepo  repository.ReconciliationRepository
 	bookingPartyQuerier BookingPartyQuerier
+	adminProvider       AdminProvider
+	notificationSvc     *notification.NotificationService
+	platformConfig      config.PlatformYAMLConfig
 	db                  *gorm.DB
 	log                 *slog.Logger
 }
@@ -35,6 +38,9 @@ func NewFinanceService(
 	disputeRepo repository.DisputeRepository,
 	reconciliationRepo repository.ReconciliationRepository,
 	bookingPartyQuerier BookingPartyQuerier,
+	adminProvider AdminProvider,
+	notificationSvc *notification.NotificationService,
+	platformConfig config.PlatformYAMLConfig,
 	db *gorm.DB,
 	log *slog.Logger,
 ) FinanceService {
@@ -46,6 +52,9 @@ func NewFinanceService(
 		disputeRepo:         disputeRepo,
 		reconciliationRepo:  reconciliationRepo,
 		bookingPartyQuerier: bookingPartyQuerier,
+		adminProvider:       adminProvider,
+		notificationSvc:     notificationSvc,
+		platformConfig:      platformConfig,
 		db:                  db,
 		log:                 log,
 	}

@@ -152,6 +152,12 @@ type ReconciliationService interface {
 	GetLatestReconciliation(ctx context.Context) (*domain.ReconciliationReport, error)
 }
 
+// AdminProvider provides admin user information for notifications
+type AdminProvider interface {
+	// GetAdminEmails returns emails of all users with configured admin roles
+	GetAdminEmails(ctx context.Context) ([]string, error)
+}
+
 // FinanceService combines wallet and ledger services
 type FinanceService interface {
 	WalletService

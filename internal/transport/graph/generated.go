@@ -8,32 +8,34 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	domain12 "hauslet/internal/modules/auth/domain"
+	domain13 "hauslet/internal/modules/auth/domain"
 	domain6 "hauslet/internal/modules/booking/domain"
 	graphql4 "hauslet/internal/modules/booking/port/graphql"
 	"hauslet/internal/modules/business/domain"
 	graphql1 "hauslet/internal/modules/business/port/graphql"
 	domain7 "hauslet/internal/modules/calendar/domain"
 	graphql5 "hauslet/internal/modules/calendar/port/graphql"
-	domain13 "hauslet/internal/modules/discovery/domain"
+	domain14 "hauslet/internal/modules/discovery/domain"
 	domain5 "hauslet/internal/modules/finance/domain"
 	graphql2 "hauslet/internal/modules/finance/port/graphql"
-	graphql12 "hauslet/internal/modules/interactions/port/graphql"
+	graphql13 "hauslet/internal/modules/interactions/port/graphql"
 	domain2 "hauslet/internal/modules/leads/domain"
 	graphql8 "hauslet/internal/modules/leads/port/graphql"
 	domain8 "hauslet/internal/modules/payments/domain"
-	graphql9 "hauslet/internal/modules/payments/port/graphql"
+	graphql10 "hauslet/internal/modules/payments/port/graphql"
+	domain12 "hauslet/internal/modules/pricing/domain"
+	graphql9 "hauslet/internal/modules/pricing/port/graphql"
 	domain4 "hauslet/internal/modules/profile/domain"
 	graphql3 "hauslet/internal/modules/profile/port/graphql"
 	domain3 "hauslet/internal/modules/promotions/domain"
 	graphql7 "hauslet/internal/modules/promotions/port/graphql"
 	domain11 "hauslet/internal/modules/property/domain"
 	domain10 "hauslet/internal/modules/review/domain"
-	graphql10 "hauslet/internal/modules/review/port/graphql"
+	graphql11 "hauslet/internal/modules/review/port/graphql"
 	domain9 "hauslet/internal/modules/verification/domain"
 	graphql6 "hauslet/internal/modules/verification/port/graphql"
 	domain1 "hauslet/internal/modules/wishlist/domain"
-	graphql11 "hauslet/internal/modules/wishlist/port/graphql"
+	graphql12 "hauslet/internal/modules/wishlist/port/graphql"
 	"hauslet/internal/transport/graph/model"
 	"strconv"
 	"sync"
@@ -86,6 +88,7 @@ type ResolverRoot interface {
 	Mutation() MutationResolver
 	Payment() PaymentResolver
 	PaymentMethod() PaymentMethodResolver
+	PriceBreakdown() PriceBreakdownResolver
 	PriceBreakdownSnapshot() PriceBreakdownSnapshotResolver
 	Profile() ProfileResolver
 	Property() PropertyResolver
@@ -158,6 +161,11 @@ type ComplexityRoot struct {
 		RegisteredAt      func(childComplexity int) int
 		RegistrationToken func(childComplexity int) int
 		UserID            func(childComplexity int) int
+	}
+
+	BasePriceResult struct {
+		BaseRate func(childComplexity int) int
+		Currency func(childComplexity int) int
 	}
 
 	BlockDetail struct {
@@ -681,92 +689,113 @@ type ComplexityRoot struct {
 		CanViewFinancials  func(childComplexity int) int
 	}
 
+	MultiPropertyDiscount struct {
+		Active          func(childComplexity int) int
+		CreatedAt       func(childComplexity int) int
+		Description     func(childComplexity int) int
+		DiscountPercent func(childComplexity int) int
+		ID              func(childComplexity int) int
+		ListingIDs      func(childComplexity int) int
+		MinProperties   func(childComplexity int) int
+		Name            func(childComplexity int) int
+		OwnerID         func(childComplexity int) int
+		UpdatedAt       func(childComplexity int) int
+		ValidFrom       func(childComplexity int) int
+		ValidUntil      func(childComplexity int) int
+	}
+
 	Mutation struct {
-		AcceptInvitation           func(childComplexity int, token string) int
-		AddBusinessMember          func(childComplexity int, businessID uuid.UUID, userID uuid.UUID, role domain.MemberRole, customPermissions *graphql1.MemberPermissionsInput) int
-		AddDisputeEvidence         func(childComplexity int, input graphql2.AddDisputeEvidenceInput) int
-		AddTravelCompanion         func(childComplexity int, userID string, input graphql3.TravelCompanionInput) int
-		AddWishlistItem            func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID, source *domain1.WishlistItemSource) int
-		AssignLead                 func(childComplexity int, leadID string, assigneeID string, reason domain2.AssignmentReason) int
-		CancelBooking              func(childComplexity int, input graphql4.CancelBookingInput) int
-		CancelDispute              func(childComplexity int, disputeID uuid.UUID) int
-		CancelPromotion            func(childComplexity int, id uuid.UUID) int
-		CancelShowing              func(childComplexity int, input graphql5.CancelShowingInput) int
-		CancelSubscription         func(childComplexity int, subscriptionID uuid.UUID) int
-		CheckInBooking             func(childComplexity int, bookingID uuid.UUID) int
-		CheckOutBooking            func(childComplexity int, bookingID uuid.UUID) int
-		ConfirmBooking             func(childComplexity int, bookingID uuid.UUID) int
-		ConfirmShowing             func(childComplexity int, eventID uuid.UUID) int
-		CreateAddressVerification  func(childComplexity int, input graphql6.CreateAddressVerificationInput) int
-		CreateBusiness             func(childComplexity int, input graphql1.CreateBusinessInput) int
-		CreateBusinessVerification func(childComplexity int, input graphql6.CreateBusinessVerificationInput) int
-		CreateIdentityVerification func(childComplexity int, input graphql6.CreateIdentityVerificationInput) int
-		CreateIncludedPromotion    func(childComplexity int, input graphql7.CreateIncludedPromotionInput) int
-		CreateLead                 func(childComplexity int, input graphql8.CreateLeadInput) int
-		CreateListing              func(childComplexity int, input model.CreateListingInput) int
-		CreateOpenHouse            func(childComplexity int, input graphql5.CreateOpenHouseInput) int
-		CreatePayout               func(childComplexity int, input graphql9.CreatePayoutInput) int
-		CreatePayoutDetail         func(childComplexity int, input graphql9.AddPayoutDetailInput) int
-		CreatePhoneVerification    func(childComplexity int, input graphql6.CreatePhoneVerificationInput) int
-		CreatePromotion            func(childComplexity int, input graphql7.CreatePromotionInput) int
-		CreateResponse             func(childComplexity int, reviewID uuid.UUID, body string) int
-		CreateReview               func(childComplexity int, input graphql10.CreateReviewInput) int
-		CreateSubscription         func(childComplexity int, input graphql7.CreateSubscriptionInput) int
-		CreateWishlist             func(childComplexity int, input graphql11.CreateWishlistInput) int
-		DeactivatePayoutDetail     func(childComplexity int, id uuid.UUID) int
-		DeclineInvitation          func(childComplexity int, token string) int
-		DeleteBusiness             func(childComplexity int, id uuid.UUID) int
-		DeleteLead                 func(childComplexity int, leadID string) int
-		DeleteListing              func(childComplexity int, id uuid.UUID, hard *bool) int
-		DeletePaymentMethod        func(childComplexity int, id uuid.UUID) int
-		DeleteProfile              func(childComplexity int, userID string) int
-		DeleteResponse             func(childComplexity int, responseID uuid.UUID) int
-		DeleteReview               func(childComplexity int, reviewID uuid.UUID) int
-		DeleteTravelCompanion      func(childComplexity int, userID string, companionID string) int
-		DeleteWishlist             func(childComplexity int, id uuid.UUID) int
-		DowngradeSubscription      func(childComplexity int, subscriptionID uuid.UUID, newPlan domain3.PlanType) int
-		FileDispute                func(childComplexity int, input graphql2.FileDisputeInput) int
-		GeneratePhoneOtp           func(childComplexity int, sessionID uuid.UUID) int
-		ImportWishlist             func(childComplexity int, sourceWishlistID uuid.UUID, newName *string) int
-		InviteMember               func(childComplexity int, businessID uuid.UUID, input graphql1.InviteMemberInput) int
-		MarkLeadAsSpam             func(childComplexity int, leadID string) int
-		PayForBooking              func(childComplexity int, input graphql4.PayForBookingInput) int
-		Ping                       func(childComplexity int) int
-		PublishListing             func(childComplexity int, id uuid.UUID) int
-		RegisterOpenHouse          func(childComplexity int, input graphql5.RegisterOpenHouseInput) int
-		RemoveMember               func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID) int
-		RemoveOpenHouseAttendee    func(childComplexity int, eventID uuid.UUID, attendeeID uuid.UUID) int
-		RemoveWishlistItem         func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID) int
-		ReportReview               func(childComplexity int, reviewID uuid.UUID, reason string) int
-		RequestBooking             func(childComplexity int, input graphql4.RequestBookingInput) int
-		RequestShowing             func(childComplexity int, input graphql5.RequestShowingInput) int
-		RescheduleShowing          func(childComplexity int, input graphql5.RescheduleShowingInput) int
-		ReserveBooking             func(childComplexity int, input graphql4.ReserveBookingInput) int
-		RevokeInvitation           func(childComplexity int, invitationID uuid.UUID) int
-		SavePaymentMethod          func(childComplexity int, input graphql9.SavePaymentMethodInput) int
-		SelectSupplyRoles          func(childComplexity int, userTypes []domain4.UserType) int
-		SetDefaultPaymentMethod    func(childComplexity int, id uuid.UUID) int
-		SetDefaultPayoutDetail     func(childComplexity int, id uuid.UUID) int
-		SubmitAddressVerification  func(childComplexity int, input graphql6.SubmitAddressVerificationInput) int
-		SubmitBusinessVerification func(childComplexity int, input graphql6.SubmitBusinessVerificationInput) int
-		SubmitIdentityVerification func(childComplexity int, input graphql6.SubmitIdentityVerificationInput) int
-		TrackInteraction           func(childComplexity int, input graphql12.TrackInteractionInput) int
-		UnpublishListing           func(childComplexity int, id uuid.UUID) int
-		UpdateBusiness             func(childComplexity int, id uuid.UUID, input graphql1.UpdateBusinessInput) int
-		UpdateLeadStatus           func(childComplexity int, leadID string, status domain2.LeadStatus, notes *string) int
-		UpdateListing              func(childComplexity int, id uuid.UUID, input model.UpdateListingInput) int
-		UpdateMemberPermissions    func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID, permissions graphql1.MemberPermissionsInput) int
-		UpdateMemberRole           func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID, role domain.MemberRole) int
-		UpdateProfile              func(childComplexity int, input graphql3.UpdateProfileInput) int
-		UpdateResponse             func(childComplexity int, responseID uuid.UUID, body string) int
-		UpdateReview               func(childComplexity int, reviewID uuid.UUID, input graphql10.UpdateReviewInput) int
-		UpdateTravelCompanion      func(childComplexity int, userID string, companionID string, input graphql3.TravelCompanionInput) int
-		UpdateWishlist             func(childComplexity int, id uuid.UUID, input graphql11.UpdateWishlistInput) int
-		UpgradeSubscription        func(childComplexity int, subscriptionID uuid.UUID, newPlan domain3.PlanType) int
-		UseIncludedPromotion       func(childComplexity int, promoType domain3.PromotionType) int
-		UseOpenHouse               func(childComplexity int) int
-		UsePrivateShowing          func(childComplexity int) int
-		VerifyPhoneOtp             func(childComplexity int, sessionID uuid.UUID, code string) int
+		AcceptInvitation            func(childComplexity int, token string) int
+		AddBusinessMember           func(childComplexity int, businessID uuid.UUID, userID uuid.UUID, role domain.MemberRole, customPermissions *graphql1.MemberPermissionsInput) int
+		AddDisputeEvidence          func(childComplexity int, input graphql2.AddDisputeEvidenceInput) int
+		AddTravelCompanion          func(childComplexity int, userID string, input graphql3.TravelCompanionInput) int
+		AddWishlistItem             func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID, source *domain1.WishlistItemSource) int
+		AssignLead                  func(childComplexity int, leadID string, assigneeID string, reason domain2.AssignmentReason) int
+		CancelBooking               func(childComplexity int, input graphql4.CancelBookingInput) int
+		CancelDispute               func(childComplexity int, disputeID uuid.UUID) int
+		CancelPromotion             func(childComplexity int, id uuid.UUID) int
+		CancelShowing               func(childComplexity int, input graphql5.CancelShowingInput) int
+		CancelSubscription          func(childComplexity int, subscriptionID uuid.UUID) int
+		CheckInBooking              func(childComplexity int, bookingID uuid.UUID) int
+		CheckOutBooking             func(childComplexity int, bookingID uuid.UUID) int
+		ConfirmBooking              func(childComplexity int, bookingID uuid.UUID) int
+		ConfirmShowing              func(childComplexity int, eventID uuid.UUID) int
+		CreateAddressVerification   func(childComplexity int, input graphql6.CreateAddressVerificationInput) int
+		CreateBusiness              func(childComplexity int, input graphql1.CreateBusinessInput) int
+		CreateBusinessVerification  func(childComplexity int, input graphql6.CreateBusinessVerificationInput) int
+		CreateIdentityVerification  func(childComplexity int, input graphql6.CreateIdentityVerificationInput) int
+		CreateIncludedPromotion     func(childComplexity int, input graphql7.CreateIncludedPromotionInput) int
+		CreateLead                  func(childComplexity int, input graphql8.CreateLeadInput) int
+		CreateListing               func(childComplexity int, input model.CreateListingInput) int
+		CreateMultiPropertyDiscount func(childComplexity int, input graphql9.CreateMultiPropertyDiscountInput) int
+		CreateOpenHouse             func(childComplexity int, input graphql5.CreateOpenHouseInput) int
+		CreatePayout                func(childComplexity int, input graphql10.CreatePayoutInput) int
+		CreatePayoutDetail          func(childComplexity int, input graphql10.AddPayoutDetailInput) int
+		CreatePhoneVerification     func(childComplexity int, input graphql6.CreatePhoneVerificationInput) int
+		CreatePricingRule           func(childComplexity int, input graphql9.CreatePricingRuleInput) int
+		CreatePromotion             func(childComplexity int, input graphql7.CreatePromotionInput) int
+		CreateResponse              func(childComplexity int, reviewID uuid.UUID, body string) int
+		CreateReview                func(childComplexity int, input graphql11.CreateReviewInput) int
+		CreateSubscription          func(childComplexity int, input graphql7.CreateSubscriptionInput) int
+		CreateWishlist              func(childComplexity int, input graphql12.CreateWishlistInput) int
+		DeactivatePayoutDetail      func(childComplexity int, id uuid.UUID) int
+		DeclineInvitation           func(childComplexity int, token string) int
+		DeleteBusiness              func(childComplexity int, id uuid.UUID) int
+		DeleteLead                  func(childComplexity int, leadID string) int
+		DeleteListing               func(childComplexity int, id uuid.UUID, hard *bool) int
+		DeleteMultiPropertyDiscount func(childComplexity int, id uuid.UUID) int
+		DeletePaymentMethod         func(childComplexity int, id uuid.UUID) int
+		DeletePricingRule           func(childComplexity int, id uuid.UUID) int
+		DeleteProfile               func(childComplexity int, userID string) int
+		DeleteResponse              func(childComplexity int, responseID uuid.UUID) int
+		DeleteReview                func(childComplexity int, reviewID uuid.UUID) int
+		DeleteTravelCompanion       func(childComplexity int, userID string, companionID string) int
+		DeleteWishlist              func(childComplexity int, id uuid.UUID) int
+		DowngradeSubscription       func(childComplexity int, subscriptionID uuid.UUID, newPlan domain3.PlanType) int
+		FileDispute                 func(childComplexity int, input graphql2.FileDisputeInput) int
+		GeneratePhoneOtp            func(childComplexity int, sessionID uuid.UUID) int
+		ImportWishlist              func(childComplexity int, sourceWishlistID uuid.UUID, newName *string) int
+		InviteMember                func(childComplexity int, businessID uuid.UUID, input graphql1.InviteMemberInput) int
+		MarkLeadAsSpam              func(childComplexity int, leadID string) int
+		PayForBooking               func(childComplexity int, input graphql4.PayForBookingInput) int
+		Ping                        func(childComplexity int) int
+		PublishListing              func(childComplexity int, id uuid.UUID) int
+		RegisterOpenHouse           func(childComplexity int, input graphql5.RegisterOpenHouseInput) int
+		RemoveMember                func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID) int
+		RemoveOpenHouseAttendee     func(childComplexity int, eventID uuid.UUID, attendeeID uuid.UUID) int
+		RemoveWishlistItem          func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID) int
+		ReportReview                func(childComplexity int, reviewID uuid.UUID, reason string) int
+		RequestBooking              func(childComplexity int, input graphql4.RequestBookingInput) int
+		RequestShowing              func(childComplexity int, input graphql5.RequestShowingInput) int
+		RescheduleShowing           func(childComplexity int, input graphql5.RescheduleShowingInput) int
+		ReserveBooking              func(childComplexity int, input graphql4.ReserveBookingInput) int
+		RevokeInvitation            func(childComplexity int, invitationID uuid.UUID) int
+		SavePaymentMethod           func(childComplexity int, input graphql10.SavePaymentMethodInput) int
+		SelectSupplyRoles           func(childComplexity int, userTypes []domain4.UserType) int
+		SetDefaultPaymentMethod     func(childComplexity int, id uuid.UUID) int
+		SetDefaultPayoutDetail      func(childComplexity int, id uuid.UUID) int
+		SubmitAddressVerification   func(childComplexity int, input graphql6.SubmitAddressVerificationInput) int
+		SubmitBusinessVerification  func(childComplexity int, input graphql6.SubmitBusinessVerificationInput) int
+		SubmitIdentityVerification  func(childComplexity int, input graphql6.SubmitIdentityVerificationInput) int
+		TrackInteraction            func(childComplexity int, input graphql13.TrackInteractionInput) int
+		UnpublishListing            func(childComplexity int, id uuid.UUID) int
+		UpdateBusiness              func(childComplexity int, id uuid.UUID, input graphql1.UpdateBusinessInput) int
+		UpdateLeadStatus            func(childComplexity int, leadID string, status domain2.LeadStatus, notes *string) int
+		UpdateListing               func(childComplexity int, id uuid.UUID, input model.UpdateListingInput) int
+		UpdateMemberPermissions     func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID, permissions graphql1.MemberPermissionsInput) int
+		UpdateMemberRole            func(childComplexity int, businessID uuid.UUID, memberID uuid.UUID, role domain.MemberRole) int
+		UpdateMultiPropertyDiscount func(childComplexity int, input graphql9.UpdateMultiPropertyDiscountInput) int
+		UpdatePricingRule           func(childComplexity int, input graphql9.UpdatePricingRuleInput) int
+		UpdateProfile               func(childComplexity int, input graphql3.UpdateProfileInput) int
+		UpdateResponse              func(childComplexity int, responseID uuid.UUID, body string) int
+		UpdateReview                func(childComplexity int, reviewID uuid.UUID, input graphql11.UpdateReviewInput) int
+		UpdateTravelCompanion       func(childComplexity int, userID string, companionID string, input graphql3.TravelCompanionInput) int
+		UpdateWishlist              func(childComplexity int, id uuid.UUID, input graphql12.UpdateWishlistInput) int
+		UpgradeSubscription         func(childComplexity int, subscriptionID uuid.UUID, newPlan domain3.PlanType) int
+		UseIncludedPromotion        func(childComplexity int, promoType domain3.PromotionType) int
+		UseOpenHouse                func(childComplexity int) int
+		UsePrivateShowing           func(childComplexity int) int
+		VerifyPhoneOtp              func(childComplexity int, sessionID uuid.UUID, code string) int
 	}
 
 	OTPResponse struct {
@@ -874,6 +903,29 @@ type ComplexityRoot struct {
 		PayoutProcessingPercent func(childComplexity int) int
 	}
 
+	PriceBreakdown struct {
+		BaseTotal     func(childComplexity int) int
+		CalculatedAt  func(childComplexity int) int
+		CautionFee    func(childComplexity int) int
+		CheckIn       func(childComplexity int) int
+		CheckOut      func(childComplexity int) int
+		CleaningFee   func(childComplexity int) int
+		Currency      func(childComplexity int) int
+		DailyRates    func(childComplexity int) int
+		Discounts     func(childComplexity int) int
+		ExtraGuestFee func(childComplexity int) int
+		GuestCount    func(childComplexity int) int
+		ListingID     func(childComplexity int) int
+		Nights        func(childComplexity int) int
+		PlatformFees  func(childComplexity int) int
+		ServiceFee    func(childComplexity int) int
+		Subtotal      func(childComplexity int) int
+		Total         func(childComplexity int) int
+		VATAmount     func(childComplexity int) int
+		VATPercent    func(childComplexity int) int
+		ValidUntil    func(childComplexity int) int
+	}
+
 	PriceBreakdownSnapshot struct {
 		BaseTotal    func(childComplexity int) int
 		CautionFee   func(childComplexity int) int
@@ -887,6 +939,42 @@ type ComplexityRoot struct {
 		Total        func(childComplexity int) int
 		VATAmount    func(childComplexity int) int
 		VATPercent   func(childComplexity int) int
+	}
+
+	PricingDailyRate struct {
+		AppliedRules func(childComplexity int) int
+		BaseRate     func(childComplexity int) int
+		Date         func(childComplexity int) int
+		FinalRate    func(childComplexity int) int
+	}
+
+	PricingDiscount struct {
+		Amount func(childComplexity int) int
+		Name   func(childComplexity int) int
+		Type   func(childComplexity int) int
+	}
+
+	PricingRule struct {
+		Active          func(childComplexity int) int
+		CreatedAt       func(childComplexity int) int
+		CreatedBy       func(childComplexity int) int
+		DaysOfWeek      func(childComplexity int) int
+		Description     func(childComplexity int) int
+		EndDate         func(childComplexity int) int
+		ID              func(childComplexity int) int
+		ListingID       func(childComplexity int) int
+		MaxLeadTimeDays func(childComplexity int) int
+		MaxNights       func(childComplexity int) int
+		MinLeadTimeDays func(childComplexity int) int
+		MinNights       func(childComplexity int) int
+		ModifierType    func(childComplexity int) int
+		ModifierValue   func(childComplexity int) int
+		Name            func(childComplexity int) int
+		Priority        func(childComplexity int) int
+		RuleType        func(childComplexity int) int
+		StartDate       func(childComplexity int) int
+		UpdatedAt       func(childComplexity int) int
+		UpdatedBy       func(childComplexity int) int
 	}
 
 	Profile struct {
@@ -974,111 +1062,118 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		AllBusinesses                func(childComplexity int, limit *int, offset *int) int
-		Booking                      func(childComplexity int, id uuid.UUID) int
-		BookingByReference           func(childComplexity int, reference string) int
-		Business                     func(childComplexity int, id uuid.UUID) int
-		BusinessBySlug               func(childComplexity int, slug string) int
-		BusinessDisbursements        func(childComplexity int, businessID uuid.UUID, status *domain5.DisbursementStatus, limit *int, offset *int) int
-		BusinessInvitations          func(childComplexity int, businessID uuid.UUID) int
-		BusinessListings             func(childComplexity int, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) int
-		BusinessMember               func(childComplexity int, businessID uuid.UUID, userID uuid.UUID) int
-		BusinessMembers              func(childComplexity int, businessID uuid.UUID) int
-		BusinessWalletLedger         func(childComplexity int, walletID uuid.UUID, limit *int, offset *int) int
-		BusinessWallets              func(childComplexity int, businessID uuid.UUID) int
-		CalendarEvent                func(childComplexity int, id uuid.UUID) int
-		CanAddListing                func(childComplexity int) int
-		CanAddPhotos                 func(childComplexity int, listingID uuid.UUID, photoCount int) int
-		CanCreateOpenHouse           func(childComplexity int) int
-		CanCreatePrivateShowing      func(childComplexity int) int
-		CanUseFeature                func(childComplexity int, feature string) int
-		CanUseIncludedPromotion      func(childComplexity int, promoType domain3.PromotionType) int
-		CheckListingAvailability     func(childComplexity int, listingID uuid.UUID, startTime time.Time, endTime time.Time) int
-		Discover                     func(childComplexity int, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) int
-		DiscoverSimilar              func(childComplexity int, listingID uuid.UUID, limit *int) int
-		Dispute                      func(childComplexity int, id uuid.UUID) int
-		DisputeByBooking             func(childComplexity int, bookingID uuid.UUID) int
-		FeaturedListings             func(childComplexity int, limit *int) int
-		FinanceTransactionHistory    func(childComplexity int, resourceType string, resourceID uuid.UUID) int
-		GetActivePromotionForListing func(childComplexity int, listingID uuid.UUID) int
-		GetCurrentUsage              func(childComplexity int) int
-		GetFeatureLimit              func(childComplexity int, feature string) int
-		GetFeaturedListings          func(childComplexity int, limit *int) int
-		GetMySubscription            func(childComplexity int) int
-		GetPlanLimits                func(childComplexity int, planType domain3.PlanType) int
-		GetPremiumListings           func(childComplexity int, limit *int) int
-		GetPromotion                 func(childComplexity int, id uuid.UUID) int
-		GetSubscription              func(childComplexity int, id uuid.UUID) int
-		HomeFeed                     func(childComplexity int, options *model.FeedOptionsInput) int
-		HostStats                    func(childComplexity int, hostID uuid.UUID) int
-		IsListingInWishlist          func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID) int
-		Lead                         func(childComplexity int, id string) int
-		LeadHistory                  func(childComplexity int, leadID string) int
-		LeadsByBusiness              func(childComplexity int, businessID string, filter *graphql8.LeadFilterInput, page *graphql8.PageInput) int
-		LeadsByListing               func(childComplexity int, listingID string, filter *graphql8.LeadFilterInput, page *graphql8.PageInput) int
-		ListMyPromotions             func(childComplexity int, limit *int, offset *int) int
-		Listing                      func(childComplexity int, id uuid.UUID) int
-		ListingAnalytics             func(childComplexity int, listingID uuid.UUID, days int) int
-		ListingBookings              func(childComplexity int, listingID uuid.UUID, status *domain6.BookingStatus, limit *int, offset *int) int
-		ListingByPublicID            func(childComplexity int, publicID string) int
-		ListingBySlug                func(childComplexity int, slug string) int
-		ListingCompleteness          func(childComplexity int, listingID uuid.UUID) int
-		ListingEvents                func(childComplexity int, listingID uuid.UUID, startTime time.Time, endTime time.Time, eventTypes []domain7.EventType) int
-		ListingStats                 func(childComplexity int, listingID uuid.UUID) int
-		Listings                     func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
-		ListingsByProperty           func(childComplexity int, propertyID uuid.UUID, first *int, after *string) int
-		ListingsNearPoint            func(childComplexity int, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) int
-		Me                           func(childComplexity int) int
-		MyBookings                   func(childComplexity int, limit *int, offset *int) int
-		MyBusinessPermissions        func(childComplexity int, businessID uuid.UUID) int
-		MyCalendarEvents             func(childComplexity int, startTime time.Time, endTime time.Time) int
-		MyDisbursements              func(childComplexity int, status *domain5.DisbursementStatus, limit *int, offset *int) int
-		MyDisputes                   func(childComplexity int, limit *int, offset *int) int
-		MyEarnings                   func(childComplexity int) int
-		MyFinanceTransactions        func(childComplexity int, typeArg *domain5.TransactionType, status *domain5.TransactionStatus, limit *int, offset *int) int
-		MyIndividualListings         func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
-		MyInteractionHistory         func(childComplexity int, limit *int) int
-		MyInvitations                func(childComplexity int, email string) int
-		MyLeads                      func(childComplexity int, filter *graphql8.LeadFilterInput, page *graphql8.PageInput) int
-		MyListings                   func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
-		MyMemberships                func(childComplexity int) int
-		MyPaymentMethods             func(childComplexity int) int
-		MyPayments                   func(childComplexity int, limit *int, offset *int, status *domain8.PaymentStatus) int
-		MyPayoutDetails              func(childComplexity int) int
-		MyProfile                    func(childComplexity int) int
-		MyTransactions               func(childComplexity int, typeArg *domain8.TransactionType, status *domain8.TransactionStatus, limit *int, offset *int) int
-		MyVerificationSession        func(childComplexity int, typeArg domain9.VerificationType) int
-		MyWalletLedger               func(childComplexity int, walletID uuid.UUID, limit *int, offset *int) int
-		MyWallets                    func(childComplexity int) int
-		MyWishlists                  func(childComplexity int, limit *int, offset *int) int
-		OpenHouseAttendees           func(childComplexity int, eventID uuid.UUID) int
-		Payment                      func(childComplexity int, id uuid.UUID) int
-		PaymentByReference           func(childComplexity int, reference string) int
-		PaymentMethod                func(childComplexity int, id uuid.UUID) int
-		PaymentMethods               func(childComplexity int, userID uuid.UUID) int
-		PayoutDetail                 func(childComplexity int, id uuid.UUID) int
-		Profile                      func(childComplexity int, id uuid.UUID) int
-		ProfileByUserID              func(childComplexity int, userID string) int
-		Profiles                     func(childComplexity int, limit *int, offset *int) int
-		QuoteBooking                 func(childComplexity int, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) int
-		Review                       func(childComplexity int, id uuid.UUID) int
-		ReviewForBooking             func(childComplexity int, bookingID uuid.UUID) int
-		ReviewResponse               func(childComplexity int, reviewID uuid.UUID) int
-		Reviews                      func(childComplexity int, targetType domain10.ReviewTargetType, targetID uuid.UUID, filter *graphql10.ReviewFilterInput) int
-		SearchBusinesses             func(childComplexity int, query string, limit *int, offset *int) int
-		SearchListings               func(childComplexity int, filter *model.ListingFilterInput, limit *int) int
-		SearchProfiles               func(childComplexity int, query string, limit *int, offset *int) int
-		SimilarListings              func(childComplexity int, listingID uuid.UUID, limit *int, minSimilarity *float64) int
-		Transaction                  func(childComplexity int, id uuid.UUID) int
-		TransactionsByBooking        func(childComplexity int, bookingID uuid.UUID) int
-		UpcomingListingEvents        func(childComplexity int, listingID uuid.UUID, limit *int) int
-		UploadProfilePhoto           func(childComplexity int, userID string, fileName string) int
-		UploadTravelCompanionPhoto   func(childComplexity int, userID string, companionID string, fileName string) int
-		UserReviews                  func(childComplexity int, userID uuid.UUID, limit *int, offset *int) int
-		VerificationAttempts         func(childComplexity int, sessionID uuid.UUID) int
-		VerificationSession          func(childComplexity int, id uuid.UUID) int
-		Wishlist                     func(childComplexity int, id uuid.UUID) int
-		WishlistItems                func(childComplexity int, wishlistID uuid.UUID, limit *int, offset *int) int
+		AllBusinesses                  func(childComplexity int, limit *int, offset *int) int
+		BasePrice                      func(childComplexity int, listingID uuid.UUID) int
+		Booking                        func(childComplexity int, id uuid.UUID) int
+		BookingByReference             func(childComplexity int, reference string) int
+		Business                       func(childComplexity int, id uuid.UUID) int
+		BusinessBySlug                 func(childComplexity int, slug string) int
+		BusinessDisbursements          func(childComplexity int, businessID uuid.UUID, status *domain5.DisbursementStatus, limit *int, offset *int) int
+		BusinessInvitations            func(childComplexity int, businessID uuid.UUID) int
+		BusinessListings               func(childComplexity int, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) int
+		BusinessMember                 func(childComplexity int, businessID uuid.UUID, userID uuid.UUID) int
+		BusinessMembers                func(childComplexity int, businessID uuid.UUID) int
+		BusinessWalletLedger           func(childComplexity int, walletID uuid.UUID, limit *int, offset *int) int
+		BusinessWallets                func(childComplexity int, businessID uuid.UUID) int
+		CalculateMultiPropertyPrice    func(childComplexity int, bookings []*graphql9.MultiPropertyBookingInput) int
+		CalculatePrice                 func(childComplexity int, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) int
+		CalendarEvent                  func(childComplexity int, id uuid.UUID) int
+		CanAddListing                  func(childComplexity int) int
+		CanAddPhotos                   func(childComplexity int, listingID uuid.UUID, photoCount int) int
+		CanCreateOpenHouse             func(childComplexity int) int
+		CanCreatePrivateShowing        func(childComplexity int) int
+		CanUseFeature                  func(childComplexity int, feature string) int
+		CanUseIncludedPromotion        func(childComplexity int, promoType domain3.PromotionType) int
+		CheckListingAvailability       func(childComplexity int, listingID uuid.UUID, startTime time.Time, endTime time.Time) int
+		Discover                       func(childComplexity int, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) int
+		DiscoverSimilar                func(childComplexity int, listingID uuid.UUID, limit *int) int
+		Dispute                        func(childComplexity int, id uuid.UUID) int
+		DisputeByBooking               func(childComplexity int, bookingID uuid.UUID) int
+		FeaturedListings               func(childComplexity int, limit *int) int
+		FinanceTransactionHistory      func(childComplexity int, resourceType string, resourceID uuid.UUID) int
+		GetActivePromotionForListing   func(childComplexity int, listingID uuid.UUID) int
+		GetCurrentUsage                func(childComplexity int) int
+		GetFeatureLimit                func(childComplexity int, feature string) int
+		GetFeaturedListings            func(childComplexity int, limit *int) int
+		GetMySubscription              func(childComplexity int) int
+		GetPlanLimits                  func(childComplexity int, planType domain3.PlanType) int
+		GetPremiumListings             func(childComplexity int, limit *int) int
+		GetPromotion                   func(childComplexity int, id uuid.UUID) int
+		GetSubscription                func(childComplexity int, id uuid.UUID) int
+		HomeFeed                       func(childComplexity int, options *model.FeedOptionsInput) int
+		HostStats                      func(childComplexity int, hostID uuid.UUID) int
+		IsListingInWishlist            func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID) int
+		Lead                           func(childComplexity int, id string) int
+		LeadHistory                    func(childComplexity int, leadID string) int
+		LeadsByBusiness                func(childComplexity int, businessID string, filter *graphql8.LeadFilterInput, page *graphql8.PageInput) int
+		LeadsByListing                 func(childComplexity int, listingID string, filter *graphql8.LeadFilterInput, page *graphql8.PageInput) int
+		ListMyPromotions               func(childComplexity int, limit *int, offset *int) int
+		Listing                        func(childComplexity int, id uuid.UUID) int
+		ListingAnalytics               func(childComplexity int, listingID uuid.UUID, days int) int
+		ListingBookings                func(childComplexity int, listingID uuid.UUID, status *domain6.BookingStatus, limit *int, offset *int) int
+		ListingByPublicID              func(childComplexity int, publicID string) int
+		ListingBySlug                  func(childComplexity int, slug string) int
+		ListingCompleteness            func(childComplexity int, listingID uuid.UUID) int
+		ListingEvents                  func(childComplexity int, listingID uuid.UUID, startTime time.Time, endTime time.Time, eventTypes []domain7.EventType) int
+		ListingStats                   func(childComplexity int, listingID uuid.UUID) int
+		Listings                       func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
+		ListingsByProperty             func(childComplexity int, propertyID uuid.UUID, first *int, after *string) int
+		ListingsNearPoint              func(childComplexity int, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) int
+		Me                             func(childComplexity int) int
+		MultiPropertyDiscountsForOwner func(childComplexity int) int
+		MyBookings                     func(childComplexity int, limit *int, offset *int) int
+		MyBusinessPermissions          func(childComplexity int, businessID uuid.UUID) int
+		MyCalendarEvents               func(childComplexity int, startTime time.Time, endTime time.Time) int
+		MyDisbursements                func(childComplexity int, status *domain5.DisbursementStatus, limit *int, offset *int) int
+		MyDisputes                     func(childComplexity int, limit *int, offset *int) int
+		MyEarnings                     func(childComplexity int) int
+		MyFinanceTransactions          func(childComplexity int, typeArg *domain5.TransactionType, status *domain5.TransactionStatus, limit *int, offset *int) int
+		MyIndividualListings           func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
+		MyInteractionHistory           func(childComplexity int, limit *int) int
+		MyInvitations                  func(childComplexity int, email string) int
+		MyLeads                        func(childComplexity int, filter *graphql8.LeadFilterInput, page *graphql8.PageInput) int
+		MyListings                     func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
+		MyMemberships                  func(childComplexity int) int
+		MyPaymentMethods               func(childComplexity int) int
+		MyPayments                     func(childComplexity int, limit *int, offset *int, status *domain8.PaymentStatus) int
+		MyPayoutDetails                func(childComplexity int) int
+		MyProfile                      func(childComplexity int) int
+		MyTransactions                 func(childComplexity int, typeArg *domain8.TransactionType, status *domain8.TransactionStatus, limit *int, offset *int) int
+		MyVerificationSession          func(childComplexity int, typeArg domain9.VerificationType) int
+		MyWalletLedger                 func(childComplexity int, walletID uuid.UUID, limit *int, offset *int) int
+		MyWallets                      func(childComplexity int) int
+		MyWishlists                    func(childComplexity int, limit *int, offset *int) int
+		OpenHouseAttendees             func(childComplexity int, eventID uuid.UUID) int
+		Payment                        func(childComplexity int, id uuid.UUID) int
+		PaymentByReference             func(childComplexity int, reference string) int
+		PaymentMethod                  func(childComplexity int, id uuid.UUID) int
+		PaymentMethods                 func(childComplexity int, userID uuid.UUID) int
+		PayoutDetail                   func(childComplexity int, id uuid.UUID) int
+		PreviewPricing                 func(childComplexity int, listingID uuid.UUID, month time.Time) int
+		PricingRule                    func(childComplexity int, id uuid.UUID) int
+		PricingRulesForListing         func(childComplexity int, listingID uuid.UUID, activeOnly *bool) int
+		Profile                        func(childComplexity int, id uuid.UUID) int
+		ProfileByUserID                func(childComplexity int, userID string) int
+		Profiles                       func(childComplexity int, limit *int, offset *int) int
+		QuoteBooking                   func(childComplexity int, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) int
+		Review                         func(childComplexity int, id uuid.UUID) int
+		ReviewForBooking               func(childComplexity int, bookingID uuid.UUID) int
+		ReviewResponse                 func(childComplexity int, reviewID uuid.UUID) int
+		Reviews                        func(childComplexity int, targetType domain10.ReviewTargetType, targetID uuid.UUID, filter *graphql11.ReviewFilterInput) int
+		SearchBusinesses               func(childComplexity int, query string, limit *int, offset *int) int
+		SearchListings                 func(childComplexity int, filter *model.ListingFilterInput, limit *int) int
+		SearchProfiles                 func(childComplexity int, query string, limit *int, offset *int) int
+		SimilarListings                func(childComplexity int, listingID uuid.UUID, limit *int, minSimilarity *float64) int
+		Transaction                    func(childComplexity int, id uuid.UUID) int
+		TransactionsByBooking          func(childComplexity int, bookingID uuid.UUID) int
+		UpcomingListingEvents          func(childComplexity int, listingID uuid.UUID, limit *int) int
+		UploadProfilePhoto             func(childComplexity int, userID string, fileName string) int
+		UploadTravelCompanionPhoto     func(childComplexity int, userID string, companionID string, fileName string) int
+		UserReviews                    func(childComplexity int, userID uuid.UUID, limit *int, offset *int) int
+		VerificationAttempts           func(childComplexity int, sessionID uuid.UUID) int
+		VerificationSession            func(childComplexity int, id uuid.UUID) int
+		Wishlist                       func(childComplexity int, id uuid.UUID) int
+		WishlistItems                  func(childComplexity int, wishlistID uuid.UUID, limit *int, offset *int) int
 	}
 
 	RankedListing struct {
@@ -1550,24 +1645,30 @@ type MutationResolver interface {
 	CreateOpenHouse(ctx context.Context, input graphql5.CreateOpenHouseInput) (*domain7.CalendarEvent, error)
 	RegisterOpenHouse(ctx context.Context, input graphql5.RegisterOpenHouseInput) (bool, error)
 	RemoveOpenHouseAttendee(ctx context.Context, eventID uuid.UUID, attendeeID uuid.UUID) (bool, error)
-	SavePaymentMethod(ctx context.Context, input graphql9.SavePaymentMethodInput) (*domain8.PaymentMethod, error)
+	SavePaymentMethod(ctx context.Context, input graphql10.SavePaymentMethodInput) (*domain8.PaymentMethod, error)
 	SetDefaultPaymentMethod(ctx context.Context, id uuid.UUID) (*domain8.PaymentMethod, error)
 	DeletePaymentMethod(ctx context.Context, id uuid.UUID) (bool, error)
-	CreatePayoutDetail(ctx context.Context, input graphql9.AddPayoutDetailInput) (*domain8.PayoutDetail, error)
+	CreatePayoutDetail(ctx context.Context, input graphql10.AddPayoutDetailInput) (*domain8.PayoutDetail, error)
 	SetDefaultPayoutDetail(ctx context.Context, id uuid.UUID) (*domain8.PayoutDetail, error)
 	DeactivatePayoutDetail(ctx context.Context, id uuid.UUID) (*domain8.PayoutDetail, error)
-	CreatePayout(ctx context.Context, input graphql9.CreatePayoutInput) (*domain8.Transaction, error)
+	CreatePayout(ctx context.Context, input graphql10.CreatePayoutInput) (*domain8.Transaction, error)
+	CreatePricingRule(ctx context.Context, input graphql9.CreatePricingRuleInput) (*domain12.PricingRule, error)
+	UpdatePricingRule(ctx context.Context, input graphql9.UpdatePricingRuleInput) (*domain12.PricingRule, error)
+	DeletePricingRule(ctx context.Context, id uuid.UUID) (bool, error)
+	CreateMultiPropertyDiscount(ctx context.Context, input graphql9.CreateMultiPropertyDiscountInput) (*domain12.MultiPropertyDiscount, error)
+	UpdateMultiPropertyDiscount(ctx context.Context, input graphql9.UpdateMultiPropertyDiscountInput) (*domain12.MultiPropertyDiscount, error)
+	DeleteMultiPropertyDiscount(ctx context.Context, id uuid.UUID) (bool, error)
 	FileDispute(ctx context.Context, input graphql2.FileDisputeInput) (*domain5.Dispute, error)
 	CancelDispute(ctx context.Context, disputeID uuid.UUID) (*domain5.Dispute, error)
 	AddDisputeEvidence(ctx context.Context, input graphql2.AddDisputeEvidenceInput) (*domain5.Dispute, error)
-	CreateWishlist(ctx context.Context, input graphql11.CreateWishlistInput) (*domain1.Wishlist, error)
-	UpdateWishlist(ctx context.Context, id uuid.UUID, input graphql11.UpdateWishlistInput) (*domain1.Wishlist, error)
+	CreateWishlist(ctx context.Context, input graphql12.CreateWishlistInput) (*domain1.Wishlist, error)
+	UpdateWishlist(ctx context.Context, id uuid.UUID, input graphql12.UpdateWishlistInput) (*domain1.Wishlist, error)
 	DeleteWishlist(ctx context.Context, id uuid.UUID) (bool, error)
 	AddWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID, source *domain1.WishlistItemSource) (*domain1.WishlistItem, error)
 	RemoveWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID) (bool, error)
 	ImportWishlist(ctx context.Context, sourceWishlistID uuid.UUID, newName *string) (*domain1.Wishlist, error)
-	CreateReview(ctx context.Context, input graphql10.CreateReviewInput) (*domain10.Review, error)
-	UpdateReview(ctx context.Context, reviewID uuid.UUID, input graphql10.UpdateReviewInput) (*domain10.Review, error)
+	CreateReview(ctx context.Context, input graphql11.CreateReviewInput) (*domain10.Review, error)
+	UpdateReview(ctx context.Context, reviewID uuid.UUID, input graphql11.UpdateReviewInput) (*domain10.Review, error)
 	DeleteReview(ctx context.Context, reviewID uuid.UUID) (bool, error)
 	ReportReview(ctx context.Context, reviewID uuid.UUID, reason string) (bool, error)
 	CreateResponse(ctx context.Context, reviewID uuid.UUID, body string) (*domain10.ReviewResponse, error)
@@ -1588,7 +1689,7 @@ type MutationResolver interface {
 	AssignLead(ctx context.Context, leadID string, assigneeID string, reason domain2.AssignmentReason) (*domain2.Lead, error)
 	MarkLeadAsSpam(ctx context.Context, leadID string) (bool, error)
 	DeleteLead(ctx context.Context, leadID string) (bool, error)
-	TrackInteraction(ctx context.Context, input graphql12.TrackInteractionInput) (bool, error)
+	TrackInteraction(ctx context.Context, input graphql13.TrackInteractionInput) (bool, error)
 	CreatePhoneVerification(ctx context.Context, input graphql6.CreatePhoneVerificationInput) (*domain9.VerificationSession, error)
 	GeneratePhoneOtp(ctx context.Context, sessionID uuid.UUID) (*graphql6.OTPResponse, error)
 	VerifyPhoneOtp(ctx context.Context, sessionID uuid.UUID, code string) (*graphql6.OTPVerificationResponse, error)
@@ -1612,6 +1713,9 @@ type PaymentMethodResolver interface {
 
 	AccountNumberLast4(ctx context.Context, obj *domain8.PaymentMethod) (*string, error)
 }
+type PriceBreakdownResolver interface {
+	PlatformFees(ctx context.Context, obj *domain12.PriceBreakdown) (*model.PlatformFeeBreakdown, error)
+}
 type PriceBreakdownSnapshotResolver interface {
 	PlatformFees(ctx context.Context, obj *domain6.PriceBreakdownSnapshot) (*model.PlatformFeeBreakdown, error)
 }
@@ -1624,7 +1728,7 @@ type PropertyResolver interface {
 	Listings(ctx context.Context, obj *domain11.Property, first *int, after *string) (*model.ListingConnection, error)
 }
 type QueryResolver interface {
-	Me(ctx context.Context) (*domain12.User, error)
+	Me(ctx context.Context) (*domain13.User, error)
 	Profile(ctx context.Context, id uuid.UUID) (*domain4.Profile, error)
 	ProfileByUserID(ctx context.Context, userID string) (*domain4.Profile, error)
 	Profiles(ctx context.Context, limit *int, offset *int) ([]*domain4.Profile, error)
@@ -1676,6 +1780,13 @@ type QueryResolver interface {
 	MyTransactions(ctx context.Context, typeArg *domain8.TransactionType, status *domain8.TransactionStatus, limit *int, offset *int) ([]*domain8.Transaction, error)
 	PayoutDetail(ctx context.Context, id uuid.UUID) (*domain8.PayoutDetail, error)
 	MyPayoutDetails(ctx context.Context) ([]*domain8.PayoutDetail, error)
+	PricingRule(ctx context.Context, id uuid.UUID) (*domain12.PricingRule, error)
+	PricingRulesForListing(ctx context.Context, listingID uuid.UUID, activeOnly *bool) ([]*domain12.PricingRule, error)
+	MultiPropertyDiscountsForOwner(ctx context.Context) ([]*domain12.MultiPropertyDiscount, error)
+	CalculatePrice(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain12.PriceBreakdown, error)
+	CalculateMultiPropertyPrice(ctx context.Context, bookings []*graphql9.MultiPropertyBookingInput) (*domain12.PriceBreakdown, error)
+	BasePrice(ctx context.Context, listingID uuid.UUID) (*graphql9.BasePriceResult, error)
+	PreviewPricing(ctx context.Context, listingID uuid.UUID, month time.Time) ([]*domain12.DailyRate, error)
 	MyWallets(ctx context.Context) ([]*domain5.Wallet, error)
 	FinanceTransactionHistory(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*domain5.Transaction, error)
 	MyWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain5.LedgerEntry, error)
@@ -1694,7 +1805,7 @@ type QueryResolver interface {
 	IsListingInWishlist(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID) (bool, error)
 	Review(ctx context.Context, id uuid.UUID) (*domain10.Review, error)
 	ReviewForBooking(ctx context.Context, bookingID uuid.UUID) (*domain10.Review, error)
-	Reviews(ctx context.Context, targetType domain10.ReviewTargetType, targetID uuid.UUID, filter *graphql10.ReviewFilterInput) ([]*domain10.Review, error)
+	Reviews(ctx context.Context, targetType domain10.ReviewTargetType, targetID uuid.UUID, filter *graphql11.ReviewFilterInput) ([]*domain10.Review, error)
 	UserReviews(ctx context.Context, userID uuid.UUID, limit *int, offset *int) ([]*domain10.Review, error)
 	ListingStats(ctx context.Context, listingID uuid.UUID) (*domain10.ListingStats, error)
 	HostStats(ctx context.Context, hostID uuid.UUID) (*domain10.HostStats, error)
@@ -1720,12 +1831,12 @@ type QueryResolver interface {
 	LeadsByBusiness(ctx context.Context, businessID string, filter *graphql8.LeadFilterInput, page *graphql8.PageInput) (*graphql8.LeadConnection, error)
 	MyLeads(ctx context.Context, filter *graphql8.LeadFilterInput, page *graphql8.PageInput) (*graphql8.LeadConnection, error)
 	LeadHistory(ctx context.Context, leadID string) ([]*domain2.LeadEvent, error)
-	ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*graphql12.ListingAnalyticsResponse, error)
-	MyInteractionHistory(ctx context.Context, limit *int) ([]*graphql12.InteractionResponse, error)
-	Discover(ctx context.Context, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) (*domain13.SearchResult, error)
-	HomeFeed(ctx context.Context, options *model.FeedOptionsInput) ([]*domain13.HomeFeedSection, error)
-	FeaturedListings(ctx context.Context, limit *int) ([]*domain13.RankedListing, error)
-	DiscoverSimilar(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain13.RankedListing, error)
+	ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*graphql13.ListingAnalyticsResponse, error)
+	MyInteractionHistory(ctx context.Context, limit *int) ([]*graphql13.InteractionResponse, error)
+	Discover(ctx context.Context, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) (*domain14.SearchResult, error)
+	HomeFeed(ctx context.Context, options *model.FeedOptionsInput) ([]*domain14.HomeFeedSection, error)
+	FeaturedListings(ctx context.Context, limit *int) ([]*domain14.RankedListing, error)
+	DiscoverSimilar(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain14.RankedListing, error)
 	MyVerificationSession(ctx context.Context, typeArg domain9.VerificationType) (*domain9.VerificationSession, error)
 	VerificationSession(ctx context.Context, id uuid.UUID) (*domain9.VerificationSession, error)
 	VerificationAttempts(ctx context.Context, sessionID uuid.UUID) ([]*domain9.VerificationAttempt, error)
@@ -1795,20 +1906,20 @@ type WishlistItemResolver interface {
 }
 
 type AddPayoutDetailInputResolver interface {
-	BusinessID(ctx context.Context, obj *graphql9.AddPayoutDetailInput, data *uuid.UUID) error
+	BusinessID(ctx context.Context, obj *graphql10.AddPayoutDetailInput, data *uuid.UUID) error
 
-	Currency(ctx context.Context, obj *graphql9.AddPayoutDetailInput, data string) error
+	Currency(ctx context.Context, obj *graphql10.AddPayoutDetailInput, data string) error
 }
 type CreatePaymentMethodInputResolver interface {
-	IsDefault(ctx context.Context, obj *graphql9.SavePaymentMethodInput, data *bool) error
+	IsDefault(ctx context.Context, obj *graphql10.SavePaymentMethodInput, data *bool) error
 }
 type CreatePayoutInputResolver interface {
-	Currency(ctx context.Context, obj *graphql9.CreatePayoutInput, data string) error
+	Currency(ctx context.Context, obj *graphql10.CreatePayoutInput, data string) error
 }
 type CreateReviewInputResolver interface {
-	BookingID(ctx context.Context, obj *graphql10.CreateReviewInput, data uuid.UUID) error
+	BookingID(ctx context.Context, obj *graphql11.CreateReviewInput, data uuid.UUID) error
 
-	TargetID(ctx context.Context, obj *graphql10.CreateReviewInput, data uuid.UUID) error
+	TargetID(ctx context.Context, obj *graphql11.CreateReviewInput, data uuid.UUID) error
 }
 
 type executableSchema struct {
@@ -2026,6 +2137,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Attendee.UserID(childComplexity), true
+
+	case "BasePriceResult.baseRate":
+		if e.complexity.BasePriceResult.BaseRate == nil {
+			break
+		}
+
+		return e.complexity.BasePriceResult.BaseRate(childComplexity), true
+	case "BasePriceResult.currency":
+		if e.complexity.BasePriceResult.Currency == nil {
+			break
+		}
+
+		return e.complexity.BasePriceResult.Currency(childComplexity), true
 
 	case "BlockDetail.notes":
 		if e.complexity.BlockDetail.Notes == nil {
@@ -4478,6 +4602,79 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.MemberPermissions.CanViewFinancials(childComplexity), true
 
+	case "MultiPropertyDiscount.active":
+		if e.complexity.MultiPropertyDiscount.Active == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.Active(childComplexity), true
+	case "MultiPropertyDiscount.createdAt":
+		if e.complexity.MultiPropertyDiscount.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.CreatedAt(childComplexity), true
+	case "MultiPropertyDiscount.description":
+		if e.complexity.MultiPropertyDiscount.Description == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.Description(childComplexity), true
+	case "MultiPropertyDiscount.discountPercent":
+		if e.complexity.MultiPropertyDiscount.DiscountPercent == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.DiscountPercent(childComplexity), true
+	case "MultiPropertyDiscount.id":
+		if e.complexity.MultiPropertyDiscount.ID == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.ID(childComplexity), true
+	case "MultiPropertyDiscount.listingIds":
+		if e.complexity.MultiPropertyDiscount.ListingIDs == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.ListingIDs(childComplexity), true
+	case "MultiPropertyDiscount.minProperties":
+		if e.complexity.MultiPropertyDiscount.MinProperties == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.MinProperties(childComplexity), true
+	case "MultiPropertyDiscount.name":
+		if e.complexity.MultiPropertyDiscount.Name == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.Name(childComplexity), true
+	case "MultiPropertyDiscount.ownerId":
+		if e.complexity.MultiPropertyDiscount.OwnerID == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.OwnerID(childComplexity), true
+	case "MultiPropertyDiscount.updatedAt":
+		if e.complexity.MultiPropertyDiscount.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.UpdatedAt(childComplexity), true
+	case "MultiPropertyDiscount.validFrom":
+		if e.complexity.MultiPropertyDiscount.ValidFrom == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.ValidFrom(childComplexity), true
+	case "MultiPropertyDiscount.validUntil":
+		if e.complexity.MultiPropertyDiscount.ValidUntil == nil {
+			break
+		}
+
+		return e.complexity.MultiPropertyDiscount.ValidUntil(childComplexity), true
+
 	case "Mutation.acceptInvitation":
 		if e.complexity.Mutation.AcceptInvitation == nil {
 			break
@@ -4720,6 +4917,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateListing(childComplexity, args["input"].(model.CreateListingInput)), true
+	case "Mutation.createMultiPropertyDiscount":
+		if e.complexity.Mutation.CreateMultiPropertyDiscount == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createMultiPropertyDiscount_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateMultiPropertyDiscount(childComplexity, args["input"].(graphql9.CreateMultiPropertyDiscountInput)), true
 	case "Mutation.createOpenHouse":
 		if e.complexity.Mutation.CreateOpenHouse == nil {
 			break
@@ -4741,7 +4949,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePayout(childComplexity, args["input"].(graphql9.CreatePayoutInput)), true
+		return e.complexity.Mutation.CreatePayout(childComplexity, args["input"].(graphql10.CreatePayoutInput)), true
 	case "Mutation.createPayoutDetail":
 		if e.complexity.Mutation.CreatePayoutDetail == nil {
 			break
@@ -4752,7 +4960,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreatePayoutDetail(childComplexity, args["input"].(graphql9.AddPayoutDetailInput)), true
+		return e.complexity.Mutation.CreatePayoutDetail(childComplexity, args["input"].(graphql10.AddPayoutDetailInput)), true
 	case "Mutation.createPhoneVerification":
 		if e.complexity.Mutation.CreatePhoneVerification == nil {
 			break
@@ -4764,6 +4972,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreatePhoneVerification(childComplexity, args["input"].(graphql6.CreatePhoneVerificationInput)), true
+	case "Mutation.createPricingRule":
+		if e.complexity.Mutation.CreatePricingRule == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createPricingRule_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreatePricingRule(childComplexity, args["input"].(graphql9.CreatePricingRuleInput)), true
 	case "Mutation.createPromotion":
 		if e.complexity.Mutation.CreatePromotion == nil {
 			break
@@ -4796,7 +5015,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateReview(childComplexity, args["input"].(graphql10.CreateReviewInput)), true
+		return e.complexity.Mutation.CreateReview(childComplexity, args["input"].(graphql11.CreateReviewInput)), true
 	case "Mutation.createSubscription":
 		if e.complexity.Mutation.CreateSubscription == nil {
 			break
@@ -4818,7 +5037,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateWishlist(childComplexity, args["input"].(graphql11.CreateWishlistInput)), true
+		return e.complexity.Mutation.CreateWishlist(childComplexity, args["input"].(graphql12.CreateWishlistInput)), true
 	case "Mutation.deactivatePayoutDetail":
 		if e.complexity.Mutation.DeactivatePayoutDetail == nil {
 			break
@@ -4874,6 +5093,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteListing(childComplexity, args["id"].(uuid.UUID), args["hard"].(*bool)), true
+	case "Mutation.deleteMultiPropertyDiscount":
+		if e.complexity.Mutation.DeleteMultiPropertyDiscount == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteMultiPropertyDiscount_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteMultiPropertyDiscount(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deletePaymentMethod":
 		if e.complexity.Mutation.DeletePaymentMethod == nil {
 			break
@@ -4885,6 +5115,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeletePaymentMethod(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.deletePricingRule":
+		if e.complexity.Mutation.DeletePricingRule == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deletePricingRule_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeletePricingRule(childComplexity, args["id"].(uuid.UUID)), true
 	case "Mutation.deleteProfile":
 		if e.complexity.Mutation.DeleteProfile == nil {
 			break
@@ -5154,7 +5395,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SavePaymentMethod(childComplexity, args["input"].(graphql9.SavePaymentMethodInput)), true
+		return e.complexity.Mutation.SavePaymentMethod(childComplexity, args["input"].(graphql10.SavePaymentMethodInput)), true
 	case "Mutation.selectSupplyRoles":
 		if e.complexity.Mutation.SelectSupplyRoles == nil {
 			break
@@ -5231,7 +5472,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.TrackInteraction(childComplexity, args["input"].(graphql12.TrackInteractionInput)), true
+		return e.complexity.Mutation.TrackInteraction(childComplexity, args["input"].(graphql13.TrackInteractionInput)), true
 	case "Mutation.unpublishListing":
 		if e.complexity.Mutation.UnpublishListing == nil {
 			break
@@ -5298,6 +5539,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateMemberRole(childComplexity, args["businessID"].(uuid.UUID), args["memberID"].(uuid.UUID), args["role"].(domain.MemberRole)), true
+	case "Mutation.updateMultiPropertyDiscount":
+		if e.complexity.Mutation.UpdateMultiPropertyDiscount == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateMultiPropertyDiscount_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateMultiPropertyDiscount(childComplexity, args["input"].(graphql9.UpdateMultiPropertyDiscountInput)), true
+	case "Mutation.updatePricingRule":
+		if e.complexity.Mutation.UpdatePricingRule == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updatePricingRule_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdatePricingRule(childComplexity, args["input"].(graphql9.UpdatePricingRuleInput)), true
 	case "Mutation.updateProfile":
 		if e.complexity.Mutation.UpdateProfile == nil {
 			break
@@ -5330,7 +5593,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateReview(childComplexity, args["reviewId"].(uuid.UUID), args["input"].(graphql10.UpdateReviewInput)), true
+		return e.complexity.Mutation.UpdateReview(childComplexity, args["reviewId"].(uuid.UUID), args["input"].(graphql11.UpdateReviewInput)), true
 	case "Mutation.updateTravelCompanion":
 		if e.complexity.Mutation.UpdateTravelCompanion == nil {
 			break
@@ -5352,7 +5615,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateWishlist(childComplexity, args["id"].(uuid.UUID), args["input"].(graphql11.UpdateWishlistInput)), true
+		return e.complexity.Mutation.UpdateWishlist(childComplexity, args["id"].(uuid.UUID), args["input"].(graphql12.UpdateWishlistInput)), true
 	case "Mutation.upgradeSubscription":
 		if e.complexity.Mutation.UpgradeSubscription == nil {
 			break
@@ -5876,6 +6139,127 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PlatformFeeBreakdown.PayoutProcessingPercent(childComplexity), true
 
+	case "PriceBreakdown.baseTotal":
+		if e.complexity.PriceBreakdown.BaseTotal == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.BaseTotal(childComplexity), true
+	case "PriceBreakdown.calculatedAt":
+		if e.complexity.PriceBreakdown.CalculatedAt == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.CalculatedAt(childComplexity), true
+	case "PriceBreakdown.cautionFee":
+		if e.complexity.PriceBreakdown.CautionFee == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.CautionFee(childComplexity), true
+	case "PriceBreakdown.checkIn":
+		if e.complexity.PriceBreakdown.CheckIn == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.CheckIn(childComplexity), true
+	case "PriceBreakdown.checkOut":
+		if e.complexity.PriceBreakdown.CheckOut == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.CheckOut(childComplexity), true
+	case "PriceBreakdown.cleaningFee":
+		if e.complexity.PriceBreakdown.CleaningFee == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.CleaningFee(childComplexity), true
+	case "PriceBreakdown.currency":
+		if e.complexity.PriceBreakdown.Currency == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.Currency(childComplexity), true
+	case "PriceBreakdown.dailyRates":
+		if e.complexity.PriceBreakdown.DailyRates == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.DailyRates(childComplexity), true
+	case "PriceBreakdown.discounts":
+		if e.complexity.PriceBreakdown.Discounts == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.Discounts(childComplexity), true
+	case "PriceBreakdown.extraGuestFee":
+		if e.complexity.PriceBreakdown.ExtraGuestFee == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.ExtraGuestFee(childComplexity), true
+	case "PriceBreakdown.guestCount":
+		if e.complexity.PriceBreakdown.GuestCount == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.GuestCount(childComplexity), true
+	case "PriceBreakdown.listingId":
+		if e.complexity.PriceBreakdown.ListingID == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.ListingID(childComplexity), true
+	case "PriceBreakdown.nights":
+		if e.complexity.PriceBreakdown.Nights == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.Nights(childComplexity), true
+	case "PriceBreakdown.platformFees":
+		if e.complexity.PriceBreakdown.PlatformFees == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.PlatformFees(childComplexity), true
+	case "PriceBreakdown.serviceFee":
+		if e.complexity.PriceBreakdown.ServiceFee == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.ServiceFee(childComplexity), true
+	case "PriceBreakdown.subtotal":
+		if e.complexity.PriceBreakdown.Subtotal == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.Subtotal(childComplexity), true
+	case "PriceBreakdown.total":
+		if e.complexity.PriceBreakdown.Total == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.Total(childComplexity), true
+	case "PriceBreakdown.vatAmount":
+		if e.complexity.PriceBreakdown.VATAmount == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.VATAmount(childComplexity), true
+	case "PriceBreakdown.vatPercent":
+		if e.complexity.PriceBreakdown.VATPercent == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.VATPercent(childComplexity), true
+	case "PriceBreakdown.validUntil":
+		if e.complexity.PriceBreakdown.ValidUntil == nil {
+			break
+		}
+
+		return e.complexity.PriceBreakdown.ValidUntil(childComplexity), true
+
 	case "PriceBreakdownSnapshot.baseTotal":
 		if e.complexity.PriceBreakdownSnapshot.BaseTotal == nil {
 			break
@@ -5948,6 +6332,171 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PriceBreakdownSnapshot.VATPercent(childComplexity), true
+
+	case "PricingDailyRate.appliedRules":
+		if e.complexity.PricingDailyRate.AppliedRules == nil {
+			break
+		}
+
+		return e.complexity.PricingDailyRate.AppliedRules(childComplexity), true
+	case "PricingDailyRate.baseRate":
+		if e.complexity.PricingDailyRate.BaseRate == nil {
+			break
+		}
+
+		return e.complexity.PricingDailyRate.BaseRate(childComplexity), true
+	case "PricingDailyRate.date":
+		if e.complexity.PricingDailyRate.Date == nil {
+			break
+		}
+
+		return e.complexity.PricingDailyRate.Date(childComplexity), true
+	case "PricingDailyRate.finalRate":
+		if e.complexity.PricingDailyRate.FinalRate == nil {
+			break
+		}
+
+		return e.complexity.PricingDailyRate.FinalRate(childComplexity), true
+
+	case "PricingDiscount.amount":
+		if e.complexity.PricingDiscount.Amount == nil {
+			break
+		}
+
+		return e.complexity.PricingDiscount.Amount(childComplexity), true
+	case "PricingDiscount.name":
+		if e.complexity.PricingDiscount.Name == nil {
+			break
+		}
+
+		return e.complexity.PricingDiscount.Name(childComplexity), true
+	case "PricingDiscount.type":
+		if e.complexity.PricingDiscount.Type == nil {
+			break
+		}
+
+		return e.complexity.PricingDiscount.Type(childComplexity), true
+
+	case "PricingRule.active":
+		if e.complexity.PricingRule.Active == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.Active(childComplexity), true
+	case "PricingRule.createdAt":
+		if e.complexity.PricingRule.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.CreatedAt(childComplexity), true
+	case "PricingRule.createdBy":
+		if e.complexity.PricingRule.CreatedBy == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.CreatedBy(childComplexity), true
+	case "PricingRule.daysOfWeek":
+		if e.complexity.PricingRule.DaysOfWeek == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.DaysOfWeek(childComplexity), true
+	case "PricingRule.description":
+		if e.complexity.PricingRule.Description == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.Description(childComplexity), true
+	case "PricingRule.endDate":
+		if e.complexity.PricingRule.EndDate == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.EndDate(childComplexity), true
+	case "PricingRule.id":
+		if e.complexity.PricingRule.ID == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.ID(childComplexity), true
+	case "PricingRule.listingId":
+		if e.complexity.PricingRule.ListingID == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.ListingID(childComplexity), true
+	case "PricingRule.maxLeadTimeDays":
+		if e.complexity.PricingRule.MaxLeadTimeDays == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.MaxLeadTimeDays(childComplexity), true
+	case "PricingRule.maxNights":
+		if e.complexity.PricingRule.MaxNights == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.MaxNights(childComplexity), true
+	case "PricingRule.minLeadTimeDays":
+		if e.complexity.PricingRule.MinLeadTimeDays == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.MinLeadTimeDays(childComplexity), true
+	case "PricingRule.minNights":
+		if e.complexity.PricingRule.MinNights == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.MinNights(childComplexity), true
+	case "PricingRule.modifierType":
+		if e.complexity.PricingRule.ModifierType == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.ModifierType(childComplexity), true
+	case "PricingRule.modifierValue":
+		if e.complexity.PricingRule.ModifierValue == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.ModifierValue(childComplexity), true
+	case "PricingRule.name":
+		if e.complexity.PricingRule.Name == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.Name(childComplexity), true
+	case "PricingRule.priority":
+		if e.complexity.PricingRule.Priority == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.Priority(childComplexity), true
+	case "PricingRule.ruleType":
+		if e.complexity.PricingRule.RuleType == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.RuleType(childComplexity), true
+	case "PricingRule.startDate":
+		if e.complexity.PricingRule.StartDate == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.StartDate(childComplexity), true
+	case "PricingRule.updatedAt":
+		if e.complexity.PricingRule.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.UpdatedAt(childComplexity), true
+	case "PricingRule.updatedBy":
+		if e.complexity.PricingRule.UpdatedBy == nil {
+			break
+		}
+
+		return e.complexity.PricingRule.UpdatedBy(childComplexity), true
 
 	case "Profile.address":
 		if e.complexity.Profile.Address == nil {
@@ -6418,6 +6967,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.AllBusinesses(childComplexity, args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.basePrice":
+		if e.complexity.Query.BasePrice == nil {
+			break
+		}
+
+		args, err := ec.field_Query_basePrice_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.BasePrice(childComplexity, args["listingId"].(uuid.UUID)), true
 	case "Query.booking":
 		if e.complexity.Query.Booking == nil {
 			break
@@ -6539,6 +7099,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.BusinessWallets(childComplexity, args["businessId"].(uuid.UUID)), true
+	case "Query.calculateMultiPropertyPrice":
+		if e.complexity.Query.CalculateMultiPropertyPrice == nil {
+			break
+		}
+
+		args, err := ec.field_Query_calculateMultiPropertyPrice_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CalculateMultiPropertyPrice(childComplexity, args["bookings"].([]*graphql9.MultiPropertyBookingInput)), true
+	case "Query.calculatePrice":
+		if e.complexity.Query.CalculatePrice == nil {
+			break
+		}
+
+		args, err := ec.field_Query_calculatePrice_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.CalculatePrice(childComplexity, args["listingId"].(uuid.UUID), args["checkIn"].(time.Time), args["checkOut"].(time.Time), args["guestCount"].(int)), true
 	case "Query.calendarEvent":
 		if e.complexity.Query.CalendarEvent == nil {
 			break
@@ -6982,6 +7564,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+	case "Query.multiPropertyDiscountsForOwner":
+		if e.complexity.Query.MultiPropertyDiscountsForOwner == nil {
+			break
+		}
+
+		return e.complexity.Query.MultiPropertyDiscountsForOwner(childComplexity), true
 	case "Query.myBookings":
 		if e.complexity.Query.MyBookings == nil {
 			break
@@ -7260,6 +7848,39 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.PayoutDetail(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.previewPricing":
+		if e.complexity.Query.PreviewPricing == nil {
+			break
+		}
+
+		args, err := ec.field_Query_previewPricing_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PreviewPricing(childComplexity, args["listingId"].(uuid.UUID), args["month"].(time.Time)), true
+	case "Query.pricingRule":
+		if e.complexity.Query.PricingRule == nil {
+			break
+		}
+
+		args, err := ec.field_Query_pricingRule_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PricingRule(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.pricingRulesForListing":
+		if e.complexity.Query.PricingRulesForListing == nil {
+			break
+		}
+
+		args, err := ec.field_Query_pricingRulesForListing_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PricingRulesForListing(childComplexity, args["listingId"].(uuid.UUID), args["activeOnly"].(*bool)), true
 	case "Query.profile":
 		if e.complexity.Query.Profile == nil {
 			break
@@ -7347,7 +7968,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.Reviews(childComplexity, args["targetType"].(domain10.ReviewTargetType), args["targetId"].(uuid.UUID), args["filter"].(*graphql10.ReviewFilterInput)), true
+		return e.complexity.Query.Reviews(childComplexity, args["targetType"].(domain10.ReviewTargetType), args["targetId"].(uuid.UUID), args["filter"].(*graphql11.ReviewFilterInput)), true
 	case "Query.searchBusinesses":
 		if e.complexity.Query.SearchBusinesses == nil {
 			break
@@ -9056,10 +9677,12 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateLeadInput,
 		ec.unmarshalInputCreateListingInput,
 		ec.unmarshalInputCreateListingPropertyInput,
+		ec.unmarshalInputCreateMultiPropertyDiscountInput,
 		ec.unmarshalInputCreateOpenHouseInput,
 		ec.unmarshalInputCreatePaymentMethodInput,
 		ec.unmarshalInputCreatePayoutInput,
 		ec.unmarshalInputCreatePhoneVerificationInput,
+		ec.unmarshalInputCreatePricingRuleInput,
 		ec.unmarshalInputCreatePromotionInput,
 		ec.unmarshalInputCreateReviewInput,
 		ec.unmarshalInputCreateSubscriptionInput,
@@ -9075,6 +9698,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputLocationInput,
 		ec.unmarshalInputMediaInput,
 		ec.unmarshalInputMemberPermissionsInput,
+		ec.unmarshalInputMultiPropertyBookingInput,
 		ec.unmarshalInputPageInput,
 		ec.unmarshalInputPayForBookingInput,
 		ec.unmarshalInputPriceRangeFilterInput,
@@ -9104,6 +9728,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateBusinessInput,
 		ec.unmarshalInputUpdateListingInput,
 		ec.unmarshalInputUpdateListingPropertyInput,
+		ec.unmarshalInputUpdateMultiPropertyDiscountInput,
+		ec.unmarshalInputUpdatePricingRuleInput,
 		ec.unmarshalInputUpdateProfileInput,
 		ec.unmarshalInputUpdateRentalDetailInput,
 		ec.unmarshalInputUpdateReviewInput,
@@ -11076,6 +11702,219 @@ extend type Mutation {
   createPayout(input: CreatePayoutInput!): Transaction!
 }
 `, BuiltIn: false},
+	{Name: "../../modules/pricing/port/graphql/schema.graphqls", Input: `# internal/modules/pricing/port/graphql/schema.graphqls
+
+# ===========================
+# ENUMS
+# ===========================
+
+enum RuleType {
+  base
+  seasonal
+  weekend
+  weekday
+  holiday
+  length_of_stay
+  last_minute
+  early_bird
+  gap_filler
+  custom
+}
+
+enum ModifierType {
+  percentage
+  fixed
+  absolute
+}
+
+# ===========================
+# INPUT TYPES
+# ===========================
+
+input CreatePricingRuleInput {
+  listingId: UUID!
+  name: String!
+  description: String
+  ruleType: RuleType!
+  active: Boolean!
+  priority: Int!
+  startDate: Time
+  endDate: Time
+  daysOfWeek: String
+  modifierType: ModifierType!
+  modifierValue: Float!
+  minNights: Int
+  maxNights: Int
+  minLeadTimeDays: Int
+  maxLeadTimeDays: Int
+}
+
+input UpdatePricingRuleInput {
+  id: UUID!
+  name: String
+  description: String
+  ruleType: RuleType
+  active: Boolean
+  priority: Int
+  startDate: Time
+  endDate: Time
+  daysOfWeek: String
+  modifierType: ModifierType
+  modifierValue: Float
+  minNights: Int
+  maxNights: Int
+  minLeadTimeDays: Int
+  maxLeadTimeDays: Int
+}
+
+input CreateMultiPropertyDiscountInput {
+  name: String!
+  description: String
+  listingIds: [UUID!]!
+  minProperties: Int!
+  discountPercent: Int!
+  validFrom: Time
+  validUntil: Time
+  active: Boolean!
+}
+
+input UpdateMultiPropertyDiscountInput {
+  id: UUID!
+  name: String
+  description: String
+  listingIds: [UUID!]
+  minProperties: Int
+  discountPercent: Int
+  validFrom: Time
+  validUntil: Time
+  active: Boolean
+}
+
+input MultiPropertyBookingInput {
+  listingId: UUID!
+  checkIn: Time!
+  checkOut: Time!
+  guestCount: Int!
+}
+
+# ===========================
+# TYPES
+# ===========================
+
+type PricingRule {
+  id: UUID!
+  listingId: UUID!
+  name: String!
+  description: String
+  ruleType: RuleType!
+  active: Boolean!
+  priority: Int!
+  startDate: Time
+  endDate: Time
+  daysOfWeek: String
+  modifierType: ModifierType!
+  modifierValue: Float!
+  minNights: Int
+  maxNights: Int
+  minLeadTimeDays: Int
+  maxLeadTimeDays: Int
+  createdBy: UUID
+  updatedBy: UUID
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type MultiPropertyDiscount {
+  id: UUID!
+  ownerId: UUID!
+  name: String!
+  description: String
+  listingIds: [UUID!]!
+  minProperties: Int!
+  discountPercent: Int!
+  validFrom: Time
+  validUntil: Time
+  active: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type PriceBreakdown {
+  listingId: UUID!
+  checkIn: Time!
+  checkOut: Time!
+  nights: Int!
+  guestCount: Int!
+  baseTotal: Float!
+  cleaningFee: Float
+  serviceFee: Float
+  cautionFee: Float
+  extraGuestFee: Float!
+  discounts: [PricingDiscount!]!
+  dailyRates: [PricingDailyRate!]!
+  subtotal: Float!
+  vatPercent: Float!
+  vatAmount: Float!
+  total: Float!
+  currency: String!
+  platformFees: PlatformFeeBreakdown
+  calculatedAt: Time!
+  validUntil: Time!
+}
+
+type PricingDiscount {
+  name: String!
+  amount: Float!
+  type: String!
+}
+
+type PricingDailyRate {
+  date: Time!
+  baseRate: Float!
+  appliedRules: [String!]!
+  finalRate: Float!
+}
+
+# ===========================
+# QUERY EXTENSIONS
+# ===========================
+
+extend type Query {
+  # Pricing Rule Queries
+  pricingRule(id: UUID!): PricingRule
+  pricingRulesForListing(listingId: UUID!, activeOnly: Boolean): [PricingRule!]!
+
+  # Multi-Property Discount Queries
+  multiPropertyDiscountsForOwner: [MultiPropertyDiscount!]!
+
+  # Price Calculation Queries
+  calculatePrice(listingId: UUID!, checkIn: Time!, checkOut: Time!, guestCount: Int!): PriceBreakdown!
+  calculateMultiPropertyPrice(bookings: [MultiPropertyBookingInput!]!): PriceBreakdown!
+  basePrice(listingId: UUID!): BasePriceResult!
+  previewPricing(listingId: UUID!, month: Time!): [PricingDailyRate!]!
+}
+
+type BasePriceResult {
+  baseRate: Float!
+  currency: String!
+}
+
+# ===========================
+# MUTATION EXTENSIONS
+# ===========================
+
+extend type Mutation {
+  # Pricing Rule Mutations
+  createPricingRule(input: CreatePricingRuleInput!): PricingRule!
+  updatePricingRule(input: UpdatePricingRuleInput!): PricingRule!
+  deletePricingRule(id: UUID!): Boolean!
+
+  # Multi-Property Discount Mutations
+  createMultiPropertyDiscount(input: CreateMultiPropertyDiscountInput!): MultiPropertyDiscount!
+  updateMultiPropertyDiscount(input: UpdateMultiPropertyDiscountInput!): MultiPropertyDiscount!
+  deleteMultiPropertyDiscount(id: UUID!): Boolean!
+}
+`, BuiltIn: false},
 	{Name: "../../modules/finance/port/graphql/schema.graphqls", Input: `# internal/modules/finance/port/graphql/schema.graphqls
 
 enum WalletType {
@@ -12755,6 +13594,17 @@ func (ec *executionContext) field_Mutation_createListing_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createMultiPropertyDiscount_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateMultiPropertyDiscountInput2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐCreateMultiPropertyDiscountInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createOpenHouse_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -12792,6 +13642,17 @@ func (ec *executionContext) field_Mutation_createPhoneVerification_args(ctx cont
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreatePhoneVerificationInput2hausletᚋinternalᚋmodulesᚋverificationᚋportᚋgraphqlᚐCreatePhoneVerificationInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createPricingRule_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreatePricingRuleInput2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐCreatePricingRuleInput)
 	if err != nil {
 		return nil, err
 	}
@@ -12919,7 +13780,29 @@ func (ec *executionContext) field_Mutation_deleteListing_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteMultiPropertyDiscount_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deletePaymentMethod_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deletePricingRule_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
@@ -13417,6 +14300,28 @@ func (ec *executionContext) field_Mutation_updateMemberRole_args(ctx context.Con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateMultiPropertyDiscount_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateMultiPropertyDiscountInput2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐUpdateMultiPropertyDiscountInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updatePricingRule_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdatePricingRuleInput2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐUpdatePricingRuleInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -13583,6 +14488,17 @@ func (ec *executionContext) field_Query_allBusinesses_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_basePrice_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "listingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["listingId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_bookingByReference_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -13746,6 +14662,43 @@ func (ec *executionContext) field_Query_business_args(ctx context.Context, rawAr
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_calculateMultiPropertyPrice_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bookings", ec.unmarshalNMultiPropertyBookingInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐMultiPropertyBookingInputᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["bookings"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_calculatePrice_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "listingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["listingId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "checkIn", ec.unmarshalNTime2timeᚐTime)
+	if err != nil {
+		return nil, err
+	}
+	args["checkIn"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "checkOut", ec.unmarshalNTime2timeᚐTime)
+	if err != nil {
+		return nil, err
+	}
+	args["checkOut"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "guestCount", ec.unmarshalNInt2int)
+	if err != nil {
+		return nil, err
+	}
+	args["guestCount"] = arg3
 	return args, nil
 }
 
@@ -14635,6 +15588,49 @@ func (ec *executionContext) field_Query_payoutDetail_args(ctx context.Context, r
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_previewPricing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "listingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["listingId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "month", ec.unmarshalNTime2timeᚐTime)
+	if err != nil {
+		return nil, err
+	}
+	args["month"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_pricingRule_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_pricingRulesForListing_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "listingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["listingId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "activeOnly", ec.unmarshalOBoolean2ᚖbool)
+	if err != nil {
+		return nil, err
+	}
+	args["activeOnly"] = arg1
 	return args, nil
 }
 
@@ -15691,7 +16687,7 @@ func (ec *executionContext) fieldContext_AmenityHighlight_icon(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _AnalyticsPeriod_startDate(ctx context.Context, field graphql.CollectedField, obj *graphql12.PeriodResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _AnalyticsPeriod_startDate(ctx context.Context, field graphql.CollectedField, obj *graphql13.PeriodResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -15720,7 +16716,7 @@ func (ec *executionContext) fieldContext_AnalyticsPeriod_startDate(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _AnalyticsPeriod_endDate(ctx context.Context, field graphql.CollectedField, obj *graphql12.PeriodResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _AnalyticsPeriod_endDate(ctx context.Context, field graphql.CollectedField, obj *graphql13.PeriodResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -15749,7 +16745,7 @@ func (ec *executionContext) fieldContext_AnalyticsPeriod_endDate(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _AnalyticsPeriod_days(ctx context.Context, field graphql.CollectedField, obj *graphql12.PeriodResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _AnalyticsPeriod_days(ctx context.Context, field graphql.CollectedField, obj *graphql13.PeriodResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -15971,6 +16967,64 @@ func (ec *executionContext) _Attendee_registrationToken(ctx context.Context, fie
 func (ec *executionContext) fieldContext_Attendee_registrationToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Attendee",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BasePriceResult_baseRate(ctx context.Context, field graphql.CollectedField, obj *graphql9.BasePriceResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BasePriceResult_baseRate,
+		func(ctx context.Context) (any, error) {
+			return obj.BaseRate, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BasePriceResult_baseRate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BasePriceResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BasePriceResult_currency(ctx context.Context, field graphql.CollectedField, obj *graphql9.BasePriceResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BasePriceResult_currency,
+		func(ctx context.Context) (any, error) {
+			return obj.Currency, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BasePriceResult_currency(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BasePriceResult",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -22762,7 +23816,7 @@ func (ec *executionContext) fieldContext_FinanceTransaction_updatedAt(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _HomeFeedSection_sectionType(ctx context.Context, field graphql.CollectedField, obj *domain13.HomeFeedSection) (ret graphql.Marshaler) {
+func (ec *executionContext) _HomeFeedSection_sectionType(ctx context.Context, field graphql.CollectedField, obj *domain14.HomeFeedSection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -22791,7 +23845,7 @@ func (ec *executionContext) fieldContext_HomeFeedSection_sectionType(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _HomeFeedSection_title(ctx context.Context, field graphql.CollectedField, obj *domain13.HomeFeedSection) (ret graphql.Marshaler) {
+func (ec *executionContext) _HomeFeedSection_title(ctx context.Context, field graphql.CollectedField, obj *domain14.HomeFeedSection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -22820,7 +23874,7 @@ func (ec *executionContext) fieldContext_HomeFeedSection_title(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _HomeFeedSection_listings(ctx context.Context, field graphql.CollectedField, obj *domain13.HomeFeedSection) (ret graphql.Marshaler) {
+func (ec *executionContext) _HomeFeedSection_listings(ctx context.Context, field graphql.CollectedField, obj *domain14.HomeFeedSection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -22859,7 +23913,7 @@ func (ec *executionContext) fieldContext_HomeFeedSection_listings(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _HomeFeedSection_totalCount(ctx context.Context, field graphql.CollectedField, obj *domain13.HomeFeedSection) (ret graphql.Marshaler) {
+func (ec *executionContext) _HomeFeedSection_totalCount(ctx context.Context, field graphql.CollectedField, obj *domain14.HomeFeedSection) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23045,7 +24099,7 @@ func (ec *executionContext) fieldContext_HostStats_updatedAt(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_id(ctx context.Context, field graphql.CollectedField, obj *graphql12.InteractionResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_id(ctx context.Context, field graphql.CollectedField, obj *graphql13.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23074,7 +24128,7 @@ func (ec *executionContext) fieldContext_Interaction_id(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_userId(ctx context.Context, field graphql.CollectedField, obj *graphql12.InteractionResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_userId(ctx context.Context, field graphql.CollectedField, obj *graphql13.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23103,7 +24157,7 @@ func (ec *executionContext) fieldContext_Interaction_userId(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_sessionId(ctx context.Context, field graphql.CollectedField, obj *graphql12.InteractionResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_sessionId(ctx context.Context, field graphql.CollectedField, obj *graphql13.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23132,7 +24186,7 @@ func (ec *executionContext) fieldContext_Interaction_sessionId(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_type(ctx context.Context, field graphql.CollectedField, obj *graphql12.InteractionResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_type(ctx context.Context, field graphql.CollectedField, obj *graphql13.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23161,7 +24215,7 @@ func (ec *executionContext) fieldContext_Interaction_type(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_entityType(ctx context.Context, field graphql.CollectedField, obj *graphql12.InteractionResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_entityType(ctx context.Context, field graphql.CollectedField, obj *graphql13.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23190,7 +24244,7 @@ func (ec *executionContext) fieldContext_Interaction_entityType(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_entityId(ctx context.Context, field graphql.CollectedField, obj *graphql12.InteractionResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_entityId(ctx context.Context, field graphql.CollectedField, obj *graphql13.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23219,7 +24273,7 @@ func (ec *executionContext) fieldContext_Interaction_entityId(_ context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_context(ctx context.Context, field graphql.CollectedField, obj *graphql12.InteractionResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_context(ctx context.Context, field graphql.CollectedField, obj *graphql13.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23248,7 +24302,7 @@ func (ec *executionContext) fieldContext_Interaction_context(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_isBot(ctx context.Context, field graphql.CollectedField, obj *graphql12.InteractionResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_isBot(ctx context.Context, field graphql.CollectedField, obj *graphql13.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -23277,7 +24331,7 @@ func (ec *executionContext) fieldContext_Interaction_isBot(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _Interaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *graphql12.InteractionResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _Interaction_createdAt(ctx context.Context, field graphql.CollectedField, obj *graphql13.InteractionResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25661,7 +26715,7 @@ func (ec *executionContext) fieldContext_Listing_deletedAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_listingId(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_listingId(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25690,7 +26744,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_listingId(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_period(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_period(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25727,7 +26781,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_period(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_totalViews(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_totalViews(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25756,7 +26810,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_totalViews(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_uniqueViews(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_uniqueViews(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25785,7 +26839,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_uniqueViews(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_mediaViews(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_mediaViews(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25814,7 +26868,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_mediaViews(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_mapViews(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_mapViews(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25843,7 +26897,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_mapViews(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_totalSaves(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_totalSaves(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25872,7 +26926,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_totalSaves(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_netSaves(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_netSaves(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25901,7 +26955,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_netSaves(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_totalShares(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_totalShares(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25930,7 +26984,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_totalShares(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_totalContacts(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_totalContacts(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25959,7 +27013,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_totalContacts(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_bookingRequests(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_bookingRequests(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -25988,7 +27042,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_bookingRequests(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_conversionRate(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_conversionRate(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -26017,7 +27071,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_conversionRate(_ conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_engagementRate(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_engagementRate(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -26046,7 +27100,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_engagementRate(_ conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_avgTimeOnPage(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_avgTimeOnPage(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -26075,7 +27129,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_avgTimeOnPage(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_viewsTrend(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_viewsTrend(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -26104,7 +27158,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_viewsTrend(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_savesTrend(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_savesTrend(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -26133,7 +27187,7 @@ func (ec *executionContext) fieldContext_ListingAnalytics_savesTrend(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ListingAnalytics_engagementTrend(ctx context.Context, field graphql.CollectedField, obj *graphql12.ListingAnalyticsResponse) (ret graphql.Marshaler) {
+func (ec *executionContext) _ListingAnalytics_engagementTrend(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -28608,6 +29662,354 @@ func (ec *executionContext) fieldContext_MemberPermissions_canViewFinancials(_ c
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_id(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_ownerId(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_ownerId,
+		func(ctx context.Context) (any, error) {
+			return obj.OwnerID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_ownerId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_name(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_description(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_listingIds(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_listingIds,
+		func(ctx context.Context) (any, error) {
+			return obj.ListingIDs, nil
+		},
+		nil,
+		ec.marshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_listingIds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_minProperties(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_minProperties,
+		func(ctx context.Context) (any, error) {
+			return obj.MinProperties, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_minProperties(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_discountPercent(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_discountPercent,
+		func(ctx context.Context) (any, error) {
+			return obj.DiscountPercent, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_discountPercent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_validFrom(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_validFrom,
+		func(ctx context.Context) (any, error) {
+			return obj.ValidFrom, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_validFrom(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_validUntil(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_validUntil,
+		func(ctx context.Context) (any, error) {
+			return obj.ValidUntil, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_validUntil(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_active(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_active,
+		func(ctx context.Context) (any, error) {
+			return obj.Active, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _MultiPropertyDiscount_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain12.MultiPropertyDiscount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_MultiPropertyDiscount_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_MultiPropertyDiscount_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "MultiPropertyDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -31328,7 +32730,7 @@ func (ec *executionContext) _Mutation_savePaymentMethod(ctx context.Context, fie
 		ec.fieldContext_Mutation_savePaymentMethod,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().SavePaymentMethod(ctx, fc.Args["input"].(graphql9.SavePaymentMethodInput))
+			return ec.resolvers.Mutation().SavePaymentMethod(ctx, fc.Args["input"].(graphql10.SavePaymentMethodInput))
 		},
 		nil,
 		ec.marshalNPaymentMethod2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPaymentMethod,
@@ -31511,7 +32913,7 @@ func (ec *executionContext) _Mutation_createPayoutDetail(ctx context.Context, fi
 		ec.fieldContext_Mutation_createPayoutDetail,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreatePayoutDetail(ctx, fc.Args["input"].(graphql9.AddPayoutDetailInput))
+			return ec.resolvers.Mutation().CreatePayoutDetail(ctx, fc.Args["input"].(graphql10.AddPayoutDetailInput))
 		},
 		nil,
 		ec.marshalNPayoutDetail2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPayoutDetail,
@@ -31706,7 +33108,7 @@ func (ec *executionContext) _Mutation_createPayout(ctx context.Context, field gr
 		ec.fieldContext_Mutation_createPayout,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreatePayout(ctx, fc.Args["input"].(graphql9.CreatePayoutInput))
+			return ec.resolvers.Mutation().CreatePayout(ctx, fc.Args["input"].(graphql10.CreatePayoutInput))
 		},
 		nil,
 		ec.marshalNTransaction2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐTransaction,
@@ -31761,6 +33163,388 @@ func (ec *executionContext) fieldContext_Mutation_createPayout(ctx context.Conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createPayout_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createPricingRule(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createPricingRule,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreatePricingRule(ctx, fc.Args["input"].(graphql9.CreatePricingRuleInput))
+		},
+		nil,
+		ec.marshalNPricingRule2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPricingRule,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createPricingRule(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PricingRule_id(ctx, field)
+			case "listingId":
+				return ec.fieldContext_PricingRule_listingId(ctx, field)
+			case "name":
+				return ec.fieldContext_PricingRule_name(ctx, field)
+			case "description":
+				return ec.fieldContext_PricingRule_description(ctx, field)
+			case "ruleType":
+				return ec.fieldContext_PricingRule_ruleType(ctx, field)
+			case "active":
+				return ec.fieldContext_PricingRule_active(ctx, field)
+			case "priority":
+				return ec.fieldContext_PricingRule_priority(ctx, field)
+			case "startDate":
+				return ec.fieldContext_PricingRule_startDate(ctx, field)
+			case "endDate":
+				return ec.fieldContext_PricingRule_endDate(ctx, field)
+			case "daysOfWeek":
+				return ec.fieldContext_PricingRule_daysOfWeek(ctx, field)
+			case "modifierType":
+				return ec.fieldContext_PricingRule_modifierType(ctx, field)
+			case "modifierValue":
+				return ec.fieldContext_PricingRule_modifierValue(ctx, field)
+			case "minNights":
+				return ec.fieldContext_PricingRule_minNights(ctx, field)
+			case "maxNights":
+				return ec.fieldContext_PricingRule_maxNights(ctx, field)
+			case "minLeadTimeDays":
+				return ec.fieldContext_PricingRule_minLeadTimeDays(ctx, field)
+			case "maxLeadTimeDays":
+				return ec.fieldContext_PricingRule_maxLeadTimeDays(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_PricingRule_createdBy(ctx, field)
+			case "updatedBy":
+				return ec.fieldContext_PricingRule_updatedBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PricingRule_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_PricingRule_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PricingRule", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createPricingRule_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updatePricingRule(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updatePricingRule,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdatePricingRule(ctx, fc.Args["input"].(graphql9.UpdatePricingRuleInput))
+		},
+		nil,
+		ec.marshalNPricingRule2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPricingRule,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updatePricingRule(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PricingRule_id(ctx, field)
+			case "listingId":
+				return ec.fieldContext_PricingRule_listingId(ctx, field)
+			case "name":
+				return ec.fieldContext_PricingRule_name(ctx, field)
+			case "description":
+				return ec.fieldContext_PricingRule_description(ctx, field)
+			case "ruleType":
+				return ec.fieldContext_PricingRule_ruleType(ctx, field)
+			case "active":
+				return ec.fieldContext_PricingRule_active(ctx, field)
+			case "priority":
+				return ec.fieldContext_PricingRule_priority(ctx, field)
+			case "startDate":
+				return ec.fieldContext_PricingRule_startDate(ctx, field)
+			case "endDate":
+				return ec.fieldContext_PricingRule_endDate(ctx, field)
+			case "daysOfWeek":
+				return ec.fieldContext_PricingRule_daysOfWeek(ctx, field)
+			case "modifierType":
+				return ec.fieldContext_PricingRule_modifierType(ctx, field)
+			case "modifierValue":
+				return ec.fieldContext_PricingRule_modifierValue(ctx, field)
+			case "minNights":
+				return ec.fieldContext_PricingRule_minNights(ctx, field)
+			case "maxNights":
+				return ec.fieldContext_PricingRule_maxNights(ctx, field)
+			case "minLeadTimeDays":
+				return ec.fieldContext_PricingRule_minLeadTimeDays(ctx, field)
+			case "maxLeadTimeDays":
+				return ec.fieldContext_PricingRule_maxLeadTimeDays(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_PricingRule_createdBy(ctx, field)
+			case "updatedBy":
+				return ec.fieldContext_PricingRule_updatedBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PricingRule_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_PricingRule_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PricingRule", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updatePricingRule_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deletePricingRule(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deletePricingRule,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeletePricingRule(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deletePricingRule(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deletePricingRule_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createMultiPropertyDiscount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createMultiPropertyDiscount,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateMultiPropertyDiscount(ctx, fc.Args["input"].(graphql9.CreateMultiPropertyDiscountInput))
+		},
+		nil,
+		ec.marshalNMultiPropertyDiscount2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐMultiPropertyDiscount,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createMultiPropertyDiscount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_MultiPropertyDiscount_id(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_MultiPropertyDiscount_ownerId(ctx, field)
+			case "name":
+				return ec.fieldContext_MultiPropertyDiscount_name(ctx, field)
+			case "description":
+				return ec.fieldContext_MultiPropertyDiscount_description(ctx, field)
+			case "listingIds":
+				return ec.fieldContext_MultiPropertyDiscount_listingIds(ctx, field)
+			case "minProperties":
+				return ec.fieldContext_MultiPropertyDiscount_minProperties(ctx, field)
+			case "discountPercent":
+				return ec.fieldContext_MultiPropertyDiscount_discountPercent(ctx, field)
+			case "validFrom":
+				return ec.fieldContext_MultiPropertyDiscount_validFrom(ctx, field)
+			case "validUntil":
+				return ec.fieldContext_MultiPropertyDiscount_validUntil(ctx, field)
+			case "active":
+				return ec.fieldContext_MultiPropertyDiscount_active(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_MultiPropertyDiscount_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_MultiPropertyDiscount_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MultiPropertyDiscount", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createMultiPropertyDiscount_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateMultiPropertyDiscount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateMultiPropertyDiscount,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateMultiPropertyDiscount(ctx, fc.Args["input"].(graphql9.UpdateMultiPropertyDiscountInput))
+		},
+		nil,
+		ec.marshalNMultiPropertyDiscount2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐMultiPropertyDiscount,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateMultiPropertyDiscount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_MultiPropertyDiscount_id(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_MultiPropertyDiscount_ownerId(ctx, field)
+			case "name":
+				return ec.fieldContext_MultiPropertyDiscount_name(ctx, field)
+			case "description":
+				return ec.fieldContext_MultiPropertyDiscount_description(ctx, field)
+			case "listingIds":
+				return ec.fieldContext_MultiPropertyDiscount_listingIds(ctx, field)
+			case "minProperties":
+				return ec.fieldContext_MultiPropertyDiscount_minProperties(ctx, field)
+			case "discountPercent":
+				return ec.fieldContext_MultiPropertyDiscount_discountPercent(ctx, field)
+			case "validFrom":
+				return ec.fieldContext_MultiPropertyDiscount_validFrom(ctx, field)
+			case "validUntil":
+				return ec.fieldContext_MultiPropertyDiscount_validUntil(ctx, field)
+			case "active":
+				return ec.fieldContext_MultiPropertyDiscount_active(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_MultiPropertyDiscount_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_MultiPropertyDiscount_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MultiPropertyDiscount", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateMultiPropertyDiscount_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteMultiPropertyDiscount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteMultiPropertyDiscount,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteMultiPropertyDiscount(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteMultiPropertyDiscount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteMultiPropertyDiscount_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -32018,7 +33802,7 @@ func (ec *executionContext) _Mutation_createWishlist(ctx context.Context, field 
 		ec.fieldContext_Mutation_createWishlist,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateWishlist(ctx, fc.Args["input"].(graphql11.CreateWishlistInput))
+			return ec.resolvers.Mutation().CreateWishlist(ctx, fc.Args["input"].(graphql12.CreateWishlistInput))
 		},
 		nil,
 		ec.marshalNWishlist2ᚖhausletᚋinternalᚋmodulesᚋwishlistᚋdomainᚐWishlist,
@@ -32079,7 +33863,7 @@ func (ec *executionContext) _Mutation_updateWishlist(ctx context.Context, field 
 		ec.fieldContext_Mutation_updateWishlist,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateWishlist(ctx, fc.Args["id"].(uuid.UUID), fc.Args["input"].(graphql11.UpdateWishlistInput))
+			return ec.resolvers.Mutation().UpdateWishlist(ctx, fc.Args["id"].(uuid.UUID), fc.Args["input"].(graphql12.UpdateWishlistInput))
 		},
 		nil,
 		ec.marshalNWishlist2ᚖhausletᚋinternalᚋmodulesᚋwishlistᚋdomainᚐWishlist,
@@ -32338,7 +34122,7 @@ func (ec *executionContext) _Mutation_createReview(ctx context.Context, field gr
 		ec.fieldContext_Mutation_createReview,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateReview(ctx, fc.Args["input"].(graphql10.CreateReviewInput))
+			return ec.resolvers.Mutation().CreateReview(ctx, fc.Args["input"].(graphql11.CreateReviewInput))
 		},
 		nil,
 		ec.marshalNReview2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐReview,
@@ -32417,7 +34201,7 @@ func (ec *executionContext) _Mutation_updateReview(ctx context.Context, field gr
 		ec.fieldContext_Mutation_updateReview,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().UpdateReview(ctx, fc.Args["reviewId"].(uuid.UUID), fc.Args["input"].(graphql10.UpdateReviewInput))
+			return ec.resolvers.Mutation().UpdateReview(ctx, fc.Args["reviewId"].(uuid.UUID), fc.Args["input"].(graphql11.UpdateReviewInput))
 		},
 		nil,
 		ec.marshalNReview2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐReview,
@@ -33628,7 +35412,7 @@ func (ec *executionContext) _Mutation_trackInteraction(ctx context.Context, fiel
 		ec.fieldContext_Mutation_trackInteraction,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().TrackInteraction(ctx, fc.Args["input"].(graphql12.TrackInteractionInput))
+			return ec.resolvers.Mutation().TrackInteraction(ctx, fc.Args["input"].(graphql13.TrackInteractionInput))
 		},
 		nil,
 		ec.marshalNBoolean2bool,
@@ -36548,6 +38332,622 @@ func (ec *executionContext) fieldContext_PlatformFeeBreakdown_hostNetAmount(_ co
 	return fc, nil
 }
 
+func (ec *executionContext) _PriceBreakdown_listingId(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_listingId,
+		func(ctx context.Context) (any, error) {
+			return obj.ListingID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_listingId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_checkIn(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_checkIn,
+		func(ctx context.Context) (any, error) {
+			return obj.CheckIn, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_checkIn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_checkOut(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_checkOut,
+		func(ctx context.Context) (any, error) {
+			return obj.CheckOut, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_checkOut(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_nights(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_nights,
+		func(ctx context.Context) (any, error) {
+			return obj.Nights, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_nights(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_guestCount(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_guestCount,
+		func(ctx context.Context) (any, error) {
+			return obj.GuestCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_guestCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_baseTotal(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_baseTotal,
+		func(ctx context.Context) (any, error) {
+			return obj.BaseTotal, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_baseTotal(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_cleaningFee(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_cleaningFee,
+		func(ctx context.Context) (any, error) {
+			return obj.CleaningFee, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_cleaningFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_serviceFee(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_serviceFee,
+		func(ctx context.Context) (any, error) {
+			return obj.ServiceFee, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_serviceFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_cautionFee(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_cautionFee,
+		func(ctx context.Context) (any, error) {
+			return obj.CautionFee, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_cautionFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_extraGuestFee(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_extraGuestFee,
+		func(ctx context.Context) (any, error) {
+			return obj.ExtraGuestFee, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_extraGuestFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_discounts(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_discounts,
+		func(ctx context.Context) (any, error) {
+			return obj.Discounts, nil
+		},
+		nil,
+		ec.marshalNPricingDiscount2ᚕhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDiscountᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_discounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_PricingDiscount_name(ctx, field)
+			case "amount":
+				return ec.fieldContext_PricingDiscount_amount(ctx, field)
+			case "type":
+				return ec.fieldContext_PricingDiscount_type(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PricingDiscount", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_dailyRates(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_dailyRates,
+		func(ctx context.Context) (any, error) {
+			return obj.DailyRates, nil
+		},
+		nil,
+		ec.marshalNPricingDailyRate2ᚕhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDailyRateᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_dailyRates(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "date":
+				return ec.fieldContext_PricingDailyRate_date(ctx, field)
+			case "baseRate":
+				return ec.fieldContext_PricingDailyRate_baseRate(ctx, field)
+			case "appliedRules":
+				return ec.fieldContext_PricingDailyRate_appliedRules(ctx, field)
+			case "finalRate":
+				return ec.fieldContext_PricingDailyRate_finalRate(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PricingDailyRate", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_subtotal(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_subtotal,
+		func(ctx context.Context) (any, error) {
+			return obj.Subtotal, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_subtotal(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_vatPercent(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_vatPercent,
+		func(ctx context.Context) (any, error) {
+			return obj.VATPercent, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_vatPercent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_vatAmount(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_vatAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.VATAmount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_vatAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_total(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_total,
+		func(ctx context.Context) (any, error) {
+			return obj.Total, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_currency(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_currency,
+		func(ctx context.Context) (any, error) {
+			return obj.Currency, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_currency(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_platformFees(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_platformFees,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.PriceBreakdown().PlatformFees(ctx, obj)
+		},
+		nil,
+		ec.marshalOPlatformFeeBreakdown2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPlatformFeeBreakdown,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_platformFees(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "guestFeePercent":
+				return ec.fieldContext_PlatformFeeBreakdown_guestFeePercent(ctx, field)
+			case "guestFeeAmount":
+				return ec.fieldContext_PlatformFeeBreakdown_guestFeeAmount(ctx, field)
+			case "hostCommissionPercent":
+				return ec.fieldContext_PlatformFeeBreakdown_hostCommissionPercent(ctx, field)
+			case "hostCommissionAmount":
+				return ec.fieldContext_PlatformFeeBreakdown_hostCommissionAmount(ctx, field)
+			case "payoutProcessingPercent":
+				return ec.fieldContext_PlatformFeeBreakdown_payoutProcessingPercent(ctx, field)
+			case "payoutProcessingAmount":
+				return ec.fieldContext_PlatformFeeBreakdown_payoutProcessingAmount(ctx, field)
+			case "minimumGuestFeeApplied":
+				return ec.fieldContext_PlatformFeeBreakdown_minimumGuestFeeApplied(ctx, field)
+			case "hostNetAmount":
+				return ec.fieldContext_PlatformFeeBreakdown_hostNetAmount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PlatformFeeBreakdown", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_calculatedAt(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_calculatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CalculatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_calculatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PriceBreakdown_validUntil(ctx context.Context, field graphql.CollectedField, obj *domain12.PriceBreakdown) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PriceBreakdown_validUntil,
+		func(ctx context.Context) (any, error) {
+			return obj.ValidUntil, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PriceBreakdown_validUntil(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PriceBreakdown",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PriceBreakdownSnapshot_baseTotal(ctx context.Context, field graphql.CollectedField, obj *domain6.PriceBreakdownSnapshot) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -36925,6 +39325,789 @@ func (ec *executionContext) fieldContext_PriceBreakdownSnapshot_platformFees(_ c
 				return ec.fieldContext_PlatformFeeBreakdown_hostNetAmount(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PlatformFeeBreakdown", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingDailyRate_date(ctx context.Context, field graphql.CollectedField, obj *domain12.DailyRate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingDailyRate_date,
+		func(ctx context.Context) (any, error) {
+			return obj.Date, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingDailyRate_date(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingDailyRate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingDailyRate_baseRate(ctx context.Context, field graphql.CollectedField, obj *domain12.DailyRate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingDailyRate_baseRate,
+		func(ctx context.Context) (any, error) {
+			return obj.BaseRate, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingDailyRate_baseRate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingDailyRate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingDailyRate_appliedRules(ctx context.Context, field graphql.CollectedField, obj *domain12.DailyRate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingDailyRate_appliedRules,
+		func(ctx context.Context) (any, error) {
+			return obj.AppliedRules, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingDailyRate_appliedRules(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingDailyRate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingDailyRate_finalRate(ctx context.Context, field graphql.CollectedField, obj *domain12.DailyRate) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingDailyRate_finalRate,
+		func(ctx context.Context) (any, error) {
+			return obj.FinalRate, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingDailyRate_finalRate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingDailyRate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingDiscount_name(ctx context.Context, field graphql.CollectedField, obj *domain12.Discount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingDiscount_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingDiscount_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingDiscount_amount(ctx context.Context, field graphql.CollectedField, obj *domain12.Discount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingDiscount_amount,
+		func(ctx context.Context) (any, error) {
+			return obj.Amount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingDiscount_amount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingDiscount_type(ctx context.Context, field graphql.CollectedField, obj *domain12.Discount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingDiscount_type,
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingDiscount_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingDiscount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_id(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_listingId(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_listingId,
+		func(ctx context.Context) (any, error) {
+			return obj.ListingID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_listingId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_name(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_description(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_ruleType(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_ruleType,
+		func(ctx context.Context) (any, error) {
+			return obj.RuleType, nil
+		},
+		nil,
+		ec.marshalNRuleType2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐRuleType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_ruleType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type RuleType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_active(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_active,
+		func(ctx context.Context) (any, error) {
+			return obj.Active, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_priority(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_priority,
+		func(ctx context.Context) (any, error) {
+			return obj.Priority, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_priority(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_startDate(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_startDate,
+		func(ctx context.Context) (any, error) {
+			return obj.StartDate, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_startDate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_endDate(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_endDate,
+		func(ctx context.Context) (any, error) {
+			return obj.EndDate, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_endDate(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_daysOfWeek(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_daysOfWeek,
+		func(ctx context.Context) (any, error) {
+			return obj.DaysOfWeek, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_daysOfWeek(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_modifierType(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_modifierType,
+		func(ctx context.Context) (any, error) {
+			return obj.ModifierType, nil
+		},
+		nil,
+		ec.marshalNModifierType2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐModifierType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_modifierType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ModifierType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_modifierValue(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_modifierValue,
+		func(ctx context.Context) (any, error) {
+			return obj.ModifierValue, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_modifierValue(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_minNights(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_minNights,
+		func(ctx context.Context) (any, error) {
+			return obj.MinNights, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_minNights(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_maxNights(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_maxNights,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxNights, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_maxNights(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_minLeadTimeDays(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_minLeadTimeDays,
+		func(ctx context.Context) (any, error) {
+			return obj.MinLeadTimeDays, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_minLeadTimeDays(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_maxLeadTimeDays(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_maxLeadTimeDays,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxLeadTimeDays, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_maxLeadTimeDays(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_createdBy(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_createdBy,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedBy, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_createdBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_updatedBy(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_updatedBy,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedBy, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_updatedBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PricingRule_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain12.PricingRule) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PricingRule_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PricingRule_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PricingRule",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -38218,7 +41401,7 @@ func (ec *executionContext) fieldContext_Profile_updatedAt(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _PromotionBoostInfo_promotionId(ctx context.Context, field graphql.CollectedField, obj *domain13.PromotionBoostInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PromotionBoostInfo_promotionId(ctx context.Context, field graphql.CollectedField, obj *domain14.PromotionBoostInfo) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -38247,7 +41430,7 @@ func (ec *executionContext) fieldContext_PromotionBoostInfo_promotionId(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _PromotionBoostInfo_promotionType(ctx context.Context, field graphql.CollectedField, obj *domain13.PromotionBoostInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PromotionBoostInfo_promotionType(ctx context.Context, field graphql.CollectedField, obj *domain14.PromotionBoostInfo) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -38276,7 +41459,7 @@ func (ec *executionContext) fieldContext_PromotionBoostInfo_promotionType(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _PromotionBoostInfo_boostMultiplier(ctx context.Context, field graphql.CollectedField, obj *domain13.PromotionBoostInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PromotionBoostInfo_boostMultiplier(ctx context.Context, field graphql.CollectedField, obj *domain14.PromotionBoostInfo) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -38305,7 +41488,7 @@ func (ec *executionContext) fieldContext_PromotionBoostInfo_boostMultiplier(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _PromotionBoostInfo_expiresAt(ctx context.Context, field graphql.CollectedField, obj *domain13.PromotionBoostInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PromotionBoostInfo_expiresAt(ctx context.Context, field graphql.CollectedField, obj *domain14.PromotionBoostInfo) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -43157,6 +46340,491 @@ func (ec *executionContext) fieldContext_Query_myPayoutDetails(_ context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_pricingRule(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_pricingRule,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PricingRule(ctx, fc.Args["id"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalOPricingRule2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPricingRule,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_pricingRule(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PricingRule_id(ctx, field)
+			case "listingId":
+				return ec.fieldContext_PricingRule_listingId(ctx, field)
+			case "name":
+				return ec.fieldContext_PricingRule_name(ctx, field)
+			case "description":
+				return ec.fieldContext_PricingRule_description(ctx, field)
+			case "ruleType":
+				return ec.fieldContext_PricingRule_ruleType(ctx, field)
+			case "active":
+				return ec.fieldContext_PricingRule_active(ctx, field)
+			case "priority":
+				return ec.fieldContext_PricingRule_priority(ctx, field)
+			case "startDate":
+				return ec.fieldContext_PricingRule_startDate(ctx, field)
+			case "endDate":
+				return ec.fieldContext_PricingRule_endDate(ctx, field)
+			case "daysOfWeek":
+				return ec.fieldContext_PricingRule_daysOfWeek(ctx, field)
+			case "modifierType":
+				return ec.fieldContext_PricingRule_modifierType(ctx, field)
+			case "modifierValue":
+				return ec.fieldContext_PricingRule_modifierValue(ctx, field)
+			case "minNights":
+				return ec.fieldContext_PricingRule_minNights(ctx, field)
+			case "maxNights":
+				return ec.fieldContext_PricingRule_maxNights(ctx, field)
+			case "minLeadTimeDays":
+				return ec.fieldContext_PricingRule_minLeadTimeDays(ctx, field)
+			case "maxLeadTimeDays":
+				return ec.fieldContext_PricingRule_maxLeadTimeDays(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_PricingRule_createdBy(ctx, field)
+			case "updatedBy":
+				return ec.fieldContext_PricingRule_updatedBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PricingRule_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_PricingRule_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PricingRule", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_pricingRule_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_pricingRulesForListing(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_pricingRulesForListing,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PricingRulesForListing(ctx, fc.Args["listingId"].(uuid.UUID), fc.Args["activeOnly"].(*bool))
+		},
+		nil,
+		ec.marshalNPricingRule2ᚕᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPricingRuleᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_pricingRulesForListing(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PricingRule_id(ctx, field)
+			case "listingId":
+				return ec.fieldContext_PricingRule_listingId(ctx, field)
+			case "name":
+				return ec.fieldContext_PricingRule_name(ctx, field)
+			case "description":
+				return ec.fieldContext_PricingRule_description(ctx, field)
+			case "ruleType":
+				return ec.fieldContext_PricingRule_ruleType(ctx, field)
+			case "active":
+				return ec.fieldContext_PricingRule_active(ctx, field)
+			case "priority":
+				return ec.fieldContext_PricingRule_priority(ctx, field)
+			case "startDate":
+				return ec.fieldContext_PricingRule_startDate(ctx, field)
+			case "endDate":
+				return ec.fieldContext_PricingRule_endDate(ctx, field)
+			case "daysOfWeek":
+				return ec.fieldContext_PricingRule_daysOfWeek(ctx, field)
+			case "modifierType":
+				return ec.fieldContext_PricingRule_modifierType(ctx, field)
+			case "modifierValue":
+				return ec.fieldContext_PricingRule_modifierValue(ctx, field)
+			case "minNights":
+				return ec.fieldContext_PricingRule_minNights(ctx, field)
+			case "maxNights":
+				return ec.fieldContext_PricingRule_maxNights(ctx, field)
+			case "minLeadTimeDays":
+				return ec.fieldContext_PricingRule_minLeadTimeDays(ctx, field)
+			case "maxLeadTimeDays":
+				return ec.fieldContext_PricingRule_maxLeadTimeDays(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_PricingRule_createdBy(ctx, field)
+			case "updatedBy":
+				return ec.fieldContext_PricingRule_updatedBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PricingRule_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_PricingRule_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PricingRule", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_pricingRulesForListing_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_multiPropertyDiscountsForOwner(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_multiPropertyDiscountsForOwner,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MultiPropertyDiscountsForOwner(ctx)
+		},
+		nil,
+		ec.marshalNMultiPropertyDiscount2ᚕᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐMultiPropertyDiscountᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_multiPropertyDiscountsForOwner(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_MultiPropertyDiscount_id(ctx, field)
+			case "ownerId":
+				return ec.fieldContext_MultiPropertyDiscount_ownerId(ctx, field)
+			case "name":
+				return ec.fieldContext_MultiPropertyDiscount_name(ctx, field)
+			case "description":
+				return ec.fieldContext_MultiPropertyDiscount_description(ctx, field)
+			case "listingIds":
+				return ec.fieldContext_MultiPropertyDiscount_listingIds(ctx, field)
+			case "minProperties":
+				return ec.fieldContext_MultiPropertyDiscount_minProperties(ctx, field)
+			case "discountPercent":
+				return ec.fieldContext_MultiPropertyDiscount_discountPercent(ctx, field)
+			case "validFrom":
+				return ec.fieldContext_MultiPropertyDiscount_validFrom(ctx, field)
+			case "validUntil":
+				return ec.fieldContext_MultiPropertyDiscount_validUntil(ctx, field)
+			case "active":
+				return ec.fieldContext_MultiPropertyDiscount_active(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_MultiPropertyDiscount_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_MultiPropertyDiscount_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type MultiPropertyDiscount", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_calculatePrice(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_calculatePrice,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().CalculatePrice(ctx, fc.Args["listingId"].(uuid.UUID), fc.Args["checkIn"].(time.Time), fc.Args["checkOut"].(time.Time), fc.Args["guestCount"].(int))
+		},
+		nil,
+		ec.marshalNPriceBreakdown2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPriceBreakdown,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_calculatePrice(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "listingId":
+				return ec.fieldContext_PriceBreakdown_listingId(ctx, field)
+			case "checkIn":
+				return ec.fieldContext_PriceBreakdown_checkIn(ctx, field)
+			case "checkOut":
+				return ec.fieldContext_PriceBreakdown_checkOut(ctx, field)
+			case "nights":
+				return ec.fieldContext_PriceBreakdown_nights(ctx, field)
+			case "guestCount":
+				return ec.fieldContext_PriceBreakdown_guestCount(ctx, field)
+			case "baseTotal":
+				return ec.fieldContext_PriceBreakdown_baseTotal(ctx, field)
+			case "cleaningFee":
+				return ec.fieldContext_PriceBreakdown_cleaningFee(ctx, field)
+			case "serviceFee":
+				return ec.fieldContext_PriceBreakdown_serviceFee(ctx, field)
+			case "cautionFee":
+				return ec.fieldContext_PriceBreakdown_cautionFee(ctx, field)
+			case "extraGuestFee":
+				return ec.fieldContext_PriceBreakdown_extraGuestFee(ctx, field)
+			case "discounts":
+				return ec.fieldContext_PriceBreakdown_discounts(ctx, field)
+			case "dailyRates":
+				return ec.fieldContext_PriceBreakdown_dailyRates(ctx, field)
+			case "subtotal":
+				return ec.fieldContext_PriceBreakdown_subtotal(ctx, field)
+			case "vatPercent":
+				return ec.fieldContext_PriceBreakdown_vatPercent(ctx, field)
+			case "vatAmount":
+				return ec.fieldContext_PriceBreakdown_vatAmount(ctx, field)
+			case "total":
+				return ec.fieldContext_PriceBreakdown_total(ctx, field)
+			case "currency":
+				return ec.fieldContext_PriceBreakdown_currency(ctx, field)
+			case "platformFees":
+				return ec.fieldContext_PriceBreakdown_platformFees(ctx, field)
+			case "calculatedAt":
+				return ec.fieldContext_PriceBreakdown_calculatedAt(ctx, field)
+			case "validUntil":
+				return ec.fieldContext_PriceBreakdown_validUntil(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PriceBreakdown", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_calculatePrice_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_calculateMultiPropertyPrice(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_calculateMultiPropertyPrice,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().CalculateMultiPropertyPrice(ctx, fc.Args["bookings"].([]*graphql9.MultiPropertyBookingInput))
+		},
+		nil,
+		ec.marshalNPriceBreakdown2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPriceBreakdown,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_calculateMultiPropertyPrice(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "listingId":
+				return ec.fieldContext_PriceBreakdown_listingId(ctx, field)
+			case "checkIn":
+				return ec.fieldContext_PriceBreakdown_checkIn(ctx, field)
+			case "checkOut":
+				return ec.fieldContext_PriceBreakdown_checkOut(ctx, field)
+			case "nights":
+				return ec.fieldContext_PriceBreakdown_nights(ctx, field)
+			case "guestCount":
+				return ec.fieldContext_PriceBreakdown_guestCount(ctx, field)
+			case "baseTotal":
+				return ec.fieldContext_PriceBreakdown_baseTotal(ctx, field)
+			case "cleaningFee":
+				return ec.fieldContext_PriceBreakdown_cleaningFee(ctx, field)
+			case "serviceFee":
+				return ec.fieldContext_PriceBreakdown_serviceFee(ctx, field)
+			case "cautionFee":
+				return ec.fieldContext_PriceBreakdown_cautionFee(ctx, field)
+			case "extraGuestFee":
+				return ec.fieldContext_PriceBreakdown_extraGuestFee(ctx, field)
+			case "discounts":
+				return ec.fieldContext_PriceBreakdown_discounts(ctx, field)
+			case "dailyRates":
+				return ec.fieldContext_PriceBreakdown_dailyRates(ctx, field)
+			case "subtotal":
+				return ec.fieldContext_PriceBreakdown_subtotal(ctx, field)
+			case "vatPercent":
+				return ec.fieldContext_PriceBreakdown_vatPercent(ctx, field)
+			case "vatAmount":
+				return ec.fieldContext_PriceBreakdown_vatAmount(ctx, field)
+			case "total":
+				return ec.fieldContext_PriceBreakdown_total(ctx, field)
+			case "currency":
+				return ec.fieldContext_PriceBreakdown_currency(ctx, field)
+			case "platformFees":
+				return ec.fieldContext_PriceBreakdown_platformFees(ctx, field)
+			case "calculatedAt":
+				return ec.fieldContext_PriceBreakdown_calculatedAt(ctx, field)
+			case "validUntil":
+				return ec.fieldContext_PriceBreakdown_validUntil(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PriceBreakdown", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_calculateMultiPropertyPrice_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_basePrice(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_basePrice,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().BasePrice(ctx, fc.Args["listingId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNBasePriceResult2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐBasePriceResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_basePrice(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "baseRate":
+				return ec.fieldContext_BasePriceResult_baseRate(ctx, field)
+			case "currency":
+				return ec.fieldContext_BasePriceResult_currency(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BasePriceResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_basePrice_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_previewPricing(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_previewPricing,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PreviewPricing(ctx, fc.Args["listingId"].(uuid.UUID), fc.Args["month"].(time.Time))
+		},
+		nil,
+		ec.marshalNPricingDailyRate2ᚕᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDailyRateᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_previewPricing(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "date":
+				return ec.fieldContext_PricingDailyRate_date(ctx, field)
+			case "baseRate":
+				return ec.fieldContext_PricingDailyRate_baseRate(ctx, field)
+			case "appliedRules":
+				return ec.fieldContext_PricingDailyRate_appliedRules(ctx, field)
+			case "finalRate":
+				return ec.fieldContext_PricingDailyRate_finalRate(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PricingDailyRate", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_previewPricing_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_myWallets(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -44339,7 +48007,7 @@ func (ec *executionContext) _Query_reviews(ctx context.Context, field graphql.Co
 		ec.fieldContext_Query_reviews,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().Reviews(ctx, fc.Args["targetType"].(domain10.ReviewTargetType), fc.Args["targetId"].(uuid.UUID), fc.Args["filter"].(*graphql10.ReviewFilterInput))
+			return ec.resolvers.Query().Reviews(ctx, fc.Args["targetType"].(domain10.ReviewTargetType), fc.Args["targetId"].(uuid.UUID), fc.Args["filter"].(*graphql11.ReviewFilterInput))
 		},
 		nil,
 		ec.marshalNReview2ᚕᚖhausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐReviewᚄ,
@@ -46506,7 +50174,7 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _RankedListing_listing(ctx context.Context, field graphql.CollectedField, obj *domain13.RankedListing) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankedListing_listing(ctx context.Context, field graphql.CollectedField, obj *domain14.RankedListing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46593,7 +50261,7 @@ func (ec *executionContext) fieldContext_RankedListing_listing(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _RankedListing_score(ctx context.Context, field graphql.CollectedField, obj *domain13.RankedListing) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankedListing_score(ctx context.Context, field graphql.CollectedField, obj *domain14.RankedListing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46636,7 +50304,7 @@ func (ec *executionContext) fieldContext_RankedListing_score(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _RankedListing_ranking(ctx context.Context, field graphql.CollectedField, obj *domain13.RankedListing) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankedListing_ranking(ctx context.Context, field graphql.CollectedField, obj *domain14.RankedListing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46665,7 +50333,7 @@ func (ec *executionContext) fieldContext_RankedListing_ranking(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _RankedListing_promotionBoost(ctx context.Context, field graphql.CollectedField, obj *domain13.RankedListing) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankedListing_promotionBoost(ctx context.Context, field graphql.CollectedField, obj *domain14.RankedListing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46704,7 +50372,7 @@ func (ec *executionContext) fieldContext_RankedListing_promotionBoost(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _RankingScore_finalScore(ctx context.Context, field graphql.CollectedField, obj *domain13.RankingScore) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankingScore_finalScore(ctx context.Context, field graphql.CollectedField, obj *domain14.RankingScore) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46733,7 +50401,7 @@ func (ec *executionContext) fieldContext_RankingScore_finalScore(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _RankingScore_semanticScore(ctx context.Context, field graphql.CollectedField, obj *domain13.RankingScore) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankingScore_semanticScore(ctx context.Context, field graphql.CollectedField, obj *domain14.RankingScore) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46762,7 +50430,7 @@ func (ec *executionContext) fieldContext_RankingScore_semanticScore(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _RankingScore_promotionBoost(ctx context.Context, field graphql.CollectedField, obj *domain13.RankingScore) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankingScore_promotionBoost(ctx context.Context, field graphql.CollectedField, obj *domain14.RankingScore) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46791,7 +50459,7 @@ func (ec *executionContext) fieldContext_RankingScore_promotionBoost(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _RankingScore_recencyScore(ctx context.Context, field graphql.CollectedField, obj *domain13.RankingScore) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankingScore_recencyScore(ctx context.Context, field graphql.CollectedField, obj *domain14.RankingScore) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46820,7 +50488,7 @@ func (ec *executionContext) fieldContext_RankingScore_recencyScore(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _RankingScore_locationScore(ctx context.Context, field graphql.CollectedField, obj *domain13.RankingScore) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankingScore_locationScore(ctx context.Context, field graphql.CollectedField, obj *domain14.RankingScore) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -46849,7 +50517,7 @@ func (ec *executionContext) fieldContext_RankingScore_locationScore(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _RankingScore_personalizedScore(ctx context.Context, field graphql.CollectedField, obj *domain13.RankingScore) (ret graphql.Marshaler) {
+func (ec *executionContext) _RankingScore_personalizedScore(ctx context.Context, field graphql.CollectedField, obj *domain14.RankingScore) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -49206,7 +52874,7 @@ func (ec *executionContext) fieldContext_ScoredListing_ranking(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _SearchResult_listings(ctx context.Context, field graphql.CollectedField, obj *domain13.SearchResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _SearchResult_listings(ctx context.Context, field graphql.CollectedField, obj *domain14.SearchResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -49245,7 +52913,7 @@ func (ec *executionContext) fieldContext_SearchResult_listings(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _SearchResult_totalCount(ctx context.Context, field graphql.CollectedField, obj *domain13.SearchResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _SearchResult_totalCount(ctx context.Context, field graphql.CollectedField, obj *domain14.SearchResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -49274,7 +52942,7 @@ func (ec *executionContext) fieldContext_SearchResult_totalCount(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _SearchResult_searchId(ctx context.Context, field graphql.CollectedField, obj *domain13.SearchResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _SearchResult_searchId(ctx context.Context, field graphql.CollectedField, obj *domain14.SearchResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -49303,7 +52971,7 @@ func (ec *executionContext) fieldContext_SearchResult_searchId(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _SearchResult_processingTime(ctx context.Context, field graphql.CollectedField, obj *domain13.SearchResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _SearchResult_processingTime(ctx context.Context, field graphql.CollectedField, obj *domain14.SearchResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -51869,7 +55537,7 @@ func (ec *executionContext) fieldContext_UsageTracking_updatedAt(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -51898,7 +55566,7 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	return fc, nil
 }
 
-func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -51927,7 +55595,7 @@ func (ec *executionContext) fieldContext_User_name(_ context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_primaryEmail(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_primaryEmail(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -51956,7 +55624,7 @@ func (ec *executionContext) fieldContext_User_primaryEmail(_ context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _User_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -51985,7 +55653,7 @@ func (ec *executionContext) fieldContext_User_avatarUrl(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52014,7 +55682,7 @@ func (ec *executionContext) fieldContext_User_role(_ context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_isActive(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_isActive(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52043,7 +55711,7 @@ func (ec *executionContext) fieldContext_User_isActive(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _User_lastLoginAt(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_lastLoginAt(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52072,7 +55740,7 @@ func (ec *executionContext) fieldContext_User_lastLoginAt(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52101,7 +55769,7 @@ func (ec *executionContext) fieldContext_User_createdAt(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52130,7 +55798,7 @@ func (ec *executionContext) fieldContext_User_updatedAt(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_identities(ctx context.Context, field graphql.CollectedField, obj *domain12.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_identities(ctx context.Context, field graphql.CollectedField, obj *domain13.User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52175,7 +55843,7 @@ func (ec *executionContext) fieldContext_User_identities(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_id(ctx context.Context, field graphql.CollectedField, obj *domain12.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_id(ctx context.Context, field graphql.CollectedField, obj *domain13.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52204,7 +55872,7 @@ func (ec *executionContext) fieldContext_UserIdentity_id(_ context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_userId(ctx context.Context, field graphql.CollectedField, obj *domain12.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_userId(ctx context.Context, field graphql.CollectedField, obj *domain13.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52233,7 +55901,7 @@ func (ec *executionContext) fieldContext_UserIdentity_userId(_ context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_provider(ctx context.Context, field graphql.CollectedField, obj *domain12.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_provider(ctx context.Context, field graphql.CollectedField, obj *domain13.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52262,7 +55930,7 @@ func (ec *executionContext) fieldContext_UserIdentity_provider(_ context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_email(ctx context.Context, field graphql.CollectedField, obj *domain12.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_email(ctx context.Context, field graphql.CollectedField, obj *domain13.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52291,7 +55959,7 @@ func (ec *executionContext) fieldContext_UserIdentity_email(_ context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_emailVerified(ctx context.Context, field graphql.CollectedField, obj *domain12.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_emailVerified(ctx context.Context, field graphql.CollectedField, obj *domain13.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52320,7 +55988,7 @@ func (ec *executionContext) fieldContext_UserIdentity_emailVerified(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *domain12.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *domain13.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -52349,7 +56017,7 @@ func (ec *executionContext) fieldContext_UserIdentity_lastUsedAt(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _UserIdentity_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain12.UserIdentity) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserIdentity_createdAt(ctx context.Context, field graphql.CollectedField, obj *domain13.UserIdentity) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -55551,8 +59219,8 @@ func (ec *executionContext) unmarshalInputAddDisputeEvidenceInput(ctx context.Co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputAddPayoutDetailInput(ctx context.Context, obj any) (graphql9.AddPayoutDetailInput, error) {
-	var it graphql9.AddPayoutDetailInput
+func (ec *executionContext) unmarshalInputAddPayoutDetailInput(ctx context.Context, obj any) (graphql10.AddPayoutDetailInput, error) {
+	var it graphql10.AddPayoutDetailInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -56528,6 +60196,82 @@ func (ec *executionContext) unmarshalInputCreateListingPropertyInput(ctx context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateMultiPropertyDiscountInput(ctx context.Context, obj any) (graphql9.CreateMultiPropertyDiscountInput, error) {
+	var it graphql9.CreateMultiPropertyDiscountInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "description", "listingIds", "minProperties", "discountPercent", "validFrom", "validUntil", "active"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "listingIds":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("listingIds"))
+			data, err := ec.unmarshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ListingIds = data
+		case "minProperties":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minProperties"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinProperties = data
+		case "discountPercent":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discountPercent"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DiscountPercent = data
+		case "validFrom":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("validFrom"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ValidFrom = data
+		case "validUntil":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("validUntil"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ValidUntil = data
+		case "active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("active"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Active = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateOpenHouseInput(ctx context.Context, obj any) (graphql5.CreateOpenHouseInput, error) {
 	var it graphql5.CreateOpenHouseInput
 	asMap := map[string]any{}
@@ -56597,8 +60341,8 @@ func (ec *executionContext) unmarshalInputCreateOpenHouseInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreatePaymentMethodInput(ctx context.Context, obj any) (graphql9.SavePaymentMethodInput, error) {
-	var it graphql9.SavePaymentMethodInput
+func (ec *executionContext) unmarshalInputCreatePaymentMethodInput(ctx context.Context, obj any) (graphql10.SavePaymentMethodInput, error) {
+	var it graphql10.SavePaymentMethodInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -56640,8 +60384,8 @@ func (ec *executionContext) unmarshalInputCreatePaymentMethodInput(ctx context.C
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreatePayoutInput(ctx context.Context, obj any) (graphql9.CreatePayoutInput, error) {
-	var it graphql9.CreatePayoutInput
+func (ec *executionContext) unmarshalInputCreatePayoutInput(ctx context.Context, obj any) (graphql10.CreatePayoutInput, error) {
+	var it graphql10.CreatePayoutInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -56731,6 +60475,131 @@ func (ec *executionContext) unmarshalInputCreatePhoneVerificationInput(ctx conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreatePricingRuleInput(ctx context.Context, obj any) (graphql9.CreatePricingRuleInput, error) {
+	var it graphql9.CreatePricingRuleInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"listingId", "name", "description", "ruleType", "active", "priority", "startDate", "endDate", "daysOfWeek", "modifierType", "modifierValue", "minNights", "maxNights", "minLeadTimeDays", "maxLeadTimeDays"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "listingId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("listingId"))
+			data, err := ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ListingID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "ruleType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ruleType"))
+			data, err := ec.unmarshalNRuleType2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐRuleType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RuleType = data
+		case "active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("active"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Active = data
+		case "priority":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("priority"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Priority = data
+		case "startDate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startDate"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StartDate = data
+		case "endDate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endDate"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EndDate = data
+		case "daysOfWeek":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("daysOfWeek"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DaysOfWeek = data
+		case "modifierType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modifierType"))
+			data, err := ec.unmarshalNModifierType2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐModifierType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ModifierType = data
+		case "modifierValue":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modifierValue"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ModifierValue = data
+		case "minNights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNights"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinNights = data
+		case "maxNights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxNights"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxNights = data
+		case "minLeadTimeDays":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minLeadTimeDays"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinLeadTimeDays = data
+		case "maxLeadTimeDays":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxLeadTimeDays"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxLeadTimeDays = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreatePromotionInput(ctx context.Context, obj any) (graphql7.CreatePromotionInput, error) {
 	var it graphql7.CreatePromotionInput
 	asMap := map[string]any{}
@@ -56772,8 +60641,8 @@ func (ec *executionContext) unmarshalInputCreatePromotionInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateReviewInput(ctx context.Context, obj any) (graphql10.CreateReviewInput, error) {
-	var it graphql10.CreateReviewInput
+func (ec *executionContext) unmarshalInputCreateReviewInput(ctx context.Context, obj any) (graphql11.CreateReviewInput, error) {
+	var it graphql11.CreateReviewInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -56942,8 +60811,8 @@ func (ec *executionContext) unmarshalInputCreateSubscriptionInput(ctx context.Co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateWishlistInput(ctx context.Context, obj any) (graphql11.CreateWishlistInput, error) {
-	var it graphql11.CreateWishlistInput
+func (ec *executionContext) unmarshalInputCreateWishlistInput(ctx context.Context, obj any) (graphql12.CreateWishlistInput, error) {
+	var it graphql12.CreateWishlistInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -57742,6 +61611,54 @@ func (ec *executionContext) unmarshalInputMemberPermissionsInput(ctx context.Con
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputMultiPropertyBookingInput(ctx context.Context, obj any) (graphql9.MultiPropertyBookingInput, error) {
+	var it graphql9.MultiPropertyBookingInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"listingId", "checkIn", "checkOut", "guestCount"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "listingId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("listingId"))
+			data, err := ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ListingID = data
+		case "checkIn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkIn"))
+			data, err := ec.unmarshalNTime2timeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckIn = data
+		case "checkOut":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkOut"))
+			data, err := ec.unmarshalNTime2timeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckOut = data
+		case "guestCount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("guestCount"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.GuestCount = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputPageInput(ctx context.Context, obj any) (graphql8.PageInput, error) {
 	var it graphql8.PageInput
 	asMap := map[string]any{}
@@ -58360,8 +62277,8 @@ func (ec *executionContext) unmarshalInputReserveBookingInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputReviewFilterInput(ctx context.Context, obj any) (graphql10.ReviewFilterInput, error) {
-	var it graphql10.ReviewFilterInput
+func (ec *executionContext) unmarshalInputReviewFilterInput(ctx context.Context, obj any) (graphql11.ReviewFilterInput, error) {
+	var it graphql11.ReviewFilterInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -59125,8 +63042,8 @@ func (ec *executionContext) unmarshalInputSubmitIdentityVerificationInput(ctx co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputTrackInteractionInput(ctx context.Context, obj any) (graphql12.TrackInteractionInput, error) {
-	var it graphql12.TrackInteractionInput
+func (ec *executionContext) unmarshalInputTrackInteractionInput(ctx context.Context, obj any) (graphql13.TrackInteractionInput, error) {
+	var it graphql13.TrackInteractionInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -59603,6 +63520,214 @@ func (ec *executionContext) unmarshalInputUpdateListingPropertyInput(ctx context
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateMultiPropertyDiscountInput(ctx context.Context, obj any) (graphql9.UpdateMultiPropertyDiscountInput, error) {
+	var it graphql9.UpdateMultiPropertyDiscountInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "name", "description", "listingIds", "minProperties", "discountPercent", "validFrom", "validUntil", "active"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "listingIds":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("listingIds"))
+			data, err := ec.unmarshalOUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ListingIds = data
+		case "minProperties":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minProperties"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinProperties = data
+		case "discountPercent":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discountPercent"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DiscountPercent = data
+		case "validFrom":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("validFrom"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ValidFrom = data
+		case "validUntil":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("validUntil"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ValidUntil = data
+		case "active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("active"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Active = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdatePricingRuleInput(ctx context.Context, obj any) (graphql9.UpdatePricingRuleInput, error) {
+	var it graphql9.UpdatePricingRuleInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "name", "description", "ruleType", "active", "priority", "startDate", "endDate", "daysOfWeek", "modifierType", "modifierValue", "minNights", "maxNights", "minLeadTimeDays", "maxLeadTimeDays"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "ruleType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ruleType"))
+			data, err := ec.unmarshalORuleType2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐRuleType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RuleType = data
+		case "active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("active"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Active = data
+		case "priority":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("priority"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Priority = data
+		case "startDate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startDate"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StartDate = data
+		case "endDate":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endDate"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EndDate = data
+		case "daysOfWeek":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("daysOfWeek"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DaysOfWeek = data
+		case "modifierType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modifierType"))
+			data, err := ec.unmarshalOModifierType2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐModifierType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ModifierType = data
+		case "modifierValue":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modifierValue"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ModifierValue = data
+		case "minNights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNights"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinNights = data
+		case "maxNights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxNights"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxNights = data
+		case "minLeadTimeDays":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minLeadTimeDays"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinLeadTimeDays = data
+		case "maxLeadTimeDays":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxLeadTimeDays"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxLeadTimeDays = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context, obj any) (graphql3.UpdateProfileInput, error) {
 	var it graphql3.UpdateProfileInput
 	asMap := map[string]any{}
@@ -59944,8 +64069,8 @@ func (ec *executionContext) unmarshalInputUpdateRentalDetailInput(ctx context.Co
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateReviewInput(ctx context.Context, obj any) (graphql10.UpdateReviewInput, error) {
-	var it graphql10.UpdateReviewInput
+func (ec *executionContext) unmarshalInputUpdateReviewInput(ctx context.Context, obj any) (graphql11.UpdateReviewInput, error) {
+	var it graphql11.UpdateReviewInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -60291,8 +64416,8 @@ func (ec *executionContext) unmarshalInputUpdateShortletDetailInput(ctx context.
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateWishlistInput(ctx context.Context, obj any) (graphql11.UpdateWishlistInput, error) {
-	var it graphql11.UpdateWishlistInput
+func (ec *executionContext) unmarshalInputUpdateWishlistInput(ctx context.Context, obj any) (graphql12.UpdateWishlistInput, error) {
+	var it graphql12.UpdateWishlistInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -60691,7 +64816,7 @@ func (ec *executionContext) _AmenityHighlight(ctx context.Context, sel ast.Selec
 
 var analyticsPeriodImplementors = []string{"AnalyticsPeriod"}
 
-func (ec *executionContext) _AnalyticsPeriod(ctx context.Context, sel ast.SelectionSet, obj *graphql12.PeriodResponse) graphql.Marshaler {
+func (ec *executionContext) _AnalyticsPeriod(ctx context.Context, sel ast.SelectionSet, obj *graphql13.PeriodResponse) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, analyticsPeriodImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -60775,6 +64900,50 @@ func (ec *executionContext) _Attendee(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "registrationToken":
 			out.Values[i] = ec._Attendee_registrationToken(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var basePriceResultImplementors = []string{"BasePriceResult"}
+
+func (ec *executionContext) _BasePriceResult(ctx context.Context, sel ast.SelectionSet, obj *graphql9.BasePriceResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, basePriceResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BasePriceResult")
+		case "baseRate":
+			out.Values[i] = ec._BasePriceResult_baseRate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "currency":
+			out.Values[i] = ec._BasePriceResult_currency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -62706,7 +66875,7 @@ func (ec *executionContext) _FinanceTransaction(ctx context.Context, sel ast.Sel
 
 var homeFeedSectionImplementors = []string{"HomeFeedSection"}
 
-func (ec *executionContext) _HomeFeedSection(ctx context.Context, sel ast.SelectionSet, obj *domain13.HomeFeedSection) graphql.Marshaler {
+func (ec *executionContext) _HomeFeedSection(ctx context.Context, sel ast.SelectionSet, obj *domain14.HomeFeedSection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, homeFeedSectionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -62943,7 +67112,7 @@ func (ec *executionContext) _HostStats(ctx context.Context, sel ast.SelectionSet
 
 var interactionImplementors = []string{"Interaction"}
 
-func (ec *executionContext) _Interaction(ctx context.Context, sel ast.SelectionSet, obj *graphql12.InteractionResponse) graphql.Marshaler {
+func (ec *executionContext) _Interaction(ctx context.Context, sel ast.SelectionSet, obj *graphql13.InteractionResponse) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, interactionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -63774,7 +67943,7 @@ func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, 
 
 var listingAnalyticsImplementors = []string{"ListingAnalytics"}
 
-func (ec *executionContext) _ListingAnalytics(ctx context.Context, sel ast.SelectionSet, obj *graphql12.ListingAnalyticsResponse) graphql.Marshaler {
+func (ec *executionContext) _ListingAnalytics(ctx context.Context, sel ast.SelectionSet, obj *graphql13.ListingAnalyticsResponse) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, listingAnalyticsImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -65034,6 +69203,91 @@ func (ec *executionContext) _MemberPermissions(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var multiPropertyDiscountImplementors = []string{"MultiPropertyDiscount"}
+
+func (ec *executionContext) _MultiPropertyDiscount(ctx context.Context, sel ast.SelectionSet, obj *domain12.MultiPropertyDiscount) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, multiPropertyDiscountImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MultiPropertyDiscount")
+		case "id":
+			out.Values[i] = ec._MultiPropertyDiscount_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ownerId":
+			out.Values[i] = ec._MultiPropertyDiscount_ownerId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._MultiPropertyDiscount_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._MultiPropertyDiscount_description(ctx, field, obj)
+		case "listingIds":
+			out.Values[i] = ec._MultiPropertyDiscount_listingIds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "minProperties":
+			out.Values[i] = ec._MultiPropertyDiscount_minProperties(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "discountPercent":
+			out.Values[i] = ec._MultiPropertyDiscount_discountPercent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "validFrom":
+			out.Values[i] = ec._MultiPropertyDiscount_validFrom(ctx, field, obj)
+		case "validUntil":
+			out.Values[i] = ec._MultiPropertyDiscount_validUntil(ctx, field, obj)
+		case "active":
+			out.Values[i] = ec._MultiPropertyDiscount_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._MultiPropertyDiscount_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._MultiPropertyDiscount_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -65357,6 +69611,48 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "createPayout":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createPayout(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createPricingRule":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createPricingRule(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatePricingRule":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updatePricingRule(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deletePricingRule":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deletePricingRule(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createMultiPropertyDiscount":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createMultiPropertyDiscount(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateMultiPropertyDiscount":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateMultiPropertyDiscount(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteMultiPropertyDiscount":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteMultiPropertyDiscount(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -66524,6 +70820,159 @@ func (ec *executionContext) _PlatformFeeBreakdown(ctx context.Context, sel ast.S
 	return out
 }
 
+var priceBreakdownImplementors = []string{"PriceBreakdown"}
+
+func (ec *executionContext) _PriceBreakdown(ctx context.Context, sel ast.SelectionSet, obj *domain12.PriceBreakdown) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, priceBreakdownImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PriceBreakdown")
+		case "listingId":
+			out.Values[i] = ec._PriceBreakdown_listingId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "checkIn":
+			out.Values[i] = ec._PriceBreakdown_checkIn(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "checkOut":
+			out.Values[i] = ec._PriceBreakdown_checkOut(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "nights":
+			out.Values[i] = ec._PriceBreakdown_nights(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "guestCount":
+			out.Values[i] = ec._PriceBreakdown_guestCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "baseTotal":
+			out.Values[i] = ec._PriceBreakdown_baseTotal(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "cleaningFee":
+			out.Values[i] = ec._PriceBreakdown_cleaningFee(ctx, field, obj)
+		case "serviceFee":
+			out.Values[i] = ec._PriceBreakdown_serviceFee(ctx, field, obj)
+		case "cautionFee":
+			out.Values[i] = ec._PriceBreakdown_cautionFee(ctx, field, obj)
+		case "extraGuestFee":
+			out.Values[i] = ec._PriceBreakdown_extraGuestFee(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "discounts":
+			out.Values[i] = ec._PriceBreakdown_discounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "dailyRates":
+			out.Values[i] = ec._PriceBreakdown_dailyRates(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "subtotal":
+			out.Values[i] = ec._PriceBreakdown_subtotal(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "vatPercent":
+			out.Values[i] = ec._PriceBreakdown_vatPercent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "vatAmount":
+			out.Values[i] = ec._PriceBreakdown_vatAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "total":
+			out.Values[i] = ec._PriceBreakdown_total(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "currency":
+			out.Values[i] = ec._PriceBreakdown_currency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "platformFees":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._PriceBreakdown_platformFees(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "calculatedAt":
+			out.Values[i] = ec._PriceBreakdown_calculatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "validUntil":
+			out.Values[i] = ec._PriceBreakdown_validUntil(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var priceBreakdownSnapshotImplementors = []string{"PriceBreakdownSnapshot"}
 
 func (ec *executionContext) _PriceBreakdownSnapshot(ctx context.Context, sel ast.SelectionSet, obj *domain6.PriceBreakdownSnapshot) graphql.Marshaler {
@@ -66602,6 +71051,213 @@ func (ec *executionContext) _PriceBreakdownSnapshot(ctx context.Context, sel ast
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var pricingDailyRateImplementors = []string{"PricingDailyRate"}
+
+func (ec *executionContext) _PricingDailyRate(ctx context.Context, sel ast.SelectionSet, obj *domain12.DailyRate) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pricingDailyRateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PricingDailyRate")
+		case "date":
+			out.Values[i] = ec._PricingDailyRate_date(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "baseRate":
+			out.Values[i] = ec._PricingDailyRate_baseRate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "appliedRules":
+			out.Values[i] = ec._PricingDailyRate_appliedRules(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "finalRate":
+			out.Values[i] = ec._PricingDailyRate_finalRate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var pricingDiscountImplementors = []string{"PricingDiscount"}
+
+func (ec *executionContext) _PricingDiscount(ctx context.Context, sel ast.SelectionSet, obj *domain12.Discount) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pricingDiscountImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PricingDiscount")
+		case "name":
+			out.Values[i] = ec._PricingDiscount_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "amount":
+			out.Values[i] = ec._PricingDiscount_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "type":
+			out.Values[i] = ec._PricingDiscount_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var pricingRuleImplementors = []string{"PricingRule"}
+
+func (ec *executionContext) _PricingRule(ctx context.Context, sel ast.SelectionSet, obj *domain12.PricingRule) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pricingRuleImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PricingRule")
+		case "id":
+			out.Values[i] = ec._PricingRule_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "listingId":
+			out.Values[i] = ec._PricingRule_listingId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._PricingRule_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._PricingRule_description(ctx, field, obj)
+		case "ruleType":
+			out.Values[i] = ec._PricingRule_ruleType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "active":
+			out.Values[i] = ec._PricingRule_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "priority":
+			out.Values[i] = ec._PricingRule_priority(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "startDate":
+			out.Values[i] = ec._PricingRule_startDate(ctx, field, obj)
+		case "endDate":
+			out.Values[i] = ec._PricingRule_endDate(ctx, field, obj)
+		case "daysOfWeek":
+			out.Values[i] = ec._PricingRule_daysOfWeek(ctx, field, obj)
+		case "modifierType":
+			out.Values[i] = ec._PricingRule_modifierType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "modifierValue":
+			out.Values[i] = ec._PricingRule_modifierValue(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "minNights":
+			out.Values[i] = ec._PricingRule_minNights(ctx, field, obj)
+		case "maxNights":
+			out.Values[i] = ec._PricingRule_maxNights(ctx, field, obj)
+		case "minLeadTimeDays":
+			out.Values[i] = ec._PricingRule_minLeadTimeDays(ctx, field, obj)
+		case "maxLeadTimeDays":
+			out.Values[i] = ec._PricingRule_maxLeadTimeDays(ctx, field, obj)
+		case "createdBy":
+			out.Values[i] = ec._PricingRule_createdBy(ctx, field, obj)
+		case "updatedBy":
+			out.Values[i] = ec._PricingRule_updatedBy(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._PricingRule_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._PricingRule_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -66849,7 +71505,7 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 
 var promotionBoostInfoImplementors = []string{"PromotionBoostInfo"}
 
-func (ec *executionContext) _PromotionBoostInfo(ctx context.Context, sel ast.SelectionSet, obj *domain13.PromotionBoostInfo) graphql.Marshaler {
+func (ec *executionContext) _PromotionBoostInfo(ctx context.Context, sel ast.SelectionSet, obj *domain14.PromotionBoostInfo) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, promotionBoostInfoImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -68245,6 +72901,157 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "pricingRule":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_pricingRule(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "pricingRulesForListing":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_pricingRulesForListing(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "multiPropertyDiscountsForOwner":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_multiPropertyDiscountsForOwner(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "calculatePrice":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_calculatePrice(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "calculateMultiPropertyPrice":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_calculateMultiPropertyPrice(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "basePrice":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_basePrice(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "previewPricing":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_previewPricing(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "myWallets":
 			field := field
 
@@ -69396,7 +74203,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var rankedListingImplementors = []string{"RankedListing"}
 
-func (ec *executionContext) _RankedListing(ctx context.Context, sel ast.SelectionSet, obj *domain13.RankedListing) graphql.Marshaler {
+func (ec *executionContext) _RankedListing(ctx context.Context, sel ast.SelectionSet, obj *domain14.RankedListing) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, rankedListingImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -69447,7 +74254,7 @@ func (ec *executionContext) _RankedListing(ctx context.Context, sel ast.Selectio
 
 var rankingScoreImplementors = []string{"RankingScore"}
 
-func (ec *executionContext) _RankingScore(ctx context.Context, sel ast.SelectionSet, obj *domain13.RankingScore) graphql.Marshaler {
+func (ec *executionContext) _RankingScore(ctx context.Context, sel ast.SelectionSet, obj *domain14.RankingScore) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, rankingScoreImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -70439,7 +75246,7 @@ func (ec *executionContext) _ScoredListing(ctx context.Context, sel ast.Selectio
 
 var searchResultImplementors = []string{"SearchResult"}
 
-func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.SelectionSet, obj *domain13.SearchResult) graphql.Marshaler {
+func (ec *executionContext) _SearchResult(ctx context.Context, sel ast.SelectionSet, obj *domain14.SearchResult) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, searchResultImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -71640,7 +76447,7 @@ func (ec *executionContext) _UsageTracking(ctx context.Context, sel ast.Selectio
 
 var userImplementors = []string{"User"}
 
-func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *domain12.User) graphql.Marshaler {
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *domain13.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -71715,7 +76522,7 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 
 var userIdentityImplementors = []string{"UserIdentity"}
 
-func (ec *executionContext) _UserIdentity(ctx context.Context, sel ast.SelectionSet, obj *domain12.UserIdentity) graphql.Marshaler {
+func (ec *executionContext) _UserIdentity(ctx context.Context, sel ast.SelectionSet, obj *domain13.UserIdentity) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userIdentityImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -72782,7 +77589,7 @@ func (ec *executionContext) unmarshalNAddDisputeEvidenceInput2hausletᚋinternal
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNAddPayoutDetailInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐAddPayoutDetailInput(ctx context.Context, v any) (graphql9.AddPayoutDetailInput, error) {
+func (ec *executionContext) unmarshalNAddPayoutDetailInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐAddPayoutDetailInput(ctx context.Context, v any) (graphql10.AddPayoutDetailInput, error) {
 	res, err := ec.unmarshalInputAddPayoutDetailInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -72913,7 +77720,7 @@ func (ec *executionContext) unmarshalNAmenityHighlightInput2ᚖhausletᚋinterna
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNAnalyticsPeriod2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPeriodResponse(ctx context.Context, sel ast.SelectionSet, v graphql12.PeriodResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNAnalyticsPeriod2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPeriodResponse(ctx context.Context, sel ast.SelectionSet, v graphql13.PeriodResponse) graphql.Marshaler {
 	return ec._AnalyticsPeriod(ctx, sel, &v)
 }
 
@@ -73110,6 +77917,20 @@ func (ec *executionContext) marshalNBadge2ᚕhausletᚋinternalᚋmodulesᚋprof
 	}
 
 	return ret
+}
+
+func (ec *executionContext) marshalNBasePriceResult2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐBasePriceResult(ctx context.Context, sel ast.SelectionSet, v graphql9.BasePriceResult) graphql.Marshaler {
+	return ec._BasePriceResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBasePriceResult2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐBasePriceResult(ctx context.Context, sel ast.SelectionSet, v *graphql9.BasePriceResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BasePriceResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNBillingCycle2hausletᚋinternalᚋmodulesᚋpromotionsᚋdomainᚐBillingCycle(ctx context.Context, v any) (domain3.BillingCycle, error) {
@@ -73590,23 +78411,33 @@ func (ec *executionContext) unmarshalNCreateListingPropertyInput2ᚖhausletᚋin
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateMultiPropertyDiscountInput2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐCreateMultiPropertyDiscountInput(ctx context.Context, v any) (graphql9.CreateMultiPropertyDiscountInput, error) {
+	res, err := ec.unmarshalInputCreateMultiPropertyDiscountInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCreateOpenHouseInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐCreateOpenHouseInput(ctx context.Context, v any) (graphql5.CreateOpenHouseInput, error) {
 	res, err := ec.unmarshalInputCreateOpenHouseInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreatePaymentMethodInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐSavePaymentMethodInput(ctx context.Context, v any) (graphql9.SavePaymentMethodInput, error) {
+func (ec *executionContext) unmarshalNCreatePaymentMethodInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐSavePaymentMethodInput(ctx context.Context, v any) (graphql10.SavePaymentMethodInput, error) {
 	res, err := ec.unmarshalInputCreatePaymentMethodInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreatePayoutInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐCreatePayoutInput(ctx context.Context, v any) (graphql9.CreatePayoutInput, error) {
+func (ec *executionContext) unmarshalNCreatePayoutInput2hausletᚋinternalᚋmodulesᚋpaymentsᚋportᚋgraphqlᚐCreatePayoutInput(ctx context.Context, v any) (graphql10.CreatePayoutInput, error) {
 	res, err := ec.unmarshalInputCreatePayoutInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNCreatePhoneVerificationInput2hausletᚋinternalᚋmodulesᚋverificationᚋportᚋgraphqlᚐCreatePhoneVerificationInput(ctx context.Context, v any) (graphql6.CreatePhoneVerificationInput, error) {
 	res, err := ec.unmarshalInputCreatePhoneVerificationInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreatePricingRuleInput2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐCreatePricingRuleInput(ctx context.Context, v any) (graphql9.CreatePricingRuleInput, error) {
+	res, err := ec.unmarshalInputCreatePricingRuleInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -73629,7 +78460,7 @@ func (ec *executionContext) marshalNCreatePromotionPayload2ᚖhausletᚋinternal
 	return ec._CreatePromotionPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCreateReviewInput2hausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐCreateReviewInput(ctx context.Context, v any) (graphql10.CreateReviewInput, error) {
+func (ec *executionContext) unmarshalNCreateReviewInput2hausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐCreateReviewInput(ctx context.Context, v any) (graphql11.CreateReviewInput, error) {
 	res, err := ec.unmarshalInputCreateReviewInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -73653,7 +78484,7 @@ func (ec *executionContext) marshalNCreateSubscriptionPayload2ᚖhausletᚋinter
 	return ec._CreateSubscriptionPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCreateWishlistInput2hausletᚋinternalᚋmodulesᚋwishlistᚋportᚋgraphqlᚐCreateWishlistInput(ctx context.Context, v any) (graphql11.CreateWishlistInput, error) {
+func (ec *executionContext) unmarshalNCreateWishlistInput2hausletᚋinternalᚋmodulesᚋwishlistᚋportᚋgraphqlᚐCreateWishlistInput(ctx context.Context, v any) (graphql12.CreateWishlistInput, error) {
 	res, err := ec.unmarshalInputCreateWishlistInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -74039,13 +78870,13 @@ func (ec *executionContext) marshalNEarningsSummary2ᚖhausletᚋinternalᚋmodu
 	return ec._EarningsSummary(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNEntityType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐEntityTypeInput(ctx context.Context, v any) (graphql12.EntityTypeInput, error) {
+func (ec *executionContext) unmarshalNEntityType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐEntityTypeInput(ctx context.Context, v any) (graphql13.EntityTypeInput, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := graphql12.EntityTypeInput(tmp)
+	res := graphql13.EntityTypeInput(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNEntityType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐEntityTypeInput(ctx context.Context, sel ast.SelectionSet, v graphql12.EntityTypeInput) graphql.Marshaler {
+func (ec *executionContext) marshalNEntityType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐEntityTypeInput(ctx context.Context, sel ast.SelectionSet, v graphql13.EntityTypeInput) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -74104,13 +78935,13 @@ func (ec *executionContext) marshalNFeatureLimitCheckResult2ᚖhausletᚋinterna
 	return ec._FeatureLimitCheckResult(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx context.Context, v any) (domain13.FeedSectionType, error) {
+func (ec *executionContext) unmarshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx context.Context, v any) (domain14.FeedSectionType, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain13.FeedSectionType(tmp)
+	res := domain14.FeedSectionType(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx context.Context, sel ast.SelectionSet, v domain13.FeedSectionType) graphql.Marshaler {
+func (ec *executionContext) marshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx context.Context, sel ast.SelectionSet, v domain14.FeedSectionType) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -74247,7 +79078,7 @@ func (ec *executionContext) marshalNFurnishingType2hausletᚋinternalᚋmodules�
 	return res
 }
 
-func (ec *executionContext) marshalNHomeFeedSection2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐHomeFeedSectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain13.HomeFeedSection) graphql.Marshaler {
+func (ec *executionContext) marshalNHomeFeedSection2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐHomeFeedSectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain14.HomeFeedSection) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -74291,7 +79122,7 @@ func (ec *executionContext) marshalNHomeFeedSection2ᚕᚖhausletᚋinternalᚋm
 	return ret
 }
 
-func (ec *executionContext) marshalNHomeFeedSection2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐHomeFeedSection(ctx context.Context, sel ast.SelectionSet, v *domain13.HomeFeedSection) graphql.Marshaler {
+func (ec *executionContext) marshalNHomeFeedSection2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐHomeFeedSection(ctx context.Context, sel ast.SelectionSet, v *domain14.HomeFeedSection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -74349,7 +79180,7 @@ func (ec *executionContext) marshalNInt2int64(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) marshalNInteraction2ᚕᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionResponseᚄ(ctx context.Context, sel ast.SelectionSet, v []*graphql12.InteractionResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNInteraction2ᚕᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionResponseᚄ(ctx context.Context, sel ast.SelectionSet, v []*graphql13.InteractionResponse) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -74393,7 +79224,7 @@ func (ec *executionContext) marshalNInteraction2ᚕᚖhausletᚋinternalᚋmodul
 	return ret
 }
 
-func (ec *executionContext) marshalNInteraction2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionResponse(ctx context.Context, sel ast.SelectionSet, v *graphql12.InteractionResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNInteraction2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionResponse(ctx context.Context, sel ast.SelectionSet, v *graphql13.InteractionResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -74403,13 +79234,13 @@ func (ec *executionContext) marshalNInteraction2ᚖhausletᚋinternalᚋmodules�
 	return ec._Interaction(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNInteractionType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionTypeInput(ctx context.Context, v any) (graphql12.InteractionTypeInput, error) {
+func (ec *executionContext) unmarshalNInteractionType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionTypeInput(ctx context.Context, v any) (graphql13.InteractionTypeInput, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := graphql12.InteractionTypeInput(tmp)
+	res := graphql13.InteractionTypeInput(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNInteractionType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionTypeInput(ctx context.Context, sel ast.SelectionSet, v graphql12.InteractionTypeInput) graphql.Marshaler {
+func (ec *executionContext) marshalNInteractionType2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐInteractionTypeInput(ctx context.Context, sel ast.SelectionSet, v graphql13.InteractionTypeInput) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -74735,11 +79566,11 @@ func (ec *executionContext) marshalNListing2ᚖhausletᚋinternalᚋmodulesᚋpr
 	return ec._Listing(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNListingAnalytics2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐListingAnalyticsResponse(ctx context.Context, sel ast.SelectionSet, v graphql12.ListingAnalyticsResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNListingAnalytics2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐListingAnalyticsResponse(ctx context.Context, sel ast.SelectionSet, v graphql13.ListingAnalyticsResponse) graphql.Marshaler {
 	return ec._ListingAnalytics(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNListingAnalytics2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐListingAnalyticsResponse(ctx context.Context, sel ast.SelectionSet, v *graphql12.ListingAnalyticsResponse) graphql.Marshaler {
+func (ec *executionContext) marshalNListingAnalytics2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐListingAnalyticsResponse(ctx context.Context, sel ast.SelectionSet, v *graphql13.ListingAnalyticsResponse) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -75093,6 +79924,101 @@ func (ec *executionContext) marshalNMemberRole2hausletᚋinternalᚋmodulesᚋbu
 	return res
 }
 
+func (ec *executionContext) unmarshalNModifierType2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐModifierType(ctx context.Context, v any) (domain12.ModifierType, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain12.ModifierType(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNModifierType2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐModifierType(ctx context.Context, sel ast.SelectionSet, v domain12.ModifierType) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNMultiPropertyBookingInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐMultiPropertyBookingInputᚄ(ctx context.Context, v any) ([]*graphql9.MultiPropertyBookingInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*graphql9.MultiPropertyBookingInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNMultiPropertyBookingInput2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐMultiPropertyBookingInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNMultiPropertyBookingInput2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐMultiPropertyBookingInput(ctx context.Context, v any) (*graphql9.MultiPropertyBookingInput, error) {
+	res, err := ec.unmarshalInputMultiPropertyBookingInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNMultiPropertyDiscount2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐMultiPropertyDiscount(ctx context.Context, sel ast.SelectionSet, v domain12.MultiPropertyDiscount) graphql.Marshaler {
+	return ec._MultiPropertyDiscount(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMultiPropertyDiscount2ᚕᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐMultiPropertyDiscountᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain12.MultiPropertyDiscount) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNMultiPropertyDiscount2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐMultiPropertyDiscount(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNMultiPropertyDiscount2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐMultiPropertyDiscount(ctx context.Context, sel ast.SelectionSet, v *domain12.MultiPropertyDiscount) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._MultiPropertyDiscount(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNOTPResponse2hausletᚋinternalᚋmodulesᚋverificationᚋportᚋgraphqlᚐOTPResponse(ctx context.Context, sel ast.SelectionSet, v graphql6.OTPResponse) graphql.Marshaler {
 	return ec._OTPResponse(ctx, sel, &v)
 }
@@ -75405,6 +80331,228 @@ func (ec *executionContext) marshalNPlanType2hausletᚋinternalᚋmodulesᚋprom
 	return res
 }
 
+func (ec *executionContext) marshalNPriceBreakdown2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPriceBreakdown(ctx context.Context, sel ast.SelectionSet, v domain12.PriceBreakdown) graphql.Marshaler {
+	return ec._PriceBreakdown(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPriceBreakdown2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPriceBreakdown(ctx context.Context, sel ast.SelectionSet, v *domain12.PriceBreakdown) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PriceBreakdown(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPricingDailyRate2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDailyRate(ctx context.Context, sel ast.SelectionSet, v domain12.DailyRate) graphql.Marshaler {
+	return ec._PricingDailyRate(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPricingDailyRate2ᚕhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDailyRateᚄ(ctx context.Context, sel ast.SelectionSet, v []domain12.DailyRate) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPricingDailyRate2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDailyRate(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPricingDailyRate2ᚕᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDailyRateᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain12.DailyRate) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPricingDailyRate2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDailyRate(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPricingDailyRate2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDailyRate(ctx context.Context, sel ast.SelectionSet, v *domain12.DailyRate) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PricingDailyRate(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPricingDiscount2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDiscount(ctx context.Context, sel ast.SelectionSet, v domain12.Discount) graphql.Marshaler {
+	return ec._PricingDiscount(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPricingDiscount2ᚕhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDiscountᚄ(ctx context.Context, sel ast.SelectionSet, v []domain12.Discount) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPricingDiscount2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐDiscount(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPricingRule2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPricingRule(ctx context.Context, sel ast.SelectionSet, v domain12.PricingRule) graphql.Marshaler {
+	return ec._PricingRule(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPricingRule2ᚕᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPricingRuleᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain12.PricingRule) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPricingRule2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPricingRule(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPricingRule2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPricingRule(ctx context.Context, sel ast.SelectionSet, v *domain12.PricingRule) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PricingRule(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNProfile2hausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v domain4.Profile) graphql.Marshaler {
 	return ec._Profile(ctx, sel, &v)
 }
@@ -75562,11 +80710,11 @@ func (ec *executionContext) marshalNPropertyType2hausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
-func (ec *executionContext) marshalNRankedListing2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListing(ctx context.Context, sel ast.SelectionSet, v domain13.RankedListing) graphql.Marshaler {
+func (ec *executionContext) marshalNRankedListing2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListing(ctx context.Context, sel ast.SelectionSet, v domain14.RankedListing) graphql.Marshaler {
 	return ec._RankedListing(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNRankedListing2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ(ctx context.Context, sel ast.SelectionSet, v []domain13.RankedListing) graphql.Marshaler {
+func (ec *executionContext) marshalNRankedListing2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ(ctx context.Context, sel ast.SelectionSet, v []domain14.RankedListing) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -75610,7 +80758,7 @@ func (ec *executionContext) marshalNRankedListing2ᚕhausletᚋinternalᚋmodule
 	return ret
 }
 
-func (ec *executionContext) marshalNRankedListing2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain13.RankedListing) graphql.Marshaler {
+func (ec *executionContext) marshalNRankedListing2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListingᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain14.RankedListing) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -75654,7 +80802,7 @@ func (ec *executionContext) marshalNRankedListing2ᚕᚖhausletᚋinternalᚋmod
 	return ret
 }
 
-func (ec *executionContext) marshalNRankedListing2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListing(ctx context.Context, sel ast.SelectionSet, v *domain13.RankedListing) graphql.Marshaler {
+func (ec *executionContext) marshalNRankedListing2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankedListing(ctx context.Context, sel ast.SelectionSet, v *domain14.RankedListing) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -75664,7 +80812,7 @@ func (ec *executionContext) marshalNRankedListing2ᚖhausletᚋinternalᚋmodule
 	return ec._RankedListing(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNRankingScore2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankingScore(ctx context.Context, sel ast.SelectionSet, v domain13.RankingScore) graphql.Marshaler {
+func (ec *executionContext) marshalNRankingScore2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐRankingScore(ctx context.Context, sel ast.SelectionSet, v domain14.RankingScore) graphql.Marshaler {
 	return ec._RankingScore(ctx, sel, &v)
 }
 
@@ -75840,13 +80988,13 @@ func (ec *executionContext) marshalNReviewVisibility2hausletᚋinternalᚋtransp
 	return v
 }
 
-func (ec *executionContext) unmarshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, v any) (domain12.UserRole, error) {
+func (ec *executionContext) unmarshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, v any) (domain13.UserRole, error) {
 	tmp, err := graphql.UnmarshalString(v)
-	res := domain12.UserRole(tmp)
+	res := domain13.UserRole(tmp)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, sel ast.SelectionSet, v domain12.UserRole) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserRole(ctx context.Context, sel ast.SelectionSet, v domain13.UserRole) graphql.Marshaler {
 	_ = sel
 	res := graphql.MarshalString(string(v))
 	if res == graphql.Null {
@@ -76018,6 +81166,23 @@ func (ec *executionContext) marshalNRuleSubCategory2hausletᚋinternalᚋmodules
 	return res
 }
 
+func (ec *executionContext) unmarshalNRuleType2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐRuleType(ctx context.Context, v any) (domain12.RuleType, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain12.RuleType(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRuleType2hausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐRuleType(ctx context.Context, sel ast.SelectionSet, v domain12.RuleType) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNScoredListing2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐScoredListingᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ScoredListing) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -76072,11 +81237,11 @@ func (ec *executionContext) marshalNScoredListing2ᚖhausletᚋinternalᚋtransp
 	return ec._ScoredListing(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNSearchResult2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐSearchResult(ctx context.Context, sel ast.SelectionSet, v domain13.SearchResult) graphql.Marshaler {
+func (ec *executionContext) marshalNSearchResult2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐSearchResult(ctx context.Context, sel ast.SelectionSet, v domain14.SearchResult) graphql.Marshaler {
 	return ec._SearchResult(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNSearchResult2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐSearchResult(ctx context.Context, sel ast.SelectionSet, v *domain13.SearchResult) graphql.Marshaler {
+func (ec *executionContext) marshalNSearchResult2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐSearchResult(ctx context.Context, sel ast.SelectionSet, v *domain14.SearchResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
@@ -76288,7 +81453,7 @@ func (ec *executionContext) marshalNTime2ᚖtimeᚐTime(ctx context.Context, sel
 	return res
 }
 
-func (ec *executionContext) unmarshalNTrackInteractionInput2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐTrackInteractionInput(ctx context.Context, v any) (graphql12.TrackInteractionInput, error) {
+func (ec *executionContext) unmarshalNTrackInteractionInput2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐTrackInteractionInput(ctx context.Context, v any) (graphql13.TrackInteractionInput, error) {
 	res, err := ec.unmarshalInputTrackInteractionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -76447,6 +81612,36 @@ func (ec *executionContext) marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx
 	return ec._UUID(ctx, sel, &v)
 }
 
+func (ec *executionContext) unmarshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, v any) ([]uuid.UUID, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]uuid.UUID, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, sel ast.SelectionSet, v []uuid.UUID) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNUpdateBusinessInput2hausletᚋinternalᚋmodulesᚋbusinessᚋportᚋgraphqlᚐUpdateBusinessInput(ctx context.Context, v any) (graphql1.UpdateBusinessInput, error) {
 	res, err := ec.unmarshalInputUpdateBusinessInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -76457,17 +81652,27 @@ func (ec *executionContext) unmarshalNUpdateListingInput2hausletᚋinternalᚋtr
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNUpdateMultiPropertyDiscountInput2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐUpdateMultiPropertyDiscountInput(ctx context.Context, v any) (graphql9.UpdateMultiPropertyDiscountInput, error) {
+	res, err := ec.unmarshalInputUpdateMultiPropertyDiscountInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdatePricingRuleInput2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐUpdatePricingRuleInput(ctx context.Context, v any) (graphql9.UpdatePricingRuleInput, error) {
+	res, err := ec.unmarshalInputUpdatePricingRuleInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNUpdateProfileInput2hausletᚋinternalᚋmodulesᚋprofileᚋportᚋgraphqlᚐUpdateProfileInput(ctx context.Context, v any) (graphql3.UpdateProfileInput, error) {
 	res, err := ec.unmarshalInputUpdateProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateReviewInput2hausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐUpdateReviewInput(ctx context.Context, v any) (graphql10.UpdateReviewInput, error) {
+func (ec *executionContext) unmarshalNUpdateReviewInput2hausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐUpdateReviewInput(ctx context.Context, v any) (graphql11.UpdateReviewInput, error) {
 	res, err := ec.unmarshalInputUpdateReviewInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateWishlistInput2hausletᚋinternalᚋmodulesᚋwishlistᚋportᚋgraphqlᚐUpdateWishlistInput(ctx context.Context, v any) (graphql11.UpdateWishlistInput, error) {
+func (ec *executionContext) unmarshalNUpdateWishlistInput2hausletᚋinternalᚋmodulesᚋwishlistᚋportᚋgraphqlᚐUpdateWishlistInput(ctx context.Context, v any) (graphql12.UpdateWishlistInput, error) {
 	res, err := ec.unmarshalInputUpdateWishlistInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -76486,7 +81691,7 @@ func (ec *executionContext) marshalNUploadResult2ᚖhausletᚋinternalᚋtranspo
 	return ec._UploadResult(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNUserIdentity2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentity(ctx context.Context, sel ast.SelectionSet, v domain12.UserIdentity) graphql.Marshaler {
+func (ec *executionContext) marshalNUserIdentity2hausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentity(ctx context.Context, sel ast.SelectionSet, v domain13.UserIdentity) graphql.Marshaler {
 	return ec._UserIdentity(ctx, sel, &v)
 }
 
@@ -77460,16 +82665,16 @@ func (ec *executionContext) marshalODailyRate2ᚕhausletᚋinternalᚋmodulesᚋ
 	return ret
 }
 
-func (ec *executionContext) unmarshalODeviceType2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐDeviceTypeInput(ctx context.Context, v any) (*graphql12.DeviceTypeInput, error) {
+func (ec *executionContext) unmarshalODeviceType2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐDeviceTypeInput(ctx context.Context, v any) (*graphql13.DeviceTypeInput, error) {
 	if v == nil {
 		return nil, nil
 	}
 	tmp, err := graphql.UnmarshalString(v)
-	res := graphql12.DeviceTypeInput(tmp)
+	res := graphql13.DeviceTypeInput(tmp)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalODeviceType2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐDeviceTypeInput(ctx context.Context, sel ast.SelectionSet, v *graphql12.DeviceTypeInput) graphql.Marshaler {
+func (ec *executionContext) marshalODeviceType2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐDeviceTypeInput(ctx context.Context, sel ast.SelectionSet, v *graphql13.DeviceTypeInput) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -77632,14 +82837,14 @@ func (ec *executionContext) unmarshalOFeedOptionsInput2ᚖhausletᚋinternalᚋt
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOFeedSectionType2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionTypeᚄ(ctx context.Context, v any) ([]domain13.FeedSectionType, error) {
+func (ec *executionContext) unmarshalOFeedSectionType2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionTypeᚄ(ctx context.Context, v any) ([]domain14.FeedSectionType, error) {
 	if v == nil {
 		return nil, nil
 	}
 	var vSlice []any
 	vSlice = graphql.CoerceList(v)
 	var err error
-	res := make([]domain13.FeedSectionType, len(vSlice))
+	res := make([]domain14.FeedSectionType, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
 		res[i], err = ec.unmarshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx, vSlice[i])
@@ -77650,7 +82855,7 @@ func (ec *executionContext) unmarshalOFeedSectionType2ᚕhausletᚋinternalᚋmo
 	return res, nil
 }
 
-func (ec *executionContext) marshalOFeedSectionType2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain13.FeedSectionType) graphql.Marshaler {
+func (ec *executionContext) marshalOFeedSectionType2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionTypeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain14.FeedSectionType) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -78352,6 +83557,25 @@ func (ec *executionContext) marshalOModerationReason2ᚖhausletᚋinternalᚋmod
 	return res
 }
 
+func (ec *executionContext) unmarshalOModifierType2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐModifierType(ctx context.Context, v any) (*domain12.ModifierType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain12.ModifierType(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOModifierType2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐModifierType(ctx context.Context, sel ast.SelectionSet, v *domain12.ModifierType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
+}
+
 func (ec *executionContext) marshalOOpenHouseDetail2ᚖhausletᚋinternalᚋmodulesᚋcalendarᚋdomainᚐOpenHouseDetail(ctx context.Context, sel ast.SelectionSet, v *domain7.OpenHouseDetail) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -78575,16 +83799,16 @@ func (ec *executionContext) marshalOPayoutDetail2ᚖhausletᚋinternalᚋmodules
 	return ec._PayoutDetail(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOPlatform2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPlatformInput(ctx context.Context, v any) (*graphql12.PlatformInput, error) {
+func (ec *executionContext) unmarshalOPlatform2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPlatformInput(ctx context.Context, v any) (*graphql13.PlatformInput, error) {
 	if v == nil {
 		return nil, nil
 	}
 	tmp, err := graphql.UnmarshalString(v)
-	res := graphql12.PlatformInput(tmp)
+	res := graphql13.PlatformInput(tmp)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOPlatform2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPlatformInput(ctx context.Context, sel ast.SelectionSet, v *graphql12.PlatformInput) graphql.Marshaler {
+func (ec *executionContext) marshalOPlatform2ᚖhausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPlatformInput(ctx context.Context, sel ast.SelectionSet, v *graphql13.PlatformInput) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -78616,6 +83840,13 @@ func (ec *executionContext) unmarshalOPriceRangeFilterInput2ᚖhausletᚋinterna
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalOPricingRule2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐPricingRule(ctx context.Context, sel ast.SelectionSet, v *domain12.PricingRule) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._PricingRule(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile(ctx context.Context, sel ast.SelectionSet, v *domain4.Profile) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -78623,7 +83854,7 @@ func (ec *executionContext) marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋpr
 	return ec._Profile(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOPromotionBoostInfo2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐPromotionBoostInfo(ctx context.Context, sel ast.SelectionSet, v *domain13.PromotionBoostInfo) graphql.Marshaler {
+func (ec *executionContext) marshalOPromotionBoostInfo2ᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐPromotionBoostInfo(ctx context.Context, sel ast.SelectionSet, v *domain14.PromotionBoostInfo) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -78947,7 +84178,7 @@ func (ec *executionContext) marshalOReview2ᚖhausletᚋinternalᚋmodulesᚋrev
 	return ec._Review(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOReviewFilterInput2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐReviewFilterInput(ctx context.Context, v any) (*graphql10.ReviewFilterInput, error) {
+func (ec *executionContext) unmarshalOReviewFilterInput2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋportᚋgraphqlᚐReviewFilterInput(ctx context.Context, v any) (*graphql11.ReviewFilterInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -79043,6 +84274,25 @@ func (ec *executionContext) unmarshalORuleGroupInput2ᚕᚖhausletᚋinternalᚋ
 		}
 	}
 	return res, nil
+}
+
+func (ec *executionContext) unmarshalORuleType2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐRuleType(ctx context.Context, v any) (*domain12.RuleType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain12.RuleType(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalORuleType2ᚖhausletᚋinternalᚋmodulesᚋpricingᚋdomainᚐRuleType(ctx context.Context, sel ast.SelectionSet, v *domain12.RuleType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
 }
 
 func (ec *executionContext) marshalOSaleDetail2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐSaleDetail(ctx context.Context, sel ast.SelectionSet, v *domain11.SaleDetail) graphql.Marshaler {
@@ -79307,6 +84557,42 @@ func (ec *executionContext) marshalOTransactionType2ᚖhausletᚋinternalᚋmodu
 	return res
 }
 
+func (ec *executionContext) unmarshalOUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, v any) ([]uuid.UUID, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]uuid.UUID, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOUUID2ᚕgithubᚗcomᚋgoogleᚋuuidᚐUUIDᚄ(ctx context.Context, sel ast.SelectionSet, v []uuid.UUID) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (*uuid.UUID, error) {
 	if v == nil {
 		return nil, nil
@@ -79361,14 +84647,14 @@ func (ec *executionContext) marshalOUsageTracking2ᚖhausletᚋinternalᚋmodule
 	return ec._UsageTracking(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOUser2ᚖhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUser(ctx context.Context, sel ast.SelectionSet, v *domain12.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUser(ctx context.Context, sel ast.SelectionSet, v *domain13.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOUserIdentity2ᚕhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentityᚄ(ctx context.Context, sel ast.SelectionSet, v []domain12.UserIdentity) graphql.Marshaler {
+func (ec *executionContext) marshalOUserIdentity2ᚕhausletᚋinternalᚋmodulesᚋauthᚋdomainᚐUserIdentityᚄ(ctx context.Context, sel ast.SelectionSet, v []domain13.UserIdentity) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

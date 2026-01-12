@@ -162,3 +162,20 @@ type Discrepancy struct {
 func (Discrepancy) TableName() string {
 	return "discrepancies"
 }
+
+// TransactionBalance represents the result of ledger balance validation query
+// Used to find transactions where total debits don't equal total credits
+type TransactionBalance struct {
+	TransactionID uuid.UUID
+	TotalDebit    int64
+	TotalCredit   int64
+}
+
+// WalletBalanceMismatch represents the result of wallet balance validation query
+// Used to find wallets where the balance doesn't match the sum of ledger entries
+type WalletBalanceMismatch struct {
+	WalletID      uuid.UUID
+	ActualBalance int64
+	LedgerBalance int64
+	Currency      string
+}

@@ -93,6 +93,7 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		container.PropertySvc,
 		container.BusinessSvc,
 		container.PaymentsSvc,
+		container.PricingSvc,
 		container.FinanceSvc,
 		container.PayoutSvc,
 		container.BookingSvc,

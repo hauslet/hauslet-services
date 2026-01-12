@@ -17,6 +17,7 @@ import (
 	interactionsservice "hauslet/internal/modules/interactions/service"
 	leadsservice "hauslet/internal/modules/leads/service"
 	paymentsservice "hauslet/internal/modules/payments/service"
+	pricingservice "hauslet/internal/modules/pricing/service"
 	profileservice "hauslet/internal/modules/profile/service"
 	promotionservice "hauslet/internal/modules/promotions/service"
 	propertyservice "hauslet/internal/modules/property/service"
@@ -46,6 +47,7 @@ func SetupGraphQL(r chi.Router,
 	propertyService propertyservice.PropertyService,
 	businessService businessservice.BusinessService,
 	paymentsService paymentsservice.PaymentService,
+	pricingService pricingservice.PricingService,
 	financeService financeservice.FinanceService,
 	payoutService financeservice.PayoutService,
 	bookingService bookingservice.BookingService,
@@ -75,6 +77,7 @@ func SetupGraphQL(r chi.Router,
 				propertyService,
 				businessService,
 				paymentsService,
+				pricingService,
 				financeService,
 				payoutService,
 				bookingService,

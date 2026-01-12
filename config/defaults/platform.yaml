@@ -71,3 +71,10 @@ platform:
     send_payment_receipts: true
     send_payout_updates: true
     send_dispute_alerts: true
+
+  reconciliation:
+    send_alerts: true               # Send email alerts when discrepancies found
+    admin_roles:                    # User roles to receive reconciliation alerts
+      - admin
+      - root
+    min_severity: high              # Minimum severity to trigger alerts: critical | high | medium | low

@@ -10,6 +10,7 @@ schema:
   - internal/modules/booking/port/graphql/*.graphqls
   - internal/modules/calendar/port/graphql/*.graphqls
   - internal/modules/payments/port/graphql/*.graphqls
+  - internal/modules/pricing/port/graphql/*.graphqls
   - internal/modules/finance/port/graphql/*.graphqls
   - internal/modules/wishlist/port/graphql/*.graphqls
   - internal/modules/review/port/graphql/*.graphqls
@@ -294,6 +295,38 @@ models:
     model: hauslet/internal/modules/payments/domain.TransactionType
   TransactionStatus:
     model: hauslet/internal/modules/payments/domain.TransactionStatus
+
+  # --- Pricing Module Bindings ---
+  PricingRule:
+    model: hauslet/internal/modules/pricing/domain.PricingRule
+  MultiPropertyDiscount:
+    model: hauslet/internal/modules/pricing/domain.MultiPropertyDiscount
+  PriceBreakdown:
+    model: hauslet/internal/modules/pricing/domain.PriceBreakdown
+  PricingDiscount:
+    model: hauslet/internal/modules/pricing/domain.Discount
+  PricingDailyRate:
+    model: hauslet/internal/modules/pricing/domain.DailyRate
+
+  # Pricing Input Types
+  CreatePricingRuleInput:
+    model: hauslet/internal/modules/pricing/port/graphql.CreatePricingRuleInput
+  UpdatePricingRuleInput:
+    model: hauslet/internal/modules/pricing/port/graphql.UpdatePricingRuleInput
+  CreateMultiPropertyDiscountInput:
+    model: hauslet/internal/modules/pricing/port/graphql.CreateMultiPropertyDiscountInput
+  UpdateMultiPropertyDiscountInput:
+    model: hauslet/internal/modules/pricing/port/graphql.UpdateMultiPropertyDiscountInput
+  MultiPropertyBookingInput:
+    model: hauslet/internal/modules/pricing/port/graphql.MultiPropertyBookingInput
+  BasePriceResult:
+    model: hauslet/internal/modules/pricing/port/graphql.BasePriceResult
+
+  # Pricing Enums
+  RuleType:
+    model: hauslet/internal/modules/pricing/domain.RuleType
+  ModifierType:
+    model: hauslet/internal/modules/pricing/domain.ModifierType
 
   # --- Finance Module Bindings ---
   Wallet:
