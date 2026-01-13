@@ -23,7 +23,7 @@ type ReviewRepository interface {
 	GetCounterpartReview(ctx context.Context, bookingID, currentReviewerID uuid.UUID) (*schema.Review, error)
 
 	// --- Batch / Cron Operations ---
-	PublishExpiredStandoffs(ctx context.Context, olderThan time.Time) (int64, error)
+	PublishExpiredStandoffs(ctx context.Context, olderThan time.Time) ([]schema.Review, error)
 
 	// --- Moderation ---
 	// MarkAsHidden hides a review (admin action) and logs the reason.
@@ -61,9 +61,10 @@ type ReviewFilter struct {
 	SortBy string // "newest", "highest_rated", "lowest_rated", "most_relevant"
 
 	// Filters
-	Rating      *int    // e.g., Show only 5-star reviews
-	Language    *string // e.g., "en", "fr"
-	OnlyVisible bool    // If true, excludes 'hidden' or 'archived' status
+	Rating          *int    // e.g., Show only 5-star reviews
+	Language        *string // e.g., "en", "fr"
+	OnlyVisible     bool    // If true, excludes 'hidden' or 'archived' status
+	PreloadResponse bool    // If true, eager load the host response
 }
 
 // ReviewDistribution represents the "histogram" often seen on Airbnb (e.g., 5 stars: 80%, 4 stars: 10%).

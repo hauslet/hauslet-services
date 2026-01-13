@@ -39,6 +39,7 @@ type Review struct {
 
 	// Response Mechanism (Has the host replied?)
 	ResponseID *uuid.UUID
+	Response   *ReviewResponse
 
 	// Timestamps
 	PublishedAt *time.Time

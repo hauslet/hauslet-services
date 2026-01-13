@@ -42,6 +42,7 @@ type Review {
   title: String!
   body: String!
   subRatings: SubRatings
+  response: ReviewResponse
   visibility: ReviewVisibility!
   isStandoff: Boolean!
   language: String

@@ -74,6 +74,11 @@ func (r *ReviewRepositoryImpl) List(ctx context.Context, filter ReviewFilter) ([
 		query = query.Where("status = ?", schema.ReviewStatusPublished)
 	}
 
+	// 2.a. Optional eager loading
+	if filter.PreloadResponse {
+		query = query.Preload("Response")
+	}
+
 	// 3. Content Filtering
 	if filter.Rating != nil {
 		query = query.Where("rating = ?", *filter.Rating)
@@ -110,13 +115,6 @@ func (r *ReviewRepositoryImpl) List(ctx context.Context, filter ReviewFilter) ([
 		query = query.Offset(filter.Offset)
 	}
 
-	// 8. Preload Relations
-	// We almost always want the response (host reply) when showing reviews.
-	// We rely on the naming convention or a foreign key setup in schema.
-	// Note: Since we store ResponseID on the Review, we can Preload it easily if the struct has the relation defined.
-	// If not, we might need a separate query or Join. Assuming struct has `Response *ReviewResponse`.
-	// query = query.Preload("Response")
-
 	if err := query.Find(&reviews).Error; err != nil {
 		return nil, 0, err
 	}
@@ -151,16 +149,39 @@ func (r *ReviewRepositoryImpl) GetCounterpartReview(ctx context.Context, booking
 
 // PublishExpiredStandoffs is the Cron Job engine.
 // It finds reviews that have been hidden ("standoff") for longer than 14 days and force-publishes them.
-func (r *ReviewRepositoryImpl) PublishExpiredStandoffs(ctx context.Context, olderThan time.Time) (int64, error) {
-	result := r.db.WithContext(ctx).
+func (r *ReviewRepositoryImpl) PublishExpiredStandoffs(ctx context.Context, olderThan time.Time) ([]schema.Review, error) {
+	var reviews []schema.Review
+	query := r.db.WithContext(ctx).
 		Model(&schema.Review{}).
-		Where("status = ? AND created_at < ?", schema.ReviewStatusStandoff, olderThan).
-		Updates(map[string]any{
-			"status":       schema.ReviewStatusPublished,
-			"published_at": time.Now(),
-		})
+		Where("status = ? AND created_at < ?", schema.ReviewStatusStandoff, olderThan)
 
-	return result.RowsAffected, result.Error
+	if err := query.Find(&reviews).Error; err != nil {
+		return nil, err
+	}
+
+	if len(reviews) == 0 {
+		return reviews, nil
+	}
+
+	now := time.Now()
+	updateQuery := r.db.WithContext(ctx).
+		Model(&schema.Review{}).
+		Where("status = ? AND created_at < ?", schema.ReviewStatusStandoff, olderThan)
+
+	if err := updateQuery.Updates(map[string]any{
+		"status":       schema.ReviewStatusPublished,
+		"published_at": now,
+	}).Error; err != nil {
+		return nil, err
+	}
+
+	for i := range reviews {
+		reviews[i].Status = schema.ReviewStatusPublished
+		reviews[i].PublishedAt = &now
+		reviews[i].UpdatedAt = now
+	}
+
+	return reviews, nil
 }
 
 func (r *ReviewRepositoryImpl) MarkAsHidden(ctx context.Context, reviewID uuid.UUID, reason schema.ModerationReason) error {

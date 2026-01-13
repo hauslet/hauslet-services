@@ -79,9 +79,10 @@ func (r *Resolver) Reviews(
 
 	// Build filter from input
 	svcFilter := service.ReviewFilter{
-		Limit:       50, // default
-		Offset:      0,
-		OnlyVisible: true, // default to visible only
+		Limit:           50, // default
+		Offset:          0,
+		OnlyVisible:     true, // default to visible only
+		PreloadResponse: true,
 	}
 
 	if filter != nil {
@@ -303,7 +304,6 @@ func (r *Resolver) DeleteReview(ctx context.Context, reviewID string) (bool, err
 
 	return true, nil
 }
-
 
 // ReportReview reports a review for moderation
 func (r *Resolver) ReportReview(ctx context.Context, reviewID string, reason string) (bool, error) {

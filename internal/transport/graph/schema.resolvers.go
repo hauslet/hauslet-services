@@ -2145,36 +2145,3 @@ type addPayoutDetailInputResolver struct{ *Resolver }
 type createPaymentMethodInputResolver struct{ *Resolver }
 type createPayoutInputResolver struct{ *Resolver }
 type createReviewInputResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *createPricingRuleInputResolver) RuleType(ctx context.Context, obj *graphql7.CreatePricingRuleInput, data domain13.RuleType) error {
-	obj.RuleType = data
-	return nil
-}
-func (r *createPricingRuleInputResolver) ModifierType(ctx context.Context, obj *graphql7.CreatePricingRuleInput, data domain13.ModifierType) error {
-	obj.ModifierType = data
-	return nil
-}
-func (r *updatePricingRuleInputResolver) RuleType(ctx context.Context, obj *graphql7.UpdatePricingRuleInput, data *domain13.RuleType) error {
-	obj.RuleType = data
-	return nil
-}
-func (r *updatePricingRuleInputResolver) ModifierType(ctx context.Context, obj *graphql7.UpdatePricingRuleInput, data *domain13.ModifierType) error {
-	obj.ModifierType = data
-	return nil
-}
-func (r *Resolver) CreatePricingRuleInput() CreatePricingRuleInputResolver {
-	return &createPricingRuleInputResolver{r}
-}
-func (r *Resolver) UpdatePricingRuleInput() UpdatePricingRuleInputResolver {
-	return &updatePricingRuleInputResolver{r}
-}
-type createPricingRuleInputResolver struct{ *Resolver }
-type updatePricingRuleInputResolver struct{ *Resolver }
-*/

@@ -87,9 +87,10 @@ type ReviewFilter struct {
 
 	SortBy string // newest, highest_rated, lowest_rated, most_helpful
 
-	Rating      *int
-	Language    *string
-	OnlyVisible bool
+	Rating          *int
+	Language        *string
+	OnlyVisible     bool
+	PreloadResponse bool // Eagerly fetch associated host responses when true
 }
 
 // --- External dependencies (cross-module) ---

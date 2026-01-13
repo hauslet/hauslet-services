@@ -1243,6 +1243,7 @@ type ComplexityRoot struct {
 		ModerationReason func(childComplexity int) int
 		PublishedAt      func(childComplexity int) int
 		Rating           func(childComplexity int) int
+		Response         func(childComplexity int) int
 		ReviewerID       func(childComplexity int) int
 		SubRatings       func(childComplexity int) int
 		TargetID         func(childComplexity int) int
@@ -8435,6 +8436,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Review.Rating(childComplexity), true
+	case "Review.response":
+		if e.complexity.Review.Response == nil {
+			break
+		}
+
+		return e.complexity.Review.Response(childComplexity), true
 	case "Review.reviewerId":
 		if e.complexity.Review.ReviewerID == nil {
 			break
@@ -9884,9 +9891,7 @@ extend type Query {
   me: User
 }
 `, BuiltIn: false},
-	{Name: "../../modules/profile/port/graphql/schema.graphqls", Input: `# internal/profile/port/graphql/schema.graphqls
-
-enum UserType {
+	{Name: "../../modules/profile/port/graphql/schema.graphqls", Input: `enum UserType {
   host
   guest
   agent
@@ -12332,6 +12337,7 @@ type Review {
   title: String!
   body: String!
   subRatings: SubRatings
+  response: ReviewResponse
   visibility: ReviewVisibility!
   isStandoff: Boolean!
   language: String
@@ -34157,6 +34163,8 @@ func (ec *executionContext) fieldContext_Mutation_createReview(ctx context.Conte
 				return ec.fieldContext_Review_body(ctx, field)
 			case "subRatings":
 				return ec.fieldContext_Review_subRatings(ctx, field)
+			case "response":
+				return ec.fieldContext_Review_response(ctx, field)
 			case "visibility":
 				return ec.fieldContext_Review_visibility(ctx, field)
 			case "isStandoff":
@@ -34236,6 +34244,8 @@ func (ec *executionContext) fieldContext_Mutation_updateReview(ctx context.Conte
 				return ec.fieldContext_Review_body(ctx, field)
 			case "subRatings":
 				return ec.fieldContext_Review_subRatings(ctx, field)
+			case "response":
+				return ec.fieldContext_Review_response(ctx, field)
 			case "visibility":
 				return ec.fieldContext_Review_visibility(ctx, field)
 			case "isStandoff":
@@ -47884,6 +47894,8 @@ func (ec *executionContext) fieldContext_Query_review(ctx context.Context, field
 				return ec.fieldContext_Review_body(ctx, field)
 			case "subRatings":
 				return ec.fieldContext_Review_subRatings(ctx, field)
+			case "response":
+				return ec.fieldContext_Review_response(ctx, field)
 			case "visibility":
 				return ec.fieldContext_Review_visibility(ctx, field)
 			case "isStandoff":
@@ -47963,6 +47975,8 @@ func (ec *executionContext) fieldContext_Query_reviewForBooking(ctx context.Cont
 				return ec.fieldContext_Review_body(ctx, field)
 			case "subRatings":
 				return ec.fieldContext_Review_subRatings(ctx, field)
+			case "response":
+				return ec.fieldContext_Review_response(ctx, field)
 			case "visibility":
 				return ec.fieldContext_Review_visibility(ctx, field)
 			case "isStandoff":
@@ -48042,6 +48056,8 @@ func (ec *executionContext) fieldContext_Query_reviews(ctx context.Context, fiel
 				return ec.fieldContext_Review_body(ctx, field)
 			case "subRatings":
 				return ec.fieldContext_Review_subRatings(ctx, field)
+			case "response":
+				return ec.fieldContext_Review_response(ctx, field)
 			case "visibility":
 				return ec.fieldContext_Review_visibility(ctx, field)
 			case "isStandoff":
@@ -48121,6 +48137,8 @@ func (ec *executionContext) fieldContext_Query_userReviews(ctx context.Context, 
 				return ec.fieldContext_Review_body(ctx, field)
 			case "subRatings":
 				return ec.fieldContext_Review_subRatings(ctx, field)
+			case "response":
+				return ec.fieldContext_Review_response(ctx, field)
 			case "visibility":
 				return ec.fieldContext_Review_visibility(ctx, field)
 			case "isStandoff":
@@ -51724,6 +51742,49 @@ func (ec *executionContext) fieldContext_Review_subRatings(_ context.Context, fi
 				return ec.fieldContext_SubRatings_value(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type SubRatings", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Review_response(ctx context.Context, field graphql.CollectedField, obj *domain10.Review) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Review_response,
+		func(ctx context.Context) (any, error) {
+			return obj.Response, nil
+		},
+		nil,
+		ec.marshalOReviewResponse2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐReviewResponse,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Review_response(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Review",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ReviewResponse_id(ctx, field)
+			case "reviewId":
+				return ec.fieldContext_ReviewResponse_reviewId(ctx, field)
+			case "authorId":
+				return ec.fieldContext_ReviewResponse_authorId(ctx, field)
+			case "body":
+				return ec.fieldContext_ReviewResponse_body(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ReviewResponse_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ReviewResponse_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ReviewResponse", field.Name)
 		},
 	}
 	return fc, nil
@@ -74765,6 +74826,8 @@ func (ec *executionContext) _Review(ctx context.Context, sel ast.SelectionSet, o
 			}
 		case "subRatings":
 			out.Values[i] = ec._Review_subRatings(ctx, field, obj)
+		case "response":
+			out.Values[i] = ec._Review_response(ctx, field, obj)
 		case "visibility":
 			field := field
 

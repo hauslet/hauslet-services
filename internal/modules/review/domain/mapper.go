@@ -30,6 +30,11 @@ func MapReviewFromSchema(s *schema.Review) *Review {
 		deletedAt = &s.DeletedAt.Time
 	}
 
+	var response *ReviewResponse
+	if s.Response != nil {
+		response = MapReviewResponseFromSchema(s.Response)
+	}
+
 	return &Review{
 		ID:                  s.ID,
 		BookingID:           s.BookingID,
@@ -49,6 +54,7 @@ func MapReviewFromSchema(s *schema.Review) *Review {
 		PublishedAt:         s.PublishedAt,
 		CreatedAt:           s.CreatedAt,
 		UpdatedAt:           s.UpdatedAt,
+		Response:            response,
 		DeletedAt:           deletedAt,
 	}
 }

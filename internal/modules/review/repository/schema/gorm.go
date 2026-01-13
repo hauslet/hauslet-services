@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/datatypes" 
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -62,6 +62,8 @@ type Review struct {
 	// Response Mechanism (Has the host replied?)
 	// Storing the ID allows efficient pre-fetching of the response without a separate query every time
 	ResponseID *uuid.UUID `gorm:"type:uuid;index"`
+	// Preloaded response for the Review (optional)
+	Response *ReviewResponse `gorm:"foreignKey:ResponseID"`
 
 	// Timestamps
 	PublishedAt *time.Time `gorm:"index"`

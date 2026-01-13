@@ -234,7 +234,6 @@ func (s *ReviewServiceImpl) DeleteReview(ctx context.Context, reviewID, actorID 
 	review := domain.MapReviewFromSchema(schemaReview)
 
 	// 2. Authorization: only author can delete
-	// TODO: Add admin check if needed
 	if review.ReviewerID != actorID {
 		return domain.ErrNotReviewAuthor
 	}
@@ -253,14 +252,15 @@ func (s *ReviewServiceImpl) DeleteReview(ctx context.Context, reviewID, actorID 
 func (s *ReviewServiceImpl) ListReviewsForTarget(ctx context.Context, targetType domain.ReviewTargetType, targetID uuid.UUID, filter ReviewFilter) ([]*domain.Review, int64, error) {
 	// Convert service filter to repository filter
 	repoFilter := repository.ReviewFilter{
-		TargetID:    targetID,
-		TargetType:  schema.ReviewTargetType(targetType),
-		Limit:       filter.Limit,
-		Offset:      filter.Offset,
-		SortBy:      filter.SortBy,
-		Rating:      filter.Rating,
-		Language:    filter.Language,
-		OnlyVisible: filter.OnlyVisible,
+		TargetID:        targetID,
+		TargetType:      schema.ReviewTargetType(targetType),
+		Limit:           filter.Limit,
+		Offset:          filter.Offset,
+		SortBy:          filter.SortBy,
+		Rating:          filter.Rating,
+		Language:        filter.Language,
+		OnlyVisible:     filter.OnlyVisible,
+		PreloadResponse: filter.PreloadResponse,
 	}
 
 	schemaReviews, total, err := s.reviewRepo.List(ctx, repoFilter)
@@ -280,9 +280,10 @@ func (s *ReviewServiceImpl) ListReviewsForTarget(ctx context.Context, targetType
 // ListUserReviews retrieves all reviews written by a user
 func (s *ReviewServiceImpl) ListUserReviews(ctx context.Context, userID uuid.UUID, limit, offset int) ([]*domain.Review, error) {
 	filter := repository.ReviewFilter{
-		Limit:  limit,
-		Offset: offset,
-		SortBy: "newest",
+		Limit:           limit,
+		Offset:          offset,
+		SortBy:          "newest",
+		PreloadResponse: true,
 	}
 
 	schemaReviews, _, err := s.reviewRepo.List(ctx, filter)
@@ -367,17 +368,23 @@ func (s *ReviewServiceImpl) PublishReview(ctx context.Context, reviewID, adminID
 
 // PublishExpiredStandoffs publishes reviews that have been in standoff for too long
 func (s *ReviewServiceImpl) PublishExpiredStandoffs(ctx context.Context, olderThan time.Time) (int64, error) {
-	count, err := s.reviewRepo.PublishExpiredStandoffs(ctx, olderThan)
+	publishedReviews, err := s.reviewRepo.PublishExpiredStandoffs(ctx, olderThan)
 	if err != nil {
 		return 0, fmt.Errorf("failed to publish expired standoffs: %w", err)
 	}
 
+	count := int64(len(publishedReviews))
 	s.log.Info("published expired standoff reviews", "count", count)
 
-	// TODO: Update booking review timestamps for published standoffs
-	// This requires fetching all published reviews and calling bookingHooks.OnReviewPublished
-	// for each one. For now, this is handled at the repository level or can be implemented
-	// when needed by iterating through the published reviews.
+	if s.bookingHooks != nil {
+		for _, schemaReview := range publishedReviews {
+			review := domain.MapReviewFromSchema(&schemaReview)
+			reviewerType := s.determineReviewerType(ctx, review)
+			if err := s.bookingHooks.OnReviewPublished(ctx, review.BookingID, review.ReviewerID, reviewerType); err != nil {
+				s.log.Warn("failed to update booking review timestamp for expired standoff", "review_id", review.ID, "error", err)
+			}
+		}
+	}
 
 	return count, nil
 }
