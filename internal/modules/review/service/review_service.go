@@ -28,7 +28,7 @@ func (s *ReviewServiceImpl) CreateReview(ctx context.Context, input CreateReview
 		return nil, fmt.Errorf("failed to check booking status: %w", err)
 	}
 	if !isCompleted {
-		return nil, domain.ErrReviewNotEditable // Booking must be completed
+		return nil, domain.ErrBookingNotCompleted // Booking must be completed
 	}
 
 	// 2. Verify reviewer is part of the booking (authorization)
@@ -545,7 +545,7 @@ func (s *ReviewServiceImpl) OnReviewCreated(ctx context.Context, reviewID uuid.U
 			counterpartyReview := domain.MapReviewFromSchema(counterparty)
 			counterpartyType := s.determineReviewerType(ctx, counterpartyReview)
 			if err := s.bookingHooks.OnReviewPublished(ctx, counterpartyReview.BookingID, counterpartyReview.ReviewerID, counterpartyType); err != nil {
-				s.log.Warn("failed to update booking timestamp for counterparty review", "review_id", counterpartyReview.ID, "error",	 err)
+				s.log.Warn("failed to update booking timestamp for counterparty review", "review_id", counterpartyReview.ID, "error", err)
 			}
 		}
 

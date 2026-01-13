@@ -73,5 +73,6 @@ func (a *BookingQuerierAdapter) IsBookingCompleted(ctx context.Context, bookingI
 		return false, fmt.Errorf("booking not found")
 	}
 
-	return booking.Status == bookingSchema.BookingStatusCompleted, nil
+	return booking.Status == bookingSchema.BookingStatusCompleted ||
+		booking.Status == bookingSchema.BookingStatusSettled, nil
 }
