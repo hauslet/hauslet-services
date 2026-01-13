@@ -110,15 +110,28 @@ models:
     model: hauslet/internal/modules/property/domain.ServiceCharge
   ShortletDetail:
     model: hauslet/internal/modules/property/domain.ShortletDetail
-    fields:
-      cautionFee:
-        resolver: true
-      cleaningFee:
-        resolver: true
-      serviceFee:
-        resolver: true
-      extraGuestFee:
-        resolver: true
+  CustomFee:
+    model: hauslet/internal/modules/property/domain.CustomFee
+  Discount:
+    model: hauslet/internal/modules/property/domain.Discount
+  BookingSettings:
+    model: hauslet/internal/modules/property/domain.BookingSettings
+  GuestRequirements:
+    model: hauslet/internal/modules/property/domain.GuestRequirements
+  StayLimits:
+    model: hauslet/internal/modules/property/domain.StayLimits
+  AdvanceBooking:
+    model: hauslet/internal/modules/property/domain.AdvanceBooking
+  ApprovalMethod:
+    model: hauslet/internal/modules/property/domain.ApprovalMethod
+  FeeFrequency:
+    model: hauslet/internal/modules/property/domain.FeeFrequency
+  FeeCategory:
+    model: hauslet/internal/modules/property/domain.FeeCategory
+  DiscountType:
+    model: hauslet/internal/modules/property/domain.DiscountType
+  ShowingAvailability:
+    model: hauslet/internal/modules/property/domain.ShowingAvailability
   RentalDetail:
     model: hauslet/internal/modules/property/domain.RentalDetail
     fields:

@@ -98,7 +98,7 @@ type ResolverRoot interface {
 	Review() ReviewResolver
 	RuleGroup() RuleGroupResolver
 	SaleDetail() SaleDetailResolver
-	ShortletDetail() ShortletDetailResolver
+	ShowingAvailability() ShowingAvailabilityResolver
 	SubRatings() SubRatingsResolver
 	Transaction() TransactionResolver
 	TravelCompanion() TravelCompanionResolver
@@ -117,6 +117,11 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AdvanceBooking struct {
+		MinNoticeHours func(childComplexity int) int
+		MonthsAhead    func(childComplexity int) int
+	}
+
 	AgentSubscription struct {
 		BillingCycle       func(childComplexity int) int
 		CancelAt           func(childComplexity int) int
@@ -229,6 +234,12 @@ type ComplexityRoot struct {
 		UnavailabilityReason func(childComplexity int) int
 	}
 
+	BookingSettings struct {
+		ApprovalMethod    func(childComplexity int) int
+		GuestRequirements func(childComplexity int) int
+		PreBookingMessage func(childComplexity int) int
+	}
+
 	Business struct {
 		Address            func(childComplexity int) int
 		BillingEmail       func(childComplexity int) int
@@ -339,6 +350,15 @@ type ComplexityRoot struct {
 		Subscription func(childComplexity int) int
 	}
 
+	CustomFee struct {
+		Amount       func(childComplexity int) int
+		Category     func(childComplexity int) int
+		Frequency    func(childComplexity int) int
+		IsOptional   func(childComplexity int) int
+		IsRefundable func(childComplexity int) int
+		Name         func(childComplexity int) int
+	}
+
 	DailyRate struct {
 		BaseRate  func(childComplexity int) int
 		Date      func(childComplexity int) int
@@ -360,6 +380,14 @@ type ComplexityRoot struct {
 		TransferCode  func(childComplexity int) int
 		UpdatedAt     func(childComplexity int) int
 		WalletID      func(childComplexity int) int
+	}
+
+	Discount struct {
+		Active     func(childComplexity int) int
+		MinNights  func(childComplexity int) int
+		Name       func(childComplexity int) int
+		Percentage func(childComplexity int) int
+		Type       func(childComplexity int) int
 	}
 
 	DiscountSnapshot struct {
@@ -447,6 +475,12 @@ type ComplexityRoot struct {
 		Status        func(childComplexity int) int
 		Type          func(childComplexity int) int
 		UpdatedAt     func(childComplexity int) int
+	}
+
+	GuestRequirements struct {
+		PositiveReviewsOnly  func(childComplexity int) int
+		ProfilePhotoRequired func(childComplexity int) int
+		VerifiedID           func(childComplexity int) int
 	}
 
 	HomeFeedSection struct {
@@ -1219,6 +1253,8 @@ type ComplexityRoot struct {
 	RentalDetail struct {
 		AgencyFee              func(childComplexity int) int
 		CautionFee             func(childComplexity int) int
+		Discounts              func(childComplexity int) int
+		Fees                   func(childComplexity int) int
 		LegalFee               func(childComplexity int) int
 		MaxRentalPeriod        func(childComplexity int) int
 		MinRentalPeriod        func(childComplexity int) int
@@ -1230,6 +1266,7 @@ type ComplexityRoot struct {
 		RentalTerms            func(childComplexity int) int
 		ServiceCharge          func(childComplexity int) int
 		ServiceCharges         func(childComplexity int) int
+		ShowingAvailability    func(childComplexity int) int
 	}
 
 	Review struct {
@@ -1276,6 +1313,8 @@ type ComplexityRoot struct {
 	SaleDetail struct {
 		AgencyFee            func(childComplexity int) int
 		DevelopmentFee       func(childComplexity int) int
+		Discounts            func(childComplexity int) int
+		Fees                 func(childComplexity int) int
 		LegalFee             func(childComplexity int) int
 		OtherFees            func(childComplexity int) int
 		OwnershipTitle       func(childComplexity int) int
@@ -1285,6 +1324,7 @@ type ComplexityRoot struct {
 		SaleTerms            func(childComplexity int) int
 		ServiceCharge        func(childComplexity int) int
 		ServiceCharges       func(childComplexity int) int
+		ShowingAvailability  func(childComplexity int) int
 		SurveyFee            func(childComplexity int) int
 		TitleProcessingFee   func(childComplexity int) int
 		YearBuilt            func(childComplexity int) int
@@ -1312,22 +1352,19 @@ type ComplexityRoot struct {
 
 	ShortletDetail struct {
 		AccommodationType    func(childComplexity int) int
+		AdvanceBooking       func(childComplexity int) int
 		AmenitiesHighlights  func(childComplexity int) int
-		AutoAcceptBookings   func(childComplexity int) int
 		AutoGenerateCalendar func(childComplexity int) int
 		BaseGuestCount       func(childComplexity int) int
-		CalendarMonthsAhead  func(childComplexity int) int
-		CautionFee           func(childComplexity int) int
+		BookingSettings      func(childComplexity int) int
 		CheckInTime          func(childComplexity int) int
 		CheckOutTime         func(childComplexity int) int
-		CleaningFee          func(childComplexity int) int
-		ExtraGuestFee        func(childComplexity int) int
+		Discounts            func(childComplexity int) int
+		Fees                 func(childComplexity int) int
 		MaxGuests            func(childComplexity int) int
-		MaxNights            func(childComplexity int) int
-		MinNights            func(childComplexity int) int
 		NightlyRate          func(childComplexity int) int
 		Rules                func(childComplexity int) int
-		ServiceFee           func(childComplexity int) int
+		StayLimits           func(childComplexity int) int
 	}
 
 	ShowingAvailability struct {
@@ -1348,6 +1385,11 @@ type ComplexityRoot struct {
 		RescheduleCount  func(childComplexity int) int
 		RescheduleReason func(childComplexity int) int
 		RescheduledAt    func(childComplexity int) int
+	}
+
+	StayLimits struct {
+		MaxNights func(childComplexity int) int
+		MinNights func(childComplexity int) int
 	}
 
 	SubRatings struct {
@@ -1856,6 +1898,7 @@ type RentalDetailResolver interface {
 	RegistrationFee(ctx context.Context, obj *domain11.RentalDetail) (*float64, error)
 	CautionFee(ctx context.Context, obj *domain11.RentalDetail) (*float64, error)
 	ServiceCharge(ctx context.Context, obj *domain11.RentalDetail) (*float64, error)
+
 	ServiceCharges(ctx context.Context, obj *domain11.RentalDetail) ([]*domain11.ServiceCharge, error)
 }
 type ReviewResolver interface {
@@ -1876,18 +1919,11 @@ type SaleDetailResolver interface {
 	DevelopmentFee(ctx context.Context, obj *domain11.SaleDetail) (*float64, error)
 	OtherFees(ctx context.Context, obj *domain11.SaleDetail) (*float64, error)
 	ServiceCharge(ctx context.Context, obj *domain11.SaleDetail) (*float64, error)
+
 	ServiceCharges(ctx context.Context, obj *domain11.SaleDetail) ([]*domain11.ServiceCharge, error)
 }
-type ShortletDetailResolver interface {
-	CautionFee(ctx context.Context, obj *domain11.ShortletDetail) (*float64, error)
-	CleaningFee(ctx context.Context, obj *domain11.ShortletDetail) (*float64, error)
-	ServiceFee(ctx context.Context, obj *domain11.ShortletDetail) (*float64, error)
-	ExtraGuestFee(ctx context.Context, obj *domain11.ShortletDetail) (*float64, error)
-	MinNights(ctx context.Context, obj *domain11.ShortletDetail) (int, error)
-	MaxNights(ctx context.Context, obj *domain11.ShortletDetail) (*int, error)
-
-	AutoAcceptBookings(ctx context.Context, obj *domain11.ShortletDetail) (bool, error)
-	CalendarMonthsAhead(ctx context.Context, obj *domain11.ShortletDetail) (int, error)
+type ShowingAvailabilityResolver interface {
+	DayOfWeek(ctx context.Context, obj *domain11.ShowingAvailability) (model.DayOfWeek, error)
 }
 type SubRatingsResolver interface {
 	Cleanliness(ctx context.Context, obj *domain10.SubRatings) (*int, error)
@@ -1965,6 +2001,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AdvanceBooking.minNoticeHours":
+		if e.complexity.AdvanceBooking.MinNoticeHours == nil {
+			break
+		}
+
+		return e.complexity.AdvanceBooking.MinNoticeHours(childComplexity), true
+	case "AdvanceBooking.monthsAhead":
+		if e.complexity.AdvanceBooking.MonthsAhead == nil {
+			break
+		}
+
+		return e.complexity.AdvanceBooking.MonthsAhead(childComplexity), true
 
 	case "AgentSubscription.billingCycle":
 		if e.complexity.AgentSubscription.BillingCycle == nil {
@@ -2484,6 +2533,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.BookingQuote.UnavailabilityReason(childComplexity), true
+
+	case "BookingSettings.approvalMethod":
+		if e.complexity.BookingSettings.ApprovalMethod == nil {
+			break
+		}
+
+		return e.complexity.BookingSettings.ApprovalMethod(childComplexity), true
+	case "BookingSettings.guestRequirements":
+		if e.complexity.BookingSettings.GuestRequirements == nil {
+			break
+		}
+
+		return e.complexity.BookingSettings.GuestRequirements(childComplexity), true
+	case "BookingSettings.preBookingMessage":
+		if e.complexity.BookingSettings.PreBookingMessage == nil {
+			break
+		}
+
+		return e.complexity.BookingSettings.PreBookingMessage(childComplexity), true
 
 	case "Business.address":
 		if e.complexity.Business.Address == nil {
@@ -3009,6 +3077,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.CreateSubscriptionPayload.Subscription(childComplexity), true
 
+	case "CustomFee.amount":
+		if e.complexity.CustomFee.Amount == nil {
+			break
+		}
+
+		return e.complexity.CustomFee.Amount(childComplexity), true
+	case "CustomFee.category":
+		if e.complexity.CustomFee.Category == nil {
+			break
+		}
+
+		return e.complexity.CustomFee.Category(childComplexity), true
+	case "CustomFee.frequency":
+		if e.complexity.CustomFee.Frequency == nil {
+			break
+		}
+
+		return e.complexity.CustomFee.Frequency(childComplexity), true
+	case "CustomFee.isOptional":
+		if e.complexity.CustomFee.IsOptional == nil {
+			break
+		}
+
+		return e.complexity.CustomFee.IsOptional(childComplexity), true
+	case "CustomFee.isRefundable":
+		if e.complexity.CustomFee.IsRefundable == nil {
+			break
+		}
+
+		return e.complexity.CustomFee.IsRefundable(childComplexity), true
+	case "CustomFee.name":
+		if e.complexity.CustomFee.Name == nil {
+			break
+		}
+
+		return e.complexity.CustomFee.Name(childComplexity), true
+
 	case "DailyRate.baseRate":
 		if e.complexity.DailyRate.BaseRate == nil {
 			break
@@ -3112,6 +3217,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Disbursement.WalletID(childComplexity), true
+
+	case "Discount.active":
+		if e.complexity.Discount.Active == nil {
+			break
+		}
+
+		return e.complexity.Discount.Active(childComplexity), true
+	case "Discount.minNights":
+		if e.complexity.Discount.MinNights == nil {
+			break
+		}
+
+		return e.complexity.Discount.MinNights(childComplexity), true
+	case "Discount.name":
+		if e.complexity.Discount.Name == nil {
+			break
+		}
+
+		return e.complexity.Discount.Name(childComplexity), true
+	case "Discount.percentage":
+		if e.complexity.Discount.Percentage == nil {
+			break
+		}
+
+		return e.complexity.Discount.Percentage(childComplexity), true
+	case "Discount.type":
+		if e.complexity.Discount.Type == nil {
+			break
+		}
+
+		return e.complexity.Discount.Type(childComplexity), true
 
 	case "DiscountSnapshot.amount":
 		if e.complexity.DiscountSnapshot.Amount == nil {
@@ -3498,6 +3634,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.FinanceTransaction.UpdatedAt(childComplexity), true
+
+	case "GuestRequirements.positiveReviewsOnly":
+		if e.complexity.GuestRequirements.PositiveReviewsOnly == nil {
+			break
+		}
+
+		return e.complexity.GuestRequirements.PositiveReviewsOnly(childComplexity), true
+	case "GuestRequirements.profilePhotoRequired":
+		if e.complexity.GuestRequirements.ProfilePhotoRequired == nil {
+			break
+		}
+
+		return e.complexity.GuestRequirements.ProfilePhotoRequired(childComplexity), true
+	case "GuestRequirements.verifiedID":
+		if e.complexity.GuestRequirements.VerifiedID == nil {
+			break
+		}
+
+		return e.complexity.GuestRequirements.VerifiedID(childComplexity), true
 
 	case "HomeFeedSection.listings":
 		if e.complexity.HomeFeedSection.Listings == nil {
@@ -8327,6 +8482,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RentalDetail.CautionFee(childComplexity), true
+	case "RentalDetail.discounts":
+		if e.complexity.RentalDetail.Discounts == nil {
+			break
+		}
+
+		return e.complexity.RentalDetail.Discounts(childComplexity), true
+	case "RentalDetail.fees":
+		if e.complexity.RentalDetail.Fees == nil {
+			break
+		}
+
+		return e.complexity.RentalDetail.Fees(childComplexity), true
 	case "RentalDetail.legalFee":
 		if e.complexity.RentalDetail.LegalFee == nil {
 			break
@@ -8393,6 +8560,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RentalDetail.ServiceCharges(childComplexity), true
+	case "RentalDetail.showingAvailability":
+		if e.complexity.RentalDetail.ShowingAvailability == nil {
+			break
+		}
+
+		return e.complexity.RentalDetail.ShowingAvailability(childComplexity), true
 
 	case "Review.body":
 		if e.complexity.Review.Body == nil {
@@ -8584,6 +8757,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.SaleDetail.DevelopmentFee(childComplexity), true
+	case "SaleDetail.discounts":
+		if e.complexity.SaleDetail.Discounts == nil {
+			break
+		}
+
+		return e.complexity.SaleDetail.Discounts(childComplexity), true
+	case "SaleDetail.fees":
+		if e.complexity.SaleDetail.Fees == nil {
+			break
+		}
+
+		return e.complexity.SaleDetail.Fees(childComplexity), true
 	case "SaleDetail.legalFee":
 		if e.complexity.SaleDetail.LegalFee == nil {
 			break
@@ -8638,6 +8823,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.SaleDetail.ServiceCharges(childComplexity), true
+	case "SaleDetail.showingAvailability":
+		if e.complexity.SaleDetail.ShowingAvailability == nil {
+			break
+		}
+
+		return e.complexity.SaleDetail.ShowingAvailability(childComplexity), true
 	case "SaleDetail.surveyFee":
 		if e.complexity.SaleDetail.SurveyFee == nil {
 			break
@@ -8732,18 +8923,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ShortletDetail.AccommodationType(childComplexity), true
+	case "ShortletDetail.advanceBooking":
+		if e.complexity.ShortletDetail.AdvanceBooking == nil {
+			break
+		}
+
+		return e.complexity.ShortletDetail.AdvanceBooking(childComplexity), true
 	case "ShortletDetail.amenitiesHighlights":
 		if e.complexity.ShortletDetail.AmenitiesHighlights == nil {
 			break
 		}
 
 		return e.complexity.ShortletDetail.AmenitiesHighlights(childComplexity), true
-	case "ShortletDetail.autoAcceptBookings":
-		if e.complexity.ShortletDetail.AutoAcceptBookings == nil {
-			break
-		}
-
-		return e.complexity.ShortletDetail.AutoAcceptBookings(childComplexity), true
 	case "ShortletDetail.autoGenerateCalendar":
 		if e.complexity.ShortletDetail.AutoGenerateCalendar == nil {
 			break
@@ -8756,18 +8947,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ShortletDetail.BaseGuestCount(childComplexity), true
-	case "ShortletDetail.calendarMonthsAhead":
-		if e.complexity.ShortletDetail.CalendarMonthsAhead == nil {
+	case "ShortletDetail.bookingSettings":
+		if e.complexity.ShortletDetail.BookingSettings == nil {
 			break
 		}
 
-		return e.complexity.ShortletDetail.CalendarMonthsAhead(childComplexity), true
-	case "ShortletDetail.cautionFee":
-		if e.complexity.ShortletDetail.CautionFee == nil {
-			break
-		}
-
-		return e.complexity.ShortletDetail.CautionFee(childComplexity), true
+		return e.complexity.ShortletDetail.BookingSettings(childComplexity), true
 	case "ShortletDetail.checkInTime":
 		if e.complexity.ShortletDetail.CheckInTime == nil {
 			break
@@ -8780,36 +8965,24 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ShortletDetail.CheckOutTime(childComplexity), true
-	case "ShortletDetail.cleaningFee":
-		if e.complexity.ShortletDetail.CleaningFee == nil {
+	case "ShortletDetail.discounts":
+		if e.complexity.ShortletDetail.Discounts == nil {
 			break
 		}
 
-		return e.complexity.ShortletDetail.CleaningFee(childComplexity), true
-	case "ShortletDetail.extraGuestFee":
-		if e.complexity.ShortletDetail.ExtraGuestFee == nil {
+		return e.complexity.ShortletDetail.Discounts(childComplexity), true
+	case "ShortletDetail.fees":
+		if e.complexity.ShortletDetail.Fees == nil {
 			break
 		}
 
-		return e.complexity.ShortletDetail.ExtraGuestFee(childComplexity), true
+		return e.complexity.ShortletDetail.Fees(childComplexity), true
 	case "ShortletDetail.maxGuests":
 		if e.complexity.ShortletDetail.MaxGuests == nil {
 			break
 		}
 
 		return e.complexity.ShortletDetail.MaxGuests(childComplexity), true
-	case "ShortletDetail.maxNights":
-		if e.complexity.ShortletDetail.MaxNights == nil {
-			break
-		}
-
-		return e.complexity.ShortletDetail.MaxNights(childComplexity), true
-	case "ShortletDetail.minNights":
-		if e.complexity.ShortletDetail.MinNights == nil {
-			break
-		}
-
-		return e.complexity.ShortletDetail.MinNights(childComplexity), true
 	case "ShortletDetail.nightlyRate":
 		if e.complexity.ShortletDetail.NightlyRate == nil {
 			break
@@ -8822,12 +8995,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ShortletDetail.Rules(childComplexity), true
-	case "ShortletDetail.serviceFee":
-		if e.complexity.ShortletDetail.ServiceFee == nil {
+	case "ShortletDetail.stayLimits":
+		if e.complexity.ShortletDetail.StayLimits == nil {
 			break
 		}
 
-		return e.complexity.ShortletDetail.ServiceFee(childComplexity), true
+		return e.complexity.ShortletDetail.StayLimits(childComplexity), true
 
 	case "ShowingAvailability.dayOfWeek":
 		if e.complexity.ShowingAvailability.DayOfWeek == nil {
@@ -8914,6 +9087,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ShowingDetail.RescheduledAt(childComplexity), true
+
+	case "StayLimits.maxNights":
+		if e.complexity.StayLimits.MaxNights == nil {
+			break
+		}
+
+		return e.complexity.StayLimits.MaxNights(childComplexity), true
+	case "StayLimits.minNights":
+		if e.complexity.StayLimits.MinNights == nil {
+			break
+		}
+
+		return e.complexity.StayLimits.MinNights(childComplexity), true
 
 	case "SubRatings.accuracy":
 		if e.complexity.SubRatings.Accuracy == nil {
@@ -10347,13 +10533,12 @@ type ThumbnailVariant {
 
 type ShortletDetail {
   nightlyRate: Float!
-  cautionFee: Float
-  cleaningFee: Float
-  serviceFee: Float
-  extraGuestFee: Float
+  fees: [CustomFee!]!
+  discounts: [Discount!]!
+  bookingSettings: BookingSettings!
+  stayLimits: StayLimits!
+  advanceBooking: AdvanceBooking!
 
-  minNights: Int!
-  maxNights: Int
   maxGuests: Int!
   baseGuestCount: Int
 
@@ -10361,13 +10546,77 @@ type ShortletDetail {
   checkOutTime: String
 
   accommodationType: AccommodationType!
-  autoAcceptBookings: Boolean!
-
-  calendarMonthsAhead: Int!
   autoGenerateCalendar: Boolean!
 
   rules: [RuleGroup!]!
   amenitiesHighlights: [AmenityHighlight!]!
+}
+
+type CustomFee {
+  name: String!
+  amount: Float!
+  frequency: FeeFrequency!
+  category: FeeCategory!
+  isRefundable: Boolean!
+  isOptional: Boolean!
+}
+
+type Discount {
+  name: String!
+  type: DiscountType!
+  percentage: Float!
+  minNights: Int
+  active: Boolean!
+}
+
+enum DiscountType {
+  flat
+  length_of_stay
+}
+
+enum FeeFrequency {
+  one_time
+  per_stay
+  per_guest
+  per_extra_guest
+  per_night
+  per_month
+  per_year
+}
+
+enum FeeCategory {
+  legal
+  agency
+  service
+  caution
+  other
+}
+
+enum ApprovalMethod {
+  instant
+  request
+}
+
+type BookingSettings {
+  approvalMethod: ApprovalMethod!
+  guestRequirements: GuestRequirements!
+  preBookingMessage: String
+}
+
+type GuestRequirements {
+  verifiedID: Boolean!
+  positiveReviewsOnly: Boolean!
+  profilePhotoRequired: Boolean!
+}
+
+type StayLimits {
+  minNights: Int!
+  maxNights: Int
+}
+
+type AdvanceBooking {
+  monthsAhead: Int!
+  minNoticeHours: Int!
 }
 
 type RentalDetail {
@@ -10379,6 +10628,9 @@ type RentalDetail {
   registrationFee: Float
   cautionFee: Float
   serviceCharge: Float
+  discounts: [Discount!]!
+  fees: [CustomFee!]!
+  showingAvailability: [ShowingAvailability!]
   serviceCharges: [ServiceCharge!]
 
   minRentalPeriod: Int!
@@ -10404,6 +10656,9 @@ type SaleDetail {
   developmentFee: Float
   otherFees: Float
   serviceCharge: Float
+  discounts: [Discount!]!
+  fees: [CustomFee!]!
+  showingAvailability: [ShowingAvailability!]
   serviceCharges: [ServiceCharge!]
 
   saleTerms: String
@@ -16079,6 +16334,64 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _AdvanceBooking_monthsAhead(ctx context.Context, field graphql.CollectedField, obj *domain11.AdvanceBooking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AdvanceBooking_monthsAhead,
+		func(ctx context.Context) (any, error) {
+			return obj.MonthsAhead, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AdvanceBooking_monthsAhead(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AdvanceBooking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AdvanceBooking_minNoticeHours(ctx context.Context, field graphql.CollectedField, obj *domain11.AdvanceBooking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AdvanceBooking_minNoticeHours,
+		func(ctx context.Context) (any, error) {
+			return obj.MinNoticeHours, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_AdvanceBooking_minNoticeHours(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AdvanceBooking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _AgentSubscription_id(ctx context.Context, field graphql.CollectedField, obj *domain3.AgentSubscription) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -18644,6 +18957,101 @@ func (ec *executionContext) _BookingQuote_unavailabilityReason(ctx context.Conte
 func (ec *executionContext) fieldContext_BookingQuote_unavailabilityReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "BookingQuote",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BookingSettings_approvalMethod(ctx context.Context, field graphql.CollectedField, obj *domain11.BookingSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BookingSettings_approvalMethod,
+		func(ctx context.Context) (any, error) {
+			return obj.ApprovalMethod, nil
+		},
+		nil,
+		ec.marshalNApprovalMethod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐApprovalMethod,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BookingSettings_approvalMethod(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BookingSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ApprovalMethod does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BookingSettings_guestRequirements(ctx context.Context, field graphql.CollectedField, obj *domain11.BookingSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BookingSettings_guestRequirements,
+		func(ctx context.Context) (any, error) {
+			return obj.GuestRequirements, nil
+		},
+		nil,
+		ec.marshalNGuestRequirements2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐGuestRequirements,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BookingSettings_guestRequirements(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BookingSettings",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "verifiedID":
+				return ec.fieldContext_GuestRequirements_verifiedID(ctx, field)
+			case "positiveReviewsOnly":
+				return ec.fieldContext_GuestRequirements_positiveReviewsOnly(ctx, field)
+			case "profilePhotoRequired":
+				return ec.fieldContext_GuestRequirements_profilePhotoRequired(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GuestRequirements", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BookingSettings_preBookingMessage(ctx context.Context, field graphql.CollectedField, obj *domain11.BookingSettings) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BookingSettings_preBookingMessage,
+		func(ctx context.Context) (any, error) {
+			return obj.PreBookingMessage, nil
+		},
+		nil,
+		ec.marshalOString2string,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_BookingSettings_preBookingMessage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BookingSettings",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -21478,6 +21886,180 @@ func (ec *executionContext) fieldContext_CreateSubscriptionPayload_paymentID(_ c
 	return fc, nil
 }
 
+func (ec *executionContext) _CustomFee_name(ctx context.Context, field graphql.CollectedField, obj *domain11.CustomFee) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CustomFee_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CustomFee_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CustomFee",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CustomFee_amount(ctx context.Context, field graphql.CollectedField, obj *domain11.CustomFee) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CustomFee_amount,
+		func(ctx context.Context) (any, error) {
+			return obj.Amount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CustomFee_amount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CustomFee",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CustomFee_frequency(ctx context.Context, field graphql.CollectedField, obj *domain11.CustomFee) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CustomFee_frequency,
+		func(ctx context.Context) (any, error) {
+			return obj.Frequency, nil
+		},
+		nil,
+		ec.marshalNFeeFrequency2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFeeFrequency,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CustomFee_frequency(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CustomFee",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type FeeFrequency does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CustomFee_category(ctx context.Context, field graphql.CollectedField, obj *domain11.CustomFee) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CustomFee_category,
+		func(ctx context.Context) (any, error) {
+			return obj.Category, nil
+		},
+		nil,
+		ec.marshalNFeeCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFeeCategory,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CustomFee_category(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CustomFee",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type FeeCategory does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CustomFee_isRefundable(ctx context.Context, field graphql.CollectedField, obj *domain11.CustomFee) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CustomFee_isRefundable,
+		func(ctx context.Context) (any, error) {
+			return obj.IsRefundable, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CustomFee_isRefundable(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CustomFee",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CustomFee_isOptional(ctx context.Context, field graphql.CollectedField, obj *domain11.CustomFee) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CustomFee_isOptional,
+		func(ctx context.Context) (any, error) {
+			return obj.IsOptional, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CustomFee_isOptional(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CustomFee",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _DailyRate_date(ctx context.Context, field graphql.CollectedField, obj *domain6.DailyRate) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -21966,6 +22548,151 @@ func (ec *executionContext) fieldContext_Disbursement_updatedAt(_ context.Contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Discount_name(ctx context.Context, field graphql.CollectedField, obj *domain11.Discount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Discount_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Discount_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Discount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Discount_type(ctx context.Context, field graphql.CollectedField, obj *domain11.Discount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Discount_type,
+		func(ctx context.Context) (any, error) {
+			return obj.Type, nil
+		},
+		nil,
+		ec.marshalNDiscountType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscountType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Discount_type(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Discount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DiscountType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Discount_percentage(ctx context.Context, field graphql.CollectedField, obj *domain11.Discount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Discount_percentage,
+		func(ctx context.Context) (any, error) {
+			return obj.Percentage, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Discount_percentage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Discount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Discount_minNights(ctx context.Context, field graphql.CollectedField, obj *domain11.Discount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Discount_minNights,
+		func(ctx context.Context) (any, error) {
+			return obj.MinNights, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Discount_minNights(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Discount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Discount_active(ctx context.Context, field graphql.CollectedField, obj *domain11.Discount) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Discount_active,
+		func(ctx context.Context) (any, error) {
+			return obj.Active, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Discount_active(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Discount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -23841,6 +24568,93 @@ func (ec *executionContext) fieldContext_FinanceTransaction_updatedAt(_ context.
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GuestRequirements_verifiedID(ctx context.Context, field graphql.CollectedField, obj *domain11.GuestRequirements) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GuestRequirements_verifiedID,
+		func(ctx context.Context) (any, error) {
+			return obj.VerifiedID, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GuestRequirements_verifiedID(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GuestRequirements",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GuestRequirements_positiveReviewsOnly(ctx context.Context, field graphql.CollectedField, obj *domain11.GuestRequirements) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GuestRequirements_positiveReviewsOnly,
+		func(ctx context.Context) (any, error) {
+			return obj.PositiveReviewsOnly, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GuestRequirements_positiveReviewsOnly(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GuestRequirements",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GuestRequirements_profilePhotoRequired(ctx context.Context, field graphql.CollectedField, obj *domain11.GuestRequirements) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GuestRequirements_profilePhotoRequired,
+		func(ctx context.Context) (any, error) {
+			return obj.ProfilePhotoRequired, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_GuestRequirements_profilePhotoRequired(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GuestRequirements",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -26344,18 +27158,16 @@ func (ec *executionContext) fieldContext_Listing_shortletDetails(_ context.Conte
 			switch field.Name {
 			case "nightlyRate":
 				return ec.fieldContext_ShortletDetail_nightlyRate(ctx, field)
-			case "cautionFee":
-				return ec.fieldContext_ShortletDetail_cautionFee(ctx, field)
-			case "cleaningFee":
-				return ec.fieldContext_ShortletDetail_cleaningFee(ctx, field)
-			case "serviceFee":
-				return ec.fieldContext_ShortletDetail_serviceFee(ctx, field)
-			case "extraGuestFee":
-				return ec.fieldContext_ShortletDetail_extraGuestFee(ctx, field)
-			case "minNights":
-				return ec.fieldContext_ShortletDetail_minNights(ctx, field)
-			case "maxNights":
-				return ec.fieldContext_ShortletDetail_maxNights(ctx, field)
+			case "fees":
+				return ec.fieldContext_ShortletDetail_fees(ctx, field)
+			case "discounts":
+				return ec.fieldContext_ShortletDetail_discounts(ctx, field)
+			case "bookingSettings":
+				return ec.fieldContext_ShortletDetail_bookingSettings(ctx, field)
+			case "stayLimits":
+				return ec.fieldContext_ShortletDetail_stayLimits(ctx, field)
+			case "advanceBooking":
+				return ec.fieldContext_ShortletDetail_advanceBooking(ctx, field)
 			case "maxGuests":
 				return ec.fieldContext_ShortletDetail_maxGuests(ctx, field)
 			case "baseGuestCount":
@@ -26366,10 +27178,6 @@ func (ec *executionContext) fieldContext_Listing_shortletDetails(_ context.Conte
 				return ec.fieldContext_ShortletDetail_checkOutTime(ctx, field)
 			case "accommodationType":
 				return ec.fieldContext_ShortletDetail_accommodationType(ctx, field)
-			case "autoAcceptBookings":
-				return ec.fieldContext_ShortletDetail_autoAcceptBookings(ctx, field)
-			case "calendarMonthsAhead":
-				return ec.fieldContext_ShortletDetail_calendarMonthsAhead(ctx, field)
 			case "autoGenerateCalendar":
 				return ec.fieldContext_ShortletDetail_autoGenerateCalendar(ctx, field)
 			case "rules":
@@ -26421,6 +27229,12 @@ func (ec *executionContext) fieldContext_Listing_rentalDetails(_ context.Context
 				return ec.fieldContext_RentalDetail_cautionFee(ctx, field)
 			case "serviceCharge":
 				return ec.fieldContext_RentalDetail_serviceCharge(ctx, field)
+			case "discounts":
+				return ec.fieldContext_RentalDetail_discounts(ctx, field)
+			case "fees":
+				return ec.fieldContext_RentalDetail_fees(ctx, field)
+			case "showingAvailability":
+				return ec.fieldContext_RentalDetail_showingAvailability(ctx, field)
 			case "serviceCharges":
 				return ec.fieldContext_RentalDetail_serviceCharges(ctx, field)
 			case "minRentalPeriod":
@@ -26488,6 +27302,12 @@ func (ec *executionContext) fieldContext_Listing_saleDetails(_ context.Context, 
 				return ec.fieldContext_SaleDetail_otherFees(ctx, field)
 			case "serviceCharge":
 				return ec.fieldContext_SaleDetail_serviceCharge(ctx, field)
+			case "discounts":
+				return ec.fieldContext_SaleDetail_discounts(ctx, field)
+			case "fees":
+				return ec.fieldContext_SaleDetail_fees(ctx, field)
+			case "showingAvailability":
+				return ec.fieldContext_SaleDetail_showingAvailability(ctx, field)
 			case "serviceCharges":
 				return ec.fieldContext_SaleDetail_serviceCharges(ctx, field)
 			case "saleTerms":
@@ -51308,6 +52128,129 @@ func (ec *executionContext) fieldContext_RentalDetail_serviceCharge(_ context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _RentalDetail_discounts(ctx context.Context, field graphql.CollectedField, obj *domain11.RentalDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RentalDetail_discounts,
+		func(ctx context.Context) (any, error) {
+			return obj.Discounts, nil
+		},
+		nil,
+		ec.marshalNDiscount2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscountᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RentalDetail_discounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RentalDetail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_Discount_name(ctx, field)
+			case "type":
+				return ec.fieldContext_Discount_type(ctx, field)
+			case "percentage":
+				return ec.fieldContext_Discount_percentage(ctx, field)
+			case "minNights":
+				return ec.fieldContext_Discount_minNights(ctx, field)
+			case "active":
+				return ec.fieldContext_Discount_active(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Discount", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RentalDetail_fees(ctx context.Context, field graphql.CollectedField, obj *domain11.RentalDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RentalDetail_fees,
+		func(ctx context.Context) (any, error) {
+			return obj.Fees, nil
+		},
+		nil,
+		ec.marshalNCustomFee2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCustomFeeᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RentalDetail_fees(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RentalDetail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_CustomFee_name(ctx, field)
+			case "amount":
+				return ec.fieldContext_CustomFee_amount(ctx, field)
+			case "frequency":
+				return ec.fieldContext_CustomFee_frequency(ctx, field)
+			case "category":
+				return ec.fieldContext_CustomFee_category(ctx, field)
+			case "isRefundable":
+				return ec.fieldContext_CustomFee_isRefundable(ctx, field)
+			case "isOptional":
+				return ec.fieldContext_CustomFee_isOptional(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CustomFee", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RentalDetail_showingAvailability(ctx context.Context, field graphql.CollectedField, obj *domain11.RentalDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RentalDetail_showingAvailability,
+		func(ctx context.Context) (any, error) {
+			return obj.ShowingAvailability, nil
+		},
+		nil,
+		ec.marshalOShowingAvailability2ᚖᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShowingAvailabilityᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RentalDetail_showingAvailability(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RentalDetail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "dayOfWeek":
+				return ec.fieldContext_ShowingAvailability_dayOfWeek(ctx, field)
+			case "startTime":
+				return ec.fieldContext_ShowingAvailability_startTime(ctx, field)
+			case "endTime":
+				return ec.fieldContext_ShowingAvailability_endTime(ctx, field)
+			case "timezone":
+				return ec.fieldContext_ShowingAvailability_timezone(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ShowingAvailability", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _RentalDetail_serviceCharges(ctx context.Context, field graphql.CollectedField, obj *domain11.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -52719,6 +53662,129 @@ func (ec *executionContext) fieldContext_SaleDetail_serviceCharge(_ context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _SaleDetail_discounts(ctx context.Context, field graphql.CollectedField, obj *domain11.SaleDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SaleDetail_discounts,
+		func(ctx context.Context) (any, error) {
+			return obj.Discounts, nil
+		},
+		nil,
+		ec.marshalNDiscount2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscountᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SaleDetail_discounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SaleDetail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_Discount_name(ctx, field)
+			case "type":
+				return ec.fieldContext_Discount_type(ctx, field)
+			case "percentage":
+				return ec.fieldContext_Discount_percentage(ctx, field)
+			case "minNights":
+				return ec.fieldContext_Discount_minNights(ctx, field)
+			case "active":
+				return ec.fieldContext_Discount_active(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Discount", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SaleDetail_fees(ctx context.Context, field graphql.CollectedField, obj *domain11.SaleDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SaleDetail_fees,
+		func(ctx context.Context) (any, error) {
+			return obj.Fees, nil
+		},
+		nil,
+		ec.marshalNCustomFee2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCustomFeeᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SaleDetail_fees(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SaleDetail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_CustomFee_name(ctx, field)
+			case "amount":
+				return ec.fieldContext_CustomFee_amount(ctx, field)
+			case "frequency":
+				return ec.fieldContext_CustomFee_frequency(ctx, field)
+			case "category":
+				return ec.fieldContext_CustomFee_category(ctx, field)
+			case "isRefundable":
+				return ec.fieldContext_CustomFee_isRefundable(ctx, field)
+			case "isOptional":
+				return ec.fieldContext_CustomFee_isOptional(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CustomFee", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SaleDetail_showingAvailability(ctx context.Context, field graphql.CollectedField, obj *domain11.SaleDetail) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SaleDetail_showingAvailability,
+		func(ctx context.Context) (any, error) {
+			return obj.ShowingAvailability, nil
+		},
+		nil,
+		ec.marshalOShowingAvailability2ᚖᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShowingAvailabilityᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_SaleDetail_showingAvailability(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SaleDetail",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "dayOfWeek":
+				return ec.fieldContext_ShowingAvailability_dayOfWeek(ctx, field)
+			case "startTime":
+				return ec.fieldContext_ShowingAvailability_startTime(ctx, field)
+			case "endTime":
+				return ec.fieldContext_ShowingAvailability_endTime(ctx, field)
+			case "timezone":
+				return ec.fieldContext_ShowingAvailability_timezone(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ShowingAvailability", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _SaleDetail_serviceCharges(ctx context.Context, field graphql.CollectedField, obj *domain11.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -53201,175 +54267,192 @@ func (ec *executionContext) fieldContext_ShortletDetail_nightlyRate(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_cautionFee(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_fees(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_ShortletDetail_cautionFee,
+		ec.fieldContext_ShortletDetail_fees,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.ShortletDetail().CautionFee(ctx, obj)
+			return obj.Fees, nil
 		},
 		nil,
-		ec.marshalOFloat2ᚖfloat64,
+		ec.marshalNCustomFee2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCustomFeeᚄ,
 		true,
-		false,
+		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_ShortletDetail_cautionFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ShortletDetail_fees(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ShortletDetail",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_CustomFee_name(ctx, field)
+			case "amount":
+				return ec.fieldContext_CustomFee_amount(ctx, field)
+			case "frequency":
+				return ec.fieldContext_CustomFee_frequency(ctx, field)
+			case "category":
+				return ec.fieldContext_CustomFee_category(ctx, field)
+			case "isRefundable":
+				return ec.fieldContext_CustomFee_isRefundable(ctx, field)
+			case "isOptional":
+				return ec.fieldContext_CustomFee_isOptional(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CustomFee", field.Name)
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_cleaningFee(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_discounts(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_ShortletDetail_cleaningFee,
+		ec.fieldContext_ShortletDetail_discounts,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.ShortletDetail().CleaningFee(ctx, obj)
+			return obj.Discounts, nil
 		},
 		nil,
-		ec.marshalOFloat2ᚖfloat64,
+		ec.marshalNDiscount2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscountᚄ,
 		true,
-		false,
+		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_ShortletDetail_cleaningFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ShortletDetail_discounts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ShortletDetail",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_Discount_name(ctx, field)
+			case "type":
+				return ec.fieldContext_Discount_type(ctx, field)
+			case "percentage":
+				return ec.fieldContext_Discount_percentage(ctx, field)
+			case "minNights":
+				return ec.fieldContext_Discount_minNights(ctx, field)
+			case "active":
+				return ec.fieldContext_Discount_active(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Discount", field.Name)
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_serviceFee(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_bookingSettings(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_ShortletDetail_serviceFee,
+		ec.fieldContext_ShortletDetail_bookingSettings,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.ShortletDetail().ServiceFee(ctx, obj)
+			return obj.BookingSettings, nil
 		},
 		nil,
-		ec.marshalOFloat2ᚖfloat64,
+		ec.marshalNBookingSettings2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐBookingSettings,
 		true,
-		false,
+		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_ShortletDetail_serviceFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ShortletDetail_bookingSettings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ShortletDetail",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
+			switch field.Name {
+			case "approvalMethod":
+				return ec.fieldContext_BookingSettings_approvalMethod(ctx, field)
+			case "guestRequirements":
+				return ec.fieldContext_BookingSettings_guestRequirements(ctx, field)
+			case "preBookingMessage":
+				return ec.fieldContext_BookingSettings_preBookingMessage(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BookingSettings", field.Name)
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_extraGuestFee(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_stayLimits(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_ShortletDetail_extraGuestFee,
+		ec.fieldContext_ShortletDetail_stayLimits,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.ShortletDetail().ExtraGuestFee(ctx, obj)
+			return obj.StayLimits, nil
 		},
 		nil,
-		ec.marshalOFloat2ᚖfloat64,
+		ec.marshalNStayLimits2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐStayLimits,
 		true,
-		false,
+		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_ShortletDetail_extraGuestFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ShortletDetail_stayLimits(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ShortletDetail",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
+			switch field.Name {
+			case "minNights":
+				return ec.fieldContext_StayLimits_minNights(ctx, field)
+			case "maxNights":
+				return ec.fieldContext_StayLimits_maxNights(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StayLimits", field.Name)
 		},
 	}
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_minNights(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShortletDetail_advanceBooking(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_ShortletDetail_minNights,
+		ec.fieldContext_ShortletDetail_advanceBooking,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.ShortletDetail().MinNights(ctx, obj)
+			return obj.AdvanceBooking, nil
 		},
 		nil,
-		ec.marshalNInt2int,
+		ec.marshalNAdvanceBooking2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAdvanceBooking,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_ShortletDetail_minNights(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_ShortletDetail_advanceBooking(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ShortletDetail",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ShortletDetail_maxNights(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ShortletDetail_maxNights,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.ShortletDetail().MaxNights(ctx, obj)
-		},
-		nil,
-		ec.marshalOInt2ᚖint,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ShortletDetail_maxNights(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ShortletDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
+			switch field.Name {
+			case "monthsAhead":
+				return ec.fieldContext_AdvanceBooking_monthsAhead(ctx, field)
+			case "minNoticeHours":
+				return ec.fieldContext_AdvanceBooking_minNoticeHours(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AdvanceBooking", field.Name)
 		},
 	}
 	return fc, nil
@@ -53520,64 +54603,6 @@ func (ec *executionContext) fieldContext_ShortletDetail_accommodationType(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _ShortletDetail_autoAcceptBookings(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ShortletDetail_autoAcceptBookings,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.ShortletDetail().AutoAcceptBookings(ctx, obj)
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ShortletDetail_autoAcceptBookings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ShortletDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ShortletDetail_calendarMonthsAhead(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ShortletDetail_calendarMonthsAhead,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.ShortletDetail().CalendarMonthsAhead(ctx, obj)
-		},
-		nil,
-		ec.marshalNInt2int,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ShortletDetail_calendarMonthsAhead(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ShortletDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _ShortletDetail_autoGenerateCalendar(ctx context.Context, field graphql.CollectedField, obj *domain11.ShortletDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -53679,14 +54704,14 @@ func (ec *executionContext) fieldContext_ShortletDetail_amenitiesHighlights(_ co
 	return fc, nil
 }
 
-func (ec *executionContext) _ShowingAvailability_dayOfWeek(ctx context.Context, field graphql.CollectedField, obj *model.ShowingAvailability) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShowingAvailability_dayOfWeek(ctx context.Context, field graphql.CollectedField, obj *domain11.ShowingAvailability) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
 		ec.fieldContext_ShowingAvailability_dayOfWeek,
 		func(ctx context.Context) (any, error) {
-			return obj.DayOfWeek, nil
+			return ec.resolvers.ShowingAvailability().DayOfWeek(ctx, obj)
 		},
 		nil,
 		ec.marshalNDayOfWeek2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDayOfWeek,
@@ -53699,8 +54724,8 @@ func (ec *executionContext) fieldContext_ShowingAvailability_dayOfWeek(_ context
 	fc = &graphql.FieldContext{
 		Object:     "ShowingAvailability",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type DayOfWeek does not have child fields")
 		},
@@ -53708,7 +54733,7 @@ func (ec *executionContext) fieldContext_ShowingAvailability_dayOfWeek(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _ShowingAvailability_startTime(ctx context.Context, field graphql.CollectedField, obj *model.ShowingAvailability) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShowingAvailability_startTime(ctx context.Context, field graphql.CollectedField, obj *domain11.ShowingAvailability) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -53737,7 +54762,7 @@ func (ec *executionContext) fieldContext_ShowingAvailability_startTime(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _ShowingAvailability_endTime(ctx context.Context, field graphql.CollectedField, obj *model.ShowingAvailability) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShowingAvailability_endTime(ctx context.Context, field graphql.CollectedField, obj *domain11.ShowingAvailability) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -53766,7 +54791,7 @@ func (ec *executionContext) fieldContext_ShowingAvailability_endTime(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _ShowingAvailability_timezone(ctx context.Context, field graphql.CollectedField, obj *model.ShowingAvailability) (ret graphql.Marshaler) {
+func (ec *executionContext) _ShowingAvailability_timezone(ctx context.Context, field graphql.CollectedField, obj *domain11.ShowingAvailability) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
@@ -53776,7 +54801,7 @@ func (ec *executionContext) _ShowingAvailability_timezone(ctx context.Context, f
 			return obj.Timezone, nil
 		},
 		nil,
-		ec.marshalOString2ᚖstring,
+		ec.marshalOString2string,
 		true,
 		false,
 	)
@@ -54080,6 +55105,64 @@ func (ec *executionContext) fieldContext_ShowingDetail_cancelReason(_ context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StayLimits_minNights(ctx context.Context, field graphql.CollectedField, obj *domain11.StayLimits) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_StayLimits_minNights,
+		func(ctx context.Context) (any, error) {
+			return obj.MinNights, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_StayLimits_minNights(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StayLimits",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _StayLimits_maxNights(ctx context.Context, field graphql.CollectedField, obj *domain11.StayLimits) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_StayLimits_maxNights,
+		func(ctx context.Context) (any, error) {
+			return obj.MaxNights, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_StayLimits_maxNights(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StayLimits",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -64550,6 +65633,50 @@ func (ec *executionContext) unmarshalInputUpdateWishlistInput(ctx context.Contex
 
 // region    **************************** object.gotpl ****************************
 
+var advanceBookingImplementors = []string{"AdvanceBooking"}
+
+func (ec *executionContext) _AdvanceBooking(ctx context.Context, sel ast.SelectionSet, obj *domain11.AdvanceBooking) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, advanceBookingImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AdvanceBooking")
+		case "monthsAhead":
+			out.Values[i] = ec._AdvanceBooking_monthsAhead(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "minNoticeHours":
+			out.Values[i] = ec._AdvanceBooking_minNoticeHours(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var agentSubscriptionImplementors = []string{"AgentSubscription"}
 
 func (ec *executionContext) _AgentSubscription(ctx context.Context, sel ast.SelectionSet, obj *domain3.AgentSubscription) graphql.Marshaler {
@@ -65362,6 +66489,52 @@ func (ec *executionContext) _BookingQuote(ctx context.Context, sel ast.Selection
 	return out
 }
 
+var bookingSettingsImplementors = []string{"BookingSettings"}
+
+func (ec *executionContext) _BookingSettings(ctx context.Context, sel ast.SelectionSet, obj *domain11.BookingSettings) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, bookingSettingsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BookingSettings")
+		case "approvalMethod":
+			out.Values[i] = ec._BookingSettings_approvalMethod(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "guestRequirements":
+			out.Values[i] = ec._BookingSettings_guestRequirements(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "preBookingMessage":
+			out.Values[i] = ec._BookingSettings_preBookingMessage(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var businessImplementors = []string{"Business"}
 
 func (ec *executionContext) _Business(ctx context.Context, sel ast.SelectionSet, obj *domain.Business) graphql.Marshaler {
@@ -66083,6 +67256,70 @@ func (ec *executionContext) _CreateSubscriptionPayload(ctx context.Context, sel 
 	return out
 }
 
+var customFeeImplementors = []string{"CustomFee"}
+
+func (ec *executionContext) _CustomFee(ctx context.Context, sel ast.SelectionSet, obj *domain11.CustomFee) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, customFeeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CustomFee")
+		case "name":
+			out.Values[i] = ec._CustomFee_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "amount":
+			out.Values[i] = ec._CustomFee_amount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "frequency":
+			out.Values[i] = ec._CustomFee_frequency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "category":
+			out.Values[i] = ec._CustomFee_category(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isRefundable":
+			out.Values[i] = ec._CustomFee_isRefundable(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isOptional":
+			out.Values[i] = ec._CustomFee_isOptional(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var dailyRateImplementors = []string{"DailyRate"}
 
 func (ec *executionContext) _DailyRate(ctx context.Context, sel ast.SelectionSet, obj *domain6.DailyRate) graphql.Marshaler {
@@ -66324,6 +67561,62 @@ func (ec *executionContext) _Disbursement(ctx context.Context, sel ast.Selection
 			out.Values[i] = ec._Disbursement_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var discountImplementors = []string{"Discount"}
+
+func (ec *executionContext) _Discount(ctx context.Context, sel ast.SelectionSet, obj *domain11.Discount) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, discountImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Discount")
+		case "name":
+			out.Values[i] = ec._Discount_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "type":
+			out.Values[i] = ec._Discount_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "percentage":
+			out.Values[i] = ec._Discount_percentage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "minNights":
+			out.Values[i] = ec._Discount_minNights(ctx, field, obj)
+		case "active":
+			out.Values[i] = ec._Discount_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -66934,6 +68227,55 @@ func (ec *executionContext) _FinanceTransaction(ctx context.Context, sel ast.Sel
 			out.Values[i] = ec._FinanceTransaction_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var guestRequirementsImplementors = []string{"GuestRequirements"}
+
+func (ec *executionContext) _GuestRequirements(ctx context.Context, sel ast.SelectionSet, obj *domain11.GuestRequirements) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, guestRequirementsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GuestRequirements")
+		case "verifiedID":
+			out.Values[i] = ec._GuestRequirements_verifiedID(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "positiveReviewsOnly":
+			out.Values[i] = ec._GuestRequirements_positiveReviewsOnly(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "profilePhotoRequired":
+			out.Values[i] = ec._GuestRequirements_profilePhotoRequired(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -74880,6 +76222,18 @@ func (ec *executionContext) _RentalDetail(ctx context.Context, sel ast.Selection
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "discounts":
+			out.Values[i] = ec._RentalDetail_discounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "fees":
+			out.Values[i] = ec._RentalDetail_fees(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "showingAvailability":
+			out.Values[i] = ec._RentalDetail_showingAvailability(ctx, field, obj)
 		case "serviceCharges":
 			field := field
 
@@ -75597,6 +76951,18 @@ func (ec *executionContext) _SaleDetail(ctx context.Context, sel ast.SelectionSe
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "discounts":
+			out.Values[i] = ec._SaleDetail_discounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "fees":
+			out.Values[i] = ec._SaleDetail_fees(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "showingAvailability":
+			out.Values[i] = ec._SaleDetail_showingAvailability(ctx, field, obj)
 		case "serviceCharges":
 			field := field
 
@@ -75817,213 +77183,37 @@ func (ec *executionContext) _ShortletDetail(ctx context.Context, sel ast.Selecti
 		case "nightlyRate":
 			out.Values[i] = ec._ShortletDetail_nightlyRate(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
-		case "cautionFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShortletDetail_cautionFee(ctx, field, obj)
-				return res
+		case "fees":
+			out.Values[i] = ec._ShortletDetail_fees(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
+		case "discounts":
+			out.Values[i] = ec._ShortletDetail_discounts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "cleaningFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShortletDetail_cleaningFee(ctx, field, obj)
-				return res
+		case "bookingSettings":
+			out.Values[i] = ec._ShortletDetail_bookingSettings(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
+		case "stayLimits":
+			out.Values[i] = ec._ShortletDetail_stayLimits(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "serviceFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShortletDetail_serviceFee(ctx, field, obj)
-				return res
+		case "advanceBooking":
+			out.Values[i] = ec._ShortletDetail_advanceBooking(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "extraGuestFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShortletDetail_extraGuestFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "minNights":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShortletDetail_minNights(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "maxNights":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShortletDetail_maxNights(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "maxGuests":
 			out.Values[i] = ec._ShortletDetail_maxGuests(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "baseGuestCount":
 			out.Values[i] = ec._ShortletDetail_baseGuestCount(ctx, field, obj)
@@ -76034,94 +77224,22 @@ func (ec *executionContext) _ShortletDetail(ctx context.Context, sel ast.Selecti
 		case "accommodationType":
 			out.Values[i] = ec._ShortletDetail_accommodationType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
-		case "autoAcceptBookings":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShortletDetail_autoAcceptBookings(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "calendarMonthsAhead":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._ShortletDetail_calendarMonthsAhead(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "autoGenerateCalendar":
 			out.Values[i] = ec._ShortletDetail_autoGenerateCalendar(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "rules":
 			out.Values[i] = ec._ShortletDetail_rules(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "amenitiesHighlights":
 			out.Values[i] = ec._ShortletDetail_amenitiesHighlights(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -76148,7 +77266,7 @@ func (ec *executionContext) _ShortletDetail(ctx context.Context, sel ast.Selecti
 
 var showingAvailabilityImplementors = []string{"ShowingAvailability"}
 
-func (ec *executionContext) _ShowingAvailability(ctx context.Context, sel ast.SelectionSet, obj *model.ShowingAvailability) graphql.Marshaler {
+func (ec *executionContext) _ShowingAvailability(ctx context.Context, sel ast.SelectionSet, obj *domain11.ShowingAvailability) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, showingAvailabilityImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -76158,19 +77276,50 @@ func (ec *executionContext) _ShowingAvailability(ctx context.Context, sel ast.Se
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ShowingAvailability")
 		case "dayOfWeek":
-			out.Values[i] = ec._ShowingAvailability_dayOfWeek(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ShowingAvailability_dayOfWeek(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "startTime":
 			out.Values[i] = ec._ShowingAvailability_startTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "endTime":
 			out.Values[i] = ec._ShowingAvailability_endTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "timezone":
 			out.Values[i] = ec._ShowingAvailability_timezone(ctx, field, obj)
@@ -76237,6 +77386,47 @@ func (ec *executionContext) _ShowingDetail(ctx context.Context, sel ast.Selectio
 			out.Values[i] = ec._ShowingDetail_rescheduleReason(ctx, field, obj)
 		case "cancelReason":
 			out.Values[i] = ec._ShowingDetail_cancelReason(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var stayLimitsImplementors = []string{"StayLimits"}
+
+func (ec *executionContext) _StayLimits(ctx context.Context, sel ast.SelectionSet, obj *domain11.StayLimits) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, stayLimitsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StayLimits")
+		case "minNights":
+			out.Values[i] = ec._StayLimits_minNights(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxNights":
+			out.Values[i] = ec._StayLimits_maxNights(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -78301,6 +79491,10 @@ func (ec *executionContext) unmarshalNAddPayoutDetailInput2hausletᚋinternalᚋ
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNAdvanceBooking2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAdvanceBooking(ctx context.Context, sel ast.SelectionSet, v domain11.AdvanceBooking) graphql.Marshaler {
+	return ec._AdvanceBooking(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNAgentSubscription2hausletᚋinternalᚋmodulesᚋpromotionsᚋdomainᚐAgentSubscription(ctx context.Context, sel ast.SelectionSet, v domain3.AgentSubscription) graphql.Marshaler {
 	return ec._AgentSubscription(ctx, sel, &v)
 }
@@ -78429,6 +79623,23 @@ func (ec *executionContext) unmarshalNAmenityHighlightInput2ᚖhausletᚋinterna
 
 func (ec *executionContext) marshalNAnalyticsPeriod2hausletᚋinternalᚋmodulesᚋinteractionsᚋportᚋgraphqlᚐPeriodResponse(ctx context.Context, sel ast.SelectionSet, v graphql13.PeriodResponse) graphql.Marshaler {
 	return ec._AnalyticsPeriod(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNApprovalMethod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐApprovalMethod(ctx context.Context, v any) (domain11.ApprovalMethod, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain11.ApprovalMethod(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNApprovalMethod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐApprovalMethod(ctx context.Context, sel ast.SelectionSet, v domain11.ApprovalMethod) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNAssignmentReason2hausletᚋinternalᚋmodulesᚋleadsᚋdomainᚐAssignmentReason(ctx context.Context, v any) (domain2.AssignmentReason, error) {
@@ -78727,6 +79938,10 @@ func (ec *executionContext) marshalNBookingQuote2ᚖhausletᚋinternalᚋmodules
 		return graphql.Null
 	}
 	return ec._BookingQuote(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNBookingSettings2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐBookingSettings(ctx context.Context, sel ast.SelectionSet, v domain11.BookingSettings) graphql.Marshaler {
+	return ec._BookingSettings(ctx, sel, &v)
 }
 
 func (ec *executionContext) unmarshalNBookingStatus2hausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBookingStatus(ctx context.Context, v any) (domain6.BookingStatus, error) {
@@ -79213,6 +80428,54 @@ func (ec *executionContext) marshalNCurrencyCode2hausletᚋinternalᚋmodulesᚋ
 	return res
 }
 
+func (ec *executionContext) marshalNCustomFee2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCustomFee(ctx context.Context, sel ast.SelectionSet, v domain11.CustomFee) graphql.Marshaler {
+	return ec._CustomFee(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCustomFee2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCustomFeeᚄ(ctx context.Context, sel ast.SelectionSet, v []domain11.CustomFee) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCustomFee2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐCustomFee(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalNDailyRate2hausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐDailyRate(ctx context.Context, sel ast.SelectionSet, v domain6.DailyRate) graphql.Marshaler {
 	return ec._DailyRate(ctx, sel, &v)
 }
@@ -79298,8 +80561,73 @@ func (ec *executionContext) marshalNDisbursementStatus2hausletᚋinternalᚋmodu
 	return res
 }
 
+func (ec *executionContext) marshalNDiscount2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscount(ctx context.Context, sel ast.SelectionSet, v domain11.Discount) graphql.Marshaler {
+	return ec._Discount(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDiscount2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscountᚄ(ctx context.Context, sel ast.SelectionSet, v []domain11.Discount) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDiscount2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscount(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalNDiscountSnapshot2hausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐDiscountSnapshot(ctx context.Context, sel ast.SelectionSet, v domain6.DiscountSnapshot) graphql.Marshaler {
 	return ec._DiscountSnapshot(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNDiscountType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscountType(ctx context.Context, v any) (domain11.DiscountType, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain11.DiscountType(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDiscountType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscountType(ctx context.Context, sel ast.SelectionSet, v domain11.DiscountType) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNDiscoverySearchFilterInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscoverySearchFilterInput(ctx context.Context, v any) (model.DiscoverySearchFilterInput, error) {
@@ -79642,6 +80970,40 @@ func (ec *executionContext) marshalNFeatureLimitCheckResult2ᚖhausletᚋinterna
 	return ec._FeatureLimitCheckResult(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNFeeCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFeeCategory(ctx context.Context, v any) (domain11.FeeCategory, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain11.FeeCategory(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFeeCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFeeCategory(ctx context.Context, sel ast.SelectionSet, v domain11.FeeCategory) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNFeeFrequency2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFeeFrequency(ctx context.Context, v any) (domain11.FeeFrequency, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain11.FeeFrequency(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFeeFrequency2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFeeFrequency(ctx context.Context, sel ast.SelectionSet, v domain11.FeeFrequency) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNFeedSectionType2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionType(ctx context.Context, v any) (domain14.FeedSectionType, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain14.FeedSectionType(tmp)
@@ -79783,6 +81145,10 @@ func (ec *executionContext) marshalNFurnishingType2hausletᚋinternalᚋmodules�
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNGuestRequirements2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐGuestRequirements(ctx context.Context, sel ast.SelectionSet, v domain11.GuestRequirements) graphql.Marshaler {
+	return ec._GuestRequirements(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNHomeFeedSection2ᚕᚖhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐHomeFeedSectionᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain14.HomeFeedSection) graphql.Marshaler {
@@ -81988,6 +83354,14 @@ func (ec *executionContext) marshalNSessionStatus2hausletᚋinternalᚋmodules�
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNShowingAvailability2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShowingAvailability(ctx context.Context, sel ast.SelectionSet, v domain11.ShowingAvailability) graphql.Marshaler {
+	return ec._ShowingAvailability(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNStayLimits2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐStayLimits(ctx context.Context, sel ast.SelectionSet, v domain11.StayLimits) graphql.Marshaler {
+	return ec._StayLimits(ctx, sel, &v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -85119,6 +86493,57 @@ func (ec *executionContext) unmarshalOShortletFilterInput2ᚖhausletᚋinternal�
 	}
 	res, err := ec.unmarshalInputShortletFilterInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOShowingAvailability2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShowingAvailabilityᚄ(ctx context.Context, sel ast.SelectionSet, v []domain11.ShowingAvailability) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNShowingAvailability2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShowingAvailability(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalOShowingAvailability2ᚖᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShowingAvailabilityᚄ(ctx context.Context, sel ast.SelectionSet, v *[]domain11.ShowingAvailability) graphql.Marshaler {
+	return ec.marshalOShowingAvailability2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShowingAvailabilityᚄ(ctx, sel, *v)
 }
 
 func (ec *executionContext) marshalOShowingDetail2ᚖhausletᚋinternalᚋmodulesᚋcalendarᚋdomainᚐShowingDetail(ctx context.Context, sel ast.SelectionSet, v *domain7.ShowingDetail) graphql.Marshaler {

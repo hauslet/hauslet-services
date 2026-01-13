@@ -886,7 +886,20 @@ func (r *paymentMethodResolver) AccountNumberLast4(ctx context.Context, obj *dom
 
 // PlatformFees is the resolver for the platformFees field.
 func (r *priceBreakdownResolver) PlatformFees(ctx context.Context, obj *domain13.PriceBreakdown) (*model.PlatformFeeBreakdown, error) {
-	panic(fmt.Errorf("not implemented: PlatformFees - platformFees"))
+	if obj == nil || obj.PlatformFees == nil {
+		return nil, nil
+	}
+
+	return &model.PlatformFeeBreakdown{
+		GuestFeePercent:         obj.PlatformFees.GuestFeePercent,
+		GuestFeeAmount:          obj.PlatformFees.GuestFeeAmount,
+		HostCommissionPercent:   obj.PlatformFees.HostCommissionPercent,
+		HostCommissionAmount:    obj.PlatformFees.HostCommissionAmount,
+		PayoutProcessingPercent: obj.PlatformFees.PayoutProcessingPercent,
+		PayoutProcessingAmount:  obj.PlatformFees.PayoutProcessingAmount,
+		MinimumGuestFeeApplied:  obj.PlatformFees.MinimumGuestFeeApplied,
+		HostNetAmount:           obj.PlatformFees.HostNetAmount,
+	}, nil
 }
 
 // PlatformFees is the resolver for the platformFees field.
@@ -1903,76 +1916,30 @@ func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain.Sal
 	return charges, nil
 }
 
-// CautionFee is the resolver for the cautionFee field.
-func (r *shortletDetailResolver) CautionFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatCaution {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
-}
-
-// CleaningFee is the resolver for the cleaningFee field.
-func (r *shortletDetailResolver) CleaningFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if strings.Contains(strings.ToLower(fee.Name), "cleaning") {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
-}
-
-// ServiceFee is the resolver for the serviceFee field.
-func (r *shortletDetailResolver) ServiceFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatService && strings.Contains(strings.ToLower(fee.Name), "service") {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
-}
-
-// ExtraGuestFee is the resolver for the extraGuestFee field.
-func (r *shortletDetailResolver) ExtraGuestFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if strings.Contains(strings.ToLower(fee.Name), "guest") {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
-}
-
-// MinNights is the resolver for the minNights field.
-func (r *shortletDetailResolver) MinNights(ctx context.Context, obj *domain.ShortletDetail) (int, error) {
+// DayOfWeek is the resolver for the dayOfWeek field.
+func (r *showingAvailabilityResolver) DayOfWeek(ctx context.Context, obj *domain.ShowingAvailability) (model.DayOfWeek, error) {
 	if obj == nil {
-		return 0, nil
+		return "", nil
 	}
-	return obj.StayLimits.MinNights, nil
-}
 
-// MaxNights is the resolver for the maxNights field.
-func (r *shortletDetailResolver) MaxNights(ctx context.Context, obj *domain.ShortletDetail) (*int, error) {
-	if obj == nil {
-		return nil, nil
+	switch strings.ToLower(strings.TrimSpace(obj.DayOfWeek)) {
+	case "monday":
+		return model.DayOfWeekMonday, nil
+	case "tuesday":
+		return model.DayOfWeekTuesday, nil
+	case "wednesday":
+		return model.DayOfWeekWednesday, nil
+	case "thursday":
+		return model.DayOfWeekThursday, nil
+	case "friday":
+		return model.DayOfWeekFriday, nil
+	case "saturday":
+		return model.DayOfWeekSaturday, nil
+	case "sunday":
+		return model.DayOfWeekSunday, nil
+	default:
+		return model.DayOfWeek(obj.DayOfWeek), nil
 	}
-	return obj.StayLimits.MaxNights, nil
-}
-
-// AutoAcceptBookings is the resolver for the autoAcceptBookings field.
-func (r *shortletDetailResolver) AutoAcceptBookings(ctx context.Context, obj *domain.ShortletDetail) (bool, error) {
-	if obj == nil {
-		return false, nil
-	}
-	return obj.BookingSettings.ApprovalMethod == domain.ApprovalMethodInstant, nil
-}
-
-// CalendarMonthsAhead is the resolver for the calendarMonthsAhead field.
-func (r *shortletDetailResolver) CalendarMonthsAhead(ctx context.Context, obj *domain.ShortletDetail) (int, error) {
-	if obj == nil {
-		return 0, nil
-	}
-	return obj.AdvanceBooking.MonthsAhead, nil
 }
 
 // Cleanliness is the resolver for the cleanliness field.
@@ -2091,12 +2058,16 @@ func (r *usageTrackingResolver) PremiumPromotionsUsed(ctx context.Context, obj *
 
 // Status is the resolver for the status field.
 func (r *verificationAttemptResolver) Status(ctx context.Context, obj *domain12.VerificationAttempt) (string, error) {
-	panic(fmt.Errorf("not implemented: Status - status"))
+	return obj.Status.String(), nil
 }
 
 // ProcessingTimeMs is the resolver for the processingTimeMs field.
 func (r *verificationAttemptResolver) ProcessingTimeMs(ctx context.Context, obj *domain12.VerificationAttempt) (*int, error) {
-	panic(fmt.Errorf("not implemented: ProcessingTimeMs - processingTimeMs"))
+	if obj == nil || obj.ProcessingTime == nil {
+		return nil, nil
+	}
+	ms := int(obj.ProcessingTime.Milliseconds())
+	return &ms, nil
 }
 
 // OwnerType is the resolver for the ownerType field.
@@ -2259,8 +2230,10 @@ func (r *Resolver) RuleGroup() RuleGroupResolver { return &ruleGroupResolver{r} 
 // SaleDetail returns SaleDetailResolver implementation.
 func (r *Resolver) SaleDetail() SaleDetailResolver { return &saleDetailResolver{r} }
 
-// ShortletDetail returns ShortletDetailResolver implementation.
-func (r *Resolver) ShortletDetail() ShortletDetailResolver { return &shortletDetailResolver{r} }
+// ShowingAvailability returns ShowingAvailabilityResolver implementation.
+func (r *Resolver) ShowingAvailability() ShowingAvailabilityResolver {
+	return &showingAvailabilityResolver{r}
+}
 
 // SubRatings returns SubRatingsResolver implementation.
 func (r *Resolver) SubRatings() SubRatingsResolver { return &subRatingsResolver{r} }
@@ -2337,7 +2310,7 @@ type rentalDetailResolver struct{ *Resolver }
 type reviewResolver struct{ *Resolver }
 type ruleGroupResolver struct{ *Resolver }
 type saleDetailResolver struct{ *Resolver }
-type shortletDetailResolver struct{ *Resolver }
+type showingAvailabilityResolver struct{ *Resolver }
 type subRatingsResolver struct{ *Resolver }
 type transactionResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }
@@ -2350,3 +2323,70 @@ type addPayoutDetailInputResolver struct{ *Resolver }
 type createPaymentMethodInputResolver struct{ *Resolver }
 type createPayoutInputResolver struct{ *Resolver }
 type createReviewInputResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *shortletDetailResolver) CautionFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatCaution {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+func (r *shortletDetailResolver) CleaningFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if strings.Contains(strings.ToLower(fee.Name), "cleaning") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+func (r *shortletDetailResolver) ServiceFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatService && strings.Contains(strings.ToLower(fee.Name), "service") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+func (r *shortletDetailResolver) ExtraGuestFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if strings.Contains(strings.ToLower(fee.Name), "guest") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+func (r *shortletDetailResolver) MinNights(ctx context.Context, obj *domain.ShortletDetail) (int, error) {
+	if obj == nil {
+		return 0, nil
+	}
+	return obj.StayLimits.MinNights, nil
+}
+func (r *shortletDetailResolver) MaxNights(ctx context.Context, obj *domain.ShortletDetail) (*int, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	return obj.StayLimits.MaxNights, nil
+}
+func (r *shortletDetailResolver) AutoAcceptBookings(ctx context.Context, obj *domain.ShortletDetail) (bool, error) {
+	if obj == nil {
+		return false, nil
+	}
+	return obj.BookingSettings.ApprovalMethod == domain.ApprovalMethodInstant, nil
+}
+func (r *shortletDetailResolver) CalendarMonthsAhead(ctx context.Context, obj *domain.ShortletDetail) (int, error) {
+	if obj == nil {
+		return 0, nil
+	}
+	return obj.AdvanceBooking.MonthsAhead, nil
+}
+func (r *Resolver) ShortletDetail() ShortletDetailResolver { return &shortletDetailResolver{r} }
+type shortletDetailResolver struct{ *Resolver }
+*/

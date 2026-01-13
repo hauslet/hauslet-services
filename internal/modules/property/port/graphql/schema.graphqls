@@ -272,13 +272,12 @@ type ThumbnailVariant {
 
 type ShortletDetail {
   nightlyRate: Float!
-  cautionFee: Float
-  cleaningFee: Float
-  serviceFee: Float
-  extraGuestFee: Float
+  fees: [CustomFee!]!
+  discounts: [Discount!]!
+  bookingSettings: BookingSettings!
+  stayLimits: StayLimits!
+  advanceBooking: AdvanceBooking!
 
-  minNights: Int!
-  maxNights: Int
   maxGuests: Int!
   baseGuestCount: Int
 
@@ -286,13 +285,77 @@ type ShortletDetail {
   checkOutTime: String
 
   accommodationType: AccommodationType!
-  autoAcceptBookings: Boolean!
-
-  calendarMonthsAhead: Int!
   autoGenerateCalendar: Boolean!
 
   rules: [RuleGroup!]!
   amenitiesHighlights: [AmenityHighlight!]!
+}
+
+type CustomFee {
+  name: String!
+  amount: Float!
+  frequency: FeeFrequency!
+  category: FeeCategory!
+  isRefundable: Boolean!
+  isOptional: Boolean!
+}
+
+type Discount {
+  name: String!
+  type: DiscountType!
+  percentage: Float!
+  minNights: Int
+  active: Boolean!
+}
+
+enum DiscountType {
+  flat
+  length_of_stay
+}
+
+enum FeeFrequency {
+  one_time
+  per_stay
+  per_guest
+  per_extra_guest
+  per_night
+  per_month
+  per_year
+}
+
+enum FeeCategory {
+  legal
+  agency
+  service
+  caution
+  other
+}
+
+enum ApprovalMethod {
+  instant
+  request
+}
+
+type BookingSettings {
+  approvalMethod: ApprovalMethod!
+  guestRequirements: GuestRequirements!
+  preBookingMessage: String
+}
+
+type GuestRequirements {
+  verifiedID: Boolean!
+  positiveReviewsOnly: Boolean!
+  profilePhotoRequired: Boolean!
+}
+
+type StayLimits {
+  minNights: Int!
+  maxNights: Int
+}
+
+type AdvanceBooking {
+  monthsAhead: Int!
+  minNoticeHours: Int!
 }
 
 type RentalDetail {
@@ -304,6 +367,9 @@ type RentalDetail {
   registrationFee: Float
   cautionFee: Float
   serviceCharge: Float
+  discounts: [Discount!]!
+  fees: [CustomFee!]!
+  showingAvailability: [ShowingAvailability!]
   serviceCharges: [ServiceCharge!]
 
   minRentalPeriod: Int!
@@ -329,6 +395,9 @@ type SaleDetail {
   developmentFee: Float
   otherFees: Float
   serviceCharge: Float
+  discounts: [Discount!]!
+  fees: [CustomFee!]!
+  showingAvailability: [ShowingAvailability!]
   serviceCharges: [ServiceCharge!]
 
   saleTerms: String

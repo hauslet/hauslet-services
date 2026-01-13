@@ -290,13 +290,6 @@ type ShortletFilterInput struct {
 	AccommodationTypes []domain.AccommodationType `json:"accommodationTypes,omitempty"`
 }
 
-type ShowingAvailability struct {
-	DayOfWeek DayOfWeek `json:"dayOfWeek"`
-	StartTime string    `json:"startTime"`
-	EndTime   string    `json:"endTime"`
-	Timezone  *string   `json:"timezone,omitempty"`
-}
-
 type UpdateListingInput struct {
 	Property         *UpdateListingPropertyInput `json:"property,omitempty"`
 	Title            *string                     `json:"title,omitempty"`
