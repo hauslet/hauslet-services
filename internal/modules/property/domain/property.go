@@ -177,18 +177,110 @@ type ServiceCharge struct {
 	Amount float64       `json:"amount"`
 }
 
+// --- FEE & PRICING TYPES ---
+
+// FeeFrequency defines when the fee is applied.
+type FeeFrequency string
+
+const (
+	FeeFreqOneTime       FeeFrequency = "one_time"
+	FeeFreqPerStay       FeeFrequency = "per_stay"
+	FeeFreqPerGuest      FeeFrequency = "per_guest"
+	FeeFreqPerExtraGuest FeeFrequency = "per_extra_guest"
+	FeeFreqPerNight      FeeFrequency = "per_night" // Common for Shortlets
+	FeeFreqPerMonth      FeeFrequency = "per_month" // Common for Rentals/Service Charge
+	FeeFreqPerYear       FeeFrequency = "per_year"  // Common for Rentals/Service Charge
+)
+
+// FeeCategory helps frontend group fees (e.g., hiding legal fees in standard filters)
+type FeeCategory string
+
+const (
+	FeeCatLegal   FeeCategory = "legal"
+	FeeCatAgency  FeeCategory = "agency"
+	FeeCatService FeeCategory = "service"
+	FeeCatCaution FeeCategory = "caution" // Refundable deposits
+	FeeCatOther   FeeCategory = "other"
+)
+
+// CustomFee is the generic structure for any cost associated with a listing
+type CustomFee struct {
+	Name         string       `json:"name"`                    // e.g., "Generator Fuel", "Legal Fee"
+	Amount       float64      `json:"amount"`                  // The cost value
+	Frequency    FeeFrequency `json:"frequency"`               // How often it is paid
+	Category     FeeCategory  `json:"category"`                // For grouping logic
+	IsRefundable bool         `json:"is_refundable,omitempty"` // Useful for Caution Fees
+	IsOptional   bool         `json:"is_optional,omitempty"`   // Useful for things like "Extra Cleaning"
+}
+
+// DiscountType defines the behavior of the discount
+type DiscountType string
+
+const (
+	DiscountTypeFlat         DiscountType = "flat"           // Standard % off (General Promotion)
+	DiscountTypeLengthOfStay DiscountType = "length_of_stay" // Triggered by duration (Weekly/Monthly)
+)
+
+// Discount represents a price reduction
+type Discount struct {
+	Name       string       `json:"name"`                 // e.g., "Flash Sale", "Weekly Discount"
+	Type       DiscountType `json:"type"`                 // "flat" or "length_of_stay"
+	Percentage float64      `json:"percentage"`           // e.g., 10.0 for 10%
+	MinNights  *int         `json:"min_nights,omitempty"` // Required if Type is "length_of_stay"
+	Active     bool         `json:"active"`               // Corresponds to the toggle switch
+}
+
+// --- BOOKING SETTINGS ---
+
+// ApprovalMethod defines how bookings are approved
+type ApprovalMethod string
+
+const (
+	ApprovalMethodInstant ApprovalMethod = "instant" // Matches "Instant Book"
+	ApprovalMethodRequest ApprovalMethod = "request" // Matches "Request to Book"
+)
+
+// GuestRequirements defines requirements for guests
+type GuestRequirements struct {
+	VerifiedID           bool `json:"verified_id"`            // Matches "Verified ID"
+	PositiveReviewsOnly  bool `json:"positive_reviews_only"`  // Matches "Positive Reviews Only"
+	ProfilePhotoRequired bool `json:"profile_photo_required"` // Matches "Profile Photo Required"
+}
+
+// BookingSettings defines booking configuration
+type BookingSettings struct {
+	ApprovalMethod    ApprovalMethod    `json:"approval_method"`
+	GuestRequirements GuestRequirements `json:"guest_requirements"`
+	PreBookingMessage string            `json:"pre_booking_message,omitempty"` // The text area input
+}
+
+// --- STAY LIMITS & ADVANCE BOOKING ---
+
+// StayLimits defines minimum and maximum stay duration
+type StayLimits struct {
+	MinNights int  `json:"min_nights"`           // Matches "Minimum Night Stay"
+	MaxNights *int `json:"max_nights,omitempty"` // Matches "Maximum Night Stay"
+}
+
+// AdvanceBooking defines advance booking settings
+type AdvanceBooking struct {
+	MonthsAhead    int `json:"months_ahead"`     // How far in advance can guests book
+	MinNoticeHours int `json:"min_notice_hours"` // Minimum hours required before check-in
+}
+
 // ShortletDetail represents short-term rental specific details
 type ShortletDetail struct {
 	// Pricing
-	NightlyRate   float64  `json:"nightly_rate"`
-	CautionFee    *float64 `json:"caution_fee,omitempty"`
-	CleaningFee   *float64 `json:"cleaning_fee,omitempty"`
-	ServiceFee    *float64 `json:"service_fee,omitempty"`
-	ExtraGuestFee *float64 `json:"extra_guest_fee,omitempty"`
+	NightlyRate float64     `json:"nightly_rate"`
+	Fees        []CustomFee `json:"fees,omitempty"`
+	Discounts   []Discount  `json:"discounts,omitempty"`
 
-	// Capacity & Rules
-	MinNights      int  `json:"min_nights"`
-	MaxNights      *int `json:"max_nights,omitempty"`
+	// Booking Configuration
+	BookingSettings BookingSettings `json:"booking_settings"`
+	StayLimits      StayLimits      `json:"stay_limits"`
+	AdvanceBooking  AdvanceBooking  `json:"advance_booking"`
+
+	// Capacity
 	MaxGuests      int  `json:"max_guests"`
 	BaseGuestCount *int `json:"base_guest_count,omitempty"`
 
@@ -196,12 +288,8 @@ type ShortletDetail struct {
 	CheckInTime  *string `json:"check_in_time,omitempty"`
 	CheckOutTime *string `json:"check_out_time,omitempty"`
 
-	AccommodationType  AccommodationType `json:"accommodation_type"`
-	AutoAcceptBookings bool              `json:"auto_accept_bookings"`
-
-	// Automation
-	CalendarMonthsAhead  int  `json:"calendar_months_ahead"`
-	AutoGenerateCalendar bool `json:"auto_generate_calendar"`
+	AccommodationType    AccommodationType `json:"accommodation_type"`
+	AutoGenerateCalendar bool              `json:"auto_generate_calendar"`
 
 	// Metadata
 	Rules               []RuleGroup        `json:"rules,omitempty"`
@@ -220,15 +308,8 @@ type ShowingAvailability struct {
 type RentalDetail struct {
 	RentalPrice       float64       `json:"rental_price"`
 	RentalPricePeriod PaymentPeriod `json:"rental_price_period"`
-
-	// Fees
-	AgencyFee       *float64 `json:"agency_fee,omitempty"`
-	LegalFee        *float64 `json:"legal_fee,omitempty"`
-	RegistrationFee *float64 `json:"registration_fee,omitempty"`
-	CautionFee      *float64 `json:"caution_fee,omitempty"`
-	ServiceCharge   *float64 `json:"service_charge,omitempty"`
-
-	ServiceChargeBreakdown *[]ServiceCharge `json:"service_charges,omitempty"`
+	Discounts         []Discount    `json:"discounts,omitempty"`
+	Fees              []CustomFee   `json:"fees,omitempty"` // Handles agency, legal, caution, service charges
 
 	MinRentalPeriod        int        `json:"min_rental_period"`
 	MaxRentalPeriod        *int       `json:"max_rental_period,omitempty"`
@@ -243,22 +324,15 @@ type RentalDetail struct {
 
 // SaleDetail represents property sale specific details
 type SaleDetail struct {
-	SalePrice      float64 `json:"sale_price"`
-	OwnershipTitle string  `json:"ownership_title"`
-	PaymentPlan    bool    `json:"payment_plan"`
+	SalePrice      float64    `json:"sale_price"`
+	OwnershipTitle string     `json:"ownership_title"`
+	PaymentPlan    bool       `json:"payment_plan"`
+	Discounts      []Discount `json:"discounts,omitempty"`
 
 	YearBuilt     int `json:"year_built,omitempty"`
 	YearRenovated int `json:"year_renovated,omitempty"`
 
-	AgencyFee          *float64 `json:"agency_fee,omitempty"`
-	LegalFee           *float64 `json:"legal_fee,omitempty"`
-	SurveyFee          *float64 `json:"survey_fee,omitempty"`
-	TitleProcessingFee *float64 `json:"title_processing_fee,omitempty"`
-	DevelopmentFee     *float64 `json:"development_fee,omitempty"`
-	OtherFees          *float64 `json:"other_fees,omitempty"`
-
-	ServiceCharge          *float64         `json:"service_charge,omitempty"`
-	ServiceChargeBreakdown *[]ServiceCharge `json:"service_charges,omitempty"`
+	Fees []CustomFee `json:"fees,omitempty"` // Handles agency, legal, survey, development fees
 
 	SaleTerms            string     `json:"sale_terms,omitempty"`
 	SaleAvailabilityFrom *time.Time `json:"sale_availability_from,omitempty"`

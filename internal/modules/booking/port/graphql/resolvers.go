@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -17,6 +18,7 @@ import (
 	localization "hauslet/internal/transport/middleware/localization"
 
 	"github.com/google/uuid"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 // Resolver handles GraphQL queries and mutations for bookings
@@ -49,7 +51,7 @@ func (r *Resolver) QuoteBooking(ctx context.Context, listingID uuid.UUID, checkI
 	quote, err := r.bookingService.QuoteBooking(ctx, listingID, checkIn, checkOut, guestCount)
 	if err != nil {
 		r.log.Error("failed to generate quote", "error", err)
-		return nil, err
+		return nil, r.translateBookingError(err)
 	}
 
 	r.localizeBookingQuote(ctx, quote)
@@ -196,7 +198,7 @@ func (r *Resolver) ReserveBooking(ctx context.Context, input ReserveBookingInput
 	)
 	if err != nil {
 		r.log.Error("failed to reserve booking", "error", err)
-		return nil, err
+		return nil, r.translateBookingError(err)
 	}
 
 	r.log.Info("instant booking reserved", "booking_id", booking.ID, "payment_id", paymentResult.PaymentID, "status", paymentResult.Status)
@@ -243,7 +245,7 @@ func (r *Resolver) RequestBooking(ctx context.Context, input RequestBookingInput
 	)
 	if err != nil {
 		r.log.Error("failed to create booking request", "error", err)
-		return nil, err
+		return nil, r.translateBookingError(err)
 	}
 
 	r.log.Info("booking request created", "booking_id", booking.ID)
@@ -485,5 +487,26 @@ func (r *Resolver) localizePriceBreakdownSnapshot(breakdown *domain.PriceBreakdo
 		breakdown.PlatformFees.HostCommissionAmount = convert(breakdown.PlatformFees.HostCommissionAmount)
 		breakdown.PlatformFees.PayoutProcessingAmount = convert(breakdown.PlatformFees.PayoutProcessingAmount)
 		breakdown.PlatformFees.HostNetAmount = convert(breakdown.PlatformFees.HostNetAmount)
+	}
+}
+
+func (r *Resolver) translateBookingError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	switch {
+	case errors.Is(err, domain.ErrGuestIDVerificationRequired):
+		return gqlerror.Errorf("ID verification is required before booking this listing")
+	case errors.Is(err, domain.ErrGuestProfilePhotoRequired):
+		return gqlerror.Errorf("Please upload a profile photo before booking this listing")
+	case errors.Is(err, domain.ErrGuestPositiveReviewsRequired):
+		return gqlerror.Errorf("This listing only accepts guests with positive reviews")
+	case errors.Is(err, domain.ErrBookingWindowExceeded):
+		return gqlerror.Errorf("The chosen dates fall outside the allowed advance booking window")
+	case errors.Is(err, domain.ErrLeadTimeNotMet):
+		return gqlerror.Errorf("The host requires more advance notice for this booking")
+	default:
+		return err
 	}
 }

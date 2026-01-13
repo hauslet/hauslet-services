@@ -98,6 +98,7 @@ type PriceBreakdownSnapshot struct {
 	ExtraGuestFee float64               `json:"extra_guest_fee"`
 	Discounts     []DiscountSnapshot    `json:"discounts,omitempty"`
 	NightlyRates  []DailyRate           `json:"nightly_rates,omitempty"`
+	Fees          []FeeSnapshot         `json:"fees,omitempty"`
 	Subtotal      float64               `json:"subtotal"`
 	VATPercent    float64               `json:"vat_percent,omitempty"`
 	VATAmount     float64               `json:"vat_amount,omitempty"`
@@ -118,6 +119,17 @@ type DailyRate struct {
 	Date      string  `json:"date"`
 	BaseRate  float64 `json:"base_rate"`
 	FinalRate float64 `json:"final_rate"`
+}
+
+// FeeSnapshot captures the breakdown of an applied fee for persistence.
+type FeeSnapshot struct {
+	Name         string  `json:"name"`
+	Frequency    string  `json:"frequency"`
+	Category     string  `json:"category"`
+	Amount       float64 `json:"amount"`
+	Total        float64 `json:"total"`
+	IsOptional   bool    `json:"is_optional"`
+	IsRefundable bool    `json:"is_refundable"`
 }
 
 // PlatformFeeBreakdown mirrors the pricing domain values for persistence.

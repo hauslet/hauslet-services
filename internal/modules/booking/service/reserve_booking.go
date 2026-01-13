@@ -47,6 +47,10 @@ func (s *BookingServiceImpl) ReserveBooking(
 
 	scheduledCheckIn, scheduledCheckOut, _ := s.normalizeScheduledTimes(checkIn, checkOut, constraints, calendarConfig)
 
+	if err := s.ensureGuestMeetsBookingSettings(guest, constraints); err != nil {
+		return nil, nil, err
+	}
+
 	// Validate constraints
 	if err := s.validateBookingConstraints(checkIn, checkOut, guestCount, constraints, calendarConfig); err != nil {
 		return nil, nil, err

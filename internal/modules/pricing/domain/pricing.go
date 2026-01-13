@@ -65,8 +65,10 @@ type PriceBreakdown struct {
 	CautionFee    *float64 `json:"caution_fee,omitempty"`
 	ExtraGuestFee float64  `json:"extra_guest_fee"`
 
-	Discounts  []Discount  `json:"discounts,omitempty"`
-	DailyRates []DailyRate `json:"daily_rates"`
+	Discounts  []Discount   `json:"discounts,omitempty"`
+	DailyRates []DailyRate  `json:"daily_rates"`
+	Fees       []AppliedFee `json:"fees,omitempty"`
+	TotalFees  float64      `json:"total_fees"`
 
 	Subtotal     float64               `json:"subtotal"`
 	VATPercent   float64               `json:"vat_percent,omitempty"`
@@ -77,6 +79,17 @@ type PriceBreakdown struct {
 
 	CalculatedAt time.Time `json:"calculated_at"`
 	ValidUntil   time.Time `json:"valid_until"` // 24h validity
+}
+
+// AppliedFee represents how a custom fee contributed to a price breakdown.
+type AppliedFee struct {
+	Name         string  `json:"name"`
+	Frequency    string  `json:"frequency"`
+	Category     string  `json:"category"`
+	Amount       float64 `json:"amount"`
+	Total        float64 `json:"total"`
+	IsRefundable bool    `json:"is_refundable"`
+	IsOptional   bool    `json:"is_optional"`
 }
 
 // PlatformFeeBreakdown captures Hauslet fee components.

@@ -16,6 +16,9 @@ const (
 	CurrencyGHS CurrencyCode = "GHS"
 	CurrencyUSD CurrencyCode = "USD"
 	CurrencyEUR CurrencyCode = "EUR"
+	CurrencyGBP CurrencyCode = "GBP"
+	CurrencyCAD CurrencyCode = "CAD"
+	CurrencyAUD CurrencyCode = "AUD"
 )
 
 type OwnerType string

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hauslet/internal/modules/booking/domain"
 	calendardomain "hauslet/internal/modules/calendar/domain"
+	"strings"
 
 	"time"
 
@@ -15,6 +16,7 @@ const (
 	softHoldDuration           = 10 * time.Minute
 	defaultCleaningBufferHours = 1
 	cleaningBlockReason        = "cleaning_buffer"
+	minPositiveReviewRating    = 4.0
 )
 
 func (s *BookingServiceImpl) ConfirmBooking(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*domain.Booking, error) {
@@ -71,6 +73,36 @@ func (s *BookingServiceImpl) getUserContact(ctx context.Context, userID uuid.UUI
 		return nil
 	}
 	return contact
+}
+
+func (s *BookingServiceImpl) ensureGuestMeetsBookingSettings(guest *ContactInfo, constraints *ListingConstraints) error {
+	if guest == nil || constraints == nil || constraints.BookingSettings == nil {
+		return nil
+	}
+
+	settings := constraints.BookingSettings
+
+	if settings.VerifiedID && !guest.IsIDVerified {
+		return domain.ErrGuestIDVerificationRequired
+	}
+
+	if settings.ProfilePhotoRequired && !contactHasProfilePhoto(guest) {
+		return domain.ErrGuestProfilePhotoRequired
+	}
+
+	if settings.PositiveReviewsOnly && !contactHasPositiveReviews(guest) {
+		return domain.ErrGuestPositiveReviewsRequired
+	}
+
+	return nil
+}
+
+func contactHasProfilePhoto(contact *ContactInfo) bool {
+	return contact != nil && contact.PhotoURL != nil && strings.TrimSpace(*contact.PhotoURL) != ""
+}
+
+func contactHasPositiveReviews(contact *ContactInfo) bool {
+	return contact != nil && contact.ReviewsCount > 0 && contact.Rating >= minPositiveReviewRating
 }
 
 func (s *BookingServiceImpl) notifyBookingApproval(ctx context.Context, booking *domain.Booking, paymentResult *PaymentResult) {

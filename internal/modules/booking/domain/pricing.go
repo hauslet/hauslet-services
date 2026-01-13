@@ -45,6 +45,21 @@ func NewPriceBreakdownSnapshotFromPricing(src *pricingdomain.PriceBreakdown) *Pr
 		}
 	}
 
+	if len(src.Fees) > 0 {
+		snapshot.Fees = make([]FeeSnapshot, len(src.Fees))
+		for i, fee := range src.Fees {
+			snapshot.Fees[i] = FeeSnapshot{
+				Name:         fee.Name,
+				Frequency:    fee.Frequency,
+				Category:     fee.Category,
+				Amount:       fee.Amount,
+				Total:        fee.Total,
+				IsOptional:   fee.IsOptional,
+				IsRefundable: fee.IsRefundable,
+			}
+		}
+	}
+
 	if src.PlatformFees != nil {
 		snapshot.PlatformFees = &PlatformFeeBreakdown{
 			GuestFeePercent:         src.PlatformFees.GuestFeePercent,

@@ -332,6 +332,140 @@ func MapRuleItemsToSchema(src []RuleItem) []schema.RuleItem {
 	return out
 }
 
+// --- HELPER MAPPERS FOR NEW TYPES ---
+
+// MapCustomFeesFromSchema converts schema CustomFees to domain CustomFees
+func MapCustomFeesFromSchema(schemaFees []schema.CustomFee) []CustomFee {
+	if schemaFees == nil {
+		return nil
+	}
+	fees := make([]CustomFee, len(schemaFees))
+	for i, f := range schemaFees {
+		fees[i] = CustomFee{
+			Name:         f.Name,
+			Amount:       f.Amount,
+			Frequency:    FeeFrequency(f.Frequency),
+			Category:     FeeCategory(f.Category),
+			IsRefundable: f.IsRefundable,
+			IsOptional:   f.IsOptional,
+		}
+	}
+	return fees
+}
+
+// MapCustomFeesToSchema converts domain CustomFees to schema CustomFees
+func MapCustomFeesToSchema(domainFees []CustomFee) []schema.CustomFee {
+	if domainFees == nil {
+		return nil
+	}
+	fees := make([]schema.CustomFee, len(domainFees))
+	for i, f := range domainFees {
+		fees[i] = schema.CustomFee{
+			Name:         f.Name,
+			Amount:       f.Amount,
+			Frequency:    schema.FeeFrequency(f.Frequency),
+			Category:     schema.FeeCategory(f.Category),
+			IsRefundable: f.IsRefundable,
+			IsOptional:   f.IsOptional,
+		}
+	}
+	return fees
+}
+
+// MapDiscountsFromSchema converts schema Discounts to domain Discounts
+func MapDiscountsFromSchema(schemaDiscounts []schema.Discount) []Discount {
+	if schemaDiscounts == nil {
+		return nil
+	}
+	discounts := make([]Discount, len(schemaDiscounts))
+	for i, d := range schemaDiscounts {
+		discounts[i] = Discount{
+			Name:       d.Name,
+			Type:       DiscountType(d.Type),
+			Percentage: d.Percentage,
+			MinNights:  d.MinNights,
+			Active:     d.Active,
+		}
+	}
+	return discounts
+}
+
+// MapDiscountsToSchema converts domain Discounts to schema Discounts
+func MapDiscountsToSchema(domainDiscounts []Discount) []schema.Discount {
+	if domainDiscounts == nil {
+		return nil
+	}
+	discounts := make([]schema.Discount, len(domainDiscounts))
+	for i, d := range domainDiscounts {
+		discounts[i] = schema.Discount{
+			Name:       d.Name,
+			Type:       schema.DiscountType(d.Type),
+			Percentage: d.Percentage,
+			MinNights:  d.MinNights,
+			Active:     d.Active,
+		}
+	}
+	return discounts
+}
+
+// MapBookingSettingsFromSchema converts schema BookingSettings to domain BookingSettings
+func MapBookingSettingsFromSchema(schemaSettings schema.BookingSettings) BookingSettings {
+	return BookingSettings{
+		ApprovalMethod: ApprovalMethod(schemaSettings.ApprovalMethod),
+		GuestRequirements: GuestRequirements{
+			VerifiedID:           schemaSettings.GuestRequirements.VerifiedID,
+			PositiveReviewsOnly:  schemaSettings.GuestRequirements.PositiveReviewsOnly,
+			ProfilePhotoRequired: schemaSettings.GuestRequirements.ProfilePhotoRequired,
+		},
+		PreBookingMessage: schemaSettings.PreBookingMessage,
+	}
+}
+
+// MapBookingSettingsToSchema converts domain BookingSettings to schema BookingSettings
+func MapBookingSettingsToSchema(domainSettings BookingSettings) schema.BookingSettings {
+	return schema.BookingSettings{
+		ApprovalMethod: schema.ApprovalMethod(domainSettings.ApprovalMethod),
+		GuestRequirements: schema.GuestRequirements{
+			VerifiedID:           domainSettings.GuestRequirements.VerifiedID,
+			PositiveReviewsOnly:  domainSettings.GuestRequirements.PositiveReviewsOnly,
+			ProfilePhotoRequired: domainSettings.GuestRequirements.ProfilePhotoRequired,
+		},
+		PreBookingMessage: domainSettings.PreBookingMessage,
+	}
+}
+
+// MapStayLimitsFromSchema converts schema StayLimits to domain StayLimits
+func MapStayLimitsFromSchema(schemaLimits schema.StayLimits) StayLimits {
+	return StayLimits{
+		MinNights: schemaLimits.MinNights,
+		MaxNights: schemaLimits.MaxNights,
+	}
+}
+
+// MapStayLimitsToSchema converts domain StayLimits to schema StayLimits
+func MapStayLimitsToSchema(domainLimits StayLimits) schema.StayLimits {
+	return schema.StayLimits{
+		MinNights: domainLimits.MinNights,
+		MaxNights: domainLimits.MaxNights,
+	}
+}
+
+// MapAdvanceBookingFromSchema converts schema AdvanceBooking to domain AdvanceBooking
+func MapAdvanceBookingFromSchema(schemaAdvance schema.AdvanceBooking) AdvanceBooking {
+	return AdvanceBooking{
+		MonthsAhead:    schemaAdvance.MonthsAhead,
+		MinNoticeHours: schemaAdvance.MinNoticeHours,
+	}
+}
+
+// MapAdvanceBookingToSchema converts domain AdvanceBooking to schema AdvanceBooking
+func MapAdvanceBookingToSchema(domainAdvance AdvanceBooking) schema.AdvanceBooking {
+	return schema.AdvanceBooking{
+		MonthsAhead:    domainAdvance.MonthsAhead,
+		MinNoticeHours: domainAdvance.MinNoticeHours,
+	}
+}
+
 // --- DETAIL MAPPERS ---
 
 // MapShortletDetailFromSchema converts schema.ShortletDetail to domain ShortletDetail
@@ -342,19 +476,16 @@ func MapShortletDetailFromSchema(schemaDetail *schema.ShortletDetail) *ShortletD
 
 	detail := &ShortletDetail{
 		NightlyRate:          schemaDetail.NightlyRate,
-		CautionFee:           schemaDetail.CautionFee,
-		CleaningFee:          schemaDetail.CleaningFee,
-		ServiceFee:           schemaDetail.ServiceFee,
-		ExtraGuestFee:        schemaDetail.ExtraGuestFee,
-		MinNights:            schemaDetail.MinNights,
-		MaxNights:            schemaDetail.MaxNights,
+		Fees:                 MapCustomFeesFromSchema(schemaDetail.Fees),
+		Discounts:            MapDiscountsFromSchema(schemaDetail.Discounts),
+		BookingSettings:      MapBookingSettingsFromSchema(schemaDetail.BookingSettings),
+		StayLimits:           MapStayLimitsFromSchema(schemaDetail.StayLimits),
+		AdvanceBooking:       MapAdvanceBookingFromSchema(schemaDetail.AdvanceBooking),
 		MaxGuests:            schemaDetail.MaxGuests,
 		BaseGuestCount:       schemaDetail.BaseGuestCount,
 		CheckInTime:          schemaDetail.CheckInTime,
 		CheckOutTime:         schemaDetail.CheckOutTime,
 		AccommodationType:    AccommodationType(schemaDetail.AccommodationType),
-		AutoAcceptBookings:   schemaDetail.AutoAcceptBookings,
-		CalendarMonthsAhead:  schemaDetail.CalendarMonthsAhead,
 		AutoGenerateCalendar: schemaDetail.AutoGenerateCalendar,
 	}
 
@@ -384,21 +515,18 @@ func MapShortletDetailToSchema(domainDetail *ShortletDetail) *schema.ShortletDet
 
 	detail := &schema.ShortletDetail{
 		NightlyRate:          domainDetail.NightlyRate,
-		CautionFee:           domainDetail.CautionFee,
-		CleaningFee:          domainDetail.CleaningFee,
-		ServiceFee:           domainDetail.ServiceFee,
-		ExtraGuestFee:        domainDetail.ExtraGuestFee,
-		MinNights:            domainDetail.MinNights,
-		MaxNights:            domainDetail.MaxNights,
+		Fees:                 MapCustomFeesToSchema(domainDetail.Fees),
+		Discounts:            MapDiscountsToSchema(domainDetail.Discounts),
+		BookingSettings:      MapBookingSettingsToSchema(domainDetail.BookingSettings),
+		StayLimits:           MapStayLimitsToSchema(domainDetail.StayLimits),
+		AdvanceBooking:       MapAdvanceBookingToSchema(domainDetail.AdvanceBooking),
 		MaxGuests:            domainDetail.MaxGuests,
 		BaseGuestCount:       domainDetail.BaseGuestCount,
 		CheckInTime:          domainDetail.CheckInTime,
 		CheckOutTime:         domainDetail.CheckOutTime,
 		AccommodationType:    schema.AccommodationType(domainDetail.AccommodationType),
-		AutoAcceptBookings:   domainDetail.AutoAcceptBookings,
-		CalendarMonthsAhead:  domainDetail.CalendarMonthsAhead,
 		AutoGenerateCalendar: domainDetail.AutoGenerateCalendar,
-	}
+	} 
 
 	// Map rules
 	detail.Rules = MapRuleGroupsToSchema(domainDetail.Rules)
@@ -427,28 +555,12 @@ func MapRentalDetailFromSchema(schemaDetail *schema.RentalDetail) *RentalDetail 
 	detail := &RentalDetail{
 		RentalPrice:            schemaDetail.RentalPrice,
 		RentalPricePeriod:      PaymentPeriod(schemaDetail.RentalPricePeriod),
-		AgencyFee:              schemaDetail.AgencyFee,
-		LegalFee:               schemaDetail.LegalFee,
-		RegistrationFee:        schemaDetail.RegistrationFee,
-		CautionFee:             schemaDetail.CautionFee,
-		ServiceCharge:          schemaDetail.ServiceCharge,
+		Discounts:              MapDiscountsFromSchema(schemaDetail.Discounts),
+		Fees:                   MapCustomFeesFromSchema(schemaDetail.Fees),
 		MinRentalPeriod:        schemaDetail.MinRentalPeriod,
 		MaxRentalPeriod:        schemaDetail.MaxRentalPeriod,
 		RentalAvailabilityFrom: schemaDetail.RentalAvailabilityFrom,
 		RentalTerms:            schemaDetail.RentalTerms,
-	}
-
-	// Map service charge breakdown
-	if schemaDetail.ServiceChargeBreakdown != nil && len(*schemaDetail.ServiceChargeBreakdown) > 0 {
-		charges := make([]ServiceCharge, len(*schemaDetail.ServiceChargeBreakdown))
-		for i, charge := range *schemaDetail.ServiceChargeBreakdown {
-			charges[i] = ServiceCharge{
-				Name:   charge.Name,
-				Period: PaymentPeriod(charge.Period),
-				Amount: charge.Amount,
-			}
-		}
-		detail.ServiceChargeBreakdown = &charges
 	}
 
 	// Map rental rules
@@ -480,28 +592,12 @@ func MapRentalDetailToSchema(domainDetail *RentalDetail) *schema.RentalDetail {
 	detail := &schema.RentalDetail{
 		RentalPrice:            domainDetail.RentalPrice,
 		RentalPricePeriod:      schema.PaymentPeriod(domainDetail.RentalPricePeriod),
-		AgencyFee:              domainDetail.AgencyFee,
-		LegalFee:               domainDetail.LegalFee,
-		RegistrationFee:        domainDetail.RegistrationFee,
-		CautionFee:             domainDetail.CautionFee,
-		ServiceCharge:          domainDetail.ServiceCharge,
+		Discounts:              MapDiscountsToSchema(domainDetail.Discounts),
+		Fees:                   MapCustomFeesToSchema(domainDetail.Fees),
 		MinRentalPeriod:        domainDetail.MinRentalPeriod,
 		MaxRentalPeriod:        domainDetail.MaxRentalPeriod,
 		RentalAvailabilityFrom: domainDetail.RentalAvailabilityFrom,
 		RentalTerms:            domainDetail.RentalTerms,
-	}
-
-	// Map service charge breakdown
-	if domainDetail.ServiceChargeBreakdown != nil && len(*domainDetail.ServiceChargeBreakdown) > 0 {
-		charges := make([]schema.ServiceCharge, len(*domainDetail.ServiceChargeBreakdown))
-		for i, charge := range *domainDetail.ServiceChargeBreakdown {
-			charges[i] = schema.ServiceCharge{
-				Name:   charge.Name,
-				Period: schema.PaymentPeriod(charge.Period),
-				Amount: charge.Amount,
-			}
-		}
-		detail.ServiceChargeBreakdown = &charges
 	}
 
 	// Map rental rules
@@ -534,30 +630,12 @@ func MapSaleDetailFromSchema(schemaDetail *schema.SaleDetail) *SaleDetail {
 		SalePrice:            schemaDetail.SalePrice,
 		OwnershipTitle:       schemaDetail.OwnershipTitle,
 		PaymentPlan:          schemaDetail.PaymentPlan,
+		Discounts:            MapDiscountsFromSchema(schemaDetail.Discounts),
 		YearBuilt:            schemaDetail.YearBuilt,
 		YearRenovated:        schemaDetail.YearRenovated,
-		AgencyFee:            schemaDetail.AgencyFee,
-		LegalFee:             schemaDetail.LegalFee,
-		SurveyFee:            schemaDetail.SurveyFee,
-		TitleProcessingFee:   schemaDetail.TitleProcessingFee,
-		DevelopmentFee:       schemaDetail.DevelopmentFee,
-		OtherFees:            schemaDetail.OtherFees,
-		ServiceCharge:        schemaDetail.ServiceCharge,
+		Fees:                 MapCustomFeesFromSchema(schemaDetail.Fees),
 		SaleTerms:            schemaDetail.SaleTerms,
 		SaleAvailabilityFrom: schemaDetail.SaleAvailabilityFrom,
-	}
-
-	// Map service charge breakdown
-	if schemaDetail.ServiceChargeBreakdown != nil && len(*schemaDetail.ServiceChargeBreakdown) > 0 {
-		charges := make([]ServiceCharge, len(*schemaDetail.ServiceChargeBreakdown))
-		for i, charge := range *schemaDetail.ServiceChargeBreakdown {
-			charges[i] = ServiceCharge{
-				Name:   charge.Name,
-				Period: PaymentPeriod(charge.Period),
-				Amount: charge.Amount,
-			}
-		}
-		detail.ServiceChargeBreakdown = &charges
 	}
 
 	// Map showing availability
@@ -587,30 +665,12 @@ func MapSaleDetailToSchema(domainDetail *SaleDetail) *schema.SaleDetail {
 		SalePrice:            domainDetail.SalePrice,
 		OwnershipTitle:       domainDetail.OwnershipTitle,
 		PaymentPlan:          domainDetail.PaymentPlan,
+		Discounts:            MapDiscountsToSchema(domainDetail.Discounts),
 		YearBuilt:            domainDetail.YearBuilt,
 		YearRenovated:        domainDetail.YearRenovated,
-		AgencyFee:            domainDetail.AgencyFee,
-		LegalFee:             domainDetail.LegalFee,
-		SurveyFee:            domainDetail.SurveyFee,
-		TitleProcessingFee:   domainDetail.TitleProcessingFee,
-		DevelopmentFee:       domainDetail.DevelopmentFee,
-		OtherFees:            domainDetail.OtherFees,
-		ServiceCharge:        domainDetail.ServiceCharge,
+		Fees:                 MapCustomFeesToSchema(domainDetail.Fees),
 		SaleTerms:            domainDetail.SaleTerms,
 		SaleAvailabilityFrom: domainDetail.SaleAvailabilityFrom,
-	}
-
-	// Map service charge breakdown
-	if domainDetail.ServiceChargeBreakdown != nil && len(*domainDetail.ServiceChargeBreakdown) > 0 {
-		charges := make([]schema.ServiceCharge, len(*domainDetail.ServiceChargeBreakdown))
-		for i, charge := range *domainDetail.ServiceChargeBreakdown {
-			charges[i] = schema.ServiceCharge{
-				Name:   charge.Name,
-				Period: schema.PaymentPeriod(charge.Period),
-				Amount: charge.Amount,
-			}
-		}
-		detail.ServiceChargeBreakdown = &charges
 	}
 
 	// Map showing availability

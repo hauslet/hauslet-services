@@ -251,12 +251,35 @@ func applyListingDetails(
 		checkOut := "11:00"
 
 		listing.ShortletDetails = &propertySchema.ShortletDetail{
-			NightlyRate:    nightlyRate,
-			CautionFee:     &cautionFee,
-			CleaningFee:    &cleaningFee,
-			ServiceFee:     &serviceFee,
-			MinNights:      minNights,
-			MaxNights:      &maxNights,
+			NightlyRate: nightlyRate,
+			Fees: []propertySchema.CustomFee{
+				{
+					Name:         "Caution Fee",
+					Amount:       cautionFee,
+					Frequency:    propertySchema.FeeFreqOneTime,
+					IsRefundable: true,
+					Category:     propertySchema.FeeCatCaution,
+				},
+				{
+					Name:      "Cleaning Fee",
+					Amount:    cleaningFee,
+					Frequency: propertySchema.FeeFreqPerStay,
+					Category:  propertySchema.FeeCatService,
+				},
+				{
+					Name:      "Service Fee",
+					Amount:    serviceFee,
+					Frequency: propertySchema.FeeFreqPerNight,
+					Category:  propertySchema.FeeCatService,
+				},
+			},
+			Discounts:       []propertySchema.Discount{},
+			BookingSettings: randomBookingSettings(),
+			StayLimits: propertySchema.StayLimits{
+				MinNights: minNights,
+				MaxNights: &maxNights,
+			},
+			AdvanceBooking: randomAdvanceBooking(),
 			MaxGuests:      maxGuests,
 			BaseGuestCount: &baseGuestCount,
 			CheckInTime:    &checkIn,
@@ -267,8 +290,6 @@ func applyListingDetails(
 				propertySchema.AccDoubleRoom,
 				propertySchema.AccSharedRoom,
 			}),
-			AutoAcceptBookings:   utils.RandomBoolWithProbability(0.7),
-			CalendarMonthsAhead:  utils.RandomInt(3, 12),
 			AutoGenerateCalendar: utils.RandomBoolWithProbability(0.6),
 		}
 	case propertySchema.ListingRent:
@@ -286,10 +307,22 @@ func applyListingDetails(
 		availabilityFrom := utils.RandomDateInRange(7, 90)
 
 		listing.RentalDetails = &propertySchema.RentalDetail{
-			RentalPrice:            float64(price),
-			RentalPricePeriod:      rentalPeriod,
-			CautionFee:             &cautionFee,
-			ServiceCharge:          &serviceCharge,
+			RentalPrice:       float64(price),
+			RentalPricePeriod: rentalPeriod,
+			Fees: []propertySchema.CustomFee{
+				{
+					Name:      "Caution Fee",
+					Amount:    cautionFee,
+					Frequency: propertySchema.FeeFreqOneTime,
+					Category:  propertySchema.FeeCatCaution,
+				},
+				{
+					Name:      "Service Charge",
+					Amount:    serviceCharge,
+					Frequency: propertySchema.FeeFreqPerMonth,
+					Category:  propertySchema.FeeCatService,
+				},
+			},
 			MinRentalPeriod:        minPeriod,
 			RentalAvailabilityFrom: &availabilityFrom,
 			RentalTerms:            "Upfront payment required with refundable caution fee.",
@@ -312,10 +345,27 @@ func applyListingDetails(
 			PaymentPlan:    utils.RandomBoolWithProbability(0.4),
 			YearBuilt:      yearBuilt,
 			YearRenovated:  yearRenovated,
-			AgencyFee:      &agencyFee,
-			LegalFee:       &legalFee,
-			SurveyFee:      &surveyFee,
-			SaleTerms:      "Price negotiable with flexible payment options.",
+			Fees: []propertySchema.CustomFee{
+				{
+					Name:      "Agency Fee",
+					Amount:    agencyFee,
+					Frequency: propertySchema.FeeFreqOneTime,
+					Category:  propertySchema.FeeCatAgency,
+				},
+				{
+					Name:      "Legal Fee",
+					Amount:    legalFee,
+					Frequency: propertySchema.FeeFreqOneTime,
+					Category:  propertySchema.FeeCatLegal,
+				},
+				{
+					Name:      "Survey Fee",
+					Amount:    surveyFee,
+					Frequency: propertySchema.FeeFreqOneTime,
+					Category:  propertySchema.FeeCatOther,
+				},
+			},
+			SaleTerms: "Price negotiable with flexible payment options.",
 		}
 	default:
 		return fmt.Errorf("unknown listing type: %s", listingType)
@@ -402,4 +452,36 @@ func titleCase(value string) string {
 		parts[i] = strings.ToUpper(part[:1]) + part[1:]
 	}
 	return strings.Join(parts, " ")
+}
+
+func randomBookingSettings() propertySchema.BookingSettings {
+	method := propertySchema.ApprovalMethodRequest
+	if utils.RandomBoolWithProbability(0.7) {
+		method = propertySchema.ApprovalMethodInstant
+	}
+
+	return propertySchema.BookingSettings{
+		ApprovalMethod:    method,
+		GuestRequirements: randomGuestRequirements(),
+		PreBookingMessage: utils.RandomChoice([]string{
+			"Hosts respond quickly to requests.",
+			"Keep your profile updated before booking.",
+			"Tell us a little about your stay when booking.",
+		}),
+	}
+}
+
+func randomGuestRequirements() propertySchema.GuestRequirements {
+	return propertySchema.GuestRequirements{
+		VerifiedID:           utils.RandomBoolWithProbability(0.5),
+		PositiveReviewsOnly:  utils.RandomBoolWithProbability(0.4),
+		ProfilePhotoRequired: utils.RandomBoolWithProbability(0.6),
+	}
+}
+
+func randomAdvanceBooking() propertySchema.AdvanceBooking {
+	return propertySchema.AdvanceBooking{
+		MonthsAhead:    utils.RandomInt(3, 12),
+		MinNoticeHours: utils.RandomChoice([]int{0, 24, 48, 72}),
+	}
 }

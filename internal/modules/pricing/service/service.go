@@ -5,9 +5,19 @@ import (
 	"fmt"
 	"hauslet/internal/modules/pricing/domain"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+const (
+	feeFreqPerStay       = "per_stay"
+	feeFreqPerGuest      = "per_guest"
+	feeFreqPerExtraGuest = "per_extra_guest"
+	feeFreqPerNight      = "per_night"
+	feeFreqPerMonth      = "per_month"
+	feeFreqPerYear       = "per_year"
 )
 
 // --- Core Price Calculation ---
@@ -57,8 +67,10 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 		baseTotal += rate.FinalRate
 	}
 
-	// Apply length-of-stay discounts
-	discounts := s.calculateDiscounts(baseTotal, nights, rules)
+	// Apply length-of-stay discounts via rules and listing-level discounts
+	ruleDiscounts := s.calculateDiscounts(baseTotal, nights, rules)
+	listingDiscounts := s.calculateListingDiscounts(baseTotal, nights, listingPricing.Discounts)
+	discounts := append(ruleDiscounts, listingDiscounts...)
 
 	// Calculate subtotal after discounts
 	subtotal := baseTotal
@@ -66,23 +78,16 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 		subtotal -= discount.Amount
 	}
 
-	// Calculate extra guest fee if applicable
-	extraGuestFee := 0.0
-	if listingPricing.BaseGuestCount != nil && guestCount > *listingPricing.BaseGuestCount {
-		extraGuests := guestCount - *listingPricing.BaseGuestCount
-		if listingPricing.ExtraGuestFee != nil {
-			extraGuestFee = float64(extraGuests) * *listingPricing.ExtraGuestFee * float64(nights)
-		}
-	}
+	// Apply custom fees from the listing
+	appliedFees, totalFees := s.applyCustomFees(listingPricing.Fees, nights, guestCount, listingPricing.BaseGuestCount)
+
+	// Sum extra guest fees (if any)
+	extraGuestFee := sumAppliedFeeValues(appliedFees, func(f domain.AppliedFee) bool {
+		return strings.Contains(strings.ToLower(f.Name), "extra guest")
+	})
 
 	// Calculate total
-	grossBeforePlatform := subtotal + extraGuestFee
-	if listingPricing.CleaningFee != nil {
-		grossBeforePlatform += *listingPricing.CleaningFee
-	}
-	if listingPricing.ServiceFee != nil {
-		grossBeforePlatform += *listingPricing.ServiceFee
-	}
+	grossBeforePlatform := subtotal + totalFees
 
 	var platformFees *domain.PlatformFeeBreakdown
 	guestServiceFee := 0.0
@@ -117,6 +122,16 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 
 	total := grossBeforePlatform + guestServiceFee + vatAmount
 
+	cleaningFee := findAppliedFeeValue(appliedFees, func(f domain.AppliedFee) bool {
+		return strings.Contains(strings.ToLower(f.Name), "cleaning")
+	})
+	serviceFee := findAppliedFeeValue(appliedFees, func(f domain.AppliedFee) bool {
+		return strings.Contains(strings.ToLower(f.Name), "service")
+	})
+	cautionFee := findAppliedFeeValue(appliedFees, func(f domain.AppliedFee) bool {
+		return strings.Contains(strings.ToLower(f.Name), "caution")
+	})
+
 	breakdown := &domain.PriceBreakdown{
 		ListingID:     listingID,
 		CheckIn:       checkInDate,
@@ -124,13 +139,15 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 		Nights:        nights,
 		GuestCount:    guestCount,
 		BaseTotal:     baseTotal,
-		CleaningFee:   listingPricing.CleaningFee,
-		ServiceFee:    listingPricing.ServiceFee,
-		CautionFee:    listingPricing.CautionFee,
+		CleaningFee:   cleaningFee,
+		ServiceFee:    serviceFee,
+		CautionFee:    cautionFee,
 		Discounts:     discounts,
 		DailyRates:    dailyRates,
 		Subtotal:      subtotal,
 		ExtraGuestFee: extraGuestFee,
+		Fees:          appliedFees,
+		TotalFees:     totalFees,
 		VATPercent:    vatPercent,
 		VATAmount:     vatAmount,
 		Total:         total,
@@ -479,4 +496,132 @@ func (s *PricingServiceImpl) calculateDiscounts(baseTotal float64, nights int, r
 	}
 
 	return discounts
+}
+
+func (s *PricingServiceImpl) calculateListingDiscounts(baseTotal float64, nights int, discounts []Discount) []domain.Discount {
+	result := make([]domain.Discount, 0, len(discounts))
+	for _, discount := range discounts {
+		if !discount.Active {
+			continue
+		}
+
+		if discount.Type == DiscountTypeLengthOfStay && discount.MinNights != nil && nights < *discount.MinNights {
+			continue
+		}
+
+		amount := baseTotal * (discount.Percentage / 100)
+		if amount <= 0 {
+			continue
+		}
+
+		result = append(result, domain.Discount{
+			Name:   discount.Name,
+			Amount: amount,
+			Type:   string(discount.Type),
+		})
+	}
+
+	return result
+}
+
+func (s *PricingServiceImpl) applyCustomFees(fees []CustomFee, nights, guestCount int, baseGuestCount *int) ([]domain.AppliedFee, float64) {
+	applied := make([]domain.AppliedFee, 0, len(fees))
+	total := 0.0
+
+	for _, fee := range fees {
+		amount := s.calculateFeeAmount(fee, nights, guestCount, baseGuestCount)
+
+		ap := domain.AppliedFee{
+			Name:         fee.Name,
+			Frequency:    fee.Frequency,
+			Category:     fee.Category,
+			Amount:       fee.Amount,
+			Total:        amount,
+			IsRefundable: fee.IsRefundable,
+			IsOptional:   fee.IsOptional,
+		}
+
+		applied = append(applied, ap)
+		// Do not add refundable fees to the total charged amount,
+		// but still include them in the breakdown (applied list).
+		if !fee.IsRefundable {
+			total += amount
+		}
+	}
+
+	return applied, total
+}
+
+func (s *PricingServiceImpl) calculateFeeAmount(fee CustomFee, nights, guestCount int, baseGuestCount *int) float64 {
+	if fee.Amount == 0 {
+		return 0
+	}
+
+	extraGuests := guestCount
+	if baseGuestCount != nil {
+		extraGuests = guestCount - *baseGuestCount
+	}
+	if extraGuests < 0 {
+		extraGuests = 0
+	}
+
+	multiplier := s.feeBaseMultiplier(fee.Frequency, nights, guestCount, extraGuests)
+	if multiplier == 0 {
+		return 0
+	}
+
+	if fee.Frequency == feeFreqPerNight && s.isExtraGuestFee(fee) && extraGuests > 0 {
+		multiplier *= float64(extraGuests)
+	}
+
+	return fee.Amount * multiplier
+}
+
+func (s *PricingServiceImpl) feeBaseMultiplier(frequency string, nights, guestCount, extraGuests int) float64 {
+	switch frequency {
+	case feeFreqPerNight:
+		return float64(nights)
+	case feeFreqPerMonth:
+		return float64(nights) / 30.0
+	case feeFreqPerYear:
+		return float64(nights) / 365.0
+	case feeFreqPerStay:
+		return 1.0
+	case feeFreqPerGuest:
+		if guestCount <= 0 {
+			return 0
+		}
+		return float64(guestCount)
+	case feeFreqPerExtraGuest:
+		if extraGuests <= 0 {
+			return 0
+		}
+		return float64(extraGuests)
+	default:
+		return 1.0 // one_time or unknown defaults to 1-time fee
+	}
+}
+
+func (s *PricingServiceImpl) isExtraGuestFee(fee CustomFee) bool {
+	return strings.Contains(strings.ToLower(fee.Name), "extra guest")
+}
+
+func findAppliedFeeValue(applied []domain.AppliedFee, match func(domain.AppliedFee) bool) *float64 {
+	for _, fee := range applied {
+		if match(fee) {
+			value := fee.Total
+			return &value
+		}
+	}
+	return nil
+}
+
+func sumAppliedFeeValues(applied []domain.AppliedFee, match func(domain.AppliedFee) bool) float64 {
+	sum := 0.0
+	for _, fee := range applied {
+		if match(fee) {
+			sum += fee.Total
+		}
+	}
+	return sum
 }

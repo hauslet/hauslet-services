@@ -35,6 +35,10 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 
 	scheduledCheckIn, scheduledCheckOut, _ := s.normalizeScheduledTimes(checkIn, checkOut, constraints, calendarConfig)
 
+	if err := s.ensureGuestMeetsBookingSettings(guest, constraints); err != nil {
+		return nil, err
+	}
+
 	if err := s.validateBookingConstraints(checkIn, checkOut, guestCount, constraints, calendarConfig); err != nil {
 		return nil, err
 	}
@@ -249,6 +253,9 @@ func (s *BookingServiceImpl) validateBookingConstraints(
 			leadTimeHours = 0
 		}
 	}
+	if constraints.AdvanceBooking != nil && constraints.AdvanceBooking.MinNoticeHours > leadTimeHours {
+		leadTimeHours = constraints.AdvanceBooking.MinNoticeHours
+	}
 
 	allowSameDay := false
 	if calendarConfig != nil {
@@ -267,6 +274,13 @@ func (s *BookingServiceImpl) validateBookingConstraints(
 		}
 	} else if scheduledCheckIn.Before(now) {
 		return domain.ErrBookingInPast
+	}
+
+	if constraints.AdvanceBooking != nil && constraints.AdvanceBooking.MonthsAhead > 0 {
+		latestCheckIn := now.AddDate(0, constraints.AdvanceBooking.MonthsAhead, 0)
+		if checkInDate.After(latestCheckIn) {
+			return domain.ErrBookingWindowExceeded
+		}
 	}
 
 	return nil

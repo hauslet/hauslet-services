@@ -114,6 +114,40 @@ type UserProfile struct {
 	IsIDVerified bool
 }
 
+// CustomFee represents a fee associated with a listing
+type CustomFee struct {
+	Name         string
+	Amount       float64
+	Frequency    string // "one_time", "per_night", "per_month", "per_year"
+	Category     string // "legal", "agency", "service", "caution", "other"
+	IsRefundable bool
+	IsOptional   bool
+}
+
+// Discount represents a price reduction
+type Discount struct {
+	Name       string
+	Type       string  // "flat" or "length_of_stay"
+	Percentage float64
+	MinNights  *int
+	Active     bool
+}
+
+// BookingSettings defines booking configuration
+type BookingSettings struct {
+	ApprovalMethod       string // "instant" or "request"
+	VerifiedID           bool
+	PositiveReviewsOnly  bool
+	ProfilePhotoRequired bool
+	PreBookingMessage    string
+}
+
+// AdvanceBooking defines advance booking settings
+type AdvanceBooking struct {
+	MonthsAhead    int
+	MinNoticeHours int
+}
+
 // ListingConstraints represents constraints from the listing/property
 type ListingConstraints struct {
 	ListingID    uuid.UUID
@@ -124,6 +158,12 @@ type ListingConstraints struct {
 	CheckOutTime *string
 	Currency     string
 	Timezone     string
+
+	// New pricing and constraint fields
+	Fees            []CustomFee
+	Discounts       []Discount
+	BookingSettings *BookingSettings
+	AdvanceBooking  *AdvanceBooking
 }
 
 // ShowingAvailability defines when viewings can be scheduled

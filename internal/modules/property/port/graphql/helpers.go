@@ -316,21 +316,70 @@ func mapShortletInputToDomain(input *model.ShortletDetailInput) *domain.Shortlet
 	if input == nil {
 		return nil
 	}
+
+	// Convert old fee fields to new CustomFee structure
+	var fees []domain.CustomFee
+	if input.CautionFee != nil && *input.CautionFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:         "Caution Fee",
+			Amount:       *input.CautionFee,
+			Frequency:    domain.FeeFreqOneTime,
+			Category:     domain.FeeCatCaution,
+			IsRefundable: true,
+		})
+	}
+	if input.CleaningFee != nil && *input.CleaningFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Cleaning Fee",
+			Amount:    *input.CleaningFee,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatService,
+		})
+	}
+	if input.ServiceFee != nil && *input.ServiceFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Service Fee",
+			Amount:    *input.ServiceFee,
+			Frequency: domain.FeeFreqPerNight,
+			Category:  domain.FeeCatService,
+		})
+	}
+	if input.ExtraGuestFee != nil && *input.ExtraGuestFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Extra Guest Fee",
+			Amount:    *input.ExtraGuestFee,
+			Frequency: domain.FeeFreqPerNight,
+			Category:  domain.FeeCatOther,
+		})
+	}
+
+	// Build BookingSettings
+	approvalMethod := domain.ApprovalMethodRequest
+	if boolOrDefault(input.AutoAcceptBookings, false) {
+		approvalMethod = domain.ApprovalMethodInstant
+	}
+
 	return &domain.ShortletDetail{
-		NightlyRate:          input.NightlyRate,
-		CautionFee:           input.CautionFee,
-		CleaningFee:          input.CleaningFee,
-		ServiceFee:           input.ServiceFee,
-		ExtraGuestFee:        input.ExtraGuestFee,
-		MinNights:            input.MinNights,
-		MaxNights:            input.MaxNights,
+		NightlyRate: input.NightlyRate,
+		Fees:        fees,
+		Discounts:   []domain.Discount{}, // Empty for now, will be populated from dedicated input
+		BookingSettings: domain.BookingSettings{
+			ApprovalMethod:    approvalMethod,
+			GuestRequirements: domain.GuestRequirements{},
+		},
+		StayLimits: domain.StayLimits{
+			MinNights: input.MinNights,
+			MaxNights: input.MaxNights,
+		},
+		AdvanceBooking: domain.AdvanceBooking{
+			MonthsAhead:    intOrDefault(input.CalendarMonthsAhead, 6),
+			MinNoticeHours: 24, // Default 24 hours
+		},
 		MaxGuests:            input.MaxGuests,
 		BaseGuestCount:       input.BaseGuestCount,
 		CheckInTime:          input.CheckInTime,
 		CheckOutTime:         input.CheckOutTime,
 		AccommodationType:    domain.AccommodationType(input.AccommodationType),
-		AutoAcceptBookings:   boolOrDefault(input.AutoAcceptBookings, true),
-		CalendarMonthsAhead:  intOrDefault(input.CalendarMonthsAhead, 0),
 		AutoGenerateCalendar: boolOrDefault(input.AutoGenerateCalendar, false),
 		Rules:                mapRuleGroupInputs(input.Rules),
 		AmenitiesHighlights:  mapAmenityHighlightInputs(input.AmenitiesHighlights),
@@ -341,15 +390,56 @@ func mapRentalInputToDomain(input *model.RentalDetailInput) *domain.RentalDetail
 	if input == nil {
 		return nil
 	}
+
+	// Convert old fee fields to new CustomFee structure
+	var fees []domain.CustomFee
+	if input.AgencyFee != nil && *input.AgencyFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Agency Fee",
+			Amount:    *input.AgencyFee,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatAgency,
+		})
+	}
+	if input.LegalFee != nil && *input.LegalFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Legal Fee",
+			Amount:    *input.LegalFee,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatLegal,
+		})
+	}
+	if input.RegistrationFee != nil && *input.RegistrationFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Registration Fee",
+			Amount:    *input.RegistrationFee,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatOther,
+		})
+	}
+	if input.CautionFee != nil && *input.CautionFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:         "Caution Fee",
+			Amount:       *input.CautionFee,
+			Frequency:    domain.FeeFreqOneTime,
+			Category:     domain.FeeCatCaution,
+			IsRefundable: true,
+		})
+	}
+	if input.ServiceCharge != nil && *input.ServiceCharge > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Service Charge",
+			Amount:    *input.ServiceCharge,
+			Frequency: domain.FeeFreqPerMonth,
+			Category:  domain.FeeCatService,
+		})
+	}
+
 	return &domain.RentalDetail{
 		RentalPrice:            input.RentalPrice,
 		RentalPricePeriod:      domain.PaymentPeriod(input.RentalPricePeriod),
-		AgencyFee:              input.AgencyFee,
-		LegalFee:               input.LegalFee,
-		RegistrationFee:        input.RegistrationFee,
-		CautionFee:             input.CautionFee,
-		ServiceCharge:          input.ServiceCharge,
-		ServiceChargeBreakdown: mapServiceChargeInputs(input.ServiceCharges),
+		Discounts:              []domain.Discount{}, // Empty for now
+		Fees:                   fees,
 		MinRentalPeriod:        input.MinRentalPeriod,
 		MaxRentalPeriod:        input.MaxRentalPeriod,
 		RentalAvailabilityFrom: input.RentalAvailabilityFrom,
@@ -362,22 +452,76 @@ func mapSaleInputToDomain(input *model.SaleDetailInput) *domain.SaleDetail {
 	if input == nil {
 		return nil
 	}
+
+	// Convert old fee fields to new CustomFee structure
+	var fees []domain.CustomFee
+	if input.AgencyFee != nil && *input.AgencyFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Agency Fee",
+			Amount:    *input.AgencyFee,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatAgency,
+		})
+	}
+	if input.LegalFee != nil && *input.LegalFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Legal Fee",
+			Amount:    *input.LegalFee,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatLegal,
+		})
+	}
+	if input.SurveyFee != nil && *input.SurveyFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Survey Fee",
+			Amount:    *input.SurveyFee,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatOther,
+		})
+	}
+	if input.TitleProcessingFee != nil && *input.TitleProcessingFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Title Processing Fee",
+			Amount:    *input.TitleProcessingFee,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatLegal,
+		})
+	}
+	if input.DevelopmentFee != nil && *input.DevelopmentFee > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Development Fee",
+			Amount:    *input.DevelopmentFee,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatOther,
+		})
+	}
+	if input.OtherFees != nil && *input.OtherFees > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Other Fees",
+			Amount:    *input.OtherFees,
+			Frequency: domain.FeeFreqOneTime,
+			Category:  domain.FeeCatOther,
+		})
+	}
+	if input.ServiceCharge != nil && *input.ServiceCharge > 0 {
+		fees = append(fees, domain.CustomFee{
+			Name:      "Service Charge",
+			Amount:    *input.ServiceCharge,
+			Frequency: domain.FeeFreqPerYear,
+			Category:  domain.FeeCatService,
+		})
+	}
+
 	return &domain.SaleDetail{
-		SalePrice:              input.SalePrice,
-		OwnershipTitle:         input.OwnershipTitle,
-		PaymentPlan:            boolOrDefault(input.PaymentPlan, false),
-		YearBuilt:              intOrDefault(input.YearBuilt, 0),
-		YearRenovated:          intOrDefault(input.YearRenovated, 0),
-		AgencyFee:              input.AgencyFee,
-		LegalFee:               input.LegalFee,
-		SurveyFee:              input.SurveyFee,
-		TitleProcessingFee:     input.TitleProcessingFee,
-		DevelopmentFee:         input.DevelopmentFee,
-		OtherFees:              input.OtherFees,
-		ServiceCharge:          input.ServiceCharge,
-		ServiceChargeBreakdown: mapServiceChargeInputs(input.ServiceCharges),
-		SaleTerms:              stringOrDefault(input.SaleTerms, ""),
-		SaleAvailabilityFrom:   input.SaleAvailabilityFrom,
+		SalePrice:            input.SalePrice,
+		OwnershipTitle:       input.OwnershipTitle,
+		PaymentPlan:          boolOrDefault(input.PaymentPlan, false),
+		Discounts:            []domain.Discount{}, // Empty for now
+		YearBuilt:            intOrDefault(input.YearBuilt, 0),
+		YearRenovated:        intOrDefault(input.YearRenovated, 0),
+		Fees:                 fees,
+		SaleTerms:            stringOrDefault(input.SaleTerms, ""),
+		SaleAvailabilityFrom: input.SaleAvailabilityFrom,
 	}
 }
 

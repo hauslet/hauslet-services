@@ -3,6 +3,7 @@ package hooks
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	moderationdomain "hauslet/internal/modules/moderation/domain"
 	moderationservice "hauslet/internal/modules/moderation/service"
@@ -61,32 +62,40 @@ func (a *ReviewModerationHooksAdapter) OnModerationCompleted(ctx context.Context
 
 // parseRejectionReason converts moderation rejection reasons to review moderation reasons.
 func parseRejectionReason(reasons []string) reviewdomain.ModerationReason {
-	if len(reasons) == 0 {
-		return reviewdomain.ModerationReasonOther
+	// 1. Define a mapping of keywords to reasons.
+	// This makes it easy to add new rules without touching the logic.
+	// Order matters: put specific keywords above generic ones if needed.
+	rules := []struct {
+		keyword string
+		reason  reviewdomain.ModerationReason
+	}{
+		{"spam", reviewdomain.ModerationReasonSpam},
+		{"offensive", reviewdomain.ModerationReasonOffensive},
+		{"harassment", reviewdomain.ModerationReasonOffensive},
+		{"hate", reviewdomain.ModerationReasonOffensive},
+		{"fraud", reviewdomain.ModerationReasonFraudulent},
+		{"fake", reviewdomain.ModerationReasonFraudulent},
+		{"irrelevant", reviewdomain.ModerationReasonIrrelevant},
+		{"off-topic", reviewdomain.ModerationReasonIrrelevant},
+		{"personal", reviewdomain.ModerationReasonPersonalInfo},
+		{"contact", reviewdomain.ModerationReasonPersonalInfo},
+		{"email", reviewdomain.ModerationReasonPersonalInfo},
+		{"phone", reviewdomain.ModerationReasonPersonalInfo},
 	}
 
-	// Map common AI moderation reasons to review-specific reasons
-	firstReason := reasons[0]
-	switch {
-	case contains(firstReason, "spam"):
-		return reviewdomain.ModerationReasonSpam
-	case contains(firstReason, "offensive"), contains(firstReason, "harassment"), contains(firstReason, "hate"):
-		return reviewdomain.ModerationReasonOffensive
-	case contains(firstReason, "fraud"), contains(firstReason, "fake"):
-		return reviewdomain.ModerationReasonFraudulent
-	case contains(firstReason, "irrelevant"), contains(firstReason, "off-topic"):
-		return reviewdomain.ModerationReasonIrrelevant
-	case contains(firstReason, "personal"), contains(firstReason, "contact"), contains(firstReason, "email"), contains(firstReason, "phone"):
-		return reviewdomain.ModerationReasonPersonalInfo
-	default:
-		return reviewdomain.ModerationReasonOther
-	}
-}
+	// 2. Iterate through ALL reasons provided, not just the first one.
+	for _, reason := range reasons {
+		// Normalize the input to lowercase to ensure matching works
+		normalized := strings.ToLower(reason)
 
-// contains checks if a string contains a substring (case-insensitive).
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) &&
-		(s == substr || len(s) > 0 && len(substr) > 0 &&
-		s[:len(substr)] == substr ||
-		len(s) > len(substr) && s[len(s)-len(substr):] == substr)
+		// Check against our rules
+		for _, rule := range rules {
+			if strings.Contains(normalized, rule.keyword) {
+				return rule.reason
+			}
+		}
+	}
+
+	// 3. Fallback if no keywords matched
+	return reviewdomain.ModerationReasonOther
 }

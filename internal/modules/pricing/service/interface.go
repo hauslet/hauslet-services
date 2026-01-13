@@ -59,15 +59,39 @@ type ListingHooks interface {
 	GetListingPricing(ctx context.Context, listingID uuid.UUID) (*ListingPricing, error)
 }
 
+// DiscountType represents the type of discount
+type DiscountType string
+
+const (
+	DiscountTypeFlat         DiscountType = "flat"
+	DiscountTypeLengthOfStay DiscountType = "length_of_stay"
+)
+
+type Discount struct {
+	Name       string       `json:"name"`                 // e.g., "Flash Sale", "Weekly Discount"
+	Type       DiscountType `json:"type"`                 // "flat" or "length_of_stay"
+	Percentage float64      `json:"percentage"`           // e.g., 10.0 for 10%
+	MinNights  *int         `json:"min_nights,omitempty"` // Required if Type is "length_of_stay"
+	Active     bool         `json:"active"`               // Corresponds to the toggle switch
+}
+
+// CustomFee represents a fee associated with a listing
+type CustomFee struct {
+	Name         string
+	Amount       float64
+	Frequency    string // "one_time", "per_night", "per_month", "per_year"
+	Category     string // "legal", "agency", "service", "caution", "other"
+	IsRefundable bool
+	IsOptional   bool
+}
+
 // ListingPricing represents pricing info from a listing
 type ListingPricing struct {
 	ListingID      uuid.UUID
 	Currency       string
 	BaseRate       float64 // Nightly or rental rate
-	CleaningFee    *float64
-	ServiceFee     *float64
-	CautionFee     *float64
-	ExtraGuestFee  *float64
+	Fees           []CustomFee
+	Discounts      []Discount
 	BaseGuestCount *int
 }
 

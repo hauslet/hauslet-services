@@ -112,10 +112,11 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 	case domain.ListingSale:
 		listingPayload["sale_ownership_title"] = listing.SaleDetails.OwnershipTitle
 		listingPayload["sale_terms"] = listing.SaleDetails.SaleTerms
-		scb := listing.SaleDetails.ServiceChargeBreakdown
-		if scb != nil && len(*scb) > 0 {
-			for i, charge := range *scb {
-				listingPayload[fmt.Sprintf("service_charge_name_%d", i)] = charge.Name
+		// Include fees information
+		if len(listing.SaleDetails.Fees) > 0 {
+			for i, fee := range listing.SaleDetails.Fees {
+				listingPayload[fmt.Sprintf("sale_fee_name_%d", i)] = fee.Name
+				listingPayload[fmt.Sprintf("sale_fee_category_%d", i)] = fee.Category
 			}
 		}
 	case domain.ListingShortLet:

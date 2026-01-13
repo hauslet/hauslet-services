@@ -454,7 +454,7 @@ func (s *ServiceImpl) GetListingCompleteness(ctx context.Context, listingID uuid
 	case domain.ListingShortLet:
 		if listing.ShortletDetails != nil {
 			hasListingSpecificDetails = listing.ShortletDetails.MaxGuests > 0 &&
-				listing.ShortletDetails.MinNights > 0 &&
+				listing.ShortletDetails.StayLimits.MinNights > 0 &&
 				listing.ShortletDetails.AccommodationType != ""
 		}
 	case domain.ListingRent:

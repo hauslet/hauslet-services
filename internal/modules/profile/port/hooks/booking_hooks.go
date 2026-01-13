@@ -44,9 +44,13 @@ func (a *BookingProfileAdapter) GetUserContact(ctx context.Context, userID uuid.
 	}
 
 	return &bookingservice.ContactInfo{
-		ID:    userID,
-		Name:  profile.FullName,
-		Email: email,
-		Phone: phone,
+		ID:           userID,
+		Name:         profile.FullName,
+		Email:        email,
+		Phone:        phone,
+		PhotoURL:     profile.PhotoURL,
+		IsIDVerified: profile.IDVerified,
+		Rating:       profile.Rating,
+		ReviewsCount: profile.ReviewsCount,
 	}, nil
 }

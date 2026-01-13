@@ -3,6 +3,7 @@ package hooks
 import (
 	"context"
 	"fmt"
+
 	pricingservice "hauslet/internal/modules/pricing/service"
 	"hauslet/internal/modules/property/domain"
 	propertyService "hauslet/internal/modules/property/service"
@@ -33,14 +34,37 @@ func (a *PricingHooksAdapter) GetListingPricing(ctx context.Context, listingID u
 	}
 
 	detail := listing.ShortletDetails
+
+	// Convert domain CustomFees to pricing service CustomFees
+	fees := make([]pricingservice.CustomFee, len(detail.Fees))
+	for i, fee := range detail.Fees {
+		fees[i] = pricingservice.CustomFee{
+			Name:         fee.Name,
+			Amount:       fee.Amount,
+			Frequency:    string(fee.Frequency),
+			Category:     string(fee.Category),
+			IsRefundable: fee.IsRefundable,
+			IsOptional:   fee.IsOptional,
+		}
+	}
+
+	discount := make([]pricingservice.Discount, len(detail.Discounts))
+	for i, d := range detail.Discounts {
+		discount[i] = pricingservice.Discount{
+			Name:       d.Name,
+			Type:       pricingservice.DiscountType(d.Type),
+			Percentage: d.Percentage,
+			MinNights:  d.MinNights,
+			Active:     d.Active,
+		}
+	}
+
 	return &pricingservice.ListingPricing{
 		ListingID:      listing.ID,
 		Currency:       currencyOrDefault(listing.Currency),
 		BaseRate:       detail.NightlyRate,
-		CleaningFee:    detail.CleaningFee,
-		ServiceFee:     detail.ServiceFee,
-		CautionFee:     detail.CautionFee,
-		ExtraGuestFee:  detail.ExtraGuestFee,
+		Fees:           fees,
+		Discounts:      discount,
 		BaseGuestCount: detail.BaseGuestCount,
 	}, nil
 }

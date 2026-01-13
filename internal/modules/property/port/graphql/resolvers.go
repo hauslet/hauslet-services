@@ -269,49 +269,28 @@ func (r *Resolver) localizeListing(ctx context.Context, listing *domain.Listing)
 		return math.Round(value*rate*100) / 100
 	}
 
-	convertPtr := func(ptr *float64) {
-		if ptr != nil {
-			*ptr = convert(*ptr)
-		}
-	}
-
-	convertCharges := func(charges *[]domain.ServiceCharge) {
-		if charges == nil {
-			return
-		}
-		for i := range *charges {
-			(*charges)[i].Amount = convert((*charges)[i].Amount)
-		}
-	}
-
 	if detail := listing.ShortletDetails; detail != nil {
 		detail.NightlyRate = convert(detail.NightlyRate)
-		convertPtr(detail.CautionFee)
-		convertPtr(detail.CleaningFee)
-		convertPtr(detail.ServiceFee)
-		convertPtr(detail.ExtraGuestFee)
+		// Convert fees in the Fees array
+		for i := range detail.Fees {
+			detail.Fees[i].Amount = convert(detail.Fees[i].Amount)
+		}
 	}
 
 	if detail := listing.RentalDetails; detail != nil {
 		detail.RentalPrice = convert(detail.RentalPrice)
-		convertPtr(detail.AgencyFee)
-		convertPtr(detail.LegalFee)
-		convertPtr(detail.RegistrationFee)
-		convertPtr(detail.CautionFee)
-		convertPtr(detail.ServiceCharge)
-		convertCharges(detail.ServiceChargeBreakdown)
+		// Convert fees in the Fees array
+		for i := range detail.Fees {
+			detail.Fees[i].Amount = convert(detail.Fees[i].Amount)
+		}
 	}
 
 	if detail := listing.SaleDetails; detail != nil {
 		detail.SalePrice = convert(detail.SalePrice)
-		convertPtr(detail.AgencyFee)
-		convertPtr(detail.LegalFee)
-		convertPtr(detail.SurveyFee)
-		convertPtr(detail.TitleProcessingFee)
-		convertPtr(detail.DevelopmentFee)
-		convertPtr(detail.OtherFees)
-		convertPtr(detail.ServiceCharge)
-		convertCharges(detail.ServiceChargeBreakdown)
+		// Convert fees in the Fees array
+		for i := range detail.Fees {
+			detail.Fees[i].Amount = convert(detail.Fees[i].Amount)
+		}
 	}
 
 	listing.Currency = domain.CurrencyCode(target)
@@ -883,34 +862,6 @@ func (r *Resolver) ListingMedia(ctx context.Context, obj *domain.Listing, first 
 	}
 
 	return result, nil
-}
-
-// ServiceCharges resolves service charges for RentalDetail.
-func (r *Resolver) RentalDetailServiceCharges(ctx context.Context, obj *domain.RentalDetail) ([]*domain.ServiceCharge, error) {
-	if obj.ServiceChargeBreakdown == nil {
-		return []*domain.ServiceCharge{}, nil
-	}
-
-	charges := make([]*domain.ServiceCharge, len(*obj.ServiceChargeBreakdown))
-	for i, charge := range *obj.ServiceChargeBreakdown {
-		c := charge
-		charges[i] = &c
-	}
-	return charges, nil
-}
-
-// ServiceCharges resolves service charges for SaleDetail.
-func (r *Resolver) SaleDetailServiceCharges(ctx context.Context, obj *domain.SaleDetail) ([]*domain.ServiceCharge, error) {
-	if obj.ServiceChargeBreakdown == nil {
-		return []*domain.ServiceCharge{}, nil
-	}
-
-	charges := make([]*domain.ServiceCharge, len(*obj.ServiceChargeBreakdown))
-	for i, charge := range *obj.ServiceChargeBreakdown {
-		c := charge
-		charges[i] = &c
-	}
-	return charges, nil
 }
 
 // Thumbnails resolves the thumbnails field on ListingMedia by converting the map to an array.

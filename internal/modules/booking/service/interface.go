@@ -64,10 +64,14 @@ type BookingService interface {
 }
 
 type ContactInfo struct {
-	ID    uuid.UUID
-	Name  string
-	Email string
-	Phone *string
+	ID           uuid.UUID
+	Name         string
+	Email        string
+	Phone        *string
+	PhotoURL     *string
+	IsIDVerified bool
+	ReviewsCount int
+	Rating       float64
 }
 
 type CalendarGateway interface {
@@ -145,6 +149,40 @@ type ProfileProvider interface {
 	GetUserContact(ctx context.Context, userID uuid.UUID) (*ContactInfo, error)
 }
 
+// CustomFee represents a fee associated with a listing
+type CustomFee struct {
+	Name         string
+	Amount       float64
+	Frequency    string // "one_time", "per_night", "per_month", "per_year"
+	Category     string // "legal", "agency", "service", "caution", "other"
+	IsRefundable bool
+	IsOptional   bool
+}
+
+// Discount represents a price reduction
+type Discount struct {
+	Name       string
+	Type       string // "flat" or "length_of_stay"
+	Percentage float64
+	MinNights  *int
+	Active     bool
+}
+
+// BookingSettings defines booking configuration
+type BookingSettings struct {
+	ApprovalMethod       string // "instant" or "request"
+	VerifiedID           bool
+	PositiveReviewsOnly  bool
+	ProfilePhotoRequired bool
+	PreBookingMessage    string
+}
+
+// AdvanceBooking defines advance booking settings
+type AdvanceBooking struct {
+	MonthsAhead    int
+	MinNoticeHours int
+}
+
 type ListingConstraints struct {
 	ListingID          uuid.UUID
 	MinNights          int
@@ -156,6 +194,12 @@ type ListingConstraints struct {
 	Timezone           string
 	AutoAcceptBookings bool
 	RefundPolicy       string
+
+	// New pricing and constraint fields
+	Fees            []CustomFee
+	Discounts       []Discount
+	BookingSettings *BookingSettings
+	AdvanceBooking  *AdvanceBooking
 }
 
 type BookingServiceImpl struct {

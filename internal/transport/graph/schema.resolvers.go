@@ -38,6 +38,7 @@ import (
 	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
 	"hauslet/internal/platform/payment"
 	"hauslet/internal/transport/graph/model"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -1701,17 +1702,71 @@ func (r *ratingDistributionResolver) FiveStar(ctx context.Context, obj *domain8.
 	return obj.FiveStarCount, nil
 }
 
+// AgencyFee is the resolver for the agencyFee field.
+func (r *rentalDetailResolver) AgencyFee(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatAgency {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// LegalFee is the resolver for the legalFee field.
+func (r *rentalDetailResolver) LegalFee(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatLegal {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// RegistrationFee is the resolver for the registrationFee field.
+func (r *rentalDetailResolver) RegistrationFee(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if strings.Contains(strings.ToLower(fee.Name), "registration") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// CautionFee is the resolver for the cautionFee field.
+func (r *rentalDetailResolver) CautionFee(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatCaution {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// ServiceCharge is the resolver for the serviceCharge field.
+func (r *rentalDetailResolver) ServiceCharge(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatService {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
 // ServiceCharges is the resolver for the serviceCharges field.
 func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain.RentalDetail) ([]*domain.ServiceCharge, error) {
-	if obj == nil || obj.ServiceChargeBreakdown == nil {
-		return []*domain.ServiceCharge{}, nil
+	var charges []*domain.ServiceCharge
+
+	// Filter service-related fees from the Fees array
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatService {
+			charges = append(charges, &domain.ServiceCharge{
+				Name:   fee.Name,
+				Period: domain.PaymentPeriod(fee.Frequency),
+				Amount: fee.Amount,
+			})
+		}
 	}
 
-	charges := make([]*domain.ServiceCharge, len(*obj.ServiceChargeBreakdown))
-	for i, charge := range *obj.ServiceChargeBreakdown {
-		c := charge
-		charges[i] = &c
-	}
 	return charges, nil
 }
 
@@ -1760,18 +1815,164 @@ func (r *ruleGroupResolver) Rules(ctx context.Context, obj *domain.RuleGroup) ([
 	return rules, nil
 }
 
+// AgencyFee is the resolver for the agencyFee field.
+func (r *saleDetailResolver) AgencyFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatAgency {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// LegalFee is the resolver for the legalFee field.
+func (r *saleDetailResolver) LegalFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatLegal {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// SurveyFee is the resolver for the surveyFee field.
+func (r *saleDetailResolver) SurveyFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if strings.Contains(strings.ToLower(fee.Name), "survey") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// TitleProcessingFee is the resolver for the titleProcessingFee field.
+func (r *saleDetailResolver) TitleProcessingFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if strings.Contains(strings.ToLower(fee.Name), "title") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// DevelopmentFee is the resolver for the developmentFee field.
+func (r *saleDetailResolver) DevelopmentFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if strings.Contains(strings.ToLower(fee.Name), "development") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// OtherFees is the resolver for the otherFees field.
+func (r *saleDetailResolver) OtherFees(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if strings.Contains(strings.ToLower(fee.Name), "other") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// ServiceCharge is the resolver for the serviceCharge field.
+func (r *saleDetailResolver) ServiceCharge(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatService {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
 // ServiceCharges is the resolver for the serviceCharges field.
 func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain.SaleDetail) ([]*domain.ServiceCharge, error) {
-	if obj == nil || obj.ServiceChargeBreakdown == nil {
-		return []*domain.ServiceCharge{}, nil
+	var charges []*domain.ServiceCharge
+
+	// Filter service-related fees from the Fees array
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatService {
+			charges = append(charges, &domain.ServiceCharge{
+				Name:   fee.Name,
+				Period: domain.PaymentPeriod(fee.Frequency),
+				Amount: fee.Amount,
+			})
+		}
 	}
 
-	charges := make([]*domain.ServiceCharge, len(*obj.ServiceChargeBreakdown))
-	for i, charge := range *obj.ServiceChargeBreakdown {
-		c := charge
-		charges[i] = &c
-	}
 	return charges, nil
+}
+
+// CautionFee is the resolver for the cautionFee field.
+func (r *shortletDetailResolver) CautionFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatCaution {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// CleaningFee is the resolver for the cleaningFee field.
+func (r *shortletDetailResolver) CleaningFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if strings.Contains(strings.ToLower(fee.Name), "cleaning") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// ServiceFee is the resolver for the serviceFee field.
+func (r *shortletDetailResolver) ServiceFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if fee.Category == domain.FeeCatService && strings.Contains(strings.ToLower(fee.Name), "service") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// ExtraGuestFee is the resolver for the extraGuestFee field.
+func (r *shortletDetailResolver) ExtraGuestFee(ctx context.Context, obj *domain.ShortletDetail) (*float64, error) {
+	for _, fee := range obj.Fees {
+		if strings.Contains(strings.ToLower(fee.Name), "guest") {
+			return &fee.Amount, nil
+		}
+	}
+	return nil, nil
+}
+
+// MinNights is the resolver for the minNights field.
+func (r *shortletDetailResolver) MinNights(ctx context.Context, obj *domain.ShortletDetail) (int, error) {
+	if obj == nil {
+		return 0, nil
+	}
+	return obj.StayLimits.MinNights, nil
+}
+
+// MaxNights is the resolver for the maxNights field.
+func (r *shortletDetailResolver) MaxNights(ctx context.Context, obj *domain.ShortletDetail) (*int, error) {
+	if obj == nil {
+		return nil, nil
+	}
+	return obj.StayLimits.MaxNights, nil
+}
+
+// AutoAcceptBookings is the resolver for the autoAcceptBookings field.
+func (r *shortletDetailResolver) AutoAcceptBookings(ctx context.Context, obj *domain.ShortletDetail) (bool, error) {
+	if obj == nil {
+		return false, nil
+	}
+	return obj.BookingSettings.ApprovalMethod == domain.ApprovalMethodInstant, nil
+}
+
+// CalendarMonthsAhead is the resolver for the calendarMonthsAhead field.
+func (r *shortletDetailResolver) CalendarMonthsAhead(ctx context.Context, obj *domain.ShortletDetail) (int, error) {
+	if obj == nil {
+		return 0, nil
+	}
+	return obj.AdvanceBooking.MonthsAhead, nil
 }
 
 // Cleanliness is the resolver for the cleanliness field.
@@ -2058,6 +2259,9 @@ func (r *Resolver) RuleGroup() RuleGroupResolver { return &ruleGroupResolver{r} 
 // SaleDetail returns SaleDetailResolver implementation.
 func (r *Resolver) SaleDetail() SaleDetailResolver { return &saleDetailResolver{r} }
 
+// ShortletDetail returns ShortletDetailResolver implementation.
+func (r *Resolver) ShortletDetail() ShortletDetailResolver { return &shortletDetailResolver{r} }
+
 // SubRatings returns SubRatingsResolver implementation.
 func (r *Resolver) SubRatings() SubRatingsResolver { return &subRatingsResolver{r} }
 
@@ -2133,6 +2337,7 @@ type rentalDetailResolver struct{ *Resolver }
 type reviewResolver struct{ *Resolver }
 type ruleGroupResolver struct{ *Resolver }
 type saleDetailResolver struct{ *Resolver }
+type shortletDetailResolver struct{ *Resolver }
 type subRatingsResolver struct{ *Resolver }
 type transactionResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }

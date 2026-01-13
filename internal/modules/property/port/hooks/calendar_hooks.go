@@ -141,8 +141,8 @@ func (a *CalendarHooksAdapter) GetListingConstraints(ctx context.Context, listin
 	detail := listing.ShortletDetails
 	constraints := &calendarservice.ListingConstraints{
 		ListingID:    listing.ID,
-		MinNights:    detail.MinNights,
-		MaxNights:    detail.MaxNights,
+		MinNights:    detail.StayLimits.MinNights,
+		MaxNights:    detail.StayLimits.MaxNights,
 		MaxGuests:    detail.MaxGuests,
 		CheckInTime:  detail.CheckInTime,
 		CheckOutTime: detail.CheckOutTime,
@@ -290,8 +290,8 @@ func (a *CalendarHooksRepoAdapter) GetListingConstraints(ctx context.Context, li
 	detail := listing.ShortletDetails
 	constraints := &calendarservice.ListingConstraints{
 		ListingID:    listing.ID,
-		MinNights:    detail.MinNights,
-		MaxNights:    detail.MaxNights,
+		MinNights:    detail.StayLimits.MinNights,
+		MaxNights:    detail.StayLimits.MaxNights,
 		MaxGuests:    detail.MaxGuests,
 		CheckInTime:  detail.CheckInTime,
 		CheckOutTime: detail.CheckOutTime,

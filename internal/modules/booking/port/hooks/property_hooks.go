@@ -52,15 +52,63 @@ func (a *PropertyHooksAdapter) GetListingConstraints(ctx context.Context, listin
 	}
 
 	if listing.ShortletDetails != nil {
-		constraints.MinNights = listing.ShortletDetails.MinNights
-		constraints.MaxNights = listing.ShortletDetails.MaxNights
-		constraints.MaxGuests = listing.ShortletDetails.MaxGuests
-		constraints.CheckInTime = listing.ShortletDetails.CheckInTime
-		constraints.CheckOutTime = listing.ShortletDetails.CheckOutTime
-		constraints.AutoAcceptBookings = listing.ShortletDetails.AutoAcceptBookings
+		detail := listing.ShortletDetails
+
+		// Basic constraints
+		constraints.MinNights = detail.StayLimits.MinNights
+		constraints.MaxNights = detail.StayLimits.MaxNights
+		constraints.MaxGuests = detail.MaxGuests
+		constraints.CheckInTime = detail.CheckInTime
+		constraints.CheckOutTime = detail.CheckOutTime
+		// Update to use BookingSettings.ApprovalMethod instead of AutoAcceptBookings
+		constraints.AutoAcceptBookings = detail.BookingSettings.ApprovalMethod == "instant"
 
 		// Extract refund policy from rule groups
-		constraints.RefundPolicy = a.extractRefundPolicy(listing.ShortletDetails.Rules)
+		constraints.RefundPolicy = a.extractRefundPolicy(detail.Rules)
+
+		// Convert custom fees
+		if len(detail.Fees) > 0 {
+			constraints.Fees = make([]service.CustomFee, len(detail.Fees))
+			for i, fee := range detail.Fees {
+				constraints.Fees[i] = service.CustomFee{
+					Name:         fee.Name,
+					Amount:       fee.Amount,
+					Frequency:    string(fee.Frequency),
+					Category:     string(fee.Category),
+					IsRefundable: fee.IsRefundable,
+					IsOptional:   fee.IsOptional,
+				}
+			}
+		}
+
+		// Convert discounts
+		if len(detail.Discounts) > 0 {
+			constraints.Discounts = make([]service.Discount, len(detail.Discounts))
+			for i, discount := range detail.Discounts {
+				constraints.Discounts[i] = service.Discount{
+					Name:       discount.Name,
+					Type:       string(discount.Type),
+					Percentage: discount.Percentage,
+					MinNights:  discount.MinNights,
+					Active:     discount.Active,
+				}
+			}
+		}
+
+		// Convert booking settings
+		constraints.BookingSettings = &service.BookingSettings{
+			ApprovalMethod:       string(detail.BookingSettings.ApprovalMethod),
+			VerifiedID:           detail.BookingSettings.GuestRequirements.VerifiedID,
+			PositiveReviewsOnly:  detail.BookingSettings.GuestRequirements.PositiveReviewsOnly,
+			ProfilePhotoRequired: detail.BookingSettings.GuestRequirements.ProfilePhotoRequired,
+			PreBookingMessage:    detail.BookingSettings.PreBookingMessage,
+		}
+
+		// Convert advance booking settings
+		constraints.AdvanceBooking = &service.AdvanceBooking{
+			MonthsAhead:    detail.AdvanceBooking.MonthsAhead,
+			MinNoticeHours: detail.AdvanceBooking.MinNoticeHours,
+		}
 	}
 
 	// Set currency
