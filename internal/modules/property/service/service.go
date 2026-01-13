@@ -108,6 +108,18 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 				}
 			}
 		}
+		if len(listing.RentalDetails.Fees) > 0 {
+			for i, fee := range listing.RentalDetails.Fees {
+				listingPayload[fmt.Sprintf("rental_rule_custom_%d", i)] = fee.Name
+				listingPayload[fmt.Sprintf("rental_fee_category_%d", i)] = fee.Category
+			}
+		}
+
+		if len(listing.RentalDetails.Discounts) > 0 {
+			for i, discount := range listing.RentalDetails.Discounts {
+				listingPayload[fmt.Sprintf("rental_rule_custom_%d", i)] = discount.Name
+			}
+		}
 
 	case domain.ListingSale:
 		listingPayload["sale_ownership_title"] = listing.SaleDetails.OwnershipTitle
@@ -119,12 +131,31 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 				listingPayload[fmt.Sprintf("sale_fee_category_%d", i)] = fee.Category
 			}
 		}
+
+		if len(listing.SaleDetails.Discounts) > 0 {
+			for i, discount := range listing.SaleDetails.Discounts {
+				listingPayload[fmt.Sprintf("sale_discount_name_%d", i)] = discount.Name
+			}
+		}
+
 	case domain.ListingShortLet:
 		if len(listing.ShortletDetails.Rules) > 0 {
 			for i, rule := range listing.ShortletDetails.Rules {
 				if rule.Category == domain.RuleCustom {
 					listingPayload[fmt.Sprintf("shortlet_rule_custom_%d", i)] = rule.Rules
 				}
+			}
+		}
+		if len(listing.ShortletDetails.Fees) > 0 {
+			for i, fee := range listing.ShortletDetails.Fees {
+				listingPayload[fmt.Sprintf("shortlet_fee_name_%d", i)] = fee.Name
+				listingPayload[fmt.Sprintf("shortlet_fee_category_%d", i)] = fee.Category
+			}
+		}
+
+		if len(listing.ShortletDetails.Discounts) > 0 {
+			for i, discount := range listing.ShortletDetails.Discounts {
+				listingPayload[fmt.Sprintf("shortlet_discount_name_%d", i)] = discount.Name
 			}
 		}
 
