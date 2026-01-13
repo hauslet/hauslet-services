@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"hauslet/internal/modules/profile/domain"
+
+	"github.com/google/uuid"
 )
 
 var supplyUserTypeSet = map[domain.UserType]struct{}{
@@ -55,6 +57,29 @@ func (s *ProfileServiceImpl) SelectSupplyRoles(ctx context.Context, userID strin
 	if err := s.repo.UpdateProfile(ctx, schemaProfile); err != nil {
 		s.log.Error("failed to update supply roles", "user_id", userID, "error", err)
 		return nil, err
+	}
+
+	// Auto-create free subscription if adapter is available
+	if s.subscriptionAdapter != nil {
+		userUUID, err := uuid.Parse(userID)
+		if err == nil {
+			if err := s.subscriptionAdapter.GetOrCreateFreeSubscription(ctx, userUUID); err != nil {
+				// Log error but don't fail - subscription creation is best-effort
+				s.log.Warn("failed to auto-create free subscription",
+					"user_id", userID,
+					"error", err,
+				)
+			} else {
+				s.log.Info("auto-created free subscription for supply role",
+					"user_id", userID,
+				)
+			}
+		} else {
+			s.log.Error("invalid user ID format for subscription creation",
+				"user_id", userID,
+				"error", err,
+			)
+		}
 	}
 
 	s.log.Info("updated supply roles", "user_id", userID, "roles", normalized)

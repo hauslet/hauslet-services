@@ -107,11 +107,15 @@ Future: Roommate matching chats, Lawyer consultations
 - `GetOrCreateInquiryConversation(leadID, requesterID)` - Pre-transaction chat for ANY property type (sale, rent, shortlet)
 - `GetOrCreateTransactionConversation(contextType, contextID, requesterID)` - Active transaction chat (booking, rental application, sale negotiation)
 - `GetOrCreateSupportConversation(userID)` - Persistent "Hauslet Support" contact
-- `SendMessage(conversationID, senderID, content, type)` - Send message with auto-AI-response
+- `SendMessage(conversationID, senderID, content, type)` - Send message with auto-AI-response (publishes `EventMessageSent`)
 - `GetMessages(conversationID, requesterID, limit, offset)` - Fetch messages
-- `MarkAsRead(conversationID, userID)` - Update unread counts
+- `MarkAsRead(conversationID, userID)` - Update unread counts (publishes `EventMessageRead`)
 - `RequestSupport(conversationID, requesterID)` - Escalate to human
 - `AssignSupportAgent(conversationID, agentID, assignedBy)` - Human takes over
+
+**Service Dependencies:**
+- `events.Publisher` - For publishing message and conversation events
+- Hook interfaces for cross-module integration
 
 **Hook Interfaces (Cross-Module):**
 - `LeadHooks`: Get lead participants (guest, host)
@@ -133,12 +137,43 @@ func (s *messagingServiceImpl) canAccessConversation(ctx, convID, userID) (*Conv
 ```
 
 **Key Logic:**
-- `SendMessage()`: Authorizes sender, saves message, updates conversation tracking, triggers AI response if support conversation
+- `SendMessage()`: Authorizes sender, saves message, updates conversation tracking, **publishes event via `events.Publisher`**, triggers AI response if support conversation
 - `handleAIResponse()`: Async goroutine to get AI response, save it, check for escalation
 - **Multi-party authorization**:
   - Inquiry conversations: Prospective buyer/renter AND property owner/agent (works for sale, rent, shortlet)
   - Transaction conversations: Transaction participants (buyer-seller, tenant-landlord, guest-host)
   - Support conversations: User AND support team (AI + humans)
+
+**Event Publishing Pattern:**
+```go
+func (s *messagingServiceImpl) SendMessage(ctx context.Context, conversationID uuid.UUID, senderID uuid.UUID, content string, messageType domain.MessageType) (*domain.Message, error) {
+    // ... authorization and business logic ...
+    
+    // Save message
+    message, err := s.messageRepo.Create(ctx, msg)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Publish event using existing infrastructure
+    s.eventPublisher.Publish(
+        ctx,
+        events.ChannelMessages,
+        events.EventMessageSent,
+        message.ID.String(),
+        message, // payload
+        &events.PublishOptions{
+            ActorID:      &senderID.String(),
+            FailSilently: true,
+            Metadata: map[string]string{
+                "conversation_id": conversationID.String(),
+            },
+        },
+    )
+    
+    return message, nil
+}
+```
 
 ### Authorization Helpers
 - File: `internal/modules/messaging/service/authorization.go`
@@ -192,7 +227,7 @@ func (c *VertexAIClient) DetectIntent(ctx, sessionID, text) (*IntentDetectionRes
 
 ---
 
-## GraphQL Layer (First Subscription Implementation!)
+## GraphQL Layer (Using Existing Events Infrastructure)
 
 ### GraphQL Schema
 - File: `internal/modules/messaging/port/graphql/schema.graphqls`
@@ -245,7 +280,7 @@ extend type Mutation {
 }
 ```
 
-**Subscriptions (NEW!):**
+**Subscriptions:**
 ```graphql
 extend type Subscription {
   messageAdded(conversationID: UUID!): Message!
@@ -260,23 +295,71 @@ extend type Subscription {
 **Pattern (follows booking/leads):**
 - Thin adapter: Extract user from context, delegate to service
 - No authorization in resolver (service layer handles it)
-- Subscription authorization: Verify user can access conversation before creating channel
+- **Uses existing `events.Subscriber`** for real-time subscriptions
+- Subscription authorization: Verify user can access conversation before subscribing
 
 **Key Resolvers:**
 ```go
-func (r *Resolver) HausletSupport(ctx) (*Conversation, error) {
+func (r *Resolver) HausletSupport(ctx context.Context) (*Conversation, error) {
     userID := getUserIDFromContext(ctx)
     return r.messagingSvc.GetOrCreateSupportConversation(ctx, userID)
 }
 
-func (r *Resolver) MessageAdded(ctx, conversationID) (<-chan *Message, error) {
+func (r *Resolver) MessageAdded(ctx context.Context, conversationID uuid.UUID) (<-chan *Message, error) {
     userID := getUserIDFromContext(ctx)
-    // Verify access
-    r.messagingSvc.GetConversation(ctx, conversationID, userID)
-    // Create subscription channel
-    ch := make(chan *Message, 1)
-    go r.subscribeToMessages(ctx, conversationID, userID, ch)
-    return ch, nil
+    
+    // Verify access first
+    _, err := r.messagingSvc.GetConversation(ctx, conversationID, userID)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Subscribe using existing events infrastructure
+    eventCh, err := r.eventSubscriber.SubscribeWithFilter(
+        ctx,
+        events.ChannelMessages,
+        events.FilterByType(events.EventMessageSent),
+        events.FilterByMetadata("conversation_id", conversationID.String()),
+    )
+    if err != nil {
+        return nil, err
+    }
+    
+    // Create output channel
+    outCh := make(chan *Message, 1)
+    
+    // Process events
+    go func() {
+        defer close(outCh)
+        
+        for {
+            select {
+            case <-ctx.Done():
+                return
+                
+            case event, ok := <-eventCh:
+                if !ok {
+                    return
+                }
+                
+                // Parse message from payload
+                var msg domain.Message
+                if err := json.Unmarshal(event.Payload, &msg); err != nil {
+                    continue
+                }
+                
+                // Re-authorize: verify user can still access this conversation
+                if !r.messagingSvc.CanAccessConversation(ctx, conversationID, userID) {
+                    continue
+                }
+                
+                // Convert and send
+                outCh <- toGraphQLMessage(&msg)
+            }
+        }
+    }()
+    
+    return outCh, nil
 }
 ```
 
@@ -291,7 +374,9 @@ func (r *Resolver) MessageAdded(ctx, conversationID) (<-chan *Message, error) {
 ## Database Migration
 
 ### Migration File
-- File: `db/migrations/014_create_messaging_tables.sql`
+- File: `db/migrations/004_create_messaging_tables.sql`
+
+**Note:** Check latest migration number. Currently migrations go up to 003, so this should be 004.
 
 **Tables:**
 1. **conversations**: id, type, status, context_type, context_id, last_message_at, unread_counts (JSONB), support_state (JSONB)
@@ -313,21 +398,31 @@ func (r *Resolver) MessageAdded(ctx, conversationID) (<-chan *Message, error) {
 
 ---
 
-## GraphQL Subscriptions Setup (First Implementation!)
+## GraphQL Subscriptions Setup
 
 ### WebSocket Transport Configuration
-- File: `internal/transport/graph/server.go` **(MODIFY)**
+- File: `internal/transport/graph/server.go` **(ALREADY EXISTS)**
 
-**Add to SetupGraphQL:**
+**Note:** WebSocket transport is already configured (lines 104-115). No changes needed. The existing setup includes:
+- Keep-alive ping interval (10 seconds)
+- Origin validation
+- Support for development and production environments
+
+**Optional Enhancement:** Add `InitFunc` for WebSocket authentication if needed:
 ```go
+// In SetupGraphQL, modify existing WebSocket transport:
 srv.AddTransport(transport.Websocket{
     KeepAlivePingInterval: 10 * time.Second,
     Upgrader: websocket.Upgrader{
         CheckOrigin: func(r *http.Request) bool {
-            // Validate origin in production
-            return cfg.App.Env == "development" || isValidOrigin(r.Origin)
+            origin := r.Header.Get("Origin")
+            return origin == "" || 
+                origin == r.Header.Get("Host") || 
+                origin == cfg.App.Client || 
+                cfg.App.Env != "production"
         },
     },
+    // Optional: Add InitFunc for WebSocket auth
     InitFunc: func(ctx context.Context, initPayload transport.InitPayload) (context.Context, *transport.InitPayload, error) {
         // Extract auth token from connection init
         authToken := initPayload.Authorization()
@@ -339,6 +434,43 @@ srv.AddTransport(transport.Websocket{
         return ctx, &initPayload, nil
     },
 })
+```
+
+### Events Infrastructure Integration
+- File: `internal/platform/events/types.go` **(MODIFY)**
+
+**Add messaging event types:**
+```go
+// Add to EventType constants:
+EventMessageSent          EventType = "message.sent"
+EventMessageRead          EventType = "message.read"
+EventConversationUpdated  EventType = "conversation.updated"
+EventConversationCreated  EventType = "conversation.created"
+
+// ChannelMessages already exists in types.go!
+```
+
+**Note:** The events infrastructure (`internal/platform/events`) is already set up:
+- `events.Broker` - Redis pub/sub broker
+- `events.Publisher` - Service-friendly event publishing
+- `events.Subscriber` - Resolver-friendly event subscription with filtering
+- Already wired in `cmd/api/server/container.go` as `EventPublisher` and `EventSubscriber`
+
+**Optional Enhancement:** Add convenience method to `events.Publisher` (similar to `PublishBookingEvent`, `PublishLeadEvent`):
+```go
+// In internal/platform/events/publisher.go
+func (p *Publisher) PublishMessageEvent(ctx context.Context, eventType EventType, messageID string, payload interface{}, conversationID *string, actorID *string) error {
+    opts := &PublishOptions{
+        ActorID:      actorID,
+        FailSilently: true,
+    }
+    if conversationID != nil {
+        opts.Metadata = map[string]string{
+            "conversation_id": *conversationID,
+        }
+    }
+    return p.Publish(ctx, ChannelMessages, eventType, messageID, payload, opts)
+}
 ```
 
 ### gqlgen Configuration
@@ -418,17 +550,20 @@ func (c *Container) initMessaging() error {
     bookingHooks := messagingservice.NewBookingHooksAdapter(c.BookingSvc)
     profileHooks := messagingservice.NewProfileHooksAdapter(c.ProfileSvc)
 
-    // Initialize messaging service
+    // Initialize messaging service with existing EventPublisher
     c.MessagingSvc = messagingservice.NewMessagingService(
         convRepo, msgRepo, partRepo,
         c.AISupportSvc,
         leadHooks, bookingHooks, profileHooks,
+        c.EventPublisher, // Use existing EventPublisher from container
         c.Logger,
     )
 
     return nil
 }
 ```
+
+**Note:** `EventPublisher` and `EventSubscriber` already exist in the Container (lines 131-132). No need to create new instances.
 
 ### GraphQL Resolver Wiring
 - File: `internal/transport/graph/resolver.go` **(MODIFY)**
@@ -440,7 +575,12 @@ MessagingResolver *messaginggraphql.Resolver
 
 **Pass services in NewResolver:**
 ```go
-MessagingResolver: messaginggraphql.NewResolver(messagingSvc, aiSupportSvc, log)
+MessagingResolver: messaginggraphql.NewResolver(
+    messagingSvc, 
+    aiSupportSvc, 
+    eventSubscriber, // Pass existing EventSubscriber for subscriptions
+    log,
+)
 ```
 
 ---
@@ -492,7 +632,7 @@ MESSAGING_AI_TIMEOUT_SECONDS=15
 1. Domain models with rich behavior (conversation.go, message.go, participant.go)
 2. Repository layer with GORM schemas
 3. Service layer with authorization (inquiry and booking conversations)
-4. Database migration (014_create_messaging_tables.sql)
+4. Database migration (004_create_messaging_tables.sql)
 5. Basic GraphQL queries/mutations (NO subscriptions yet)
 
 **Testing:**
@@ -513,21 +653,24 @@ MESSAGING_AI_TIMEOUT_SECONDS=15
 **Duration:** 1 week
 
 **Deliverables:**
-1. WebSocket transport in GraphQL server
-2. Subscription resolvers (messageAdded, conversationUpdated)
-3. Subscription authentication (JWT in WebSocket init)
-4. Redis PubSub for message broadcasting (optional but recommended)
+1. Add messaging event types to `internal/platform/events/types.go` (EventMessageSent, EventConversationUpdated, etc.)
+2. Update service layer to publish events via existing `events.Publisher` when messages are sent
+3. Implement subscription resolvers using existing `events.Subscriber` with filters
+4. Wire `EventSubscriber` into messaging GraphQL resolver
+5. Optional: Add WebSocket `InitFunc` for enhanced authentication (WebSocket transport already exists)
 
 **Testing:**
-- WebSocket connection tests
+- WebSocket connection tests (using existing transport)
 - Subscription auth tests (reject unauthenticated)
 - Real-time delivery latency tests
 - Concurrent subscription load tests
+- Multi-instance subscription tests (events automatically work across instances via Redis)
 
 **Success Criteria:**
 - New messages appear in real-time (< 500ms)
-- Subscriptions survive across API instances (with Redis)
+- Subscriptions work across multiple API instances (via existing Redis pub/sub)
 - Unauthorized users can't subscribe to others' conversations
+- Events are properly filtered by conversation ID
 
 ---
 
@@ -596,27 +739,31 @@ MESSAGING_AI_TIMEOUT_SECONDS=15
 
 **Service Layer:**
 - `internal/modules/messaging/service/interface.go`
-- `internal/modules/messaging/service/service.go`
+- `internal/modules/messaging/service/service.go` (includes event publishing)
 - `internal/modules/messaging/service/authorization.go`
 - `internal/modules/messaging/service/ai_support.go`
 - `internal/modules/messaging/service/hooks_adapters.go`
 
 **Port Layer:**
 - `internal/modules/messaging/port/graphql/schema.graphqls`
-- `internal/modules/messaging/port/graphql/resolvers.go`
+- `internal/modules/messaging/port/graphql/resolvers.go` (uses events.Subscriber)
 - `internal/modules/messaging/port/graphql/authorization.go`
 - `internal/modules/messaging/port/vertexai/client.go`
 
-**Database:**
-- `db/migrations/014_create_messaging_tables.sql`
+**Events Integration:**
+- `internal/platform/events/types.go` (add messaging event types)
 
-### Files to Modify (5 files):
+**Database:**
+- `db/migrations/004_create_messaging_tables.sql`
+
+### Files to Modify (6 files):
 
 1. **`gqlgen.yml`** - Add messaging schema paths and type bindings
-2. **`internal/transport/graph/server.go`** - Add WebSocket transport
-3. **`internal/transport/graph/resolver.go`** - Wire messaging resolver
-4. **`cmd/api/server/container.go`** - Initialize messaging services
+2. **`internal/transport/graph/server.go`** - Optional: Add WebSocket InitFunc for auth (WebSocket transport already exists)
+3. **`internal/transport/graph/resolver.go`** - Wire messaging resolver (pass EventSubscriber)
+4. **`cmd/api/server/container.go`** - Initialize messaging services (use existing EventPublisher)
 5. **`config/config.go`** - Add Vertex AI and messaging config
+6. **`internal/platform/events/types.go`** - Add messaging event types (EventMessageSent, etc.)
 
 ---
 
@@ -631,8 +778,12 @@ MESSAGING_AI_TIMEOUT_SECONDS=15
 **Why:** Better performance for large conversations, easier pagination, standard pattern
 
 ### 3. Subscription Scalability
-**Decision:** Redis PubSub for message broadcasting
-**Why:** Real-time delivery, horizontally scalable, existing Redis infrastructure
+**Decision:** Use existing `internal/platform/events` infrastructure (Redis PubSub)
+**Why:** 
+- Real-time delivery via existing `events.Publisher`/`events.Subscriber`
+- Horizontally scalable (works across API instances automatically)
+- Already wired in container, no new infrastructure needed
+- Consistent with other modules (bookings, payments, etc.)
 
 ### 4. AI Context Window
 **Decision:** Send last 10 messages to Vertex AI

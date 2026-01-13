@@ -39,6 +39,7 @@ func main() {
 	registry := setup.RegisterHandlers(infra, cfg, log)
 	log.Info("✅ Registered job handlers", "count", registry.HandlerCount())
 
+	// 5) Worker server
 	ready := atomic.Bool{}
 	workerServer := startWorkerServer(cfg, registry, log, &ready)
 

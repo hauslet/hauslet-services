@@ -357,10 +357,17 @@ func (c *Container) initProfile() error {
 
 	moderationAdapter := moderationhooks.NewModerationAdapter(c.ModerationSvc)
 
+	// Create subscription adapter (optional, will be nil before initPromotions)
+	var subscriptionAdapter profileservice.SubscriptionAdapter
+	if c.SubscriptionSvc != nil {
+		subscriptionAdapter = profileport.NewProfileSubscriptionAdapter(c.SubscriptionSvc)
+	}
+
 	c.ProfileSvc = profileservice.NewProfileService(
 		profileRepo,
 		c.R2,
 		moderationAdapter,
+		subscriptionAdapter, // Can be nil initially
 		profileNotificationService,
 		c.Logger,
 	)
@@ -465,6 +472,29 @@ func (c *Container) initPromotions() error {
 		c.PaymentsSvc,
 		&c.Config.YAML.Promotion,
 		c.DB,
+		c.Logger,
+	)
+
+	// Reinitialize ProfileSvc with subscription adapter now that SubscriptionSvc is available
+	// This allows profile service to auto-create free subscriptions when users select supply roles
+	profileRepo := profilerepository.NewProfileRepository(c.DB)
+	emailSubject := c.Config.YAML.Queue.Subjects["email"]
+	profileNotificationService := profilenotification.NewNotificationService(
+		c.EmailClient,
+		c.Queue,
+		emailSubject,
+		c.Config.App.Client,
+		c.Logger,
+	)
+	moderationAdapter := moderationhooks.NewModerationAdapter(c.ModerationSvc)
+	subscriptionAdapter := profileport.NewProfileSubscriptionAdapter(c.SubscriptionSvc)
+
+	c.ProfileSvc = profileservice.NewProfileService(
+		profileRepo,
+		c.R2,
+		moderationAdapter,
+		subscriptionAdapter,
+		profileNotificationService,
 		c.Logger,
 	)
 

@@ -22,6 +22,18 @@ The Hauslet Promotions System helps property owners increase visibility and attr
 
 All promotions integrate seamlessly with search algorithms to boost listing visibility and positioning.
 
+### Getting Started with Subscriptions
+
+When you select a supply role (Agent, Landlord, Host, or Co-Host) on Hauslet, you automatically receive a **FREE subscription**. This gives you:
+
+- **3 active listings** (sales or rentals)
+- **20 photos per listing**
+- **Basic listing features**
+
+No credit card required. Start listing properties immediately after role selection.
+
+To access promotion features (Featured/Premium), viewing events (Open Houses/Private Showings), and higher listing limits, upgrade to a paid plan (BASIC, PROFESSIONAL, or ENTERPRISE).
+
 ---
 
 ## Promotion Types
@@ -126,9 +138,13 @@ All paid plans (BASIC, PROFESSIONAL, ENTERPRISE) support a 30-day free trial per
 #### 1. FREE Plan
 
 - **Price**: ₦0/month
+- **Max Listings**: 3
+- **Max Photos per Listing**: 20
 - **Included Promotions**: None
+- **Viewing Events**: Not available
 - **Features**: Basic listing capabilities
 - **Best For**: Casual sellers, testing the platform
+- **Auto-Created**: Automatically assigned when you select a supply role (Agent, Landlord)
 
 #### 2. BASIC Plan
 
@@ -930,6 +946,100 @@ query {
 - Quotas reset on billing cycle renewal (monthly/annual anniversary)
 - Unused quotas do NOT roll over
 - Use-it-or-lose-it policy encourages consistent promotion activity
+
+---
+
+## Supply Gate & Access Control
+
+### What is the Supply Gate?
+
+The Supply Gate is Hauslet's access control system that ensures only authorized users can create and manage property listings. It protects platform quality by requiring:
+
+1. **Supply Role**: User must have selected a supply-side role (Agent, Landlord, Host, Co-Host)
+2. **Active Subscription**: User must have an active subscription (Free or paid)
+3. **ID Verification**: User must be identity-verified for certain operations
+
+### How It Works
+
+**When you select a supply role:**
+
+```graphql
+mutation {
+  selectSupplyRoles(userTypes: [AGENT]) {
+    id
+    userTypes
+  }
+}
+```
+
+The system automatically:
+1. Updates your profile with the selected role(s)
+2. **Creates a FREE subscription** if you don't have one
+3. Grants you access to create listings immediately
+
+**Supply Gate Checks:**
+
+Every time you create a listing, publish, or perform supply-side operations, the system checks:
+
+- ✅ Has supply role? (Agent, Landlord, etc.)
+- ✅ Has active subscription? (Free or paid)
+- ✅ Under subscription limits? (Max listings, photos, etc.)
+
+If all checks pass, operation succeeds. Otherwise, you'll see an error indicating what's missing.
+
+### Subscription Limits
+
+Different plans have different limits:
+
+| Feature | FREE | BASIC | PROFESSIONAL | ENTERPRISE |
+|---------|------|-------|--------------|------------|
+| Max Listings | 3 | 10 | 30 | 100 |
+| Max Photos/Listing | 20 | 50 | 100 | Unlimited |
+| Featured/Month | 0 | 2 | 5 | 15 |
+| Premium/Month | 0 | 4 | 10 | 25 |
+| Open Houses/Month | 0 | 10 | 30 | Unlimited |
+| Private Showings/Month | 0 | 20 | 50 | Unlimited |
+
+### Usage Tracking
+
+Your subscription tracks monthly quotas for consumable features:
+
+**Tracked Monthly (Resets on Billing Cycle):**
+- Featured promotions used
+- Premium promotions used
+- Open houses created
+- Private showings created
+
+**Tracked Persistently (No Monthly Reset):**
+- Total active listings (counted from database)
+- Photos per listing (stored with listing)
+
+**Check Your Usage:**
+
+```graphql
+query {
+  getCurrentUsage {
+    periodStart
+    periodEnd
+    featuredPromotionsUsed
+    premiumPromotionsUsed
+    openHousesUsed
+    privateShowingsUsed
+  }
+
+  getMySubscription {
+    planType
+    maxListings
+    includedFeaturedPerMonth
+    includedPremiumPerMonth
+  }
+}
+```
+
+**Usage Resets:**
+- Monthly quotas reset automatically on your billing date
+- Persistent limits (listings, photos) never reset
+- Unused quotas don't roll over to next month
 
 ---
 

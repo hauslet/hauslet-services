@@ -60,11 +60,22 @@ type ModerationHooks interface {
 	EnqueueAIModeration(ctx context.Context, TargetID uuid.UUID, contentType, Payload string) error
 }
 
+// SubscriptionAdapter provides subscription operations for profile service.
+// Following dependency inversion: interface defined where consumed, implemented in port/hooks.
+type SubscriptionAdapter interface {
+	// GetOrCreateFreeSubscription gets existing free subscription or creates one
+	GetOrCreateFreeSubscription(ctx context.Context, userID uuid.UUID) error
+
+	// HasActiveSubscription checks if user has any active subscription
+	HasActiveSubscription(ctx context.Context, userID uuid.UUID) (bool, error)
+}
+
 // ProfileServiceImpl provides business-level operations for profiles.
 type ProfileServiceImpl struct {
 	repo                repository.ProfileRepository
 	storage             *storage.R2Storage
 	moderationHooks     ModerationHooks
+	subscriptionAdapter SubscriptionAdapter // Optional: can be nil
 	notificationService *notification.NotificationService
 	log                 *slog.Logger
 }
@@ -73,6 +84,7 @@ type ProfileServiceImpl struct {
 func NewProfileService(repo repository.ProfileRepository,
 	storage *storage.R2Storage,
 	moderationHooks ModerationHooks,
+	subscriptionAdapter SubscriptionAdapter, // Optional: can be nil
 	notificationService *notification.NotificationService,
 	log *slog.Logger,
 ) ProfileService {
@@ -80,6 +92,7 @@ func NewProfileService(repo repository.ProfileRepository,
 		repo:                repo,
 		storage:             storage,
 		moderationHooks:     moderationHooks,
+		subscriptionAdapter: subscriptionAdapter,
 		notificationService: notificationService,
 		log:                 log,
 	}

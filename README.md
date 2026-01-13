@@ -11,8 +11,9 @@ Backend for **Hauslet**, a hybrid real estate platform (Zillow + Airbnb) for the
   - **Core:** `auth`, `profile`, `business`
   - **Property:** `property`, `calendar`
   - **Transactions:** `payments`, `finance`, `booking`, `payout`
-  - **Social:** `wishlist`, `review`
-  - **Content:** `moderation`
+  - **Monetization:** `promotions` (subscriptions & listing promotions)
+  - **Social:** `wishlist`, `review`, `interactions`, `leads`
+  - **Content:** `moderation`, `discovery`, `verification`
 - **Platform Abstractions:** `internal/platform` for DB, queue (Cloud Tasks), storage (R2), AI providers, email, Redis, payment providers (Paystack), FX rates.
 - **Async Jobs:** Email sending, media thumbnail/cleanup, AI moderation (Gemini primary, Anthropic fallback), payment webhook processing handled via Cloud Tasks.
 - **Scheduled Jobs:** Cloud Scheduler triggers periodic tasks (cleanup, reconciliation, notifications).
@@ -173,6 +174,18 @@ deploy/            # Deployment scripts & Terraform
 6. Payout scheduled for host (minus platform fee)
 7. Finance ledger updated (host payout)
 8. Review flow initiated for guest and host
+
+### Subscription & Promotion Flow
+1. **Auto-Subscription**: User selects supply role (Agent/Landlord) → FREE subscription auto-created
+2. **Supply Gate**: User creates listing → System checks subscription & limits → Allow/Deny
+3. **Listing Creation**: User creates listing (under FREE plan: max 3 listings, 20 photos each)
+4. **Promotion (Optional)**:
+   - Option A: Use subscription quota (if available on paid plans)
+   - Option B: Purchase pay-per-promotion (₦50k-₦180k for Featured)
+5. **Search Boost**: Active promotions apply 3x-10x multiplier to search ranking
+6. **Usage Tracking**: Monthly quotas tracked and reset on billing cycle
+7. **Upgrade**: User can upgrade plan instantly (with proration) for more limits/quotas
+8. **See**: [`docs/PROMOTIONS_VS_SUBSCRIPTIONS.md`](docs/PROMOTIONS_VS_SUBSCRIPTIONS.md) for details
 
 ## Development
 

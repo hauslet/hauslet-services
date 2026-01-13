@@ -36,7 +36,7 @@ func newMockService(t *testing.T) (service.ProfileService, sqlmock.Sqlmock, func
 	}
 
 	repo := repository.NewProfileRepository(gdb)
-	svc := service.NewProfileService(repo, nil, nil, nil, nil)
+	svc := service.NewProfileService(repo, nil, nil, nil, nil, nil)
 
 	cleanup := func() { sqlDB.Close() }
 	return svc, mock, cleanup

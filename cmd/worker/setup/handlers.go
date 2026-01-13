@@ -94,7 +94,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	if hasThumbnail || hasCleanup || hasModeration || hasPaymentWebhook || hasCalendarShowingReminders || hasCalendarOpenHouseReminders {
 		propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
 		profileRepo = profilerepository.NewProfileRepository(infra.DB)
-		profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+		profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, nil, log)
 		propertyProfileAdapter = profileport.NewPropertyProfileAdapter(profileSvc)
 	}
 
@@ -150,7 +150,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 
 		if profileSvc == nil {
 			profileRepo = profilerepository.NewProfileRepository(infra.DB)
-			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, nil, log)
 		}
 		userQuerierAdapter := reviewhooks.NewReviewUserAdapter(profileSvc)
 
@@ -243,6 +243,47 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			)
 			financeHooksAdapter := financehooks.NewPaymentHooksAdapter(financeSvc)
 
+			// Review hooks (needed for booking completion to send review invites)
+			var reviewBookingHooksAdapter bookingservice.ReviewHooks
+			if hasBookingCompletion {
+				// Initialize review notification service
+				emailSubject := qCfg["email"]
+				reviewNotificationService := reviewnotification.NewNotificationService(
+					infra.Email,
+					infra.Queue,
+					emailSubject,
+					cfg.App.Client,
+					log,
+				)
+
+				// Initialize business service (needed to resolve host contact for business-owned listings)
+				businessRepo := businessrepository.NewBusinessRepository(infra.DB)
+				businessSvc := businessservice.NewBusinessService(
+					businessRepo,
+					nil, // notification service not needed for worker
+					nil, // profile provider not needed for worker
+					log,
+					nil, // supply gate not needed for worker
+				)
+
+				// Initialize review user adapter
+				if profileSvc == nil {
+					profileRepo := profilerepository.NewProfileRepository(infra.DB)
+					profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, nil, log)
+				}
+				reviewUserAdapter := reviewhooks.NewReviewUserAdapter(profileSvc)
+
+				// Create review booking hooks adapter
+				reviewBookingHooksAdapter = reviewhooks.NewReviewBookingHooksAdapter(
+					bookingRepo,
+					propertyRepo,
+					businessSvc,
+					reviewUserAdapter,
+					reviewNotificationService,
+					cfg.YAML.Platform.Reviews.ReviewWindowDays,
+					log,
+				)
+			}
 			bookingSvc := bookingservice.NewBookingService(
 				bookingRepo,
 				calendarSvc,
@@ -254,7 +295,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				nil, // refund queue not required for expiry checks
 				"",
 				financeHooksAdapter,
-				nil, // review hooks not required for expiry checks
+				reviewBookingHooksAdapter, // review hooks initialized for completion handler
 				cfg.YAML.Platform,
 				log,
 			)
@@ -619,7 +660,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		// Initialize user querier adapter (wraps profile service)
 		if profileSvc == nil {
 			profileRepo = profilerepository.NewProfileRepository(infra.DB)
-			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, nil, log)
 		}
 		userQuerierAdapter := reviewhooks.NewReviewUserAdapter(profileSvc)
 
@@ -676,7 +717,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		}
 		if profileSvc == nil {
 			profileRepo = profilerepository.NewProfileRepository(infra.DB)
-			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, nil, log)
 		}
 
 		calendarRepo := calendarrepository.NewCalendarRepository(infra.DB)
@@ -762,7 +803,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		// Initialize profile service if not already initialized
 		if profileSvc == nil {
 			profileRepo = profilerepository.NewProfileRepository(infra.DB)
-			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, nil, log)
 		}
 
 		// Initialize profile adapter for promotions module
@@ -856,7 +897,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				profileRepo = profilerepository.NewProfileRepository(infra.DB)
 			}
 			if profileSvc == nil {
-				profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, log)
+				profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, nil, log)
 			}
 
 			h := verificationHandler.NewReconciliationHandler(
