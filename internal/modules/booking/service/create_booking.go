@@ -78,6 +78,14 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		return nil, err
 	}
 
+	// Prevent hosts from booking their own listings
+	if ownerID == guestID {
+		if s.log != nil {
+			s.log.Warn("host attempted to book own listing", "listing_id", listingID, "user_id", guestID)
+		}
+		return nil, domain.ErrCannotBookOwnListing
+	}
+
 	var priceSnapshot *domain.PriceBreakdownSnapshot
 	var total float64
 	currency := constraints.Currency

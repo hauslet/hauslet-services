@@ -24,4 +24,5 @@ var (
 	ErrGuestProfilePhotoRequired    = errors.New("guest must have a profile photo")
 	ErrGuestPositiveReviewsRequired = errors.New("guest must have positive reviews")
 	ErrBookingWindowExceeded        = errors.New("booking exceeds advance booking window")
+	ErrCannotBookOwnListing         = errors.New("cannot book their own listings")
 )

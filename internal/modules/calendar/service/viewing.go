@@ -38,6 +38,18 @@ func (s *CalendarServiceImpl) RequestShowing(ctx context.Context, listingID uuid
 		return nil, domain.ErrUnauthorized
 	}
 
+	// Prevent owners from requesting showings for their own listings
+	ownerID, err := s.listingHooks.GetListingOwner(ctx, listingID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get listing owner: %w", err)
+	}
+	if ownerID == requestorID {
+		if s.log != nil {
+			s.log.Warn("owner attempted to request showing for own listing", "listing_id", listingID, "user_id", requestorID)
+		}
+		return nil, domain.ErrCannotRequestOwnShowing
+	}
+
 	// Validate against showing availability windows
 	availability, err := s.listingHooks.GetShowingAvailability(ctx, listingID)
 	if err != nil {
@@ -302,6 +314,20 @@ func (s *CalendarServiceImpl) RegisterOpenHouseAttendee(ctx context.Context, eve
 	// Validate event type
 	if event.EventType != schema.EventTypeOpenHouse {
 		return fmt.Errorf("event is not an open house")
+	}
+
+	// Prevent owners from registering for their own open house events
+	if attendee.UserID != nil {
+		ownerID, err := s.listingHooks.GetListingOwner(ctx, event.ListingID)
+		if err != nil {
+			return fmt.Errorf("failed to get listing owner: %w", err)
+		}
+		if ownerID == *attendee.UserID {
+			if s.log != nil {
+				s.log.Warn("owner attempted to register for own open house", "event_id", eventID, "user_id", *attendee.UserID)
+			}
+			return domain.ErrCannotRegisterOwnOpenHouse
+		}
 	}
 
 	// Check if registration deadline has passed

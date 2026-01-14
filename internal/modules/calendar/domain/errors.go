@@ -31,4 +31,8 @@ var (
 	// Recurring event errors
 	ErrInvalidRecurrencePattern = errors.New("invalid recurrence pattern")
 	ErrRecurringEventNotFound   = errors.New("recurring event pattern not found")
+
+	// Self-interaction errors
+	ErrCannotRequestOwnShowing    = errors.New("cannot request showings for their own listings")
+	ErrCannotRegisterOwnOpenHouse = errors.New("cannot register for their own open house events")
 )

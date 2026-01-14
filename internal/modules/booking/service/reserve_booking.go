@@ -101,6 +101,14 @@ func (s *BookingServiceImpl) ReserveBooking(
 		return nil, nil, err
 	}
 
+	// Prevent hosts from booking their own listings
+	if ownerID == guestID {
+		if s.log != nil {
+			s.log.Warn("host attempted to reserve own listing", "listingID", listingID, "userID", guestID)
+		}
+		return nil, nil, domain.ErrCannotBookOwnListing
+	}
+
 	// Calculate pricing using scheduled times to ensure consistency with listing's check-in/out times
 	var priceSnapshot *domain.PriceBreakdownSnapshot
 	var total float64
