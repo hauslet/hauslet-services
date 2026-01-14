@@ -453,6 +453,9 @@ models:
   # --- Review Module Bindings ---
   Review:
     model: hauslet/internal/modules/review/domain.Review
+    fields:
+      reviewerProfile:
+        resolver: true
   ReviewResponse:
     model: hauslet/internal/modules/review/domain.ReviewResponse
   SubRatings:

@@ -36,6 +36,7 @@ type Review {
   id: UUID!
   bookingId: UUID!
   reviewerId: UUID!
+  reviewerProfile: Profile
   targetType: ReviewTargetType!
   targetId: UUID!
   rating: Int!

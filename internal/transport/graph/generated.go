@@ -1283,6 +1283,7 @@ type ComplexityRoot struct {
 		Rating           func(childComplexity int) int
 		Response         func(childComplexity int) int
 		ReviewerID       func(childComplexity int) int
+		ReviewerProfile  func(childComplexity int) int
 		SubRatings       func(childComplexity int) int
 		TargetID         func(childComplexity int) int
 		TargetType       func(childComplexity int) int
@@ -1902,6 +1903,8 @@ type RentalDetailResolver interface {
 	ServiceCharges(ctx context.Context, obj *domain11.RentalDetail) ([]*domain11.ServiceCharge, error)
 }
 type ReviewResolver interface {
+	ReviewerProfile(ctx context.Context, obj *domain10.Review) (*domain4.Profile, error)
+
 	Visibility(ctx context.Context, obj *domain10.Review) (model.ReviewVisibility, error)
 
 	CountryCode(ctx context.Context, obj *domain10.Review) (*string, error)
@@ -8645,6 +8648,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Review.ReviewerID(childComplexity), true
+	case "Review.reviewerProfile":
+		if e.complexity.Review.ReviewerProfile == nil {
+			break
+		}
+
+		return e.complexity.Review.ReviewerProfile(childComplexity), true
 	case "Review.subRatings":
 		if e.complexity.Review.SubRatings == nil {
 			break
@@ -12610,6 +12619,7 @@ type Review {
   id: UUID!
   bookingId: UUID!
   reviewerId: UUID!
+  reviewerProfile: Profile
   targetType: ReviewTargetType!
   targetId: UUID!
   rating: Int!
@@ -34995,6 +35005,8 @@ func (ec *executionContext) fieldContext_Mutation_createReview(ctx context.Conte
 				return ec.fieldContext_Review_bookingId(ctx, field)
 			case "reviewerId":
 				return ec.fieldContext_Review_reviewerId(ctx, field)
+			case "reviewerProfile":
+				return ec.fieldContext_Review_reviewerProfile(ctx, field)
 			case "targetType":
 				return ec.fieldContext_Review_targetType(ctx, field)
 			case "targetId":
@@ -35076,6 +35088,8 @@ func (ec *executionContext) fieldContext_Mutation_updateReview(ctx context.Conte
 				return ec.fieldContext_Review_bookingId(ctx, field)
 			case "reviewerId":
 				return ec.fieldContext_Review_reviewerId(ctx, field)
+			case "reviewerProfile":
+				return ec.fieldContext_Review_reviewerProfile(ctx, field)
 			case "targetType":
 				return ec.fieldContext_Review_targetType(ctx, field)
 			case "targetId":
@@ -48726,6 +48740,8 @@ func (ec *executionContext) fieldContext_Query_review(ctx context.Context, field
 				return ec.fieldContext_Review_bookingId(ctx, field)
 			case "reviewerId":
 				return ec.fieldContext_Review_reviewerId(ctx, field)
+			case "reviewerProfile":
+				return ec.fieldContext_Review_reviewerProfile(ctx, field)
 			case "targetType":
 				return ec.fieldContext_Review_targetType(ctx, field)
 			case "targetId":
@@ -48807,6 +48823,8 @@ func (ec *executionContext) fieldContext_Query_reviewForBooking(ctx context.Cont
 				return ec.fieldContext_Review_bookingId(ctx, field)
 			case "reviewerId":
 				return ec.fieldContext_Review_reviewerId(ctx, field)
+			case "reviewerProfile":
+				return ec.fieldContext_Review_reviewerProfile(ctx, field)
 			case "targetType":
 				return ec.fieldContext_Review_targetType(ctx, field)
 			case "targetId":
@@ -48888,6 +48906,8 @@ func (ec *executionContext) fieldContext_Query_reviews(ctx context.Context, fiel
 				return ec.fieldContext_Review_bookingId(ctx, field)
 			case "reviewerId":
 				return ec.fieldContext_Review_reviewerId(ctx, field)
+			case "reviewerProfile":
+				return ec.fieldContext_Review_reviewerProfile(ctx, field)
 			case "targetType":
 				return ec.fieldContext_Review_targetType(ctx, field)
 			case "targetId":
@@ -48969,6 +48989,8 @@ func (ec *executionContext) fieldContext_Query_userReviews(ctx context.Context, 
 				return ec.fieldContext_Review_bookingId(ctx, field)
 			case "reviewerId":
 				return ec.fieldContext_Review_reviewerId(ctx, field)
+			case "reviewerProfile":
+				return ec.fieldContext_Review_reviewerProfile(ctx, field)
 			case "targetType":
 				return ec.fieldContext_Review_targetType(ctx, field)
 			case "targetId":
@@ -52521,6 +52543,125 @@ func (ec *executionContext) fieldContext_Review_reviewerId(_ context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Review_reviewerProfile(ctx context.Context, field graphql.CollectedField, obj *domain10.Review) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Review_reviewerProfile,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Review().ReviewerProfile(ctx, obj)
+		},
+		nil,
+		ec.marshalOProfile2ᚖhausletᚋinternalᚋmodulesᚋprofileᚋdomainᚐProfile,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Review_reviewerProfile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Review",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Profile_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_Profile_userId(ctx, field)
+			case "userTypes":
+				return ec.fieldContext_Profile_userTypes(ctx, field)
+			case "fullName":
+				return ec.fieldContext_Profile_fullName(ctx, field)
+			case "birthDate":
+				return ec.fieldContext_Profile_birthDate(ctx, field)
+			case "gender":
+				return ec.fieldContext_Profile_gender(ctx, field)
+			case "photoUrl":
+				return ec.fieldContext_Profile_photoUrl(ctx, field)
+			case "email":
+				return ec.fieldContext_Profile_email(ctx, field)
+			case "phoneNumbers":
+				return ec.fieldContext_Profile_phoneNumbers(ctx, field)
+			case "address":
+				return ec.fieldContext_Profile_address(ctx, field)
+			case "street":
+				return ec.fieldContext_Profile_street(ctx, field)
+			case "houseNumber":
+				return ec.fieldContext_Profile_houseNumber(ctx, field)
+			case "area":
+				return ec.fieldContext_Profile_area(ctx, field)
+			case "lga":
+				return ec.fieldContext_Profile_lga(ctx, field)
+			case "district":
+				return ec.fieldContext_Profile_district(ctx, field)
+			case "digitalAddress":
+				return ec.fieldContext_Profile_digitalAddress(ctx, field)
+			case "city":
+				return ec.fieldContext_Profile_city(ctx, field)
+			case "state":
+				return ec.fieldContext_Profile_state(ctx, field)
+			case "country":
+				return ec.fieldContext_Profile_country(ctx, field)
+			case "zipCode":
+				return ec.fieldContext_Profile_zipCode(ctx, field)
+			case "occupation":
+				return ec.fieldContext_Profile_occupation(ctx, field)
+			case "education":
+				return ec.fieldContext_Profile_education(ctx, field)
+			case "bio":
+				return ec.fieldContext_Profile_bio(ctx, field)
+			case "skills":
+				return ec.fieldContext_Profile_skills(ctx, field)
+			case "languages":
+				return ec.fieldContext_Profile_languages(ctx, field)
+			case "interests":
+				return ec.fieldContext_Profile_interests(ctx, field)
+			case "hobbies":
+				return ec.fieldContext_Profile_hobbies(ctx, field)
+			case "funFact":
+				return ec.fieldContext_Profile_funFact(ctx, field)
+			case "obsessedWith":
+				return ec.fieldContext_Profile_obsessedWith(ctx, field)
+			case "communityCommitment":
+				return ec.fieldContext_Profile_communityCommitment(ctx, field)
+			case "travelCompanions":
+				return ec.fieldContext_Profile_travelCompanions(ctx, field)
+			case "phoneVerified":
+				return ec.fieldContext_Profile_phoneVerified(ctx, field)
+			case "idVerified":
+				return ec.fieldContext_Profile_idVerified(ctx, field)
+			case "verificationDate":
+				return ec.fieldContext_Profile_verificationDate(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Profile_verificationLevel(ctx, field)
+			case "rating":
+				return ec.fieldContext_Profile_rating(ctx, field)
+			case "reviewsCount":
+				return ec.fieldContext_Profile_reviewsCount(ctx, field)
+			case "trustScore":
+				return ec.fieldContext_Profile_trustScore(ctx, field)
+			case "badges":
+				return ec.fieldContext_Profile_badges(ctx, field)
+			case "bioVisible":
+				return ec.fieldContext_Profile_bioVisible(ctx, field)
+			case "allowPersonalizedOffers":
+				return ec.fieldContext_Profile_allowPersonalizedOffers(ctx, field)
+			case "enablePerformanceAnalytics":
+				return ec.fieldContext_Profile_enablePerformanceAnalytics(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Profile_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Profile_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
 		},
 	}
 	return fc, nil
@@ -76332,6 +76473,39 @@ func (ec *executionContext) _Review(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "reviewerProfile":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Review_reviewerProfile(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "targetType":
 			out.Values[i] = ec._Review_targetType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

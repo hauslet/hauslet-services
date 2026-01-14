@@ -3,8 +3,11 @@ package graphql
 import (
 	"context"
 	"fmt"
+
+	profiledomain "hauslet/internal/modules/profile/domain"
 	"hauslet/internal/modules/review/domain"
 	"hauslet/internal/modules/review/service"
+	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/google/uuid"
@@ -112,6 +115,9 @@ func (r *Resolver) Reviews(
 		return nil, err
 	}
 
+	// Prewarm profile loader to avoid N+1 queries
+	r.warmReviewLoaders(ctx, reviews)
+
 	return reviews, nil
 }
 
@@ -138,6 +144,9 @@ func (r *Resolver) UserReviews(ctx context.Context, userID string, limit, offset
 		r.log.Error("failed to list reviews for user", "user_id", userID, "error", err)
 		return nil, err
 	}
+
+	// Prewarm profile loader to avoid N+1 queries
+	r.warmReviewLoaders(ctx, reviews)
 
 	return reviews, nil
 }
@@ -352,4 +361,56 @@ func convertIntPtrToFloat(val *int) float64 {
 		return 0
 	}
 	return float64(*val)
+}
+
+// ============================================================================
+// Review Field Resolvers
+// ============================================================================
+
+// ReviewerProfile resolves the profile of the reviewer.
+func (r *Resolver) ReviewerProfile(ctx context.Context, obj *domain.Review) (*profiledomain.Profile, error) {
+	if obj == nil || obj.ReviewerID == uuid.Nil {
+		return nil, nil
+	}
+
+	l := loaders.For(ctx)
+	if l == nil || l.Profile == nil {
+		r.log.Warn("profile loader not found in context")
+		return nil, nil
+	}
+
+	profile, err := l.Profile.Load(ctx, obj.ReviewerID.String())
+	if err != nil {
+		r.log.Error("failed to load reviewer profile", "reviewer_id", obj.ReviewerID, "error", err)
+		return nil, err
+	}
+
+	return profile, nil
+}
+
+// ============================================================================
+// Loader Prewarming
+// ============================================================================
+
+// warmReviewLoaders prewarms the profile loader for a batch of reviews.
+func (r *Resolver) warmReviewLoaders(ctx context.Context, reviews []*domain.Review) {
+	l := loaders.For(ctx)
+	if l == nil || l.Profile == nil {
+		return
+	}
+
+	unique := make(map[string]struct{}, len(reviews))
+	for _, review := range reviews {
+		if review != nil && review.ReviewerID != uuid.Nil {
+			unique[review.ReviewerID.String()] = struct{}{}
+		}
+	}
+
+	if len(unique) > 0 {
+		ids := make([]string, 0, len(unique))
+		for id := range unique {
+			ids = append(ids, id)
+		}
+		_, _ = l.Profile.LoadMany(ctx, ids)
+	}
 }

@@ -25,7 +25,12 @@ func basePriceCacheKey(listingID uuid.UUID) string {
 }
 
 func breakdownCacheKey(listingID uuid.UUID, checkIn, checkOut time.Time) string {
-	return fmt.Sprintf("%s%s:%s:%s", breakdownCachePrefix, listingID, checkIn.Format("2006-01-02"), checkOut.Format("2006-01-02"))
+	return fmt.Sprintf("%s%s:%s:%s",
+		breakdownCachePrefix,
+		listingID,
+		checkIn.Format("2006-01-02"),
+		checkOut.Format("2006-01-02"),
+	)
 }
 
 // --- Cache Operations ---
