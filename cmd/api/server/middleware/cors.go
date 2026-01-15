@@ -13,7 +13,7 @@ func CORSMiddleware(cfg *config.AppConfig) func(http.Handler) http.Handler {
 	return cors.Handler(cors.Options{
 		AllowedOrigins: func() []string {
 			if cfg.Env == "development" {
-				return []string{"http://localhost:8080", "http://127.0.0.1:8080", "http://localhost:3000"}
+				return []string{"http://localhost:8080", "https://hauslet-test-client.onrender.com/"}
 			}
 			return []string{cfg.Client}
 		}(),

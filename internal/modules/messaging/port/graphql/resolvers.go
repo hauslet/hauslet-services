@@ -426,3 +426,108 @@ func (r *Resolver) MyConversationsUpdated(ctx context.Context) (<-chan *domain.C
 
 	return outCh, nil
 }
+
+// ============================================================================
+// Field Resolvers
+// ============================================================================
+
+// MessageReadBy resolves the readBy field on Message, converting UUID keys to strings.
+func (r *Resolver) MessageReadBy(ctx context.Context, message *domain.Message) (map[string]any, error) {
+	if message == nil || len(message.ReadBy) == 0 {
+		return nil, nil
+	}
+
+	result := make(map[string]any, len(message.ReadBy))
+	for userID, readAt := range message.ReadBy {
+		result[userID.String()] = readAt
+	}
+
+	return result, nil
+}
+
+// ============================================================================
+// Typing Indicator Resolvers
+// ============================================================================
+
+// SetTypingIndicator broadcasts a typing indicator to all participants.
+func (r *Resolver) SetTypingIndicator(ctx context.Context, conversationID uuid.UUID, isTyping bool) (bool, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	if err := r.messagingSvc.SetTypingIndicator(ctx, conversationID, userID, isTyping); err != nil {
+		r.log.Error("failed to set typing indicator", "conversation_id", conversationID, "user_id", userID, "error", err)
+		return false, err
+	}
+
+	return true, nil
+}
+
+// TypingIndicator subscribes to typing indicators in a specific conversation.
+func (r *Resolver) TypingIndicator(ctx context.Context, conversationID uuid.UUID) (<-chan *domain.TypingIndicator, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the user has access to this conversation before subscribing
+	_, err = r.messagingSvc.GetConversation(ctx, conversationID, userID)
+	if err != nil {
+		r.log.Error("subscription auth failed", "conversation_id", conversationID, "user_id", userID, "error", err)
+		return nil, err
+	}
+
+	// Subscribe to typing indicator events
+	eventCh, err := r.eventSubscriber.SubscribeWithFilter(
+		ctx,
+		events.ChannelMessages,
+		events.FilterByType(events.EventTypingIndicator),
+		events.FilterByMetadata("conversation_id", conversationID.String()),
+	)
+	if err != nil {
+		r.log.Error("failed to subscribe to typing events", "conversation_id", conversationID, "error", err)
+		return nil, err
+	}
+
+	// Create output channel
+	outCh := make(chan *domain.TypingIndicator, 10)
+
+	// Process events in background
+	go func() {
+		defer close(outCh)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case event, ok := <-eventCh:
+				if !ok {
+					return
+				}
+
+				// Parse typing indicator from event payload
+				var indicator domain.TypingIndicator
+				if err := json.Unmarshal(event.Payload, &indicator); err != nil {
+					r.log.Error("failed to unmarshal typing indicator event", "error", err)
+					continue
+				}
+
+				// Don't send the user's own typing events back to them
+				if indicator.UserID == userID {
+					continue
+				}
+
+				// Send to subscriber
+				select {
+				case outCh <- &indicator:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return outCh, nil
+}

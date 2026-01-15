@@ -44,6 +44,7 @@ const (
 	EventMessageRead         EventType = "message.read"
 	EventConversationCreated EventType = "conversation.created"
 	EventConversationUpdated EventType = "conversation.updated"
+	EventTypingIndicator     EventType = "typing.indicator"
 )
 
 // Event represents a domain event that can be published and subscribed to.

@@ -396,6 +396,11 @@ func (r *maintenanceDetailResolver) Notes(ctx context.Context, obj *calendardoma
 	return obj.CompletionNotes, nil
 }
 
+// ReadBy is the resolver for the readBy field.
+func (r *messageResolver) ReadBy(ctx context.Context, obj *domain14.Message) (map[string]any, error) {
+	return r.MessagingResolver.MessageReadBy(ctx, obj)
+}
+
 // Ping is the resolver for the ping field.
 func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
 	return "pong", nil
@@ -474,6 +479,11 @@ func (r *mutationResolver) SendMessage(ctx context.Context, input model.SendMess
 // MarkConversationAsRead is the resolver for the markConversationAsRead field.
 func (r *mutationResolver) MarkConversationAsRead(ctx context.Context, conversationID uuid.UUID) (bool, error) {
 	return r.MessagingResolver.MarkConversationAsRead(ctx, conversationID)
+}
+
+// SetTypingIndicator is the resolver for the setTypingIndicator field.
+func (r *mutationResolver) SetTypingIndicator(ctx context.Context, conversationID uuid.UUID, isTyping bool) (bool, error) {
+	return r.MessagingResolver.SetTypingIndicator(ctx, conversationID, isTyping)
 }
 
 // CreateBusiness is the resolver for the createBusiness field.
@@ -1826,7 +1836,7 @@ func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain.R
 
 // ReviewerProfile is the resolver for the reviewerProfile field.
 func (r *reviewResolver) ReviewerProfile(ctx context.Context, obj *domain8.Review) (*domain1.Profile, error) {
-	panic(fmt.Errorf("not implemented: ReviewerProfile - reviewerProfile"))
+	return r.ReviewResolver.ReviewerProfile(ctx, obj)
 }
 
 // Visibility is the resolver for the visibility field.
@@ -2065,6 +2075,11 @@ func (r *subscriptionResolver) MyConversationsUpdated(ctx context.Context) (<-ch
 	return r.MessagingResolver.MyConversationsUpdated(ctx)
 }
 
+// TypingIndicator is the resolver for the typingIndicator field.
+func (r *subscriptionResolver) TypingIndicator(ctx context.Context, conversationID uuid.UUID) (<-chan *model.TypingIndicator, error) {
+	panic(fmt.Errorf("not implemented: TypingIndicator - typingIndicator"))
+}
+
 // Currency is the resolver for the currency field.
 func (r *transactionResolver) Currency(ctx context.Context, obj *domain6.Transaction) (string, error) {
 	return string(obj.Currency), nil
@@ -2259,6 +2274,9 @@ func (r *Resolver) MaintenanceDetail() MaintenanceDetailResolver {
 	return &maintenanceDetailResolver{r}
 }
 
+// Message returns MessageResolver implementation.
+func (r *Resolver) Message() MessageResolver { return &messageResolver{r} }
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
@@ -2373,6 +2391,7 @@ type listingMediaResolver struct{ *Resolver }
 type listingPromotionResolver struct{ *Resolver }
 type listingStatsResolver struct{ *Resolver }
 type maintenanceDetailResolver struct{ *Resolver }
+type messageResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type paymentResolver struct{ *Resolver }
 type paymentMethodResolver struct{ *Resolver }

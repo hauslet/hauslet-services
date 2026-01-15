@@ -60,6 +60,12 @@ type MessagingService interface {
 	// SubscribeToLeadEvents starts listening to lead.created events from the leads module.
 	// Conversations are automatically created when leads are created.
 	SubscribeToLeadEvents(ctx context.Context, subscriber *events.Subscriber) error
+
+	// --- Typing Indicators ---
+
+	// SetTypingIndicator broadcasts a typing indicator event.
+	// This is ephemeral and not persisted to the database.
+	SetTypingIndicator(ctx context.Context, conversationID, userID uuid.UUID, isTyping bool) error
 }
 
 // AttachmentUploadRequest carries metadata needed to generate the presigned link.

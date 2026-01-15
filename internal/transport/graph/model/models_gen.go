@@ -310,6 +310,14 @@ type ShortletFilterInput struct {
 type Subscription struct {
 }
 
+// Represents a user's typing status in a conversation.
+type TypingIndicator struct {
+	ConversationID uuid.UUID `json:"conversationId"`
+	UserID         uuid.UUID `json:"userId"`
+	IsTyping       bool      `json:"isTyping"`
+	Timestamp      time.Time `json:"timestamp"`
+}
+
 type UpdateListingInput struct {
 	Property         *UpdateListingPropertyInput `json:"property,omitempty"`
 	Title            *string                     `json:"title,omitempty"`

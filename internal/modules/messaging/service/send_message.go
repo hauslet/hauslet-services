@@ -148,7 +148,13 @@ func (s *messagingServiceImpl) SendMessage(ctx context.Context, input SendMessag
 		go s.tryTriggerAI(domainConv, domainMessage)
 	}
 
-	// 7. Return Result
+	// 7. Async Email Notifications
+	// Notify recipients who are not currently connected (offline notifications)
+	if s.notificationSvc != nil && s.profileHooks != nil {
+		go s.notifyMessageRecipients(domainConv, domainMessage, input.SenderID)
+	}
+
+	// 8. Return Result
 	// Reload conversation to get fresh unread counts/timestamp
 	updatedConv, err := s.convRepo.GetByID(ctx, conversation.ID)
 	if err != nil {
@@ -236,4 +242,25 @@ func (s *messagingServiceImpl) tryTriggerAI(conv *domain.Conversation, userMsg *
 			},
 		})
 	}
+}
+
+// notifyMessageRecipients sends email notifications to message recipients.
+// It runs asynchronously with a detached context.
+func (s *messagingServiceImpl) notifyMessageRecipients(conv *domain.Conversation, msg *domain.Message, senderID uuid.UUID) {
+	if s.notificationSvc == nil || s.profileHooks == nil {
+		return
+	}
+
+	// Create a detached context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Get sender contact info
+	senderContact, err := s.profileHooks.GetUserContact(ctx, senderID)
+	if err != nil {
+		s.log.Warn("failed to get sender contact for notification", "sender_id", senderID, "error", err)
+	}
+
+	// Notify all recipients
+	s.notificationSvc.NotifyRecipients(ctx, conv, msg, senderContact, s.profileHooks.GetUserContact)
 }

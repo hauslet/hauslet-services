@@ -28,4 +28,14 @@ type BookingHooks interface {
 type ProfileHooks interface {
 	// GetProfileData fetches minimal profile metadata for given user IDs
 	GetProfileData(ctx context.Context, userIDs []uuid.UUID) (map[uuid.UUID]map[string]string, error)
+
+	// GetUserContact fetches contact info (name, email) for a user
+	GetUserContact(ctx context.Context, userID uuid.UUID) (*UserContact, error)
+}
+
+// UserContact holds contact information for notifications
+type UserContact struct {
+	UserID uuid.UUID
+	Name   string
+	Email  string
 }

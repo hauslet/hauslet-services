@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"hauslet/internal/modules/messaging/domain"
 	"hauslet/internal/platform/events"
@@ -82,8 +83,23 @@ func (s *messagingServiceImpl) MarkAsRead(ctx context.Context, conversationID, u
 		return err
 	}
 
+	readAt := time.Now()
+
+	// Update conversation-level unread count
 	if err := s.convRepo.MarkAsRead(ctx, conversationID, userID); err != nil {
 		return fmt.Errorf("failed to mark conversation as read: %w", err)
+	}
+
+	// Update message-level read receipts (ReadBy field on each message)
+	if err := s.messageRepo.MarkAsReadByUser(ctx, conversationID, userID, readAt); err != nil {
+		// Log but don't fail - conversation-level read is more important
+		s.log.Warn("failed to update message read receipts", "conversation_id", conversationID, "user_id", userID, "error", err)
+	}
+
+	// Update participant's last read timestamp
+	if err := s.participantRepo.UpdateLastRead(ctx, conversationID, userID, readAt); err != nil {
+		// Log but don't fail
+		s.log.Warn("failed to update participant last read", "conversation_id", conversationID, "user_id", userID, "error", err)
 	}
 
 	// Publish message read event for real-time updates
@@ -105,6 +121,7 @@ func (s *messagingServiceImpl) MarkAsRead(ctx context.Context, conversationID, u
 						FailSilently: true,
 						Metadata: map[string]string{
 							"conversation_id": conversationID.String(),
+							"reader_id":       userID.String(),
 						},
 					},
 				)

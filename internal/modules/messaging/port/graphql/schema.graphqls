@@ -82,6 +82,21 @@ type Message {
   createdAt: Time!
   updatedAt: Time!
   metadata: Map
+  """
+  Map of user IDs to timestamps indicating when each user read this message.
+  Only includes users who have read the message (not the sender).
+  """
+  readBy: Map
+}
+
+"""
+Represents a user's typing status in a conversation.
+"""
+type TypingIndicator {
+  conversationId: UUID!
+  userId: UUID!
+  isTyping: Boolean!
+  timestamp: Time!
 }
 
 type Conversation {
@@ -118,6 +133,11 @@ extend type Mutation {
   startTransactionConversation(contextType: ConversationContextType!, contextId: UUID!): Conversation!
   sendMessage(input: SendMessageInput!): Message!
   markConversationAsRead(conversationId: UUID!): Boolean!
+  """
+  Signal that the user is typing (or stopped typing) in a conversation.
+  Call with isTyping=true when user starts typing, isTyping=false when they stop.
+  """
+  setTypingIndicator(conversationId: UUID!, isTyping: Boolean!): Boolean!
 }
 
 
@@ -143,4 +163,10 @@ extend type Subscription {
   Useful for inbox-level notifications.
   """
   myConversationsUpdated: Conversation!
+
+  """
+  Subscribe to typing indicators in a specific conversation.
+  Emits when any participant starts or stops typing.
+  """
+  typingIndicator(conversationId: UUID!): TypingIndicator!
 }

@@ -56,6 +56,10 @@ type MessageRepository interface {
 	// Fetch delta since a timestamp (useful for client reconnects/sync)
 	ListByConversationSince(ctx context.Context, conversationID uuid.UUID, since time.Time) ([]*schema.Message, error)
 
+	// MarkAsReadByUser updates the ReadBy JSONB field to record that a user has read messages
+	// in a conversation (all messages not sent by them)
+	MarkAsReadByUser(ctx context.Context, conversationID, userID uuid.UUID, readAt time.Time) error
+
 	// WithTx returns a new repository instance using the provided transaction
 	WithTx(tx *gorm.DB) MessageRepository
 }

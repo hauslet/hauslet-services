@@ -87,6 +87,7 @@ type ResolverRoot interface {
 	ListingPromotion() ListingPromotionResolver
 	ListingStats() ListingStatsResolver
 	MaintenanceDetail() MaintenanceDetailResolver
+	Message() MessageResolver
 	Mutation() MutationResolver
 	Payment() PaymentResolver
 	PaymentMethod() PaymentMethodResolver
@@ -747,6 +748,7 @@ type ComplexityRoot struct {
 		CreatedAt      func(childComplexity int) int
 		ID             func(childComplexity int) int
 		Metadata       func(childComplexity int) int
+		ReadBy         func(childComplexity int) int
 		SenderID       func(childComplexity int) int
 		SenderType     func(childComplexity int) int
 		Type           func(childComplexity int) int
@@ -840,6 +842,7 @@ type ComplexityRoot struct {
 		SendMessage                  func(childComplexity int, input model.SendMessageInput) int
 		SetDefaultPaymentMethod      func(childComplexity int, id uuid.UUID) int
 		SetDefaultPayoutDetail       func(childComplexity int, id uuid.UUID) int
+		SetTypingIndicator           func(childComplexity int, conversationID uuid.UUID, isTyping bool) int
 		StartInquiryConversation     func(childComplexity int, leadID uuid.UUID) int
 		StartTransactionConversation func(childComplexity int, contextType domain5.ConversationContextType, contextID uuid.UUID) int
 		SubmitAddressVerification    func(childComplexity int, input graphql6.SubmitAddressVerificationInput) int
@@ -1452,6 +1455,7 @@ type ComplexityRoot struct {
 		MessageReceived        func(childComplexity int, conversationID uuid.UUID) int
 		MyConversationsUpdated func(childComplexity int) int
 		Placeholder            func(childComplexity int) int
+		TypingIndicator        func(childComplexity int, conversationID uuid.UUID) int
 	}
 
 	Thumbnail struct {
@@ -1495,6 +1499,13 @@ type ComplexityRoot struct {
 		Phone        func(childComplexity int) int
 		PhotoURL     func(childComplexity int) int
 		Relationship func(childComplexity int) int
+	}
+
+	TypingIndicator struct {
+		ConversationID func(childComplexity int) int
+		IsTyping       func(childComplexity int) int
+		Timestamp      func(childComplexity int) int
+		UserID         func(childComplexity int) int
 	}
 
 	UploadResult struct {
@@ -1708,6 +1719,9 @@ type MaintenanceDetailResolver interface {
 
 	Notes(ctx context.Context, obj *domain8.MaintenanceDetail) (*string, error)
 }
+type MessageResolver interface {
+	ReadBy(ctx context.Context, obj *domain5.Message) (map[string]any, error)
+}
 type MutationResolver interface {
 	Ping(ctx context.Context) (string, error)
 	UpdateProfile(ctx context.Context, input graphql3.UpdateProfileInput) (*domain4.Profile, error)
@@ -1725,6 +1739,7 @@ type MutationResolver interface {
 	StartTransactionConversation(ctx context.Context, contextType domain5.ConversationContextType, contextID uuid.UUID) (*domain5.Conversation, error)
 	SendMessage(ctx context.Context, input model.SendMessageInput) (*domain5.Message, error)
 	MarkConversationAsRead(ctx context.Context, conversationID uuid.UUID) (bool, error)
+	SetTypingIndicator(ctx context.Context, conversationID uuid.UUID, isTyping bool) (bool, error)
 	CreateBusiness(ctx context.Context, input graphql1.CreateBusinessInput) (*domain.Business, error)
 	UpdateBusiness(ctx context.Context, id uuid.UUID, input graphql1.UpdateBusinessInput) (*domain.Business, error)
 	DeleteBusiness(ctx context.Context, id uuid.UUID) (bool, error)
@@ -2003,6 +2018,7 @@ type SubscriptionResolver interface {
 	MessageReceived(ctx context.Context, conversationID uuid.UUID) (<-chan *domain5.Message, error)
 	ConversationUpdated(ctx context.Context, conversationID uuid.UUID) (<-chan *domain5.Conversation, error)
 	MyConversationsUpdated(ctx context.Context) (<-chan *domain5.Conversation, error)
+	TypingIndicator(ctx context.Context, conversationID uuid.UUID) (<-chan *model.TypingIndicator, error)
 }
 type TransactionResolver interface {
 	Currency(ctx context.Context, obj *domain9.Transaction) (string, error)
@@ -4955,6 +4971,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Message.Metadata(childComplexity), true
+	case "Message.readBy":
+		if e.complexity.Message.ReadBy == nil {
+			break
+		}
+
+		return e.complexity.Message.ReadBy(childComplexity), true
 	case "Message.senderId":
 		if e.complexity.Message.SenderID == nil {
 			break
@@ -5829,6 +5851,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SetDefaultPayoutDetail(childComplexity, args["id"].(uuid.UUID)), true
+	case "Mutation.setTypingIndicator":
+		if e.complexity.Mutation.SetTypingIndicator == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setTypingIndicator_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetTypingIndicator(childComplexity, args["conversationId"].(uuid.UUID), args["isTyping"].(bool)), true
 	case "Mutation.startInquiryConversation":
 		if e.complexity.Mutation.StartInquiryConversation == nil {
 			break
@@ -9485,6 +9518,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Subscription.Placeholder(childComplexity), true
+	case "Subscription.typingIndicator":
+		if e.complexity.Subscription.TypingIndicator == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_typingIndicator_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.TypingIndicator(childComplexity, args["conversationId"].(uuid.UUID)), true
 
 	case "Thumbnail.height":
 		if e.complexity.Thumbnail.Height == nil {
@@ -9675,6 +9719,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.TravelCompanion.Relationship(childComplexity), true
+
+	case "TypingIndicator.conversationId":
+		if e.complexity.TypingIndicator.ConversationID == nil {
+			break
+		}
+
+		return e.complexity.TypingIndicator.ConversationID(childComplexity), true
+	case "TypingIndicator.isTyping":
+		if e.complexity.TypingIndicator.IsTyping == nil {
+			break
+		}
+
+		return e.complexity.TypingIndicator.IsTyping(childComplexity), true
+	case "TypingIndicator.timestamp":
+		if e.complexity.TypingIndicator.Timestamp == nil {
+			break
+		}
+
+		return e.complexity.TypingIndicator.Timestamp(childComplexity), true
+	case "TypingIndicator.userId":
+		if e.complexity.TypingIndicator.UserID == nil {
+			break
+		}
+
+		return e.complexity.TypingIndicator.UserID(childComplexity), true
 
 	case "UploadResult.filename":
 		if e.complexity.UploadResult.Filename == nil {
@@ -11588,6 +11657,21 @@ type Message {
   createdAt: Time!
   updatedAt: Time!
   metadata: Map
+  """
+  Map of user IDs to timestamps indicating when each user read this message.
+  Only includes users who have read the message (not the sender).
+  """
+  readBy: Map
+}
+
+"""
+Represents a user's typing status in a conversation.
+"""
+type TypingIndicator {
+  conversationId: UUID!
+  userId: UUID!
+  isTyping: Boolean!
+  timestamp: Time!
 }
 
 type Conversation {
@@ -11624,6 +11708,11 @@ extend type Mutation {
   startTransactionConversation(contextType: ConversationContextType!, contextId: UUID!): Conversation!
   sendMessage(input: SendMessageInput!): Message!
   markConversationAsRead(conversationId: UUID!): Boolean!
+  """
+  Signal that the user is typing (or stopped typing) in a conversation.
+  Call with isTyping=true when user starts typing, isTyping=false when they stop.
+  """
+  setTypingIndicator(conversationId: UUID!, isTyping: Boolean!): Boolean!
 }
 
 
@@ -11649,6 +11738,12 @@ extend type Subscription {
   Useful for inbox-level notifications.
   """
   myConversationsUpdated: Conversation!
+
+  """
+  Subscribe to typing indicators in a specific conversation.
+  Emits when any participant starts or stops typing.
+  """
+  typingIndicator(conversationId: UUID!): TypingIndicator!
 }
 `, BuiltIn: false},
 	{Name: "../../modules/business/port/graphql/schema.graphqls", Input: `# internal/modules/business/port/graphql/schema.graphqls
@@ -14988,6 +15083,22 @@ func (ec *executionContext) field_Mutation_setDefaultPayoutDetail_args(ctx conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_setTypingIndicator_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "conversationId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["conversationId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "isTyping", ec.unmarshalNBoolean2bool)
+	if err != nil {
+		return nil, err
+	}
+	args["isTyping"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_startInquiryConversation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -16885,6 +16996,17 @@ func (ec *executionContext) field_Subscription_conversationUpdated_args(ctx cont
 }
 
 func (ec *executionContext) field_Subscription_messageReceived_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "conversationId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["conversationId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_typingIndicator_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "conversationId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
@@ -22622,6 +22744,8 @@ func (ec *executionContext) fieldContext_Conversation_messages(ctx context.Conte
 				return ec.fieldContext_Message_updatedAt(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Message_metadata(ctx, field)
+			case "readBy":
+				return ec.fieldContext_Message_readBy(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -31774,6 +31898,35 @@ func (ec *executionContext) fieldContext_Message_metadata(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Message_readBy(ctx context.Context, field graphql.CollectedField, obj *domain5.Message) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Message_readBy,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Message().ReadBy(ctx, obj)
+		},
+		nil,
+		ec.marshalOMap2map,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Message_readBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Message",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Map does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _MultiPropertyDiscount_id(ctx context.Context, field graphql.CollectedField, obj *domain13.MultiPropertyDiscount) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -33187,6 +33340,8 @@ func (ec *executionContext) fieldContext_Mutation_sendMessage(ctx context.Contex
 				return ec.fieldContext_Message_updatedAt(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Message_metadata(ctx, field)
+			case "readBy":
+				return ec.fieldContext_Message_readBy(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -33240,6 +33395,47 @@ func (ec *executionContext) fieldContext_Mutation_markConversationAsRead(ctx con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_markConversationAsRead_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_setTypingIndicator(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_setTypingIndicator,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SetTypingIndicator(ctx, fc.Args["conversationId"].(uuid.UUID), fc.Args["isTyping"].(bool))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_setTypingIndicator(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setTypingIndicator_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -57367,6 +57563,8 @@ func (ec *executionContext) fieldContext_Subscription_messageReceived(ctx contex
 				return ec.fieldContext_Message_updatedAt(ctx, field)
 			case "metadata":
 				return ec.fieldContext_Message_metadata(ctx, field)
+			case "readBy":
+				return ec.fieldContext_Message_readBy(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
 		},
@@ -57499,6 +57697,57 @@ func (ec *executionContext) fieldContext_Subscription_myConversationsUpdated(_ c
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_typingIndicator(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription_typingIndicator,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Subscription().TypingIndicator(ctx, fc.Args["conversationId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNTypingIndicator2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTypingIndicator,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription_typingIndicator(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "conversationId":
+				return ec.fieldContext_TypingIndicator_conversationId(ctx, field)
+			case "userId":
+				return ec.fieldContext_TypingIndicator_userId(ctx, field)
+			case "isTyping":
+				return ec.fieldContext_TypingIndicator_isTyping(ctx, field)
+			case "timestamp":
+				return ec.fieldContext_TypingIndicator_timestamp(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TypingIndicator", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_typingIndicator_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -58397,6 +58646,122 @@ func (ec *executionContext) fieldContext_TravelCompanion_photoUrl(_ context.Cont
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TypingIndicator_conversationId(ctx context.Context, field graphql.CollectedField, obj *model.TypingIndicator) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TypingIndicator_conversationId,
+		func(ctx context.Context) (any, error) {
+			return obj.ConversationID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TypingIndicator_conversationId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TypingIndicator",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TypingIndicator_userId(ctx context.Context, field graphql.CollectedField, obj *model.TypingIndicator) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TypingIndicator_userId,
+		func(ctx context.Context) (any, error) {
+			return obj.UserID, nil
+		},
+		nil,
+		ec.marshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TypingIndicator_userId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TypingIndicator",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TypingIndicator_isTyping(ctx context.Context, field graphql.CollectedField, obj *model.TypingIndicator) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TypingIndicator_isTyping,
+		func(ctx context.Context) (any, error) {
+			return obj.IsTyping, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TypingIndicator_isTyping(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TypingIndicator",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TypingIndicator_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.TypingIndicator) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TypingIndicator_timestamp,
+		func(ctx context.Context) (any, error) {
+			return obj.Timestamp, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TypingIndicator_timestamp(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TypingIndicator",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -73060,45 +73425,78 @@ func (ec *executionContext) _Message(ctx context.Context, sel ast.SelectionSet, 
 		case "id":
 			out.Values[i] = ec._Message_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "conversationId":
 			out.Values[i] = ec._Message_conversationId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "senderId":
 			out.Values[i] = ec._Message_senderId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "senderType":
 			out.Values[i] = ec._Message_senderType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "type":
 			out.Values[i] = ec._Message_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "content":
 			out.Values[i] = ec._Message_content(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "createdAt":
 			out.Values[i] = ec._Message_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Message_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "metadata":
 			out.Values[i] = ec._Message_metadata(ctx, field, obj)
+		case "readBy":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Message_readBy(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -73334,6 +73732,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "markConversationAsRead":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_markConversationAsRead(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "setTypingIndicator":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setTypingIndicator(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -80360,6 +80765,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_conversationUpdated(ctx, fields[0])
 	case "myConversationsUpdated":
 		return ec._Subscription_myConversationsUpdated(ctx, fields[0])
+	case "typingIndicator":
+		return ec._Subscription_typingIndicator(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -80795,6 +81202,60 @@ func (ec *executionContext) _TravelCompanion(ctx context.Context, sel ast.Select
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "photoUrl":
 			out.Values[i] = ec._TravelCompanion_photoUrl(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var typingIndicatorImplementors = []string{"TypingIndicator"}
+
+func (ec *executionContext) _TypingIndicator(ctx context.Context, sel ast.SelectionSet, obj *model.TypingIndicator) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, typingIndicatorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TypingIndicator")
+		case "conversationId":
+			out.Values[i] = ec._TypingIndicator_conversationId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "userId":
+			out.Values[i] = ec._TypingIndicator_userId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isTyping":
+			out.Values[i] = ec._TypingIndicator_isTyping(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timestamp":
+			out.Values[i] = ec._TypingIndicator_timestamp(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -86607,6 +87068,20 @@ func (ec *executionContext) marshalNTravelCompanion2ᚕhausletᚋinternalᚋmodu
 func (ec *executionContext) unmarshalNTravelCompanionInput2hausletᚋinternalᚋmodulesᚋprofileᚋportᚋgraphqlᚐTravelCompanionInput(ctx context.Context, v any) (graphql3.TravelCompanionInput, error) {
 	res, err := ec.unmarshalInputTravelCompanionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTypingIndicator2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTypingIndicator(ctx context.Context, sel ast.SelectionSet, v model.TypingIndicator) graphql.Marshaler {
+	return ec._TypingIndicator(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTypingIndicator2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐTypingIndicator(ctx context.Context, sel ast.SelectionSet, v *model.TypingIndicator) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TypingIndicator(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx context.Context, v any) (uuid.UUID, error) {

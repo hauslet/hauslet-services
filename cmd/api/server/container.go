@@ -36,6 +36,7 @@ import (
 	leadhttp "hauslet/internal/modules/leads/port/http"
 	leadsrepository "hauslet/internal/modules/leads/repository"
 	leadsservice "hauslet/internal/modules/leads/service"
+	messagingnotification "hauslet/internal/modules/messaging/notification"
 	messaginghooks "hauslet/internal/modules/messaging/port/hooks"
 	messaginghttp "hauslet/internal/modules/messaging/port/http"
 	vertexai "hauslet/internal/modules/messaging/port/vertexai"
@@ -818,6 +819,16 @@ func (c *Container) initMessaging(ctx context.Context) error {
 	}
 	c.AISupportSvc = aiSupport
 
+	// Initialize notification service for messaging
+	emailSubject := c.Config.YAML.Queue.Subjects["email"]
+	notificationSvc := messagingnotification.NewNotificationService(
+		c.EmailClient,
+		c.Queue,
+		emailSubject,
+		c.Config.App.Client,
+		c.Logger,
+	)
+
 	c.MessagingSvc = messagingservice.NewMessagingService(
 		c.DB,
 		convRepo,
@@ -830,6 +841,7 @@ func (c *Container) initMessaging(ctx context.Context) error {
 		c.EventPublisher,
 		c.EventSubscriber,
 		c.R2,
+		notificationSvc,
 		c.Logger,
 	)
 

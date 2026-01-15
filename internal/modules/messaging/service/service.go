@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"hauslet/internal/modules/messaging/domain"
+	"hauslet/internal/modules/messaging/notification"
 	"hauslet/internal/modules/messaging/repository"
 	"hauslet/internal/platform/events"
 	"hauslet/internal/platform/storage"
@@ -30,6 +31,7 @@ type messagingServiceImpl struct {
 	eventPublisher  *events.Publisher
 	eventSubscriber *events.Subscriber // For subscribing to lead events
 	storage         *storage.R2Storage
+	notificationSvc *notification.NotificationService
 	log             *slog.Logger
 }
 
@@ -46,6 +48,7 @@ func NewMessagingService(
 	eventPublisher *events.Publisher,
 	eventSubscriber *events.Subscriber, // For subscribing to lead events
 	storage *storage.R2Storage,
+	notificationSvc *notification.NotificationService,
 	log *slog.Logger,
 ) MessagingService {
 	return &messagingServiceImpl{
@@ -60,6 +63,7 @@ func NewMessagingService(
 		eventPublisher:  eventPublisher,
 		eventSubscriber: eventSubscriber,
 		storage:         storage,
+		notificationSvc: notificationSvc,
 		log:             log,
 	}
 }

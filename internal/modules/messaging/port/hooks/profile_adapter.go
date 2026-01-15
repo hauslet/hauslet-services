@@ -57,3 +57,27 @@ func (a *profileHooksAdapter) GetProfileData(ctx context.Context, userIDs []uuid
 
 	return results, nil
 }
+
+func (a *profileHooksAdapter) GetUserContact(ctx context.Context, userID uuid.UUID) (*messagingdomain.UserContact, error) {
+	if a.profileSvc == nil {
+		return nil, fmt.Errorf("profile service not configured")
+	}
+
+	profile, err := a.profileSvc.GetProfileByUserID(ctx, userID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to load profile for user %s: %w", userID, err)
+	}
+	if profile == nil {
+		return nil, nil
+	}
+
+	contact := &messagingdomain.UserContact{
+		UserID: userID,
+		Name:   profile.FullName,
+	}
+	if profile.Email != nil {
+		contact.Email = *profile.Email
+	}
+
+	return contact, nil
+}
