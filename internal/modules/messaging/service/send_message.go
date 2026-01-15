@@ -1,6 +1,7 @@
 package service
 
 import (
+	"maps"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -161,15 +162,13 @@ func (s *messagingServiceImpl) SendMessage(ctx context.Context, input SendMessag
 	}, nil
 }
 
-// Helpers retained from your original code
+// Helpers for SendMessage
 func copyMetadata(src map[string]any) map[string]any {
 	if len(src) == 0 {
 		return map[string]any{}
 	}
 	out := make(map[string]any, len(src))
-	for k, v := range src {
-		out[k] = v
-	}
+	maps.Copy(out, src)
 	return out
 }
 

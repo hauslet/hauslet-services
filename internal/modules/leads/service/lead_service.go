@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"hauslet/internal/modules/leads/domain"
 	"hauslet/internal/modules/leads/repository"
+	"hauslet/internal/platform/events"
+	"hauslet/internal/platform/events/payoads"
 	"time"
 
 	"github.com/google/uuid"
@@ -194,10 +196,45 @@ func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*d
 		"is_spam", isSpam,
 	)
 
-	if s.messagingHooks != nil && lead.UserID != nil {
-		if err := s.messagingHooks.EnsureInquiryConversation(ctx, lead.ID, *lead.UserID); err != nil {
-			s.log.Warn("failed to auto-create messaging conversation for lead", "lead_id", lead.ID, "error", err)
+	// 10. Emit LeadCreated event for async subscribers (e.g., messaging auto-create conversation)
+	if s.eventPublisher != nil {
+		s.log.Info("publishing lead created event", "lead_id", lead.ID)
+		businessIDStr := ""
+		if lead.BusinessID != nil {
+			businessIDStr = lead.BusinessID.String()
 		}
+
+		payload := &payoads.LeadCreatedPayload{
+			ID:        lead.ID.String(),
+			ListingID: lead.ListingID.String(),
+			BusinessID: func() *string {
+				if businessIDStr == "" {
+					return nil
+				}
+				return &businessIDStr
+			}(),
+			UserID: func() *string {
+				if lead.UserID == nil {
+					return nil
+				}
+				return func(u *uuid.UUID) *string { s := u.String(); return &s }(lead.UserID)
+			}(),
+			IsVerified: lead.IsVerified,
+			Name:       lead.Name,
+			Email:      lead.Email,
+			Message:    lead.Message,
+			Source:     string(lead.Source),
+			Status:     string(lead.Status),
+			IsSpam:     lead.IsSpam,
+			CreatedAt:  lead.CreatedAt.Format(time.RFC3339),
+		}
+
+		tenantID := businessIDStr
+		if err := s.eventPublisher.PublishLeadEvent(ctx, events.EventLeadCreated, lead.ID.String(), payload, &tenantID); err != nil {
+			s.log.Error("failed to publish lead created event", "lead_id", lead.ID, "error", err)
+			// Don't fail the operation - event publishing is non-critical
+		}
+		s.log.Info("lead created event published", "lead_id", lead.ID)
 	}
 
 	return lead, nil
@@ -460,11 +497,6 @@ func (s *ServiceImpl) MarkAsSpam(ctx context.Context, leadID, requesterID uuid.U
 
 	s.log.Info("lead marked as spam", "lead_id", leadID, "requester_id", requesterID)
 	return nil
-}
-
-// RegisterMessagingHooks registers an optional messaging integration.
-func (s *ServiceImpl) RegisterMessagingHooks(h MessagingHooks) {
-	s.messagingHooks = h
 }
 
 // DeleteLead soft deletes a lead

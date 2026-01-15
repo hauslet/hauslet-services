@@ -14,6 +14,11 @@ import (
 // - They own the listing the lead is for
 // - They are a member of the business that owns the listing (if applicable)
 func (s *ServiceImpl) CanViewLead(ctx context.Context, lead *domain.Lead, requesterID uuid.UUID) error {
+	// Lead requester (prospect) can always view their own lead
+	if lead.UserID != nil && *lead.UserID == requesterID {
+		return nil
+	}
+
 	// Lead is assigned to requester
 	if lead.AssignedTo != nil && *lead.AssignedTo == requesterID {
 		return nil

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"hauslet/internal/modules/messaging/domain"
+	"hauslet/internal/platform/events"
 
 	"github.com/google/uuid"
 )
@@ -55,6 +56,10 @@ type MessagingService interface {
 
 	// AssignSupportAgent (Admin only) assigns a specific human agent to a support ticket.
 	AssignSupportAgent(ctx context.Context, conversationID, agentID uuid.UUID) error
+
+	// SubscribeToLeadEvents starts listening to lead.created events from the leads module.
+	// Conversations are automatically created when leads are created.
+	SubscribeToLeadEvents(ctx context.Context, subscriber *events.Subscriber) error
 }
 
 // AttachmentUploadRequest carries metadata needed to generate the presigned link.

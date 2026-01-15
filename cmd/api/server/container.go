@@ -263,10 +263,6 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 		return nil, fmt.Errorf("failed to initialize messaging: %w", err)
 	}
 
-	if err := c.bindLeadMessagingHooks(); err != nil {
-		return nil, fmt.Errorf("failed to attach messaging hooks: %w", err)
-	}
-
 	if err := c.initPayout(); err != nil {
 		return nil, fmt.Errorf("failed to initialize payout: %w", err)
 	}
@@ -624,6 +620,7 @@ func (c *Container) initLeads() error {
 		profileHooks,
 		c.RateLimiter,
 		rateLimitConfig,
+		c.EventPublisher,
 		c.Logger,
 	)
 
@@ -811,22 +808,17 @@ func (c *Container) initMessaging() error {
 		bookingHooks,
 		profileHooks,
 		c.EventPublisher,
+		c.EventSubscriber,
 		c.R2,
 		c.Logger,
 	)
 
-	return nil
-}
-
-func (c *Container) bindLeadMessagingHooks() error {
-	if c.LeadSvc == nil {
-		return fmt.Errorf("lead service is not initialized")
-	}
-	if c.MessagingSvc == nil {
-		return fmt.Errorf("messaging service is not initialized")
+	// Start subscribing to lead events for auto-conversation creation
+	if err := c.MessagingSvc.SubscribeToLeadEvents(context.Background(), c.EventSubscriber); err != nil {
+		c.Logger.Error("failed to subscribe to lead events", "error", err)
+		// Don't fail - event subscription is optional and can be retried later
 	}
 
-	c.LeadSvc.RegisterMessagingHooks(messaginghooks.NewMessagingHooksAdapter(c.MessagingSvc))
 	return nil
 }
 

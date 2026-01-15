@@ -28,6 +28,7 @@ type messagingServiceImpl struct {
 	profileHooks    domain.ProfileHooks
 	aiSupport       AISupportService
 	eventPublisher  *events.Publisher
+	eventSubscriber *events.Subscriber // For subscribing to lead events
 	storage         *storage.R2Storage
 	log             *slog.Logger
 }
@@ -43,6 +44,7 @@ func NewMessagingService(
 	bookingHooks domain.BookingHooks,
 	profileHooks domain.ProfileHooks,
 	eventPublisher *events.Publisher,
+	eventSubscriber *events.Subscriber, // For subscribing to lead events
 	storage *storage.R2Storage,
 	log *slog.Logger,
 ) MessagingService {
@@ -56,6 +58,7 @@ func NewMessagingService(
 		profileHooks:    profileHooks,
 		aiSupport:       aiSupport,
 		eventPublisher:  eventPublisher,
+		eventSubscriber: eventSubscriber,
 		storage:         storage,
 		log:             log,
 	}

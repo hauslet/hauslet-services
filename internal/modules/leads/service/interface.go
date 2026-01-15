@@ -40,9 +40,6 @@ type LeadService interface {
 
 	// GetLeadHistory retrieves the event history for a lead (requires authorization)
 	GetLeadHistory(ctx context.Context, leadID uuid.UUID, requesterID uuid.UUID) ([]*domain.LeadEvent, error)
-
-	// RegisterMessagingHooks allows the container to wire an optional messaging adapter.
-	RegisterMessagingHooks(h MessagingHooks)
 }
 
 // CreateLeadInput represents the input for creating a new lead

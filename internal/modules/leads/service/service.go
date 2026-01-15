@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"hauslet/internal/modules/leads/repository"
+	"hauslet/internal/platform/events"
 	"hauslet/internal/platform/ratelimit"
 )
 
@@ -23,7 +24,7 @@ type ServiceImpl struct {
 	analyticsHooks AnalyticsHooks
 
 	log            *slog.Logger
-	messagingHooks MessagingHooks
+	eventPublisher *events.Publisher // For domain events
 }
 
 // NewLeadService creates a new instance of LeadService
@@ -36,6 +37,7 @@ func NewLeadService(
 	profileHooks ProfileHooks, // Optional - for hybrid authentication
 	limiter ratelimit.Limiter,
 	rateLimitConfig RateLimitConfig,
+	eventPublisher *events.Publisher, // For domain events
 	log *slog.Logger,
 ) LeadService {
 	return &ServiceImpl{
@@ -50,5 +52,6 @@ func NewLeadService(
 		profileHooks:   profileHooks,
 		analyticsHooks: &NullAnalyticsHooks{}, // No-op for Phase 1
 		log:            log,
+		eventPublisher: eventPublisher,
 	}
 }
