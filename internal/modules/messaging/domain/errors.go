@@ -10,3 +10,4 @@ var (
 	ErrConversationClosed   = errors.New("conversation is closed or archived")
 	ErrAIServiceUnavailable = errors.New("ai service is currently unavailable")
 )
+ 

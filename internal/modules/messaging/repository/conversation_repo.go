@@ -118,7 +118,7 @@ func (r *conversationRepository) IncrementUnreadCounts(ctx context.Context, conv
 	params := []any{}
 
 	for _, uid := range recipientIDs {
-		sql += " || jsonb_build_object(?, (COALESCE(unread_counts->>?,'0')::int + 1))"
+		sql += " || jsonb_build_object(?::text, (COALESCE(unread_counts->>?::text,'0')::int + 1))"
 		params = append(params, uid.String(), uid.String())
 	}
 
