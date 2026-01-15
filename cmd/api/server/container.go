@@ -800,22 +800,9 @@ func (c *Container) initMessaging(ctx context.Context) error {
 	bookingHooks := messaginghooks.NewBookingHooksAdapter(bookingRepo, propertyRepo)
 	profileHooks := messaginghooks.NewProfileHooksAdapter(c.ProfileSvc)
 
-	var aiSupport messagingservice.AISupportService
-	aiCfg := c.Config.Services.VertexAI
-	if aiCfg.ProjectID != "" && aiCfg.AgentID != "" {
-		vertexCfg := c.Config.Services.Messaging
-		client, err := vertexai.NewVertexAIClient(ctx, aiCfg.ProjectID, aiCfg.Location, aiCfg.AgentID, aiCfg.CredentialsPath)
-		if err != nil {
-			return fmt.Errorf("failed to initialize vertex ai client: %w", err)
-		}
-		aiSupport = messagingservice.NewVertexAISupportService(client, msgRepo, vertexCfg, c.Logger)
-		if aiSupport == nil {
-			c.Logger.Warn("vertex ai support service unavailable, ai flow disabled")
-		} else {
-			c.AISupportSvc = aiSupport
-		}
-	} else {
-		c.Logger.Info("vertex ai disabled (missing configuration)", "project_id", aiCfg.ProjectID, "agent_id", aiCfg.AgentID)
+	aiSupport, err := c.buildAISupport(ctx, msgRepo)
+	if err != nil {
+		return err
 	}
 	c.AISupportSvc = aiSupport
 
@@ -894,6 +881,26 @@ func (c *Container) initPayout() error {
 	)
 
 	return nil
+}
+
+func (c *Container) buildAISupport(ctx context.Context, msgRepo messagingrepository.MessageRepository) (messagingservice.AISupportService, error) {
+	aiCfg := c.Config.Services.VertexAI
+	if aiCfg.ProjectID == "" || aiCfg.AgentID == "" {
+		c.Logger.Info("vertex ai disabled (missing configuration)", "project_id", aiCfg.ProjectID, "agent_id", aiCfg.AgentID)
+		return nil, nil
+	}
+
+	vertexCfg := c.Config.Services.Messaging
+	client, err := vertexai.NewVertexAIClient(ctx, aiCfg.ProjectID, aiCfg.Location, aiCfg.AgentID, aiCfg.CredentialsPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize vertex ai client: %w", err)
+	}
+
+	aiSupport := messagingservice.NewVertexAISupportService(client, msgRepo, vertexCfg, c.Logger)
+	if aiSupport == nil {
+		c.Logger.Warn("vertex ai support service unavailable, ai flow disabled")
+	}
+	return aiSupport, nil
 }
 
 // initWishlist initializes the wishlist service
