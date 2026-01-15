@@ -30,7 +30,7 @@ func (r *conversationRepository) Create(ctx context.Context, conversation *schem
 
 func (r *conversationRepository) GetByID(ctx context.Context, id uuid.UUID) (*schema.Conversation, error) {
 	var conv schema.Conversation
-	if err := r.db.WithContext(ctx).First(&conv, "id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("Participants").First(&conv, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &conv, nil
@@ -43,6 +43,7 @@ func (r *conversationRepository) Update(ctx context.Context, conversation *schem
 func (r *conversationRepository) GetByContext(ctx context.Context, contextType string, contextID uuid.UUID) (*schema.Conversation, error) {
 	var conv schema.Conversation
 	err := r.db.WithContext(ctx).
+		Preload("Participants").
 		Where("context_type = ? AND context_id = ?", contextType, contextID).
 		First(&conv).Error
 
