@@ -15,6 +15,8 @@ func MapLeadFromSchema(schemaLead *schema.Lead) *Lead {
 		ID:              schemaLead.ID,
 		ListingID:       schemaLead.ListingID,
 		BusinessID:      schemaLead.BusinessID,
+		UserID:          schemaLead.UserID,
+		IsVerified:      schemaLead.IsVerified,
 		Name:            schemaLead.Name,
 		Email:           schemaLead.Email,
 		PhoneNumber:     schemaLead.PhoneNumber,
@@ -49,6 +51,7 @@ func MapLeadToSchema(domainLead *Lead) (*schema.Lead, error) {
 	return &schema.Lead{
 		ID:              domainLead.ID,
 		ListingID:       domainLead.ListingID,
+		UserID:          domainLead.UserID,
 		BusinessID:      domainLead.BusinessID,
 		Name:            domainLead.Name,
 		Email:           domainLead.Email,

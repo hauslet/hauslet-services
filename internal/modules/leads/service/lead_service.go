@@ -191,6 +191,8 @@ func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*d
 	s.log.Info("lead created successfully",
 		"lead_id", lead.ID,
 		"listing_id", lead.ListingID,
+		"user_id", lead.UserID,
+		"business_id", lead.BusinessID,
 		"email", lead.Email,
 		"spam_score", spamScore,
 		"is_spam", isSpam,
