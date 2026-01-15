@@ -15,7 +15,11 @@ func CORSMiddleware(cfg *config.AppConfig) func(http.Handler) http.Handler {
 			if cfg.Env == "production" {
 				return []string{cfg.Client}
 			}
-			return []string{"http://localhost:8080", "https://hauslet-test-client.onrender.com"}
+			return []string{
+				"http://localhost:8080",
+				"https://dev-client.hauslet.com",
+				"https://hauslet-test-client.onrender.com",
+			}
 		}(),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-XSRF-TOKEN"},
