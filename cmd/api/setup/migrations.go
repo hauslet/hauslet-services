@@ -9,6 +9,7 @@ import (
 	financeSchema "hauslet/internal/modules/finance/repository/schema"
 	interactionsSchema "hauslet/internal/modules/interactions/repository/schema"
 	leadsSchema "hauslet/internal/modules/leads/repository/schema"
+	messagingSchema "hauslet/internal/modules/messaging/repository/schema"
 	moderationSchema "hauslet/internal/modules/moderation/repository/schema"
 	paymentsSchema "hauslet/internal/modules/payments/repository/schema"
 	pricingSchema "hauslet/internal/modules/pricing/repository/schema"
@@ -73,6 +74,9 @@ func RunMigrations(db *gorm.DB, log *slog.Logger) error {
 		&leadsSchema.Lead{},
 		&leadsSchema.LeadEvent{},
 		&leadsSchema.LeadAssignment{},
+		&messagingSchema.Conversation{},
+		&messagingSchema.Message{},
+		&messagingSchema.Participant{},
 	); err != nil {
 		return err
 	}

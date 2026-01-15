@@ -22,7 +22,8 @@ type ServiceImpl struct {
 	profileHooks   ProfileHooks // For hybrid authentication (optional)
 	analyticsHooks AnalyticsHooks
 
-	log *slog.Logger
+	log            *slog.Logger
+	messagingHooks MessagingHooks
 }
 
 // NewLeadService creates a new instance of LeadService

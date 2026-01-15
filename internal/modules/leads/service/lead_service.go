@@ -196,6 +196,12 @@ func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*d
 		"is_spam", isSpam,
 	)
 
+	if s.messagingHooks != nil && lead.UserID != nil {
+		if err := s.messagingHooks.EnsureInquiryConversation(ctx, lead.ID, *lead.UserID); err != nil {
+			s.log.Warn("failed to auto-create messaging conversation for lead", "lead_id", lead.ID, "error", err)
+		}
+	}
+
 	return lead, nil
 }
 
@@ -456,6 +462,11 @@ func (s *ServiceImpl) MarkAsSpam(ctx context.Context, leadID, requesterID uuid.U
 
 	s.log.Info("lead marked as spam", "lead_id", leadID, "requester_id", requesterID)
 	return nil
+}
+
+// RegisterMessagingHooks registers an optional messaging integration.
+func (s *ServiceImpl) RegisterMessagingHooks(h MessagingHooks) {
+	s.messagingHooks = h
 }
 
 // DeleteLead soft deletes a lead

@@ -49,6 +49,12 @@ type AnalyticsHooks interface {
 	TrackLeadResponseTime(ctx context.Context, leadID uuid.UUID, responseTime int64) error
 }
 
+// MessagingHooks lets the leads service trigger messaging conversations.
+type MessagingHooks interface {
+	// EnsureInquiryConversation shuttles a lead-led request into messaging.
+	EnsureInquiryConversation(ctx context.Context, leadID uuid.UUID, requesterID uuid.UUID) error
+}
+
 // NullAnalyticsHooks is a no-op implementation of AnalyticsHooks for Phase 1
 type NullAnalyticsHooks struct{}
 

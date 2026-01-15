@@ -18,6 +18,8 @@ import (
 	interactionsservice "hauslet/internal/modules/interactions/service"
 	leadsgraphql "hauslet/internal/modules/leads/port/graphql"
 	leadsservice "hauslet/internal/modules/leads/service"
+	messaginggraphql "hauslet/internal/modules/messaging/port/graphql"
+	messagingservice "hauslet/internal/modules/messaging/service"
 	paymentsgraphql "hauslet/internal/modules/payments/port/graphql"
 	paymentsservice "hauslet/internal/modules/payments/service"
 	pricinggraphql "hauslet/internal/modules/pricing/port/graphql"
@@ -59,6 +61,7 @@ type Resolver struct {
 	InteractionsResolver *interactionsgraphql.Resolver
 	DiscoveryResolver    *discoverygraphql.Resolver
 	VerificationResolver *verificationgraphql.Resolver
+	MessagingResolver    *messaginggraphql.Resolver
 }
 
 func NewResolver(
@@ -82,6 +85,7 @@ func NewResolver(
 	interactionsReader interactionsservice.ReaderService,
 	discoverySvc discoveryservice.DiscoveryService,
 	verificationSvc verificationservice.VerificationService,
+	messagingSvc messagingservice.MessagingService,
 	fxClient xchange.XChange,
 	eventSubscriber *events.Subscriber,
 	appCfg *cfg.GlobalConfig,
@@ -106,5 +110,6 @@ func NewResolver(
 		InteractionsResolver: interactionsgraphql.NewResolver(interactionsTracker, interactionsReader, log),
 		DiscoveryResolver:    discoverygraphql.NewResolver(discoverySvc, log),
 		VerificationResolver: verificationgraphql.NewResolver(verificationSvc, log),
+		MessagingResolver:    messaginggraphql.NewResolver(messagingSvc, log),
 	}
 }

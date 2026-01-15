@@ -1,0 +1,121 @@
+# internal/modules/messaging/port/graphql/schema.graphqls
+
+# ===========================
+# ENUMS
+# ===========================
+
+enum ConversationType {
+  inquiry
+  transaction
+  support
+}
+
+enum ConversationContextType {
+  lead
+  booking
+  rental_application
+  sale_negotiation
+  roommate_listing
+  legal_consultation
+  none
+}
+
+enum ParticipantType {
+  user
+  host
+  guest
+  support_agent
+  ai_agent
+  system
+}
+
+enum MessageType {
+  text
+  image
+  file
+  system
+}
+
+
+# ===========================
+# INPUT TYPES
+# ===========================
+
+input SendMessageAttachmentInput {
+  id: UUID
+  url: String!
+  type: String
+  filename: String
+  metadata: Map
+}
+
+input SendMessageInput {
+  conversationId: UUID!
+  type: MessageType!
+  content: String!
+  attachments: [SendMessageAttachmentInput!]
+  metadata: Map
+}
+
+
+# ===========================
+# OBJECT TYPES
+# ===========================
+
+type Participant {
+  userId: UUID!
+  type: ParticipantType!
+  joinedAt: Time!
+  leftAt: Time
+  lastReadAt: Time
+  isMuted: Boolean!
+  isVisible: Boolean!
+}
+
+type Message {
+  id: UUID!
+  conversationId: UUID!
+  senderId: UUID!
+  senderType: ParticipantType!
+  type: MessageType!
+  content: String!
+  createdAt: Time!
+  updatedAt: Time!
+  metadata: Map
+}
+
+type Conversation {
+  id: UUID!
+  type: ConversationType!
+  status: String!
+  contextType: ConversationContextType!
+  contextId: UUID!
+  createdAt: Time!
+  updatedAt: Time!
+  lastMessageAt: Time
+  participants: [Participant!]!
+  unreadCounts: Map
+  messages(limit: Int, offset: Int): [Message!]! @goField(forceResolver: true)
+}
+
+
+# ===========================
+# QUERIES
+# ===========================
+
+extend type Query {
+  conversation(id: UUID!): Conversation
+  myConversations(limit: Int, offset: Int): [Conversation!]!
+}
+
+
+# ===========================
+# MUTATIONS
+# ===========================
+
+extend type Mutation {
+  startInquiryConversation(leadId: UUID!): Conversation!
+  startTransactionConversation(contextType: ConversationContextType!, contextId: UUID!): Conversation!
+  sendMessage(input: SendMessageInput!): Message!
+  markConversationAsRead(conversationId: UUID!): Boolean!
+}

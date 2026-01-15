@@ -8,2132 +8,1639 @@ package graph
 import (
 	"context"
 	"fmt"
-	domain2 "hauslet/internal/modules/auth/domain"
-	domain5 "hauslet/internal/modules/booking/domain"
-	graphql4 "hauslet/internal/modules/booking/port/graphql"
+	domain14 "hauslet/internal/modules/auth/domain"
+	domain1 "hauslet/internal/modules/booking/domain"
+	graphql1 "hauslet/internal/modules/booking/port/graphql"
 	domain3 "hauslet/internal/modules/business/domain"
-	businessgraphql "hauslet/internal/modules/business/port/graphql"
-	calendardomain "hauslet/internal/modules/calendar/domain"
-	calendargraphql "hauslet/internal/modules/calendar/port/graphql"
-	domain11 "hauslet/internal/modules/discovery/domain"
-	domain7 "hauslet/internal/modules/finance/domain"
-	graphql2 "hauslet/internal/modules/finance/port/graphql"
-	interactionsgraphql "hauslet/internal/modules/interactions/port/graphql"
-	domain10 "hauslet/internal/modules/leads/domain"
-	leadsgraphql "hauslet/internal/modules/leads/port/graphql"
-	domain6 "hauslet/internal/modules/payments/domain"
-	graphql1 "hauslet/internal/modules/payments/port/graphql"
-	domain13 "hauslet/internal/modules/pricing/domain"
-	graphql7 "hauslet/internal/modules/pricing/port/graphql"
-	domain1 "hauslet/internal/modules/profile/domain"
-	profilegraphql "hauslet/internal/modules/profile/port/graphql"
-	domain9 "hauslet/internal/modules/promotions/domain"
-	graphql5 "hauslet/internal/modules/promotions/port/graphql"
-	"hauslet/internal/modules/property/domain"
-	domain8 "hauslet/internal/modules/review/domain"
-	graphql3 "hauslet/internal/modules/review/port/graphql"
-	domain12 "hauslet/internal/modules/verification/domain"
-	graphql6 "hauslet/internal/modules/verification/port/graphql"
-	domain4 "hauslet/internal/modules/wishlist/domain"
-	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
-	"hauslet/internal/platform/payment"
+	graphql3 "hauslet/internal/modules/business/port/graphql"
+	domain4 "hauslet/internal/modules/calendar/domain"
+	graphql4 "hauslet/internal/modules/calendar/port/graphql"
+	domain15 "hauslet/internal/modules/discovery/domain"
+	domain6 "hauslet/internal/modules/finance/domain"
+	graphql7 "hauslet/internal/modules/finance/port/graphql"
+	graphql12 "hauslet/internal/modules/interactions/port/graphql"
+	domain8 "hauslet/internal/modules/leads/domain"
+	graphql11 "hauslet/internal/modules/leads/port/graphql"
+	domain5 "hauslet/internal/modules/messaging/domain"
+	domain10 "hauslet/internal/modules/payments/domain"
+	graphql5 "hauslet/internal/modules/payments/port/graphql"
+	domain11 "hauslet/internal/modules/pricing/domain"
+	graphql6 "hauslet/internal/modules/pricing/port/graphql"
+	domain9 "hauslet/internal/modules/profile/domain"
+	graphql2 "hauslet/internal/modules/profile/port/graphql"
+	"hauslet/internal/modules/promotions/domain"
+	graphql10 "hauslet/internal/modules/promotions/port/graphql"
+	domain2 "hauslet/internal/modules/property/domain"
+	domain7 "hauslet/internal/modules/review/domain"
+	graphql9 "hauslet/internal/modules/review/port/graphql"
+	domain13 "hauslet/internal/modules/verification/domain"
+	graphql13 "hauslet/internal/modules/verification/port/graphql"
+	domain12 "hauslet/internal/modules/wishlist/domain"
+	graphql8 "hauslet/internal/modules/wishlist/port/graphql"
 	"hauslet/internal/transport/graph/model"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 // StartDate is the resolver for the startDate field.
-func (r *agentSubscriptionResolver) StartDate(ctx context.Context, obj *domain9.AgentSubscription) (*time.Time, error) {
-	if obj == nil || obj.StartedAt.IsZero() {
-		return nil, nil
-	}
-	return &obj.StartedAt, nil
+func (r *agentSubscriptionResolver) StartDate(ctx context.Context, obj *domain.AgentSubscription) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: StartDate - startDate"))
 }
 
 // CurrentPeriodStart is the resolver for the currentPeriodStart field.
-func (r *agentSubscriptionResolver) CurrentPeriodStart(ctx context.Context, obj *domain9.AgentSubscription) (*time.Time, error) {
-	if obj == nil || obj.StartedAt.IsZero() {
-		return nil, nil
-	}
-	return &obj.StartedAt, nil
+func (r *agentSubscriptionResolver) CurrentPeriodStart(ctx context.Context, obj *domain.AgentSubscription) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: CurrentPeriodStart - currentPeriodStart"))
 }
 
 // CurrentPeriodEnd is the resolver for the currentPeriodEnd field.
-func (r *agentSubscriptionResolver) CurrentPeriodEnd(ctx context.Context, obj *domain9.AgentSubscription) (*time.Time, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	if obj.NextBillingDate != nil {
-		return obj.NextBillingDate, nil
-	}
-	if obj.TrialEndsAt != nil {
-		return obj.TrialEndsAt, nil
-	}
-	if obj.StartedAt.IsZero() {
-		return nil, nil
-	}
-
-	periodEnd := obj.StartedAt
-	switch obj.BillingCycle {
-	case domain9.BillingCycleMonthly:
-		periodEnd = periodEnd.AddDate(0, 1, 0)
-	case domain9.BillingCycleYearly:
-		periodEnd = periodEnd.AddDate(1, 0, 0)
-	default:
-		periodEnd = periodEnd.AddDate(0, 1, 0)
-	}
-
-	return &periodEnd, nil
+func (r *agentSubscriptionResolver) CurrentPeriodEnd(ctx context.Context, obj *domain.AgentSubscription) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: CurrentPeriodEnd - currentPeriodEnd"))
 }
 
 // CancelAt is the resolver for the cancelAt field.
-func (r *agentSubscriptionResolver) CancelAt(ctx context.Context, obj *domain9.AgentSubscription) (*time.Time, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	return obj.CancelledAt, nil
+func (r *agentSubscriptionResolver) CancelAt(ctx context.Context, obj *domain.AgentSubscription) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: CancelAt - cancelAt"))
 }
 
 // Metadata is the resolver for the metadata field.
-func (r *agentSubscriptionResolver) Metadata(ctx context.Context, obj *domain9.AgentSubscription) (map[string]any, error) {
-	if obj == nil || len(obj.Features) == 0 {
-		return nil, nil
-	}
-	metadata := make(map[string]any, len(obj.Features))
-	for key, value := range obj.Features {
-		metadata[key] = value
-	}
-	return metadata, nil
+func (r *agentSubscriptionResolver) Metadata(ctx context.Context, obj *domain.AgentSubscription) (map[string]any, error) {
+	panic(fmt.Errorf("not implemented: Metadata - metadata"))
 }
 
 // Listing is the resolver for the listing field.
-func (r *bookingResolver) Listing(ctx context.Context, obj *domain5.Booking) (*domain.Listing, error) {
-	return r.BookingResolver.Listing(ctx, obj)
+func (r *bookingResolver) Listing(ctx context.Context, obj *domain1.Booking) (*domain2.Listing, error) {
+	panic(fmt.Errorf("not implemented: Listing - listing"))
 }
 
 // Location is the resolver for the location field.
-func (r *businessResolver) Location(ctx context.Context, obj *domain3.Business) (*domain.Location, error) {
-	if obj == nil || obj.Location == nil {
-		return nil, nil
-	}
-	return &domain.Location{
-		Lat:  obj.Location.Lat,
-		Lng:  obj.Location.Lng,
-		SRID: obj.Location.SRID,
-	}, nil
+func (r *businessResolver) Location(ctx context.Context, obj *domain3.Business) (*domain2.Location, error) {
+	panic(fmt.Errorf("not implemented: Location - location"))
 }
 
 // Members is the resolver for the members field.
 func (r *businessResolver) Members(ctx context.Context, obj *domain3.Business) ([]*domain3.BusinessMember, error) {
-	members, err := r.BusinessResolver.BusinessMembers(ctx, obj.ID.String())
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*domain3.BusinessMember, len(members))
-	for i := range members {
-		result[i] = &members[i]
-	}
-	return result, nil
+	panic(fmt.Errorf("not implemented: Members - members"))
 }
 
 // Booking is the resolver for the booking field.
-func (r *calendarEventResolver) Booking(ctx context.Context, obj *calendardomain.CalendarEvent) (*domain5.Booking, error) {
-	return r.CalendarResolver.Booking(ctx, obj)
+func (r *calendarEventResolver) Booking(ctx context.Context, obj *domain4.CalendarEvent) (*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: Booking - booking"))
 }
 
 // PaymentID is the resolver for the paymentId field.
-func (r *completeBookingPayloadResolver) PaymentID(ctx context.Context, obj *graphql4.CompleteBookingPayload) (uuid.UUID, error) {
-	return uuid.Parse(obj.PaymentID)
+func (r *completeBookingPayloadResolver) PaymentID(ctx context.Context, obj *graphql1.CompleteBookingPayload) (uuid.UUID, error) {
+	panic(fmt.Errorf("not implemented: PaymentID - paymentId"))
+}
+
+// UnreadCounts is the resolver for the unreadCounts field.
+func (r *conversationResolver) UnreadCounts(ctx context.Context, obj *domain5.Conversation) (map[string]any, error) {
+	return r.MessagingResolver.ConversationUnreadCounts(ctx, obj)
+}
+
+// Messages is the resolver for the messages field.
+func (r *conversationResolver) Messages(ctx context.Context, obj *domain5.Conversation, limit *int, offset *int) ([]*domain5.Message, error) {
+	return r.MessagingResolver.ConversationMessages(ctx, obj, limit, offset)
 }
 
 // TransferCode is the resolver for the transferCode field.
-func (r *disbursementResolver) TransferCode(ctx context.Context, obj *domain7.Disbursement) (*string, error) {
-	return obj.TransferCode, nil
+func (r *disbursementResolver) TransferCode(ctx context.Context, obj *domain6.Disbursement) (*string, error) {
+	panic(fmt.Errorf("not implemented: TransferCode - transferCode"))
 }
 
 // NextRetryAt is the resolver for the nextRetryAt field.
-func (r *disbursementResolver) NextRetryAt(ctx context.Context, obj *domain7.Disbursement) (*time.Time, error) {
-	return obj.NextRetryAt, nil
+func (r *disbursementResolver) NextRetryAt(ctx context.Context, obj *domain6.Disbursement) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: NextRetryAt - nextRetryAt"))
 }
 
 // CompletedAt is the resolver for the completedAt field.
-func (r *disbursementResolver) CompletedAt(ctx context.Context, obj *domain7.Disbursement) (*time.Time, error) {
-	return obj.CompletedAt, nil
+func (r *disbursementResolver) CompletedAt(ctx context.Context, obj *domain6.Disbursement) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: CompletedAt - completedAt"))
 }
 
 // FailureReason is the resolver for the failureReason field.
-func (r *disbursementResolver) FailureReason(ctx context.Context, obj *domain7.Disbursement) (*string, error) {
-	return obj.FailureReason, nil
+func (r *disbursementResolver) FailureReason(ctx context.Context, obj *domain6.Disbursement) (*string, error) {
+	panic(fmt.Errorf("not implemented: FailureReason - failureReason"))
 }
 
 // ResourceType is the resolver for the resourceType field.
-func (r *financeTransactionResolver) ResourceType(ctx context.Context, obj *domain7.Transaction) (string, error) {
-	return string(obj.ResourceType), nil
+func (r *financeTransactionResolver) ResourceType(ctx context.Context, obj *domain6.Transaction) (string, error) {
+	panic(fmt.Errorf("not implemented: ResourceType - resourceType"))
 }
 
 // Metadata is the resolver for the metadata field.
-func (r *financeTransactionResolver) Metadata(ctx context.Context, obj *domain7.Transaction) (map[string]any, error) {
-	return obj.Metadata, nil
+func (r *financeTransactionResolver) Metadata(ctx context.Context, obj *domain6.Transaction) (map[string]any, error) {
+	panic(fmt.Errorf("not implemented: Metadata - metadata"))
 }
 
 // TotalReviews is the resolver for the totalReviews field.
-func (r *hostStatsResolver) TotalReviews(ctx context.Context, obj *domain8.HostStats) (int, error) {
-	return obj.TotalReviewCount, nil
+func (r *hostStatsResolver) TotalReviews(ctx context.Context, obj *domain7.HostStats) (int, error) {
+	panic(fmt.Errorf("not implemented: TotalReviews - totalReviews"))
 }
 
 // AverageRating is the resolver for the averageRating field.
-func (r *hostStatsResolver) AverageRating(ctx context.Context, obj *domain8.HostStats) (float64, error) {
-	return obj.GlobalAverageRating, nil
+func (r *hostStatsResolver) AverageRating(ctx context.Context, obj *domain7.HostStats) (float64, error) {
+	panic(fmt.Errorf("not implemented: AverageRating - averageRating"))
 }
 
 // RatingDistribution is the resolver for the ratingDistribution field.
-func (r *hostStatsResolver) RatingDistribution(ctx context.Context, obj *domain8.HostStats) (*domain8.RatingDistribution, error) {
-	// NOTE: RatingDistribution is not currently in domain.HostStats
-	// TODO: Add this field to domain.HostStats or remove from GraphQL schema
-	return nil, nil
+func (r *hostStatsResolver) RatingDistribution(ctx context.Context, obj *domain7.HostStats) (*domain7.RatingDistribution, error) {
+	panic(fmt.Errorf("not implemented: RatingDistribution - ratingDistribution"))
 }
 
 // UpdatedAt is the resolver for the updatedAt field.
-func (r *hostStatsResolver) UpdatedAt(ctx context.Context, obj *domain8.HostStats) (*time.Time, error) {
-	return &obj.LastUpdatedAt, nil
+func (r *hostStatsResolver) UpdatedAt(ctx context.Context, obj *domain7.HostStats) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
 }
 
 // ID is the resolver for the id field.
-func (r *leadResolver) ID(ctx context.Context, obj *domain10.Lead) (string, error) {
-	if obj == nil {
-		return "", nil
-	}
-	return obj.ID.String(), nil
+func (r *leadResolver) ID(ctx context.Context, obj *domain8.Lead) (string, error) {
+	panic(fmt.Errorf("not implemented: ID - id"))
 }
 
 // ListingID is the resolver for the listingId field.
-func (r *leadResolver) ListingID(ctx context.Context, obj *domain10.Lead) (string, error) {
-	if obj == nil {
-		return "", nil
-	}
-	return obj.ListingID.String(), nil
+func (r *leadResolver) ListingID(ctx context.Context, obj *domain8.Lead) (string, error) {
+	panic(fmt.Errorf("not implemented: ListingID - listingId"))
 }
 
 // BusinessID is the resolver for the businessId field.
-func (r *leadResolver) BusinessID(ctx context.Context, obj *domain10.Lead) (*string, error) {
-	if obj == nil || obj.BusinessID == nil {
-		return nil, nil
-	}
-	id := obj.BusinessID.String()
-	return &id, nil
+func (r *leadResolver) BusinessID(ctx context.Context, obj *domain8.Lead) (*string, error) {
+	panic(fmt.Errorf("not implemented: BusinessID - businessId"))
 }
 
 // AssignedTo is the resolver for the assignedTo field.
-func (r *leadResolver) AssignedTo(ctx context.Context, obj *domain10.Lead) (*string, error) {
-	if obj == nil || obj.AssignedTo == nil {
-		return nil, nil
-	}
-	id := obj.AssignedTo.String()
-	return &id, nil
+func (r *leadResolver) AssignedTo(ctx context.Context, obj *domain8.Lead) (*string, error) {
+	panic(fmt.Errorf("not implemented: AssignedTo - assignedTo"))
 }
 
 // ID is the resolver for the id field.
-func (r *leadEventResolver) ID(ctx context.Context, obj *domain10.LeadEvent) (string, error) {
-	if obj == nil {
-		return "", nil
-	}
-	return obj.ID.String(), nil
+func (r *leadEventResolver) ID(ctx context.Context, obj *domain8.LeadEvent) (string, error) {
+	panic(fmt.Errorf("not implemented: ID - id"))
 }
 
 // LeadID is the resolver for the leadId field.
-func (r *leadEventResolver) LeadID(ctx context.Context, obj *domain10.LeadEvent) (string, error) {
-	if obj == nil {
-		return "", nil
-	}
-	return obj.LeadID.String(), nil
+func (r *leadEventResolver) LeadID(ctx context.Context, obj *domain8.LeadEvent) (string, error) {
+	panic(fmt.Errorf("not implemented: LeadID - leadId"))
 }
 
 // ActorID is the resolver for the actorId field.
-func (r *leadEventResolver) ActorID(ctx context.Context, obj *domain10.LeadEvent) (*string, error) {
-	if obj == nil || obj.ActorID == nil {
-		return nil, nil
-	}
-	id := obj.ActorID.String()
-	return &id, nil
+func (r *leadEventResolver) ActorID(ctx context.Context, obj *domain8.LeadEvent) (*string, error) {
+	panic(fmt.Errorf("not implemented: ActorID - actorId"))
 }
 
 // ResourceType is the resolver for the resourceType field.
-func (r *ledgerEntryResolver) ResourceType(ctx context.Context, obj *domain7.LedgerEntry) (string, error) {
-	return string(obj.ResourceType), nil
+func (r *ledgerEntryResolver) ResourceType(ctx context.Context, obj *domain6.LedgerEntry) (string, error) {
+	panic(fmt.Errorf("not implemented: ResourceType - resourceType"))
 }
 
 // OwnerProfile is the resolver for the ownerProfile field.
-func (r *listingResolver) OwnerProfile(ctx context.Context, obj *domain.Listing) (*domain1.Profile, error) {
-	return r.PropertyResolver.OwnerProfile(ctx, obj)
+func (r *listingResolver) OwnerProfile(ctx context.Context, obj *domain2.Listing) (*domain9.Profile, error) {
+	panic(fmt.Errorf("not implemented: OwnerProfile - ownerProfile"))
 }
 
 // Property is the resolver for the property field.
-func (r *listingResolver) Property(ctx context.Context, obj *domain.Listing) (*domain.Property, error) {
-	return r.PropertyResolver.ListingProperty(ctx, obj)
+func (r *listingResolver) Property(ctx context.Context, obj *domain2.Listing) (*domain2.Property, error) {
+	panic(fmt.Errorf("not implemented: Property - property"))
 }
 
 // Thumbnails is the resolver for the thumbnails field.
-func (r *listingMediaResolver) Thumbnails(ctx context.Context, obj *domain.ListingMedia) ([]*domain.ThumbnailVariant, error) {
-	return r.PropertyResolver.ListingMediaThumbnails(ctx, obj)
+func (r *listingMediaResolver) Thumbnails(ctx context.Context, obj *domain2.ListingMedia) ([]*domain2.ThumbnailVariant, error) {
+	panic(fmt.Errorf("not implemented: Thumbnails - thumbnails"))
 }
 
 // StartDate is the resolver for the startDate field.
-func (r *listingPromotionResolver) StartDate(ctx context.Context, obj *domain9.ListingPromotion) (*time.Time, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	return obj.StartedAt, nil
+func (r *listingPromotionResolver) StartDate(ctx context.Context, obj *domain.ListingPromotion) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: StartDate - startDate"))
 }
 
 // EndDate is the resolver for the endDate field.
-func (r *listingPromotionResolver) EndDate(ctx context.Context, obj *domain9.ListingPromotion) (*time.Time, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	return obj.ExpiresAt, nil
+func (r *listingPromotionResolver) EndDate(ctx context.Context, obj *domain.ListingPromotion) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: EndDate - endDate"))
 }
 
 // Price is the resolver for the price field.
-func (r *listingPromotionResolver) Price(ctx context.Context, obj *domain9.ListingPromotion) (int, error) {
-	if obj == nil {
-		return 0, nil
-	}
-	return int(obj.Amount), nil
+func (r *listingPromotionResolver) Price(ctx context.Context, obj *domain.ListingPromotion) (int, error) {
+	panic(fmt.Errorf("not implemented: Price - price"))
 }
 
 // TotalReviews is the resolver for the totalReviews field.
-func (r *listingStatsResolver) TotalReviews(ctx context.Context, obj *domain8.ListingStats) (int, error) {
-	return obj.ReviewCount, nil
+func (r *listingStatsResolver) TotalReviews(ctx context.Context, obj *domain7.ListingStats) (int, error) {
+	panic(fmt.Errorf("not implemented: TotalReviews - totalReviews"))
 }
 
 // AverageCleanliness is the resolver for the averageCleanliness field.
-func (r *listingStatsResolver) AverageCleanliness(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
-	if obj.SubRatingAverages == nil {
-		return nil, nil
-	}
-	return &obj.SubRatingAverages.Cleanliness, nil
+func (r *listingStatsResolver) AverageCleanliness(ctx context.Context, obj *domain7.ListingStats) (*float64, error) {
+	panic(fmt.Errorf("not implemented: AverageCleanliness - averageCleanliness"))
 }
 
 // AverageAccuracy is the resolver for the averageAccuracy field.
-func (r *listingStatsResolver) AverageAccuracy(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
-	if obj.SubRatingAverages == nil {
-		return nil, nil
-	}
-	return &obj.SubRatingAverages.Accuracy, nil
+func (r *listingStatsResolver) AverageAccuracy(ctx context.Context, obj *domain7.ListingStats) (*float64, error) {
+	panic(fmt.Errorf("not implemented: AverageAccuracy - averageAccuracy"))
 }
 
 // AverageCommunication is the resolver for the averageCommunication field.
-func (r *listingStatsResolver) AverageCommunication(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
-	if obj.SubRatingAverages == nil {
-		return nil, nil
-	}
-	return &obj.SubRatingAverages.Communication, nil
+func (r *listingStatsResolver) AverageCommunication(ctx context.Context, obj *domain7.ListingStats) (*float64, error) {
+	panic(fmt.Errorf("not implemented: AverageCommunication - averageCommunication"))
 }
 
 // AverageLocation is the resolver for the averageLocation field.
-func (r *listingStatsResolver) AverageLocation(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
-	if obj.SubRatingAverages == nil {
-		return nil, nil
-	}
-	return &obj.SubRatingAverages.Location, nil
+func (r *listingStatsResolver) AverageLocation(ctx context.Context, obj *domain7.ListingStats) (*float64, error) {
+	panic(fmt.Errorf("not implemented: AverageLocation - averageLocation"))
 }
 
 // AverageCheckin is the resolver for the averageCheckin field.
-func (r *listingStatsResolver) AverageCheckin(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
-	if obj.SubRatingAverages == nil {
-		return nil, nil
-	}
-	return &obj.SubRatingAverages.CheckIn, nil
+func (r *listingStatsResolver) AverageCheckin(ctx context.Context, obj *domain7.ListingStats) (*float64, error) {
+	panic(fmt.Errorf("not implemented: AverageCheckin - averageCheckin"))
 }
 
 // AverageValue is the resolver for the averageValue field.
-func (r *listingStatsResolver) AverageValue(ctx context.Context, obj *domain8.ListingStats) (*float64, error) {
-	if obj.SubRatingAverages == nil {
-		return nil, nil
-	}
-	return &obj.SubRatingAverages.Value, nil
+func (r *listingStatsResolver) AverageValue(ctx context.Context, obj *domain7.ListingStats) (*float64, error) {
+	panic(fmt.Errorf("not implemented: AverageValue - averageValue"))
 }
 
 // UpdatedAt is the resolver for the updatedAt field.
-func (r *listingStatsResolver) UpdatedAt(ctx context.Context, obj *domain8.ListingStats) (*time.Time, error) {
-	return &obj.LastUpdatedAt, nil
+func (r *listingStatsResolver) UpdatedAt(ctx context.Context, obj *domain7.ListingStats) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
 }
 
 // MaintenanceType is the resolver for the maintenanceType field.
-func (r *maintenanceDetailResolver) MaintenanceType(ctx context.Context, obj *calendardomain.MaintenanceDetail) (string, error) {
-	if obj == nil {
-		return "", nil
-	}
-	return string(obj.MaintenanceType), nil
+func (r *maintenanceDetailResolver) MaintenanceType(ctx context.Context, obj *domain4.MaintenanceDetail) (string, error) {
+	panic(fmt.Errorf("not implemented: MaintenanceType - maintenanceType"))
 }
 
 // AssignedTo is the resolver for the assignedTo field.
-func (r *maintenanceDetailResolver) AssignedTo(ctx context.Context, obj *calendardomain.MaintenanceDetail) (*uuid.UUID, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	return obj.VendorID, nil
+func (r *maintenanceDetailResolver) AssignedTo(ctx context.Context, obj *domain4.MaintenanceDetail) (*uuid.UUID, error) {
+	panic(fmt.Errorf("not implemented: AssignedTo - assignedTo"))
 }
 
 // Notes is the resolver for the notes field.
-func (r *maintenanceDetailResolver) Notes(ctx context.Context, obj *calendardomain.MaintenanceDetail) (*string, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	return obj.CompletionNotes, nil
+func (r *maintenanceDetailResolver) Notes(ctx context.Context, obj *domain4.MaintenanceDetail) (*string, error) {
+	panic(fmt.Errorf("not implemented: Notes - notes"))
 }
 
 // Ping is the resolver for the ping field.
 func (r *mutationResolver) Ping(ctx context.Context) (string, error) {
-	return "pong", nil
+	panic(fmt.Errorf("not implemented: Ping - ping"))
 }
 
 // UpdateProfile is the resolver for the updateProfile field.
-func (r *mutationResolver) UpdateProfile(ctx context.Context, input profilegraphql.UpdateProfileInput) (*domain1.Profile, error) {
-	return r.ProfileResolver.UpdateProfile(ctx, input)
+func (r *mutationResolver) UpdateProfile(ctx context.Context, input graphql2.UpdateProfileInput) (*domain9.Profile, error) {
+	panic(fmt.Errorf("not implemented: UpdateProfile - updateProfile"))
 }
 
 // SelectSupplyRoles is the resolver for the selectSupplyRoles field.
-func (r *mutationResolver) SelectSupplyRoles(ctx context.Context, userTypes []domain1.UserType) (*domain1.Profile, error) {
-	return r.ProfileResolver.SelectSupplyRoles(ctx, userTypes)
+func (r *mutationResolver) SelectSupplyRoles(ctx context.Context, userTypes []domain9.UserType) (*domain9.Profile, error) {
+	panic(fmt.Errorf("not implemented: SelectSupplyRoles - selectSupplyRoles"))
 }
 
 // AddTravelCompanion is the resolver for the addTravelCompanion field.
-func (r *mutationResolver) AddTravelCompanion(ctx context.Context, userID string, input profilegraphql.TravelCompanionInput) (bool, error) {
-	return r.ProfileResolver.AddTravelCompanion(ctx, userID, input)
+func (r *mutationResolver) AddTravelCompanion(ctx context.Context, userID string, input graphql2.TravelCompanionInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: AddTravelCompanion - addTravelCompanion"))
 }
 
 // UpdateTravelCompanion is the resolver for the updateTravelCompanion field.
-func (r *mutationResolver) UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input profilegraphql.TravelCompanionInput) (bool, error) {
-	return r.ProfileResolver.UpdateTravelCompanion(ctx, userID, companionID, input)
+func (r *mutationResolver) UpdateTravelCompanion(ctx context.Context, userID string, companionID string, input graphql2.TravelCompanionInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: UpdateTravelCompanion - updateTravelCompanion"))
 }
 
 // DeleteTravelCompanion is the resolver for the deleteTravelCompanion field.
 func (r *mutationResolver) DeleteTravelCompanion(ctx context.Context, userID string, companionID string) (bool, error) {
-	return r.ProfileResolver.DeleteTravelCompanion(ctx, userID, companionID)
+	panic(fmt.Errorf("not implemented: DeleteTravelCompanion - deleteTravelCompanion"))
 }
 
 // DeleteProfile is the resolver for the deleteProfile field.
 func (r *mutationResolver) DeleteProfile(ctx context.Context, userID string) (bool, error) {
-	return r.ProfileResolver.DeleteProfile(ctx, userID)
+	panic(fmt.Errorf("not implemented: DeleteProfile - deleteProfile"))
 }
 
 // CreateListing is the resolver for the createListing field.
-func (r *mutationResolver) CreateListing(ctx context.Context, input model.CreateListingInput) (*domain.Listing, error) {
-	return r.PropertyResolver.CreateListing(ctx, input)
+func (r *mutationResolver) CreateListing(ctx context.Context, input model.CreateListingInput) (*domain2.Listing, error) {
+	panic(fmt.Errorf("not implemented: CreateListing - createListing"))
 }
 
 // UpdateListing is the resolver for the updateListing field.
-func (r *mutationResolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.UpdateListingInput) (*domain.Listing, error) {
-	return r.PropertyResolver.UpdateListing(ctx, id, input)
+func (r *mutationResolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.UpdateListingInput) (*domain2.Listing, error) {
+	panic(fmt.Errorf("not implemented: UpdateListing - updateListing"))
 }
 
 // DeleteListing is the resolver for the deleteListing field.
 func (r *mutationResolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error) {
-	return r.PropertyResolver.DeleteListing(ctx, id, hard)
+	panic(fmt.Errorf("not implemented: DeleteListing - deleteListing"))
 }
 
 // PublishListing is the resolver for the publishListing field.
-func (r *mutationResolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
-	return r.PropertyResolver.PublishListing(ctx, id)
+func (r *mutationResolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain2.Listing, error) {
+	panic(fmt.Errorf("not implemented: PublishListing - publishListing"))
 }
 
 // UnpublishListing is the resolver for the unpublishListing field.
-func (r *mutationResolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
-	return r.PropertyResolver.UnpublishListing(ctx, id)
+func (r *mutationResolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain2.Listing, error) {
+	panic(fmt.Errorf("not implemented: UnpublishListing - unpublishListing"))
+}
+
+// StartInquiryConversation is the resolver for the startInquiryConversation field.
+func (r *mutationResolver) StartInquiryConversation(ctx context.Context, leadID uuid.UUID) (*domain5.Conversation, error) {
+	return r.MessagingResolver.StartInquiryConversation(ctx, leadID)
+}
+
+// StartTransactionConversation is the resolver for the startTransactionConversation field.
+func (r *mutationResolver) StartTransactionConversation(ctx context.Context, contextType domain5.ConversationContextType, contextID uuid.UUID) (*domain5.Conversation, error) {
+	return r.MessagingResolver.StartTransactionConversation(ctx, contextType, contextID)
+}
+
+// SendMessage is the resolver for the sendMessage field.
+func (r *mutationResolver) SendMessage(ctx context.Context, input model.SendMessageInput) (*domain5.Message, error) {
+	return r.MessagingResolver.SendMessage(ctx, input)
+}
+
+// MarkConversationAsRead is the resolver for the markConversationAsRead field.
+func (r *mutationResolver) MarkConversationAsRead(ctx context.Context, conversationID uuid.UUID) (bool, error) {
+	return r.MessagingResolver.MarkConversationAsRead(ctx, conversationID)
 }
 
 // CreateBusiness is the resolver for the createBusiness field.
-func (r *mutationResolver) CreateBusiness(ctx context.Context, input businessgraphql.CreateBusinessInput) (*domain3.Business, error) {
-	return r.BusinessResolver.CreateBusiness(ctx, input)
+func (r *mutationResolver) CreateBusiness(ctx context.Context, input graphql3.CreateBusinessInput) (*domain3.Business, error) {
+	panic(fmt.Errorf("not implemented: CreateBusiness - createBusiness"))
 }
 
 // UpdateBusiness is the resolver for the updateBusiness field.
-func (r *mutationResolver) UpdateBusiness(ctx context.Context, id uuid.UUID, input businessgraphql.UpdateBusinessInput) (*domain3.Business, error) {
-	return r.BusinessResolver.UpdateBusiness(ctx, id.String(), input)
+func (r *mutationResolver) UpdateBusiness(ctx context.Context, id uuid.UUID, input graphql3.UpdateBusinessInput) (*domain3.Business, error) {
+	panic(fmt.Errorf("not implemented: UpdateBusiness - updateBusiness"))
 }
 
 // DeleteBusiness is the resolver for the deleteBusiness field.
 func (r *mutationResolver) DeleteBusiness(ctx context.Context, id uuid.UUID) (bool, error) {
-	return r.BusinessResolver.DeleteBusiness(ctx, id.String())
+	panic(fmt.Errorf("not implemented: DeleteBusiness - deleteBusiness"))
 }
 
 // AddBusinessMember is the resolver for the addBusinessMember field.
-func (r *mutationResolver) AddBusinessMember(ctx context.Context, businessID uuid.UUID, userID uuid.UUID, role domain3.MemberRole, customPermissions *businessgraphql.MemberPermissionsInput) (*domain3.BusinessMember, error) {
-	return r.BusinessResolver.AddBusinessMember(ctx, businessID.String(), userID.String(), role, customPermissions)
+func (r *mutationResolver) AddBusinessMember(ctx context.Context, businessID uuid.UUID, userID uuid.UUID, role domain3.MemberRole, customPermissions *graphql3.MemberPermissionsInput) (*domain3.BusinessMember, error) {
+	panic(fmt.Errorf("not implemented: AddBusinessMember - addBusinessMember"))
 }
 
 // UpdateMemberRole is the resolver for the updateMemberRole field.
 func (r *mutationResolver) UpdateMemberRole(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, role domain3.MemberRole) (*domain3.BusinessMember, error) {
-	return r.BusinessResolver.UpdateMemberRole(ctx, businessID.String(), memberID.String(), role)
+	panic(fmt.Errorf("not implemented: UpdateMemberRole - updateMemberRole"))
 }
 
 // UpdateMemberPermissions is the resolver for the updateMemberPermissions field.
-func (r *mutationResolver) UpdateMemberPermissions(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, permissions businessgraphql.MemberPermissionsInput) (*domain3.BusinessMember, error) {
-	return r.BusinessResolver.UpdateMemberPermissions(ctx, businessID.String(), memberID.String(), permissions)
+func (r *mutationResolver) UpdateMemberPermissions(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID, permissions graphql3.MemberPermissionsInput) (*domain3.BusinessMember, error) {
+	panic(fmt.Errorf("not implemented: UpdateMemberPermissions - updateMemberPermissions"))
 }
 
 // RemoveMember is the resolver for the removeMember field.
 func (r *mutationResolver) RemoveMember(ctx context.Context, businessID uuid.UUID, memberID uuid.UUID) (bool, error) {
-	return r.BusinessResolver.RemoveMember(ctx, businessID.String(), memberID.String())
+	panic(fmt.Errorf("not implemented: RemoveMember - removeMember"))
 }
 
 // InviteMember is the resolver for the inviteMember field.
-func (r *mutationResolver) InviteMember(ctx context.Context, businessID uuid.UUID, input businessgraphql.InviteMemberInput) (*domain3.BusinessInvitation, error) {
-	return r.BusinessResolver.InviteMember(ctx, businessID.String(), input)
+func (r *mutationResolver) InviteMember(ctx context.Context, businessID uuid.UUID, input graphql3.InviteMemberInput) (*domain3.BusinessInvitation, error) {
+	panic(fmt.Errorf("not implemented: InviteMember - inviteMember"))
 }
 
 // AcceptInvitation is the resolver for the acceptInvitation field.
 func (r *mutationResolver) AcceptInvitation(ctx context.Context, token string) (*domain3.BusinessMember, error) {
-	return r.BusinessResolver.AcceptInvitation(ctx, token)
+	panic(fmt.Errorf("not implemented: AcceptInvitation - acceptInvitation"))
 }
 
 // DeclineInvitation is the resolver for the declineInvitation field.
 func (r *mutationResolver) DeclineInvitation(ctx context.Context, token string) (bool, error) {
-	return r.BusinessResolver.DeclineInvitation(ctx, token)
+	panic(fmt.Errorf("not implemented: DeclineInvitation - declineInvitation"))
 }
 
 // RevokeInvitation is the resolver for the revokeInvitation field.
 func (r *mutationResolver) RevokeInvitation(ctx context.Context, invitationID uuid.UUID) (bool, error) {
-	return r.BusinessResolver.RevokeInvitation(ctx, invitationID.String())
+	panic(fmt.Errorf("not implemented: RevokeInvitation - revokeInvitation"))
 }
 
 // ReserveBooking is the resolver for the reserveBooking field.
-func (r *mutationResolver) ReserveBooking(ctx context.Context, input graphql4.ReserveBookingInput) (*graphql4.CompleteBookingPayload, error) {
-	return r.BookingResolver.ReserveBooking(ctx, input)
+func (r *mutationResolver) ReserveBooking(ctx context.Context, input graphql1.ReserveBookingInput) (*graphql1.CompleteBookingPayload, error) {
+	panic(fmt.Errorf("not implemented: ReserveBooking - reserveBooking"))
 }
 
 // RequestBooking is the resolver for the requestBooking field.
-func (r *mutationResolver) RequestBooking(ctx context.Context, input graphql4.RequestBookingInput) (*domain5.Booking, error) {
-	return r.BookingResolver.RequestBooking(ctx, input)
+func (r *mutationResolver) RequestBooking(ctx context.Context, input graphql1.RequestBookingInput) (*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: RequestBooking - requestBooking"))
 }
 
 // PayForBooking is the resolver for the payForBooking field.
-func (r *mutationResolver) PayForBooking(ctx context.Context, input graphql4.PayForBookingInput) (*graphql4.CompleteBookingPayload, error) {
-	return r.BookingResolver.PayForBooking(ctx, input)
+func (r *mutationResolver) PayForBooking(ctx context.Context, input graphql1.PayForBookingInput) (*graphql1.CompleteBookingPayload, error) {
+	panic(fmt.Errorf("not implemented: PayForBooking - payForBooking"))
 }
 
 // ConfirmBooking is the resolver for the confirmBooking field.
-func (r *mutationResolver) ConfirmBooking(ctx context.Context, bookingID uuid.UUID) (*domain5.Booking, error) {
-	return r.BookingResolver.ConfirmBooking(ctx, bookingID)
+func (r *mutationResolver) ConfirmBooking(ctx context.Context, bookingID uuid.UUID) (*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: ConfirmBooking - confirmBooking"))
 }
 
 // CancelBooking is the resolver for the cancelBooking field.
-func (r *mutationResolver) CancelBooking(ctx context.Context, input graphql4.CancelBookingInput) (*domain5.Booking, error) {
-	return r.BookingResolver.CancelBooking(ctx, input)
+func (r *mutationResolver) CancelBooking(ctx context.Context, input graphql1.CancelBookingInput) (*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: CancelBooking - cancelBooking"))
 }
 
 // CheckInBooking is the resolver for the checkInBooking field.
-func (r *mutationResolver) CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*domain5.Booking, error) {
-	return r.BookingResolver.CheckInBooking(ctx, bookingID)
+func (r *mutationResolver) CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: CheckInBooking - checkInBooking"))
 }
 
 // CheckOutBooking is the resolver for the checkOutBooking field.
-func (r *mutationResolver) CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*domain5.Booking, error) {
-	return r.BookingResolver.CheckOutBooking(ctx, bookingID)
+func (r *mutationResolver) CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: CheckOutBooking - checkOutBooking"))
 }
 
 // RequestShowing is the resolver for the requestShowing field.
-func (r *mutationResolver) RequestShowing(ctx context.Context, input calendargraphql.RequestShowingInput) (*calendardomain.CalendarEvent, error) {
-	return r.CalendarResolver.RequestShowing(ctx, input)
+func (r *mutationResolver) RequestShowing(ctx context.Context, input graphql4.RequestShowingInput) (*domain4.CalendarEvent, error) {
+	panic(fmt.Errorf("not implemented: RequestShowing - requestShowing"))
 }
 
 // ConfirmShowing is the resolver for the confirmShowing field.
-func (r *mutationResolver) ConfirmShowing(ctx context.Context, eventID uuid.UUID) (*calendardomain.CalendarEvent, error) {
-	return r.CalendarResolver.ConfirmShowing(ctx, eventID)
+func (r *mutationResolver) ConfirmShowing(ctx context.Context, eventID uuid.UUID) (*domain4.CalendarEvent, error) {
+	panic(fmt.Errorf("not implemented: ConfirmShowing - confirmShowing"))
 }
 
 // CancelShowing is the resolver for the cancelShowing field.
-func (r *mutationResolver) CancelShowing(ctx context.Context, input calendargraphql.CancelShowingInput) (*calendardomain.CalendarEvent, error) {
-	return r.CalendarResolver.CancelShowing(ctx, input)
+func (r *mutationResolver) CancelShowing(ctx context.Context, input graphql4.CancelShowingInput) (*domain4.CalendarEvent, error) {
+	panic(fmt.Errorf("not implemented: CancelShowing - cancelShowing"))
 }
 
 // RescheduleShowing is the resolver for the rescheduleShowing field.
-func (r *mutationResolver) RescheduleShowing(ctx context.Context, input calendargraphql.RescheduleShowingInput) (*calendardomain.CalendarEvent, error) {
-	return r.CalendarResolver.RescheduleShowing(ctx, input)
+func (r *mutationResolver) RescheduleShowing(ctx context.Context, input graphql4.RescheduleShowingInput) (*domain4.CalendarEvent, error) {
+	panic(fmt.Errorf("not implemented: RescheduleShowing - rescheduleShowing"))
 }
 
 // CreateOpenHouse is the resolver for the createOpenHouse field.
-func (r *mutationResolver) CreateOpenHouse(ctx context.Context, input calendargraphql.CreateOpenHouseInput) (*calendardomain.CalendarEvent, error) {
-	return r.CalendarResolver.CreateOpenHouse(ctx, input)
+func (r *mutationResolver) CreateOpenHouse(ctx context.Context, input graphql4.CreateOpenHouseInput) (*domain4.CalendarEvent, error) {
+	panic(fmt.Errorf("not implemented: CreateOpenHouse - createOpenHouse"))
 }
 
 // RegisterOpenHouse is the resolver for the registerOpenHouse field.
-func (r *mutationResolver) RegisterOpenHouse(ctx context.Context, input calendargraphql.RegisterOpenHouseInput) (bool, error) {
-	return r.CalendarResolver.RegisterOpenHouse(ctx, input)
+func (r *mutationResolver) RegisterOpenHouse(ctx context.Context, input graphql4.RegisterOpenHouseInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: RegisterOpenHouse - registerOpenHouse"))
 }
 
 // RemoveOpenHouseAttendee is the resolver for the removeOpenHouseAttendee field.
 func (r *mutationResolver) RemoveOpenHouseAttendee(ctx context.Context, eventID uuid.UUID, attendeeID uuid.UUID) (bool, error) {
-	return r.CalendarResolver.RemoveOpenHouseAttendee(ctx, eventID, attendeeID)
+	panic(fmt.Errorf("not implemented: RemoveOpenHouseAttendee - removeOpenHouseAttendee"))
 }
 
 // SavePaymentMethod is the resolver for the savePaymentMethod field.
-func (r *mutationResolver) SavePaymentMethod(ctx context.Context, input graphql1.SavePaymentMethodInput) (*domain6.PaymentMethod, error) {
-	return r.PaymentsResolver.SavePaymentMethod(ctx, &input)
+func (r *mutationResolver) SavePaymentMethod(ctx context.Context, input graphql5.SavePaymentMethodInput) (*domain10.PaymentMethod, error) {
+	panic(fmt.Errorf("not implemented: SavePaymentMethod - savePaymentMethod"))
 }
 
 // SetDefaultPaymentMethod is the resolver for the setDefaultPaymentMethod field.
-func (r *mutationResolver) SetDefaultPaymentMethod(ctx context.Context, id uuid.UUID) (*domain6.PaymentMethod, error) {
-	return r.PaymentsResolver.SetDefaultPaymentMethod(ctx, id.String())
+func (r *mutationResolver) SetDefaultPaymentMethod(ctx context.Context, id uuid.UUID) (*domain10.PaymentMethod, error) {
+	panic(fmt.Errorf("not implemented: SetDefaultPaymentMethod - setDefaultPaymentMethod"))
 }
 
 // DeletePaymentMethod is the resolver for the deletePaymentMethod field.
 func (r *mutationResolver) DeletePaymentMethod(ctx context.Context, id uuid.UUID) (bool, error) {
-	return r.PaymentsResolver.RemovePaymentMethod(ctx, id.String())
+	panic(fmt.Errorf("not implemented: DeletePaymentMethod - deletePaymentMethod"))
 }
 
 // CreatePayoutDetail is the resolver for the createPayoutDetail field.
-func (r *mutationResolver) CreatePayoutDetail(ctx context.Context, input graphql1.AddPayoutDetailInput) (*domain6.PayoutDetail, error) {
-	return r.PaymentsResolver.AddPayoutDetail(ctx, &input)
+func (r *mutationResolver) CreatePayoutDetail(ctx context.Context, input graphql5.AddPayoutDetailInput) (*domain10.PayoutDetail, error) {
+	panic(fmt.Errorf("not implemented: CreatePayoutDetail - createPayoutDetail"))
 }
 
 // SetDefaultPayoutDetail is the resolver for the setDefaultPayoutDetail field.
-func (r *mutationResolver) SetDefaultPayoutDetail(ctx context.Context, id uuid.UUID) (*domain6.PayoutDetail, error) {
-	return r.PaymentsResolver.SetDefaultPayoutDetail(ctx, id.String())
+func (r *mutationResolver) SetDefaultPayoutDetail(ctx context.Context, id uuid.UUID) (*domain10.PayoutDetail, error) {
+	panic(fmt.Errorf("not implemented: SetDefaultPayoutDetail - setDefaultPayoutDetail"))
 }
 
 // DeactivatePayoutDetail is the resolver for the deactivatePayoutDetail field.
-func (r *mutationResolver) DeactivatePayoutDetail(ctx context.Context, id uuid.UUID) (*domain6.PayoutDetail, error) {
-	return r.PaymentsResolver.DeactivatePayoutDetail(ctx, id.String())
+func (r *mutationResolver) DeactivatePayoutDetail(ctx context.Context, id uuid.UUID) (*domain10.PayoutDetail, error) {
+	panic(fmt.Errorf("not implemented: DeactivatePayoutDetail - deactivatePayoutDetail"))
 }
 
 // CreatePayout is the resolver for the createPayout field.
-func (r *mutationResolver) CreatePayout(ctx context.Context, input graphql1.CreatePayoutInput) (*domain6.Transaction, error) {
-	return r.PaymentsResolver.CreatePayout(ctx, &input)
+func (r *mutationResolver) CreatePayout(ctx context.Context, input graphql5.CreatePayoutInput) (*domain10.Transaction, error) {
+	panic(fmt.Errorf("not implemented: CreatePayout - createPayout"))
 }
 
 // CreatePricingRule is the resolver for the createPricingRule field.
-func (r *mutationResolver) CreatePricingRule(ctx context.Context, input graphql7.CreatePricingRuleInput) (*domain13.PricingRule, error) {
-	return r.PricingResolver.CreatePricingRule(ctx, input)
+func (r *mutationResolver) CreatePricingRule(ctx context.Context, input graphql6.CreatePricingRuleInput) (*domain11.PricingRule, error) {
+	panic(fmt.Errorf("not implemented: CreatePricingRule - createPricingRule"))
 }
 
 // UpdatePricingRule is the resolver for the updatePricingRule field.
-func (r *mutationResolver) UpdatePricingRule(ctx context.Context, input graphql7.UpdatePricingRuleInput) (*domain13.PricingRule, error) {
-	return r.PricingResolver.UpdatePricingRule(ctx, input)
+func (r *mutationResolver) UpdatePricingRule(ctx context.Context, input graphql6.UpdatePricingRuleInput) (*domain11.PricingRule, error) {
+	panic(fmt.Errorf("not implemented: UpdatePricingRule - updatePricingRule"))
 }
 
 // DeletePricingRule is the resolver for the deletePricingRule field.
 func (r *mutationResolver) DeletePricingRule(ctx context.Context, id uuid.UUID) (bool, error) {
-	return r.PricingResolver.DeletePricingRule(ctx, id)
+	panic(fmt.Errorf("not implemented: DeletePricingRule - deletePricingRule"))
 }
 
 // CreateMultiPropertyDiscount is the resolver for the createMultiPropertyDiscount field.
-func (r *mutationResolver) CreateMultiPropertyDiscount(ctx context.Context, input graphql7.CreateMultiPropertyDiscountInput) (*domain13.MultiPropertyDiscount, error) {
-	return r.PricingResolver.CreateMultiPropertyDiscount(ctx, input)
+func (r *mutationResolver) CreateMultiPropertyDiscount(ctx context.Context, input graphql6.CreateMultiPropertyDiscountInput) (*domain11.MultiPropertyDiscount, error) {
+	panic(fmt.Errorf("not implemented: CreateMultiPropertyDiscount - createMultiPropertyDiscount"))
 }
 
 // UpdateMultiPropertyDiscount is the resolver for the updateMultiPropertyDiscount field.
-func (r *mutationResolver) UpdateMultiPropertyDiscount(ctx context.Context, input graphql7.UpdateMultiPropertyDiscountInput) (*domain13.MultiPropertyDiscount, error) {
-	return r.PricingResolver.UpdateMultiPropertyDiscount(ctx, input)
+func (r *mutationResolver) UpdateMultiPropertyDiscount(ctx context.Context, input graphql6.UpdateMultiPropertyDiscountInput) (*domain11.MultiPropertyDiscount, error) {
+	panic(fmt.Errorf("not implemented: UpdateMultiPropertyDiscount - updateMultiPropertyDiscount"))
 }
 
 // DeleteMultiPropertyDiscount is the resolver for the deleteMultiPropertyDiscount field.
 func (r *mutationResolver) DeleteMultiPropertyDiscount(ctx context.Context, id uuid.UUID) (bool, error) {
-	return r.PricingResolver.DeleteMultiPropertyDiscount(ctx, id)
+	panic(fmt.Errorf("not implemented: DeleteMultiPropertyDiscount - deleteMultiPropertyDiscount"))
 }
 
 // FileDispute is the resolver for the fileDispute field.
-func (r *mutationResolver) FileDispute(ctx context.Context, input graphql2.FileDisputeInput) (*domain7.Dispute, error) {
-	return r.FinanceResolver.FileDispute(ctx, input)
+func (r *mutationResolver) FileDispute(ctx context.Context, input graphql7.FileDisputeInput) (*domain6.Dispute, error) {
+	panic(fmt.Errorf("not implemented: FileDispute - fileDispute"))
 }
 
 // CancelDispute is the resolver for the cancelDispute field.
-func (r *mutationResolver) CancelDispute(ctx context.Context, disputeID uuid.UUID) (*domain7.Dispute, error) {
-	return r.FinanceResolver.CancelDispute(ctx, disputeID.String())
+func (r *mutationResolver) CancelDispute(ctx context.Context, disputeID uuid.UUID) (*domain6.Dispute, error) {
+	panic(fmt.Errorf("not implemented: CancelDispute - cancelDispute"))
 }
 
 // AddDisputeEvidence is the resolver for the addDisputeEvidence field.
-func (r *mutationResolver) AddDisputeEvidence(ctx context.Context, input graphql2.AddDisputeEvidenceInput) (*domain7.Dispute, error) {
-	return r.FinanceResolver.AddDisputeEvidence(ctx, input)
+func (r *mutationResolver) AddDisputeEvidence(ctx context.Context, input graphql7.AddDisputeEvidenceInput) (*domain6.Dispute, error) {
+	panic(fmt.Errorf("not implemented: AddDisputeEvidence - addDisputeEvidence"))
 }
 
 // CreateWishlist is the resolver for the createWishlist field.
-func (r *mutationResolver) CreateWishlist(ctx context.Context, input wishlistgraphql.CreateWishlistInput) (*domain4.Wishlist, error) {
-	return r.WishlistResolver.CreateWishlist(ctx, input)
+func (r *mutationResolver) CreateWishlist(ctx context.Context, input graphql8.CreateWishlistInput) (*domain12.Wishlist, error) {
+	panic(fmt.Errorf("not implemented: CreateWishlist - createWishlist"))
 }
 
 // UpdateWishlist is the resolver for the updateWishlist field.
-func (r *mutationResolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input wishlistgraphql.UpdateWishlistInput) (*domain4.Wishlist, error) {
-	return r.WishlistResolver.UpdateWishlist(ctx, id, input)
+func (r *mutationResolver) UpdateWishlist(ctx context.Context, id uuid.UUID, input graphql8.UpdateWishlistInput) (*domain12.Wishlist, error) {
+	panic(fmt.Errorf("not implemented: UpdateWishlist - updateWishlist"))
 }
 
 // DeleteWishlist is the resolver for the deleteWishlist field.
 func (r *mutationResolver) DeleteWishlist(ctx context.Context, id uuid.UUID) (bool, error) {
-	return r.WishlistResolver.DeleteWishlist(ctx, id)
+	panic(fmt.Errorf("not implemented: DeleteWishlist - deleteWishlist"))
 }
 
 // AddWishlistItem is the resolver for the addWishlistItem field.
-func (r *mutationResolver) AddWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID, source *domain4.WishlistItemSource) (*domain4.WishlistItem, error) {
-	return r.WishlistResolver.AddWishlistItem(ctx, wishlistID, listingID, source)
+func (r *mutationResolver) AddWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID, source *domain12.WishlistItemSource) (*domain12.WishlistItem, error) {
+	panic(fmt.Errorf("not implemented: AddWishlistItem - addWishlistItem"))
 }
 
 // RemoveWishlistItem is the resolver for the removeWishlistItem field.
 func (r *mutationResolver) RemoveWishlistItem(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID) (bool, error) {
-	return r.WishlistResolver.RemoveWishlistItem(ctx, wishlistID, listingID)
+	panic(fmt.Errorf("not implemented: RemoveWishlistItem - removeWishlistItem"))
 }
 
 // ImportWishlist is the resolver for the importWishlist field.
-func (r *mutationResolver) ImportWishlist(ctx context.Context, sourceWishlistID uuid.UUID, newName *string) (*domain4.Wishlist, error) {
-	return r.WishlistResolver.ImportWishlist(ctx, sourceWishlistID, newName)
+func (r *mutationResolver) ImportWishlist(ctx context.Context, sourceWishlistID uuid.UUID, newName *string) (*domain12.Wishlist, error) {
+	panic(fmt.Errorf("not implemented: ImportWishlist - importWishlist"))
 }
 
 // CreateReview is the resolver for the createReview field.
-func (r *mutationResolver) CreateReview(ctx context.Context, input graphql3.CreateReviewInput) (*domain8.Review, error) {
-	return r.ReviewResolver.CreateReview(ctx, input)
+func (r *mutationResolver) CreateReview(ctx context.Context, input graphql9.CreateReviewInput) (*domain7.Review, error) {
+	panic(fmt.Errorf("not implemented: CreateReview - createReview"))
 }
 
 // UpdateReview is the resolver for the updateReview field.
-func (r *mutationResolver) UpdateReview(ctx context.Context, reviewID uuid.UUID, input graphql3.UpdateReviewInput) (*domain8.Review, error) {
-	return r.ReviewResolver.UpdateReview(ctx, reviewID.String(), input)
+func (r *mutationResolver) UpdateReview(ctx context.Context, reviewID uuid.UUID, input graphql9.UpdateReviewInput) (*domain7.Review, error) {
+	panic(fmt.Errorf("not implemented: UpdateReview - updateReview"))
 }
 
 // DeleteReview is the resolver for the deleteReview field.
 func (r *mutationResolver) DeleteReview(ctx context.Context, reviewID uuid.UUID) (bool, error) {
-	return r.ReviewResolver.DeleteReview(ctx, reviewID.String())
+	panic(fmt.Errorf("not implemented: DeleteReview - deleteReview"))
 }
 
 // ReportReview is the resolver for the reportReview field.
 func (r *mutationResolver) ReportReview(ctx context.Context, reviewID uuid.UUID, reason string) (bool, error) {
-	return r.ReviewResolver.ReportReview(ctx, reviewID.String(), reason)
+	panic(fmt.Errorf("not implemented: ReportReview - reportReview"))
 }
 
 // CreateResponse is the resolver for the createResponse field.
-func (r *mutationResolver) CreateResponse(ctx context.Context, reviewID uuid.UUID, body string) (*domain8.ReviewResponse, error) {
-	return r.ReviewResolver.CreateResponse(ctx, reviewID.String(), body)
+func (r *mutationResolver) CreateResponse(ctx context.Context, reviewID uuid.UUID, body string) (*domain7.ReviewResponse, error) {
+	panic(fmt.Errorf("not implemented: CreateResponse - createResponse"))
 }
 
 // UpdateResponse is the resolver for the updateResponse field.
-func (r *mutationResolver) UpdateResponse(ctx context.Context, responseID uuid.UUID, body string) (*domain8.ReviewResponse, error) {
-	return r.ReviewResolver.UpdateResponse(ctx, responseID.String(), body)
+func (r *mutationResolver) UpdateResponse(ctx context.Context, responseID uuid.UUID, body string) (*domain7.ReviewResponse, error) {
+	panic(fmt.Errorf("not implemented: UpdateResponse - updateResponse"))
 }
 
 // DeleteResponse is the resolver for the deleteResponse field.
 func (r *mutationResolver) DeleteResponse(ctx context.Context, responseID uuid.UUID) (bool, error) {
-	return r.ReviewResolver.DeleteResponse(ctx, responseID.String())
+	panic(fmt.Errorf("not implemented: DeleteResponse - deleteResponse"))
 }
 
 // CreatePromotion is the resolver for the createPromotion field.
-func (r *mutationResolver) CreatePromotion(ctx context.Context, input graphql5.CreatePromotionInput) (*graphql5.CreatePromotionPayload, error) {
-	return r.PromotionResolver.CreatePromotion(ctx, input.ListingID, input.Type, input.Duration)
+func (r *mutationResolver) CreatePromotion(ctx context.Context, input graphql10.CreatePromotionInput) (*graphql10.CreatePromotionPayload, error) {
+	panic(fmt.Errorf("not implemented: CreatePromotion - createPromotion"))
 }
 
 // CreateIncludedPromotion is the resolver for the createIncludedPromotion field.
-func (r *mutationResolver) CreateIncludedPromotion(ctx context.Context, input graphql5.CreateIncludedPromotionInput) (*domain9.ListingPromotion, error) {
-	return r.PromotionResolver.CreateIncludedPromotion(ctx, input.ListingID, input.Type, input.Duration)
+func (r *mutationResolver) CreateIncludedPromotion(ctx context.Context, input graphql10.CreateIncludedPromotionInput) (*domain.ListingPromotion, error) {
+	panic(fmt.Errorf("not implemented: CreateIncludedPromotion - createIncludedPromotion"))
 }
 
 // CancelPromotion is the resolver for the cancelPromotion field.
-func (r *mutationResolver) CancelPromotion(ctx context.Context, id uuid.UUID) (*domain9.ListingPromotion, error) {
-	return r.PromotionResolver.CancelPromotion(ctx, id)
+func (r *mutationResolver) CancelPromotion(ctx context.Context, id uuid.UUID) (*domain.ListingPromotion, error) {
+	panic(fmt.Errorf("not implemented: CancelPromotion - cancelPromotion"))
 }
 
 // CreateSubscription is the resolver for the createSubscription field.
-func (r *mutationResolver) CreateSubscription(ctx context.Context, input graphql5.CreateSubscriptionInput) (*graphql5.CreateSubscriptionPayload, error) {
-	return r.PromotionResolver.CreateSubscription(ctx, input.PlanType, input.BillingCycle, input.StartTrial, input.PaymentMethodID)
+func (r *mutationResolver) CreateSubscription(ctx context.Context, input graphql10.CreateSubscriptionInput) (*graphql10.CreateSubscriptionPayload, error) {
+	panic(fmt.Errorf("not implemented: CreateSubscription - createSubscription"))
 }
 
 // UpgradeSubscription is the resolver for the upgradeSubscription field.
-func (r *mutationResolver) UpgradeSubscription(ctx context.Context, subscriptionID uuid.UUID, newPlan domain9.PlanType) (*domain9.AgentSubscription, error) {
-	return r.PromotionResolver.UpgradeSubscription(ctx, subscriptionID, newPlan)
+func (r *mutationResolver) UpgradeSubscription(ctx context.Context, subscriptionID uuid.UUID, newPlan domain.PlanType) (*domain.AgentSubscription, error) {
+	panic(fmt.Errorf("not implemented: UpgradeSubscription - upgradeSubscription"))
 }
 
 // DowngradeSubscription is the resolver for the downgradeSubscription field.
-func (r *mutationResolver) DowngradeSubscription(ctx context.Context, subscriptionID uuid.UUID, newPlan domain9.PlanType) (*domain9.AgentSubscription, error) {
-	return r.PromotionResolver.DowngradeSubscription(ctx, subscriptionID, newPlan)
+func (r *mutationResolver) DowngradeSubscription(ctx context.Context, subscriptionID uuid.UUID, newPlan domain.PlanType) (*domain.AgentSubscription, error) {
+	panic(fmt.Errorf("not implemented: DowngradeSubscription - downgradeSubscription"))
 }
 
 // CancelSubscription is the resolver for the cancelSubscription field.
-func (r *mutationResolver) CancelSubscription(ctx context.Context, subscriptionID uuid.UUID) (*domain9.AgentSubscription, error) {
-	return r.PromotionResolver.CancelSubscription(ctx, subscriptionID)
+func (r *mutationResolver) CancelSubscription(ctx context.Context, subscriptionID uuid.UUID) (*domain.AgentSubscription, error) {
+	panic(fmt.Errorf("not implemented: CancelSubscription - cancelSubscription"))
 }
 
 // UseIncludedPromotion is the resolver for the useIncludedPromotion field.
-func (r *mutationResolver) UseIncludedPromotion(ctx context.Context, promoType domain9.PromotionType) (bool, error) {
-	return r.PromotionResolver.UseIncludedPromotion(ctx, promoType)
+func (r *mutationResolver) UseIncludedPromotion(ctx context.Context, promoType domain.PromotionType) (bool, error) {
+	panic(fmt.Errorf("not implemented: UseIncludedPromotion - useIncludedPromotion"))
 }
 
 // UseOpenHouse is the resolver for the useOpenHouse field.
 func (r *mutationResolver) UseOpenHouse(ctx context.Context) (bool, error) {
-	return r.PromotionResolver.UseOpenHouse(ctx)
+	panic(fmt.Errorf("not implemented: UseOpenHouse - useOpenHouse"))
 }
 
 // UsePrivateShowing is the resolver for the usePrivateShowing field.
 func (r *mutationResolver) UsePrivateShowing(ctx context.Context) (bool, error) {
-	return r.PromotionResolver.UsePrivateShowing(ctx)
+	panic(fmt.Errorf("not implemented: UsePrivateShowing - usePrivateShowing"))
 }
 
 // CreateLead is the resolver for the createLead field.
-func (r *mutationResolver) CreateLead(ctx context.Context, input leadsgraphql.CreateLeadInput) (*domain10.Lead, error) {
-	return r.LeadResolver.CreateLead(ctx, input)
+func (r *mutationResolver) CreateLead(ctx context.Context, input graphql11.CreateLeadInput) (*domain8.Lead, error) {
+	panic(fmt.Errorf("not implemented: CreateLead - createLead"))
 }
 
 // UpdateLeadStatus is the resolver for the updateLeadStatus field.
-func (r *mutationResolver) UpdateLeadStatus(ctx context.Context, leadID string, status domain10.LeadStatus, notes *string) (*domain10.Lead, error) {
-	return r.LeadResolver.UpdateLeadStatus(ctx, leadID, status, notes)
+func (r *mutationResolver) UpdateLeadStatus(ctx context.Context, leadID string, status domain8.LeadStatus, notes *string) (*domain8.Lead, error) {
+	panic(fmt.Errorf("not implemented: UpdateLeadStatus - updateLeadStatus"))
 }
 
 // AssignLead is the resolver for the assignLead field.
-func (r *mutationResolver) AssignLead(ctx context.Context, leadID string, assigneeID string, reason domain10.AssignmentReason) (*domain10.Lead, error) {
-	return r.LeadResolver.AssignLead(ctx, leadID, assigneeID, reason)
+func (r *mutationResolver) AssignLead(ctx context.Context, leadID string, assigneeID string, reason domain8.AssignmentReason) (*domain8.Lead, error) {
+	panic(fmt.Errorf("not implemented: AssignLead - assignLead"))
 }
 
 // MarkLeadAsSpam is the resolver for the markLeadAsSpam field.
 func (r *mutationResolver) MarkLeadAsSpam(ctx context.Context, leadID string) (bool, error) {
-	return r.LeadResolver.MarkLeadAsSpam(ctx, leadID)
+	panic(fmt.Errorf("not implemented: MarkLeadAsSpam - markLeadAsSpam"))
 }
 
 // DeleteLead is the resolver for the deleteLead field.
 func (r *mutationResolver) DeleteLead(ctx context.Context, leadID string) (bool, error) {
-	return r.LeadResolver.DeleteLead(ctx, leadID)
+	panic(fmt.Errorf("not implemented: DeleteLead - deleteLead"))
 }
 
 // TrackInteraction is the resolver for the trackInteraction field.
-func (r *mutationResolver) TrackInteraction(ctx context.Context, input interactionsgraphql.TrackInteractionInput) (bool, error) {
-	return r.InteractionsResolver.TrackInteraction(ctx, input)
+func (r *mutationResolver) TrackInteraction(ctx context.Context, input graphql12.TrackInteractionInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: TrackInteraction - trackInteraction"))
 }
 
 // CreatePhoneVerification is the resolver for the createPhoneVerification field.
-func (r *mutationResolver) CreatePhoneVerification(ctx context.Context, input graphql6.CreatePhoneVerificationInput) (*domain12.VerificationSession, error) {
-	return r.VerificationResolver.CreatePhoneVerification(ctx, input)
+func (r *mutationResolver) CreatePhoneVerification(ctx context.Context, input graphql13.CreatePhoneVerificationInput) (*domain13.VerificationSession, error) {
+	panic(fmt.Errorf("not implemented: CreatePhoneVerification - createPhoneVerification"))
 }
 
 // GeneratePhoneOtp is the resolver for the generatePhoneOTP field.
-func (r *mutationResolver) GeneratePhoneOtp(ctx context.Context, sessionID uuid.UUID) (*graphql6.OTPResponse, error) {
-	return r.VerificationResolver.GeneratePhoneOTP(ctx, sessionID)
+func (r *mutationResolver) GeneratePhoneOtp(ctx context.Context, sessionID uuid.UUID) (*graphql13.OTPResponse, error) {
+	panic(fmt.Errorf("not implemented: GeneratePhoneOtp - generatePhoneOTP"))
 }
 
 // VerifyPhoneOtp is the resolver for the verifyPhoneOTP field.
-func (r *mutationResolver) VerifyPhoneOtp(ctx context.Context, sessionID uuid.UUID, code string) (*graphql6.OTPVerificationResponse, error) {
-	return r.VerificationResolver.VerifyPhoneOTP(ctx, sessionID, code)
+func (r *mutationResolver) VerifyPhoneOtp(ctx context.Context, sessionID uuid.UUID, code string) (*graphql13.OTPVerificationResponse, error) {
+	panic(fmt.Errorf("not implemented: VerifyPhoneOtp - verifyPhoneOTP"))
 }
 
 // CreateIdentityVerification is the resolver for the createIdentityVerification field.
-func (r *mutationResolver) CreateIdentityVerification(ctx context.Context, input graphql6.CreateIdentityVerificationInput) (*domain12.VerificationSession, error) {
-	return r.VerificationResolver.CreateIdentityVerification(ctx, input)
+func (r *mutationResolver) CreateIdentityVerification(ctx context.Context, input graphql13.CreateIdentityVerificationInput) (*domain13.VerificationSession, error) {
+	panic(fmt.Errorf("not implemented: CreateIdentityVerification - createIdentityVerification"))
 }
 
 // SubmitIdentityVerification is the resolver for the submitIdentityVerification field.
-func (r *mutationResolver) SubmitIdentityVerification(ctx context.Context, input graphql6.SubmitIdentityVerificationInput) (*graphql6.VerificationSubmitResponse, error) {
-	return r.VerificationResolver.SubmitIdentityVerification(ctx, input)
+func (r *mutationResolver) SubmitIdentityVerification(ctx context.Context, input graphql13.SubmitIdentityVerificationInput) (*graphql13.VerificationSubmitResponse, error) {
+	panic(fmt.Errorf("not implemented: SubmitIdentityVerification - submitIdentityVerification"))
 }
 
 // CreateAddressVerification is the resolver for the createAddressVerification field.
-func (r *mutationResolver) CreateAddressVerification(ctx context.Context, input graphql6.CreateAddressVerificationInput) (*domain12.VerificationSession, error) {
-	return r.VerificationResolver.CreateAddressVerification(ctx, input)
+func (r *mutationResolver) CreateAddressVerification(ctx context.Context, input graphql13.CreateAddressVerificationInput) (*domain13.VerificationSession, error) {
+	panic(fmt.Errorf("not implemented: CreateAddressVerification - createAddressVerification"))
 }
 
 // SubmitAddressVerification is the resolver for the submitAddressVerification field.
-func (r *mutationResolver) SubmitAddressVerification(ctx context.Context, input graphql6.SubmitAddressVerificationInput) (*graphql6.VerificationSubmitResponse, error) {
-	return r.VerificationResolver.SubmitAddressVerification(ctx, input)
+func (r *mutationResolver) SubmitAddressVerification(ctx context.Context, input graphql13.SubmitAddressVerificationInput) (*graphql13.VerificationSubmitResponse, error) {
+	panic(fmt.Errorf("not implemented: SubmitAddressVerification - submitAddressVerification"))
 }
 
 // CreateBusinessVerification is the resolver for the createBusinessVerification field.
-func (r *mutationResolver) CreateBusinessVerification(ctx context.Context, input graphql6.CreateBusinessVerificationInput) (*domain12.VerificationSession, error) {
-	return r.VerificationResolver.CreateBusinessVerification(ctx, input)
+func (r *mutationResolver) CreateBusinessVerification(ctx context.Context, input graphql13.CreateBusinessVerificationInput) (*domain13.VerificationSession, error) {
+	panic(fmt.Errorf("not implemented: CreateBusinessVerification - createBusinessVerification"))
 }
 
 // SubmitBusinessVerification is the resolver for the submitBusinessVerification field.
-func (r *mutationResolver) SubmitBusinessVerification(ctx context.Context, input graphql6.SubmitBusinessVerificationInput) (*graphql6.VerificationSubmitResponse, error) {
-	return r.VerificationResolver.SubmitBusinessVerification(ctx, input)
+func (r *mutationResolver) SubmitBusinessVerification(ctx context.Context, input graphql13.SubmitBusinessVerificationInput) (*graphql13.VerificationSubmitResponse, error) {
+	panic(fmt.Errorf("not implemented: SubmitBusinessVerification - submitBusinessVerification"))
 }
 
 // Currency is the resolver for the currency field.
-func (r *paymentResolver) Currency(ctx context.Context, obj *domain6.Payment) (string, error) {
-	return string(obj.Currency), nil
+func (r *paymentResolver) Currency(ctx context.Context, obj *domain10.Payment) (string, error) {
+	panic(fmt.Errorf("not implemented: Currency - currency"))
 }
 
 // Metadata is the resolver for the metadata field.
-func (r *paymentResolver) Metadata(ctx context.Context, obj *domain6.Payment) (map[string]any, error) {
-	// Convert map[string]string to map[string]any
-	if obj.Metadata == nil {
-		return nil, nil
-	}
-	result := make(map[string]any, len(obj.Metadata))
-	for k, v := range obj.Metadata {
-		result[k] = v
-	}
-	return result, nil
+func (r *paymentResolver) Metadata(ctx context.Context, obj *domain10.Payment) (map[string]any, error) {
+	panic(fmt.Errorf("not implemented: Metadata - metadata"))
 }
 
 // CardLast4 is the resolver for the cardLast4 field.
-func (r *paymentMethodResolver) CardLast4(ctx context.Context, obj *domain6.PaymentMethod) (*string, error) {
-	return obj.Last4Digits, nil
+func (r *paymentMethodResolver) CardLast4(ctx context.Context, obj *domain10.PaymentMethod) (*string, error) {
+	panic(fmt.Errorf("not implemented: CardLast4 - cardLast4"))
 }
 
 // CardExpMonth is the resolver for the cardExpMonth field.
-func (r *paymentMethodResolver) CardExpMonth(ctx context.Context, obj *domain6.PaymentMethod) (*int, error) {
-	return obj.ExpiryMonth, nil
+func (r *paymentMethodResolver) CardExpMonth(ctx context.Context, obj *domain10.PaymentMethod) (*int, error) {
+	panic(fmt.Errorf("not implemented: CardExpMonth - cardExpMonth"))
 }
 
 // CardExpYear is the resolver for the cardExpYear field.
-func (r *paymentMethodResolver) CardExpYear(ctx context.Context, obj *domain6.PaymentMethod) (*int, error) {
-	return obj.ExpiryYear, nil
+func (r *paymentMethodResolver) CardExpYear(ctx context.Context, obj *domain10.PaymentMethod) (*int, error) {
+	panic(fmt.Errorf("not implemented: CardExpYear - cardExpYear"))
 }
 
 // CardBrand is the resolver for the cardBrand field.
-func (r *paymentMethodResolver) CardBrand(ctx context.Context, obj *domain6.PaymentMethod) (*string, error) {
-	return obj.Brand, nil
+func (r *paymentMethodResolver) CardBrand(ctx context.Context, obj *domain10.PaymentMethod) (*string, error) {
+	panic(fmt.Errorf("not implemented: CardBrand - cardBrand"))
 }
 
 // AccountNumberLast4 is the resolver for the accountNumberLast4 field.
-func (r *paymentMethodResolver) AccountNumberLast4(ctx context.Context, obj *domain6.PaymentMethod) (*string, error) {
-	// Bank account number not currently tracked - using card Last4Digits as fallback
-	return obj.Last4Digits, nil
+func (r *paymentMethodResolver) AccountNumberLast4(ctx context.Context, obj *domain10.PaymentMethod) (*string, error) {
+	panic(fmt.Errorf("not implemented: AccountNumberLast4 - accountNumberLast4"))
 }
 
 // PlatformFees is the resolver for the platformFees field.
-func (r *priceBreakdownResolver) PlatformFees(ctx context.Context, obj *domain13.PriceBreakdown) (*model.PlatformFeeBreakdown, error) {
-	if obj == nil || obj.PlatformFees == nil {
-		return nil, nil
-	}
-
-	return &model.PlatformFeeBreakdown{
-		GuestFeePercent:         obj.PlatformFees.GuestFeePercent,
-		GuestFeeAmount:          obj.PlatformFees.GuestFeeAmount,
-		HostCommissionPercent:   obj.PlatformFees.HostCommissionPercent,
-		HostCommissionAmount:    obj.PlatformFees.HostCommissionAmount,
-		PayoutProcessingPercent: obj.PlatformFees.PayoutProcessingPercent,
-		PayoutProcessingAmount:  obj.PlatformFees.PayoutProcessingAmount,
-		MinimumGuestFeeApplied:  obj.PlatformFees.MinimumGuestFeeApplied,
-		HostNetAmount:           obj.PlatformFees.HostNetAmount,
-	}, nil
+func (r *priceBreakdownResolver) PlatformFees(ctx context.Context, obj *domain11.PriceBreakdown) (*model.PlatformFeeBreakdown, error) {
+	panic(fmt.Errorf("not implemented: PlatformFees - platformFees"))
 }
 
 // PlatformFees is the resolver for the platformFees field.
-func (r *priceBreakdownSnapshotResolver) PlatformFees(ctx context.Context, obj *domain5.PriceBreakdownSnapshot) (*model.PlatformFeeBreakdown, error) {
-	if obj == nil || obj.PlatformFees == nil {
-		return nil, nil
-	}
-
-	return &model.PlatformFeeBreakdown{
-		GuestFeePercent:         obj.PlatformFees.GuestFeePercent,
-		GuestFeeAmount:          obj.PlatformFees.GuestFeeAmount,
-		HostCommissionPercent:   obj.PlatformFees.HostCommissionPercent,
-		HostCommissionAmount:    obj.PlatformFees.HostCommissionAmount,
-		PayoutProcessingPercent: obj.PlatformFees.PayoutProcessingPercent,
-		PayoutProcessingAmount:  obj.PlatformFees.PayoutProcessingAmount,
-		MinimumGuestFeeApplied:  obj.PlatformFees.MinimumGuestFeeApplied,
-		HostNetAmount:           obj.PlatformFees.HostNetAmount,
-	}, nil
+func (r *priceBreakdownSnapshotResolver) PlatformFees(ctx context.Context, obj *domain1.PriceBreakdownSnapshot) (*model.PlatformFeeBreakdown, error) {
+	panic(fmt.Errorf("not implemented: PlatformFees - platformFees"))
 }
 
 // Gender is the resolver for the gender field.
-func (r *profileResolver) Gender(ctx context.Context, obj *domain1.Profile) (*string, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	if obj.Gender == "" {
-		return nil, nil
-	}
-	g := string(obj.Gender)
-	return &g, nil
+func (r *profileResolver) Gender(ctx context.Context, obj *domain9.Profile) (*string, error) {
+	panic(fmt.Errorf("not implemented: Gender - gender"))
 }
 
 // Amenities is the resolver for the amenities field.
-func (r *propertyResolver) Amenities(ctx context.Context, obj *domain.Property) ([]*domain.AmenityGroup, error) {
-	if obj == nil || len(obj.Amenities) == 0 {
-		return []*domain.AmenityGroup{}, nil
-	}
-
-	result := make([]*domain.AmenityGroup, len(obj.Amenities))
-	for i := range obj.Amenities {
-		result[i] = &obj.Amenities[i]
-	}
-	return result, nil
+func (r *propertyResolver) Amenities(ctx context.Context, obj *domain2.Property) ([]*domain2.AmenityGroup, error) {
+	panic(fmt.Errorf("not implemented: Amenities - amenities"))
 }
 
 // FeaturesCommercial is the resolver for the featuresCommercial field.
-func (r *propertyResolver) FeaturesCommercial(ctx context.Context, obj *domain.Property) ([]*domain.AmenityGroup, error) {
-	if obj == nil || len(obj.FeaturesCommercial) == 0 {
-		return []*domain.AmenityGroup{}, nil
-	}
-
-	result := make([]*domain.AmenityGroup, len(obj.FeaturesCommercial))
-	for i := range obj.FeaturesCommercial {
-		result[i] = &obj.FeaturesCommercial[i]
-	}
-	return result, nil
+func (r *propertyResolver) FeaturesCommercial(ctx context.Context, obj *domain2.Property) ([]*domain2.AmenityGroup, error) {
+	panic(fmt.Errorf("not implemented: FeaturesCommercial - featuresCommercial"))
 }
 
 // Listings is the resolver for the listings field.
-func (r *propertyResolver) Listings(ctx context.Context, obj *domain.Property, first *int, after *string) (*model.ListingConnection, error) {
-	return r.PropertyResolver.PropertyListings(ctx, obj, first, after)
+func (r *propertyResolver) Listings(ctx context.Context, obj *domain2.Property, first *int, after *string) (*model.ListingConnection, error) {
+	panic(fmt.Errorf("not implemented: Listings - listings"))
 }
 
 // Me is the resolver for the me field.
-func (r *queryResolver) Me(ctx context.Context) (*domain2.User, error) {
-	return r.AuthResolver.Me(ctx)
+func (r *queryResolver) Me(ctx context.Context) (*domain14.User, error) {
+	panic(fmt.Errorf("not implemented: Me - me"))
 }
 
 // Profile is the resolver for the profile field.
-func (r *queryResolver) Profile(ctx context.Context, id uuid.UUID) (*domain1.Profile, error) {
-	return r.ProfileResolver.Profile(ctx, id)
+func (r *queryResolver) Profile(ctx context.Context, id uuid.UUID) (*domain9.Profile, error) {
+	panic(fmt.Errorf("not implemented: Profile - profile"))
 }
 
 // ProfileByUserID is the resolver for the profileByUserId field.
-func (r *queryResolver) ProfileByUserID(ctx context.Context, userID string) (*domain1.Profile, error) {
-	return r.ProfileResolver.ProfileByUserID(ctx, userID)
+func (r *queryResolver) ProfileByUserID(ctx context.Context, userID string) (*domain9.Profile, error) {
+	panic(fmt.Errorf("not implemented: ProfileByUserID - profileByUserId"))
 }
 
 // Profiles is the resolver for the profiles field.
-func (r *queryResolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*domain1.Profile, error) {
-	return r.ProfileResolver.Profiles(ctx, limit, offset)
+func (r *queryResolver) Profiles(ctx context.Context, limit *int, offset *int) ([]*domain9.Profile, error) {
+	panic(fmt.Errorf("not implemented: Profiles - profiles"))
 }
 
 // SearchProfiles is the resolver for the searchProfiles field.
-func (r *queryResolver) SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain1.Profile, error) {
-	return r.ProfileResolver.SearchProfiles(ctx, query, limit, offset)
+func (r *queryResolver) SearchProfiles(ctx context.Context, query string, limit *int, offset *int) ([]*domain9.Profile, error) {
+	panic(fmt.Errorf("not implemented: SearchProfiles - searchProfiles"))
 }
 
 // MyProfile is the resolver for the myProfile field.
-func (r *queryResolver) MyProfile(ctx context.Context) (*domain1.Profile, error) {
-	return r.ProfileResolver.MyProfile(ctx)
+func (r *queryResolver) MyProfile(ctx context.Context) (*domain9.Profile, error) {
+	panic(fmt.Errorf("not implemented: MyProfile - myProfile"))
 }
 
 // UploadProfilePhoto is the resolver for the uploadProfilePhoto field.
 func (r *queryResolver) UploadProfilePhoto(ctx context.Context, userID string, fileName string) (*model.UploadResult, error) {
-	u, err := r.ProfileResolver.UploadProfilePhoto(ctx, userID, fileName)
-	if err != nil {
-		return nil, err
-	}
-	mdl := &model.UploadResult{
-		UserID:    u.UserID,
-		Filename:  u.Filename,
-		UploadURL: u.URL,
-		Key:       u.Key,
-	}
-	tc := u.TravelCompanionID
-	if tc != uuid.Nil {
-		mdl.TravelCompanionID = &tc
-	}
-
-	return mdl, nil
+	panic(fmt.Errorf("not implemented: UploadProfilePhoto - uploadProfilePhoto"))
 }
 
 // UploadTravelCompanionPhoto is the resolver for the uploadTravelCompanionPhoto field.
 func (r *queryResolver) UploadTravelCompanionPhoto(ctx context.Context, userID string, companionID string, fileName string) (*model.UploadResult, error) {
-	companionUUID, err := uuid.Parse(companionID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid companionID: %w", err)
-	}
-	u, err := r.ProfileResolver.UploadTravelCompanionPhoto(ctx, companionUUID, userID, fileName)
-	if err != nil {
-		return nil, err
-	}
-	mdl := &model.UploadResult{
-		UserID:    u.UserID,
-		Filename:  u.Filename,
-		UploadURL: u.URL,
-		Key:       u.Key,
-	}
-	tc := u.TravelCompanionID
-	if tc != uuid.Nil {
-		mdl.TravelCompanionID = &tc
-	}
-
-	return mdl, nil
+	panic(fmt.Errorf("not implemented: UploadTravelCompanionPhoto - uploadTravelCompanionPhoto"))
 }
 
 // Listing is the resolver for the listing field.
-func (r *queryResolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
-	return r.PropertyResolver.Listing(ctx, id)
+func (r *queryResolver) Listing(ctx context.Context, id uuid.UUID) (*domain2.Listing, error) {
+	panic(fmt.Errorf("not implemented: Listing - listing"))
 }
 
 // ListingByPublicID is the resolver for the listingByPublicId field.
-func (r *queryResolver) ListingByPublicID(ctx context.Context, publicID string) (*domain.Listing, error) {
-	return r.PropertyResolver.ListingByPublicId(ctx, publicID)
+func (r *queryResolver) ListingByPublicID(ctx context.Context, publicID string) (*domain2.Listing, error) {
+	panic(fmt.Errorf("not implemented: ListingByPublicID - listingByPublicId"))
 }
 
 // ListingBySlug is the resolver for the listingBySlug field.
-func (r *queryResolver) ListingBySlug(ctx context.Context, slug string) (*domain.Listing, error) {
-	return r.PropertyResolver.ListingBySlug(ctx, slug)
+func (r *queryResolver) ListingBySlug(ctx context.Context, slug string) (*domain2.Listing, error) {
+	panic(fmt.Errorf("not implemented: ListingBySlug - listingBySlug"))
 }
 
 // Listings is the resolver for the listings field.
 func (r *queryResolver) Listings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
-	return r.PropertyResolver.Listings(ctx, filter, first, after)
+	panic(fmt.Errorf("not implemented: Listings - listings"))
 }
 
 // ListingsByProperty is the resolver for the listingsByProperty field.
 func (r *queryResolver) ListingsByProperty(ctx context.Context, propertyID uuid.UUID, first *int, after *string) (*model.ListingConnection, error) {
-	return r.PropertyResolver.ListingsByProperty(ctx, propertyID, first, after)
+	panic(fmt.Errorf("not implemented: ListingsByProperty - listingsByProperty"))
 }
 
 // MyListings is the resolver for the myListings field.
 func (r *queryResolver) MyListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
-	return r.PropertyResolver.MyListings(ctx, filter, first, after)
+	panic(fmt.Errorf("not implemented: MyListings - myListings"))
 }
 
 // ListingCompleteness is the resolver for the listingCompleteness field.
-func (r *queryResolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain.ListingCompleteness, error) {
-	return r.PropertyResolver.ListingCompleteness(ctx, listingID)
+func (r *queryResolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain2.ListingCompleteness, error) {
+	panic(fmt.Errorf("not implemented: ListingCompleteness - listingCompleteness"))
 }
 
 // BusinessListings is the resolver for the businessListings field.
 func (r *queryResolver) BusinessListings(ctx context.Context, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
-	return r.PropertyResolver.BusinessListings(ctx, businessID, filter, first, after)
+	panic(fmt.Errorf("not implemented: BusinessListings - businessListings"))
 }
 
 // MyIndividualListings is the resolver for the myIndividualListings field.
 func (r *queryResolver) MyIndividualListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
-	return r.PropertyResolver.MyIndividualListings(ctx, filter, first, after)
+	panic(fmt.Errorf("not implemented: MyIndividualListings - myIndividualListings"))
 }
 
 // ListingsNearPoint is the resolver for the listingsNearPoint field.
 func (r *queryResolver) ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error) {
-	return r.PropertyResolver.ListingsNearPoint(ctx, lat, lng, radiusMeters, filter, limit)
+	panic(fmt.Errorf("not implemented: ListingsNearPoint - listingsNearPoint"))
 }
 
 // SearchListings is the resolver for the searchListings field.
 func (r *queryResolver) SearchListings(ctx context.Context, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error) {
-	return r.PropertyResolver.SearchListings(ctx, filter, limit)
+	panic(fmt.Errorf("not implemented: SearchListings - searchListings"))
 }
 
 // SimilarListings is the resolver for the similarListings field.
 func (r *queryResolver) SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error) {
-	return r.PropertyResolver.SimilarListings(ctx, listingID, limit, minSimilarity)
+	panic(fmt.Errorf("not implemented: SimilarListings - similarListings"))
+}
+
+// Conversation is the resolver for the conversation field.
+func (r *queryResolver) Conversation(ctx context.Context, id uuid.UUID) (*domain5.Conversation, error) {
+	return r.MessagingResolver.Conversation(ctx, id)
+}
+
+// MyConversations is the resolver for the myConversations field.
+func (r *queryResolver) MyConversations(ctx context.Context, limit *int, offset *int) ([]*domain5.Conversation, error) {
+	return r.MessagingResolver.MyConversations(ctx, limit, offset)
 }
 
 // Business is the resolver for the business field.
 func (r *queryResolver) Business(ctx context.Context, id uuid.UUID) (*domain3.Business, error) {
-	return r.BusinessResolver.Business(ctx, id.String())
+	panic(fmt.Errorf("not implemented: Business - business"))
 }
 
 // BusinessBySlug is the resolver for the businessBySlug field.
 func (r *queryResolver) BusinessBySlug(ctx context.Context, slug string) (*domain3.Business, error) {
-	return r.BusinessResolver.BusinessBySlug(ctx, slug)
+	panic(fmt.Errorf("not implemented: BusinessBySlug - businessBySlug"))
 }
 
 // AllBusinesses is the resolver for the allBusinesses field.
 func (r *queryResolver) AllBusinesses(ctx context.Context, limit *int, offset *int) ([]*domain3.Business, error) {
-	businesses, err := r.BusinessResolver.AllBusinesses(ctx, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*domain3.Business, len(businesses))
-	for i := range businesses {
-		result[i] = &businesses[i]
-	}
-	return result, nil
+	panic(fmt.Errorf("not implemented: AllBusinesses - allBusinesses"))
 }
 
 // SearchBusinesses is the resolver for the searchBusinesses field.
 func (r *queryResolver) SearchBusinesses(ctx context.Context, query string, limit *int, offset *int) ([]*domain3.Business, error) {
-	businesses, err := r.BusinessResolver.SearchBusinesses(ctx, query, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*domain3.Business, len(businesses))
-	for i := range businesses {
-		result[i] = &businesses[i]
-	}
-	return result, nil
+	panic(fmt.Errorf("not implemented: SearchBusinesses - searchBusinesses"))
 }
 
 // BusinessMembers is the resolver for the businessMembers field.
 func (r *queryResolver) BusinessMembers(ctx context.Context, businessID uuid.UUID) ([]*domain3.BusinessMember, error) {
-	members, err := r.BusinessResolver.BusinessMembers(ctx, businessID.String())
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*domain3.BusinessMember, len(members))
-	for i := range members {
-		result[i] = &members[i]
-	}
-	return result, nil
+	panic(fmt.Errorf("not implemented: BusinessMembers - businessMembers"))
 }
 
 // MyMemberships is the resolver for the myMemberships field.
 func (r *queryResolver) MyMemberships(ctx context.Context) ([]*domain3.BusinessMember, error) {
-	members, err := r.BusinessResolver.MyMemberships(ctx)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*domain3.BusinessMember, len(members))
-	for i := range members {
-		result[i] = &members[i]
-	}
-	return result, nil
+	panic(fmt.Errorf("not implemented: MyMemberships - myMemberships"))
 }
 
 // BusinessMember is the resolver for the businessMember field.
 func (r *queryResolver) BusinessMember(ctx context.Context, businessID uuid.UUID, userID uuid.UUID) (*domain3.BusinessMember, error) {
-	return r.BusinessResolver.BusinessMember(ctx, businessID.String(), userID.String())
+	panic(fmt.Errorf("not implemented: BusinessMember - businessMember"))
 }
 
 // BusinessInvitations is the resolver for the businessInvitations field.
 func (r *queryResolver) BusinessInvitations(ctx context.Context, businessID uuid.UUID) ([]*domain3.BusinessInvitation, error) {
-	invitations, err := r.BusinessResolver.BusinessInvitations(ctx, businessID.String())
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*domain3.BusinessInvitation, len(invitations))
-	for i := range invitations {
-		result[i] = &invitations[i]
-	}
-	return result, nil
+	panic(fmt.Errorf("not implemented: BusinessInvitations - businessInvitations"))
 }
 
 // MyInvitations is the resolver for the myInvitations field.
 func (r *queryResolver) MyInvitations(ctx context.Context, email string) ([]*domain3.BusinessInvitation, error) {
-	invitations, err := r.BusinessResolver.MyInvitations(ctx, email)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*domain3.BusinessInvitation, len(invitations))
-	for i := range invitations {
-		result[i] = &invitations[i]
-	}
-	return result, nil
+	panic(fmt.Errorf("not implemented: MyInvitations - myInvitations"))
 }
 
 // MyBusinessPermissions is the resolver for the myBusinessPermissions field.
 func (r *queryResolver) MyBusinessPermissions(ctx context.Context, businessID uuid.UUID) (*domain3.MemberPermissions, error) {
-	return r.BusinessResolver.MyBusinessPermissions(ctx, businessID.String())
+	panic(fmt.Errorf("not implemented: MyBusinessPermissions - myBusinessPermissions"))
 }
 
 // QuoteBooking is the resolver for the quoteBooking field.
-func (r *queryResolver) QuoteBooking(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain5.BookingQuote, error) {
-	// BookingQuote is bound to domain type in gqlgen.yml, so return it directly
-	return r.BookingResolver.QuoteBooking(ctx, listingID, checkIn, checkOut, guestCount)
+func (r *queryResolver) QuoteBooking(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain1.BookingQuote, error) {
+	panic(fmt.Errorf("not implemented: QuoteBooking - quoteBooking"))
 }
 
 // Booking is the resolver for the booking field.
-func (r *queryResolver) Booking(ctx context.Context, id uuid.UUID) (*domain5.Booking, error) {
-	return r.BookingResolver.Booking(ctx, id)
+func (r *queryResolver) Booking(ctx context.Context, id uuid.UUID) (*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: Booking - booking"))
 }
 
 // BookingByReference is the resolver for the bookingByReference field.
-func (r *queryResolver) BookingByReference(ctx context.Context, reference string) (*domain5.Booking, error) {
-	return r.BookingResolver.BookingByReference(ctx, reference)
+func (r *queryResolver) BookingByReference(ctx context.Context, reference string) (*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: BookingByReference - bookingByReference"))
 }
 
 // MyBookings is the resolver for the myBookings field.
-func (r *queryResolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*domain5.Booking, error) {
-	return r.BookingResolver.MyBookings(ctx, limit, offset)
+func (r *queryResolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: MyBookings - myBookings"))
 }
 
 // ListingBookings is the resolver for the listingBookings field.
-func (r *queryResolver) ListingBookings(ctx context.Context, listingID uuid.UUID, status *domain5.BookingStatus, limit *int, offset *int) ([]*domain5.Booking, error) {
-	return r.BookingResolver.ListingBookings(ctx, listingID, status, limit, offset)
+func (r *queryResolver) ListingBookings(ctx context.Context, listingID uuid.UUID, status *domain1.BookingStatus, limit *int, offset *int) ([]*domain1.Booking, error) {
+	panic(fmt.Errorf("not implemented: ListingBookings - listingBookings"))
 }
 
 // CalendarEvent is the resolver for the calendarEvent field.
-func (r *queryResolver) CalendarEvent(ctx context.Context, id uuid.UUID) (*calendardomain.CalendarEvent, error) {
-	return r.CalendarResolver.CalendarEvent(ctx, id)
+func (r *queryResolver) CalendarEvent(ctx context.Context, id uuid.UUID) (*domain4.CalendarEvent, error) {
+	panic(fmt.Errorf("not implemented: CalendarEvent - calendarEvent"))
 }
 
 // ListingEvents is the resolver for the listingEvents field.
-func (r *queryResolver) ListingEvents(ctx context.Context, listingID uuid.UUID, startTime time.Time, endTime time.Time, eventTypes []calendardomain.EventType) ([]*calendardomain.CalendarEvent, error) {
-	return r.CalendarResolver.ListingEvents(ctx, listingID, startTime, endTime, eventTypes)
+func (r *queryResolver) ListingEvents(ctx context.Context, listingID uuid.UUID, startTime time.Time, endTime time.Time, eventTypes []domain4.EventType) ([]*domain4.CalendarEvent, error) {
+	panic(fmt.Errorf("not implemented: ListingEvents - listingEvents"))
 }
 
 // UpcomingListingEvents is the resolver for the upcomingListingEvents field.
-func (r *queryResolver) UpcomingListingEvents(ctx context.Context, listingID uuid.UUID, limit *int) ([]*calendardomain.CalendarEvent, error) {
-	return r.CalendarResolver.UpcomingListingEvents(ctx, listingID, limit)
+func (r *queryResolver) UpcomingListingEvents(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain4.CalendarEvent, error) {
+	panic(fmt.Errorf("not implemented: UpcomingListingEvents - upcomingListingEvents"))
 }
 
 // MyCalendarEvents is the resolver for the myCalendarEvents field.
-func (r *queryResolver) MyCalendarEvents(ctx context.Context, startTime time.Time, endTime time.Time) ([]*calendardomain.CalendarEvent, error) {
-	return r.CalendarResolver.MyCalendarEvents(ctx, startTime, endTime)
+func (r *queryResolver) MyCalendarEvents(ctx context.Context, startTime time.Time, endTime time.Time) ([]*domain4.CalendarEvent, error) {
+	panic(fmt.Errorf("not implemented: MyCalendarEvents - myCalendarEvents"))
 }
 
 // OpenHouseAttendees is the resolver for the openHouseAttendees field.
-func (r *queryResolver) OpenHouseAttendees(ctx context.Context, eventID uuid.UUID) ([]*calendardomain.Attendee, error) {
-	return r.CalendarResolver.OpenHouseAttendees(ctx, eventID)
+func (r *queryResolver) OpenHouseAttendees(ctx context.Context, eventID uuid.UUID) ([]*domain4.Attendee, error) {
+	panic(fmt.Errorf("not implemented: OpenHouseAttendees - openHouseAttendees"))
 }
 
 // CheckListingAvailability is the resolver for the checkListingAvailability field.
 func (r *queryResolver) CheckListingAvailability(ctx context.Context, listingID uuid.UUID, startTime time.Time, endTime time.Time) (bool, error) {
-	return r.CalendarResolver.CheckListingAvailability(ctx, listingID, startTime, endTime)
+	panic(fmt.Errorf("not implemented: CheckListingAvailability - checkListingAvailability"))
 }
 
 // Payment is the resolver for the payment field.
-func (r *queryResolver) Payment(ctx context.Context, id uuid.UUID) (*domain6.Payment, error) {
-	return r.PaymentsResolver.Payment(ctx, id.String())
+func (r *queryResolver) Payment(ctx context.Context, id uuid.UUID) (*domain10.Payment, error) {
+	panic(fmt.Errorf("not implemented: Payment - payment"))
 }
 
 // PaymentByReference is the resolver for the paymentByReference field.
-func (r *queryResolver) PaymentByReference(ctx context.Context, reference string) (*domain6.Payment, error) {
-	return r.PaymentsResolver.PaymentByReference(ctx, reference)
+func (r *queryResolver) PaymentByReference(ctx context.Context, reference string) (*domain10.Payment, error) {
+	panic(fmt.Errorf("not implemented: PaymentByReference - paymentByReference"))
 }
 
 // MyPayments is the resolver for the myPayments field.
-func (r *queryResolver) MyPayments(ctx context.Context, limit *int, offset *int, status *domain6.PaymentStatus) ([]*domain6.Payment, error) {
-	payments, err := r.PaymentsResolver.MyPayments(ctx, limit, offset, status)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*domain6.Payment, len(payments))
-	for i := range payments {
-		result[i] = &payments[i]
-	}
-	return result, nil
+func (r *queryResolver) MyPayments(ctx context.Context, limit *int, offset *int, status *domain10.PaymentStatus) ([]*domain10.Payment, error) {
+	panic(fmt.Errorf("not implemented: MyPayments - myPayments"))
 }
 
 // PaymentMethod is the resolver for the paymentMethod field.
-func (r *queryResolver) PaymentMethod(ctx context.Context, id uuid.UUID) (*domain6.PaymentMethod, error) {
-	return r.PaymentsResolver.GetPaymentMethod(ctx, id.String())
+func (r *queryResolver) PaymentMethod(ctx context.Context, id uuid.UUID) (*domain10.PaymentMethod, error) {
+	panic(fmt.Errorf("not implemented: PaymentMethod - paymentMethod"))
 }
 
 // PaymentMethods is the resolver for the paymentMethods field.
-func (r *queryResolver) PaymentMethods(ctx context.Context, userID uuid.UUID) ([]*domain6.PaymentMethod, error) {
-	methods, err := r.PaymentsResolver.MyPaymentMethods(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// Convert []PaymentMethod to []*PaymentMethod
-	result := make([]*domain6.PaymentMethod, len(methods))
-	for i := range methods {
-		result[i] = &methods[i]
-	}
-	return result, nil
+func (r *queryResolver) PaymentMethods(ctx context.Context, userID uuid.UUID) ([]*domain10.PaymentMethod, error) {
+	panic(fmt.Errorf("not implemented: PaymentMethods - paymentMethods"))
 }
 
 // MyPaymentMethods is the resolver for the myPaymentMethods field.
-func (r *queryResolver) MyPaymentMethods(ctx context.Context) ([]*domain6.PaymentMethod, error) {
-	methods, err := r.PaymentsResolver.MyPaymentMethods(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*domain6.PaymentMethod, len(methods))
-	for i := range methods {
-		result[i] = &methods[i]
-	}
-	return result, nil
+func (r *queryResolver) MyPaymentMethods(ctx context.Context) ([]*domain10.PaymentMethod, error) {
+	panic(fmt.Errorf("not implemented: MyPaymentMethods - myPaymentMethods"))
 }
 
 // Transaction is the resolver for the transaction field.
-func (r *queryResolver) Transaction(ctx context.Context, id uuid.UUID) (*domain6.Transaction, error) {
-	return r.PaymentsResolver.Transaction(ctx, id.String())
+func (r *queryResolver) Transaction(ctx context.Context, id uuid.UUID) (*domain10.Transaction, error) {
+	panic(fmt.Errorf("not implemented: Transaction - transaction"))
 }
 
 // TransactionsByBooking is the resolver for the transactionsByBooking field.
-func (r *queryResolver) TransactionsByBooking(ctx context.Context, bookingID uuid.UUID) ([]*domain6.Transaction, error) {
-	transactions, err := r.PaymentsResolver.TransactionsByBooking(ctx, bookingID.String())
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*domain6.Transaction, len(transactions))
-	for i := range transactions {
-		result[i] = &transactions[i]
-	}
-	return result, nil
+func (r *queryResolver) TransactionsByBooking(ctx context.Context, bookingID uuid.UUID) ([]*domain10.Transaction, error) {
+	panic(fmt.Errorf("not implemented: TransactionsByBooking - transactionsByBooking"))
 }
 
 // MyTransactions is the resolver for the myTransactions field.
-func (r *queryResolver) MyTransactions(ctx context.Context, typeArg *domain6.TransactionType, status *domain6.TransactionStatus, limit *int, offset *int) ([]*domain6.Transaction, error) {
-	transactions, err := r.PaymentsResolver.MyTransactions(ctx, typeArg, status, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]*domain6.Transaction, len(transactions))
-	for i := range transactions {
-		result[i] = &transactions[i]
-	}
-	return result, nil
+func (r *queryResolver) MyTransactions(ctx context.Context, typeArg *domain10.TransactionType, status *domain10.TransactionStatus, limit *int, offset *int) ([]*domain10.Transaction, error) {
+	panic(fmt.Errorf("not implemented: MyTransactions - myTransactions"))
 }
 
 // PayoutDetail is the resolver for the payoutDetail field.
-func (r *queryResolver) PayoutDetail(ctx context.Context, id uuid.UUID) (*domain6.PayoutDetail, error) {
-	return r.PaymentsResolver.GetPayoutDetail(ctx, id.String())
+func (r *queryResolver) PayoutDetail(ctx context.Context, id uuid.UUID) (*domain10.PayoutDetail, error) {
+	panic(fmt.Errorf("not implemented: PayoutDetail - payoutDetail"))
 }
 
 // MyPayoutDetails is the resolver for the myPayoutDetails field.
-func (r *queryResolver) MyPayoutDetails(ctx context.Context) ([]*domain6.PayoutDetail, error) {
-	details, err := r.PaymentsResolver.MyPayoutDetails(ctx)
-	if err != nil {
-		return nil, err
-	}
-	// Convert []PayoutDetail to []*PayoutDetail
-	result := make([]*domain6.PayoutDetail, len(details))
-	for i := range details {
-		result[i] = &details[i]
-	}
-	return result, nil
+func (r *queryResolver) MyPayoutDetails(ctx context.Context) ([]*domain10.PayoutDetail, error) {
+	panic(fmt.Errorf("not implemented: MyPayoutDetails - myPayoutDetails"))
 }
 
 // PricingRule is the resolver for the pricingRule field.
-func (r *queryResolver) PricingRule(ctx context.Context, id uuid.UUID) (*domain13.PricingRule, error) {
-	return r.PricingResolver.PricingRule(ctx, id)
+func (r *queryResolver) PricingRule(ctx context.Context, id uuid.UUID) (*domain11.PricingRule, error) {
+	panic(fmt.Errorf("not implemented: PricingRule - pricingRule"))
 }
 
 // PricingRulesForListing is the resolver for the pricingRulesForListing field.
-func (r *queryResolver) PricingRulesForListing(ctx context.Context, listingID uuid.UUID, activeOnly *bool) ([]*domain13.PricingRule, error) {
-	return r.PricingResolver.PricingRulesForListing(ctx, listingID, activeOnly)
+func (r *queryResolver) PricingRulesForListing(ctx context.Context, listingID uuid.UUID, activeOnly *bool) ([]*domain11.PricingRule, error) {
+	panic(fmt.Errorf("not implemented: PricingRulesForListing - pricingRulesForListing"))
 }
 
 // MultiPropertyDiscountsForOwner is the resolver for the multiPropertyDiscountsForOwner field.
-func (r *queryResolver) MultiPropertyDiscountsForOwner(ctx context.Context) ([]*domain13.MultiPropertyDiscount, error) {
-	return r.PricingResolver.MultiPropertyDiscountsForOwner(ctx)
+func (r *queryResolver) MultiPropertyDiscountsForOwner(ctx context.Context) ([]*domain11.MultiPropertyDiscount, error) {
+	panic(fmt.Errorf("not implemented: MultiPropertyDiscountsForOwner - multiPropertyDiscountsForOwner"))
 }
 
 // CalculatePrice is the resolver for the calculatePrice field.
-func (r *queryResolver) CalculatePrice(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain13.PriceBreakdown, error) {
-	return r.PricingResolver.CalculatePrice(ctx, listingID, checkIn, checkOut, guestCount)
+func (r *queryResolver) CalculatePrice(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain11.PriceBreakdown, error) {
+	panic(fmt.Errorf("not implemented: CalculatePrice - calculatePrice"))
 }
 
 // CalculateMultiPropertyPrice is the resolver for the calculateMultiPropertyPrice field.
-func (r *queryResolver) CalculateMultiPropertyPrice(ctx context.Context, bookings []*graphql7.MultiPropertyBookingInput) (*domain13.PriceBreakdown, error) {
-	inputs := make([]graphql7.MultiPropertyBookingInput, len(bookings))
-	for i, b := range bookings {
-		if b != nil {
-			inputs[i] = *b
-		}
-	}
-	return r.PricingResolver.CalculateMultiPropertyPrice(ctx, inputs)
+func (r *queryResolver) CalculateMultiPropertyPrice(ctx context.Context, bookings []*graphql6.MultiPropertyBookingInput) (*domain11.PriceBreakdown, error) {
+	panic(fmt.Errorf("not implemented: CalculateMultiPropertyPrice - calculateMultiPropertyPrice"))
 }
 
 // BasePrice is the resolver for the basePrice field.
-func (r *queryResolver) BasePrice(ctx context.Context, listingID uuid.UUID) (*graphql7.BasePriceResult, error) {
-	return r.PricingResolver.BasePrice(ctx, listingID)
+func (r *queryResolver) BasePrice(ctx context.Context, listingID uuid.UUID) (*graphql6.BasePriceResult, error) {
+	panic(fmt.Errorf("not implemented: BasePrice - basePrice"))
 }
 
 // PreviewPricing is the resolver for the previewPricing field.
-func (r *queryResolver) PreviewPricing(ctx context.Context, listingID uuid.UUID, month time.Time) ([]*domain13.DailyRate, error) {
-	rates, err := r.PricingResolver.PreviewPricing(ctx, listingID, month)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*domain13.DailyRate, len(rates))
-	for i := range rates {
-		result[i] = &rates[i]
-	}
-	return result, nil
+func (r *queryResolver) PreviewPricing(ctx context.Context, listingID uuid.UUID, month time.Time) ([]*domain11.DailyRate, error) {
+	panic(fmt.Errorf("not implemented: PreviewPricing - previewPricing"))
 }
 
 // MyWallets is the resolver for the myWallets field.
-func (r *queryResolver) MyWallets(ctx context.Context) ([]*domain7.Wallet, error) {
-	return r.FinanceResolver.MyWallets(ctx)
+func (r *queryResolver) MyWallets(ctx context.Context) ([]*domain6.Wallet, error) {
+	panic(fmt.Errorf("not implemented: MyWallets - myWallets"))
 }
 
 // FinanceTransactionHistory is the resolver for the financeTransactionHistory field.
-func (r *queryResolver) FinanceTransactionHistory(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*domain7.Transaction, error) {
-	return r.FinanceResolver.FinanceTransactionHistory(ctx, resourceType, resourceID.String())
+func (r *queryResolver) FinanceTransactionHistory(ctx context.Context, resourceType string, resourceID uuid.UUID) ([]*domain6.Transaction, error) {
+	panic(fmt.Errorf("not implemented: FinanceTransactionHistory - financeTransactionHistory"))
 }
 
 // MyWalletLedger is the resolver for the myWalletLedger field.
-func (r *queryResolver) MyWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain7.LedgerEntry, error) {
-	return r.FinanceResolver.MyWalletLedger(ctx, walletID.String(), limit, offset)
+func (r *queryResolver) MyWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain6.LedgerEntry, error) {
+	panic(fmt.Errorf("not implemented: MyWalletLedger - myWalletLedger"))
 }
 
 // MyEarnings is the resolver for the myEarnings field.
-func (r *queryResolver) MyEarnings(ctx context.Context) (*graphql2.EarningsSummary, error) {
-	return r.FinanceResolver.MyEarnings(ctx)
+func (r *queryResolver) MyEarnings(ctx context.Context) (*graphql7.EarningsSummary, error) {
+	panic(fmt.Errorf("not implemented: MyEarnings - myEarnings"))
 }
 
 // MyDisbursements is the resolver for the myDisbursements field.
-func (r *queryResolver) MyDisbursements(ctx context.Context, status *domain7.DisbursementStatus, limit *int, offset *int) ([]*domain7.Disbursement, error) {
-	return r.FinanceResolver.MyDisbursements(ctx, status, limit, offset)
+func (r *queryResolver) MyDisbursements(ctx context.Context, status *domain6.DisbursementStatus, limit *int, offset *int) ([]*domain6.Disbursement, error) {
+	panic(fmt.Errorf("not implemented: MyDisbursements - myDisbursements"))
 }
 
 // MyFinanceTransactions is the resolver for the myFinanceTransactions field.
-func (r *queryResolver) MyFinanceTransactions(ctx context.Context, typeArg *domain7.TransactionType, status *domain7.TransactionStatus, limit *int, offset *int) ([]*domain7.Transaction, error) {
-	return r.FinanceResolver.MyFinanceTransactions(ctx, typeArg, status, limit, offset)
+func (r *queryResolver) MyFinanceTransactions(ctx context.Context, typeArg *domain6.TransactionType, status *domain6.TransactionStatus, limit *int, offset *int) ([]*domain6.Transaction, error) {
+	panic(fmt.Errorf("not implemented: MyFinanceTransactions - myFinanceTransactions"))
 }
 
 // BusinessWallets is the resolver for the businessWallets field.
-func (r *queryResolver) BusinessWallets(ctx context.Context, businessID uuid.UUID) ([]*domain7.Wallet, error) {
-	return r.FinanceResolver.BusinessWallets(ctx, businessID.String())
+func (r *queryResolver) BusinessWallets(ctx context.Context, businessID uuid.UUID) ([]*domain6.Wallet, error) {
+	panic(fmt.Errorf("not implemented: BusinessWallets - businessWallets"))
 }
 
 // BusinessWalletLedger is the resolver for the businessWalletLedger field.
-func (r *queryResolver) BusinessWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain7.LedgerEntry, error) {
-	return r.FinanceResolver.BusinessWalletLedger(ctx, walletID.String(), limit, offset)
+func (r *queryResolver) BusinessWalletLedger(ctx context.Context, walletID uuid.UUID, limit *int, offset *int) ([]*domain6.LedgerEntry, error) {
+	panic(fmt.Errorf("not implemented: BusinessWalletLedger - businessWalletLedger"))
 }
 
 // BusinessDisbursements is the resolver for the businessDisbursements field.
-func (r *queryResolver) BusinessDisbursements(ctx context.Context, businessID uuid.UUID, status *domain7.DisbursementStatus, limit *int, offset *int) ([]*domain7.Disbursement, error) {
-	return r.FinanceResolver.BusinessDisbursements(ctx, businessID.String(), status, limit, offset)
+func (r *queryResolver) BusinessDisbursements(ctx context.Context, businessID uuid.UUID, status *domain6.DisbursementStatus, limit *int, offset *int) ([]*domain6.Disbursement, error) {
+	panic(fmt.Errorf("not implemented: BusinessDisbursements - businessDisbursements"))
 }
 
 // Dispute is the resolver for the dispute field.
-func (r *queryResolver) Dispute(ctx context.Context, id uuid.UUID) (*domain7.Dispute, error) {
-	return r.FinanceResolver.Dispute(ctx, id.String())
+func (r *queryResolver) Dispute(ctx context.Context, id uuid.UUID) (*domain6.Dispute, error) {
+	panic(fmt.Errorf("not implemented: Dispute - dispute"))
 }
 
 // DisputeByBooking is the resolver for the disputeByBooking field.
-func (r *queryResolver) DisputeByBooking(ctx context.Context, bookingID uuid.UUID) (*domain7.Dispute, error) {
-	return r.FinanceResolver.DisputeByBooking(ctx, bookingID.String())
+func (r *queryResolver) DisputeByBooking(ctx context.Context, bookingID uuid.UUID) (*domain6.Dispute, error) {
+	panic(fmt.Errorf("not implemented: DisputeByBooking - disputeByBooking"))
 }
 
 // MyDisputes is the resolver for the myDisputes field.
-func (r *queryResolver) MyDisputes(ctx context.Context, limit *int, offset *int) ([]*domain7.Dispute, error) {
-	return r.FinanceResolver.MyDisputes(ctx, limit, offset)
+func (r *queryResolver) MyDisputes(ctx context.Context, limit *int, offset *int) ([]*domain6.Dispute, error) {
+	panic(fmt.Errorf("not implemented: MyDisputes - myDisputes"))
 }
 
 // Wishlist is the resolver for the wishlist field.
-func (r *queryResolver) Wishlist(ctx context.Context, id uuid.UUID) (*domain4.Wishlist, error) {
-	return r.WishlistResolver.Wishlist(ctx, id)
+func (r *queryResolver) Wishlist(ctx context.Context, id uuid.UUID) (*domain12.Wishlist, error) {
+	panic(fmt.Errorf("not implemented: Wishlist - wishlist"))
 }
 
 // MyWishlists is the resolver for the myWishlists field.
-func (r *queryResolver) MyWishlists(ctx context.Context, limit *int, offset *int) ([]*domain4.Wishlist, error) {
-	return r.WishlistResolver.MyWishlists(ctx, limit, offset)
+func (r *queryResolver) MyWishlists(ctx context.Context, limit *int, offset *int) ([]*domain12.Wishlist, error) {
+	panic(fmt.Errorf("not implemented: MyWishlists - myWishlists"))
 }
 
 // WishlistItems is the resolver for the wishlistItems field.
-func (r *queryResolver) WishlistItems(ctx context.Context, wishlistID uuid.UUID, limit *int, offset *int) ([]*domain4.WishlistItem, error) {
-	return r.WishlistResolver.WishlistItems(ctx, wishlistID, limit, offset)
+func (r *queryResolver) WishlistItems(ctx context.Context, wishlistID uuid.UUID, limit *int, offset *int) ([]*domain12.WishlistItem, error) {
+	panic(fmt.Errorf("not implemented: WishlistItems - wishlistItems"))
 }
 
 // IsListingInWishlist is the resolver for the isListingInWishlist field.
 func (r *queryResolver) IsListingInWishlist(ctx context.Context, wishlistID uuid.UUID, listingID uuid.UUID) (bool, error) {
-	return r.WishlistResolver.IsListingInWishlist(ctx, wishlistID, listingID)
+	panic(fmt.Errorf("not implemented: IsListingInWishlist - isListingInWishlist"))
 }
 
 // Review is the resolver for the review field.
-func (r *queryResolver) Review(ctx context.Context, id uuid.UUID) (*domain8.Review, error) {
-	return r.ReviewResolver.Review(ctx, id.String())
+func (r *queryResolver) Review(ctx context.Context, id uuid.UUID) (*domain7.Review, error) {
+	panic(fmt.Errorf("not implemented: Review - review"))
 }
 
 // ReviewForBooking is the resolver for the reviewForBooking field.
-func (r *queryResolver) ReviewForBooking(ctx context.Context, bookingID uuid.UUID) (*domain8.Review, error) {
-	return r.ReviewResolver.ReviewForBooking(ctx, bookingID.String())
+func (r *queryResolver) ReviewForBooking(ctx context.Context, bookingID uuid.UUID) (*domain7.Review, error) {
+	panic(fmt.Errorf("not implemented: ReviewForBooking - reviewForBooking"))
 }
 
 // Reviews is the resolver for the reviews field.
-func (r *queryResolver) Reviews(ctx context.Context, targetType domain8.ReviewTargetType, targetID uuid.UUID, filter *graphql3.ReviewFilterInput) ([]*domain8.Review, error) {
-	return r.ReviewResolver.Reviews(ctx, targetType, targetID.String(), filter)
+func (r *queryResolver) Reviews(ctx context.Context, targetType domain7.ReviewTargetType, targetID uuid.UUID, filter *graphql9.ReviewFilterInput) ([]*domain7.Review, error) {
+	panic(fmt.Errorf("not implemented: Reviews - reviews"))
 }
 
 // UserReviews is the resolver for the userReviews field.
-func (r *queryResolver) UserReviews(ctx context.Context, userID uuid.UUID, limit *int, offset *int) ([]*domain8.Review, error) {
-	return r.ReviewResolver.UserReviews(ctx, userID.String(), limit, offset)
+func (r *queryResolver) UserReviews(ctx context.Context, userID uuid.UUID, limit *int, offset *int) ([]*domain7.Review, error) {
+	panic(fmt.Errorf("not implemented: UserReviews - userReviews"))
 }
 
 // ListingStats is the resolver for the listingStats field.
-func (r *queryResolver) ListingStats(ctx context.Context, listingID uuid.UUID) (*domain8.ListingStats, error) {
-	return r.ReviewResolver.ListingStats(ctx, listingID.String())
+func (r *queryResolver) ListingStats(ctx context.Context, listingID uuid.UUID) (*domain7.ListingStats, error) {
+	panic(fmt.Errorf("not implemented: ListingStats - listingStats"))
 }
 
 // HostStats is the resolver for the hostStats field.
-func (r *queryResolver) HostStats(ctx context.Context, hostID uuid.UUID) (*domain8.HostStats, error) {
-	return r.ReviewResolver.HostStats(ctx, hostID.String())
+func (r *queryResolver) HostStats(ctx context.Context, hostID uuid.UUID) (*domain7.HostStats, error) {
+	panic(fmt.Errorf("not implemented: HostStats - hostStats"))
 }
 
 // ReviewResponse is the resolver for the reviewResponse field.
-func (r *queryResolver) ReviewResponse(ctx context.Context, reviewID uuid.UUID) (*domain8.ReviewResponse, error) {
-	return r.ReviewResolver.ReviewResponse(ctx, reviewID.String())
+func (r *queryResolver) ReviewResponse(ctx context.Context, reviewID uuid.UUID) (*domain7.ReviewResponse, error) {
+	panic(fmt.Errorf("not implemented: ReviewResponse - reviewResponse"))
 }
 
 // GetPromotion is the resolver for the getPromotion field.
-func (r *queryResolver) GetPromotion(ctx context.Context, id uuid.UUID) (*domain9.ListingPromotion, error) {
-	return r.PromotionResolver.GetPromotion(ctx, id)
+func (r *queryResolver) GetPromotion(ctx context.Context, id uuid.UUID) (*domain.ListingPromotion, error) {
+	panic(fmt.Errorf("not implemented: GetPromotion - getPromotion"))
 }
 
 // ListMyPromotions is the resolver for the listMyPromotions field.
-func (r *queryResolver) ListMyPromotions(ctx context.Context, limit *int, offset *int) ([]*domain9.ListingPromotion, error) {
-	l := 20
-	o := 0
-	if limit != nil {
-		l = *limit
-	}
-	if offset != nil {
-		o = *offset
-	}
-	return r.PromotionResolver.ListMyPromotions(ctx, l, o)
+func (r *queryResolver) ListMyPromotions(ctx context.Context, limit *int, offset *int) ([]*domain.ListingPromotion, error) {
+	panic(fmt.Errorf("not implemented: ListMyPromotions - listMyPromotions"))
 }
 
 // GetActivePromotionForListing is the resolver for the getActivePromotionForListing field.
-func (r *queryResolver) GetActivePromotionForListing(ctx context.Context, listingID uuid.UUID) (*domain9.ListingPromotion, error) {
-	return r.PromotionResolver.GetActivePromotionForListing(ctx, listingID)
+func (r *queryResolver) GetActivePromotionForListing(ctx context.Context, listingID uuid.UUID) (*domain.ListingPromotion, error) {
+	panic(fmt.Errorf("not implemented: GetActivePromotionForListing - getActivePromotionForListing"))
 }
 
 // GetFeaturedListings is the resolver for the getFeaturedListings field.
-func (r *queryResolver) GetFeaturedListings(ctx context.Context, limit *int) ([]*domain9.ListingPromotion, error) {
-	l := 20
-	if limit != nil {
-		l = *limit
-	}
-	return r.PromotionResolver.GetFeaturedListings(ctx, l)
+func (r *queryResolver) GetFeaturedListings(ctx context.Context, limit *int) ([]*domain.ListingPromotion, error) {
+	panic(fmt.Errorf("not implemented: GetFeaturedListings - getFeaturedListings"))
 }
 
 // GetPremiumListings is the resolver for the getPremiumListings field.
-func (r *queryResolver) GetPremiumListings(ctx context.Context, limit *int) ([]*domain9.ListingPromotion, error) {
-	l := 20
-	if limit != nil {
-		l = *limit
-	}
-	return r.PromotionResolver.GetPremiumListings(ctx, l)
+func (r *queryResolver) GetPremiumListings(ctx context.Context, limit *int) ([]*domain.ListingPromotion, error) {
+	panic(fmt.Errorf("not implemented: GetPremiumListings - getPremiumListings"))
 }
 
 // GetSubscription is the resolver for the getSubscription field.
-func (r *queryResolver) GetSubscription(ctx context.Context, id uuid.UUID) (*domain9.AgentSubscription, error) {
-	return r.PromotionResolver.GetSubscription(ctx, id)
+func (r *queryResolver) GetSubscription(ctx context.Context, id uuid.UUID) (*domain.AgentSubscription, error) {
+	panic(fmt.Errorf("not implemented: GetSubscription - getSubscription"))
 }
 
 // GetMySubscription is the resolver for the getMySubscription field.
-func (r *queryResolver) GetMySubscription(ctx context.Context) (*domain9.AgentSubscription, error) {
-	return r.PromotionResolver.GetMySubscription(ctx)
+func (r *queryResolver) GetMySubscription(ctx context.Context) (*domain.AgentSubscription, error) {
+	panic(fmt.Errorf("not implemented: GetMySubscription - getMySubscription"))
 }
 
 // CanAddListing is the resolver for the canAddListing field.
 func (r *queryResolver) CanAddListing(ctx context.Context) (bool, error) {
-	return r.PromotionResolver.CanAddListing(ctx)
+	panic(fmt.Errorf("not implemented: CanAddListing - canAddListing"))
 }
 
 // CanAddPhotos is the resolver for the canAddPhotos field.
 func (r *queryResolver) CanAddPhotos(ctx context.Context, listingID uuid.UUID, photoCount int) (bool, error) {
-	return r.PromotionResolver.CanAddPhotos(ctx, listingID, photoCount)
+	panic(fmt.Errorf("not implemented: CanAddPhotos - canAddPhotos"))
 }
 
 // CanUseFeature is the resolver for the canUseFeature field.
 func (r *queryResolver) CanUseFeature(ctx context.Context, feature string) (bool, error) {
-	return r.PromotionResolver.CanUseFeature(ctx, feature)
+	panic(fmt.Errorf("not implemented: CanUseFeature - canUseFeature"))
 }
 
 // CanUseIncludedPromotion is the resolver for the canUseIncludedPromotion field.
-func (r *queryResolver) CanUseIncludedPromotion(ctx context.Context, promoType domain9.PromotionType) (bool, error) {
-	return r.PromotionResolver.CanUseIncludedPromotion(ctx, promoType)
+func (r *queryResolver) CanUseIncludedPromotion(ctx context.Context, promoType domain.PromotionType) (bool, error) {
+	panic(fmt.Errorf("not implemented: CanUseIncludedPromotion - canUseIncludedPromotion"))
 }
 
 // CanCreateOpenHouse is the resolver for the canCreateOpenHouse field.
-func (r *queryResolver) CanCreateOpenHouse(ctx context.Context) (*graphql5.FeatureLimitCheckResult, error) {
-	return r.PromotionResolver.CanCreateOpenHouse(ctx)
+func (r *queryResolver) CanCreateOpenHouse(ctx context.Context) (*graphql10.FeatureLimitCheckResult, error) {
+	panic(fmt.Errorf("not implemented: CanCreateOpenHouse - canCreateOpenHouse"))
 }
 
 // CanCreatePrivateShowing is the resolver for the canCreatePrivateShowing field.
-func (r *queryResolver) CanCreatePrivateShowing(ctx context.Context) (*graphql5.FeatureLimitCheckResult, error) {
-	return r.PromotionResolver.CanCreatePrivateShowing(ctx)
+func (r *queryResolver) CanCreatePrivateShowing(ctx context.Context) (*graphql10.FeatureLimitCheckResult, error) {
+	panic(fmt.Errorf("not implemented: CanCreatePrivateShowing - canCreatePrivateShowing"))
 }
 
 // GetFeatureLimit is the resolver for the getFeatureLimit field.
 func (r *queryResolver) GetFeatureLimit(ctx context.Context, feature string) (int, error) {
-	return r.PromotionResolver.GetFeatureLimit(ctx, feature)
+	panic(fmt.Errorf("not implemented: GetFeatureLimit - getFeatureLimit"))
 }
 
 // GetPlanLimits is the resolver for the getPlanLimits field.
-func (r *queryResolver) GetPlanLimits(ctx context.Context, planType domain9.PlanType) (*graphql5.PlanLimits, error) {
-	return r.PromotionResolver.GetPlanLimits(ctx, planType)
+func (r *queryResolver) GetPlanLimits(ctx context.Context, planType domain.PlanType) (*graphql10.PlanLimits, error) {
+	panic(fmt.Errorf("not implemented: GetPlanLimits - getPlanLimits"))
 }
 
 // GetCurrentUsage is the resolver for the getCurrentUsage field.
-func (r *queryResolver) GetCurrentUsage(ctx context.Context) (*domain9.UsageTracking, error) {
-	return r.PromotionResolver.GetCurrentUsage(ctx)
+func (r *queryResolver) GetCurrentUsage(ctx context.Context) (*domain.UsageTracking, error) {
+	panic(fmt.Errorf("not implemented: GetCurrentUsage - getCurrentUsage"))
 }
 
 // Lead is the resolver for the lead field.
-func (r *queryResolver) Lead(ctx context.Context, id string) (*domain10.Lead, error) {
-	return r.LeadResolver.Lead(ctx, id)
+func (r *queryResolver) Lead(ctx context.Context, id string) (*domain8.Lead, error) {
+	panic(fmt.Errorf("not implemented: Lead - lead"))
 }
 
 // LeadsByListing is the resolver for the leadsByListing field.
-func (r *queryResolver) LeadsByListing(ctx context.Context, listingID string, filter *leadsgraphql.LeadFilterInput, page *leadsgraphql.PageInput) (*leadsgraphql.LeadConnection, error) {
-	return r.LeadResolver.LeadsByListing(ctx, listingID, filter, page)
+func (r *queryResolver) LeadsByListing(ctx context.Context, listingID string, filter *graphql11.LeadFilterInput, page *graphql11.PageInput) (*graphql11.LeadConnection, error) {
+	panic(fmt.Errorf("not implemented: LeadsByListing - leadsByListing"))
 }
 
 // LeadsByBusiness is the resolver for the leadsByBusiness field.
-func (r *queryResolver) LeadsByBusiness(ctx context.Context, businessID string, filter *leadsgraphql.LeadFilterInput, page *leadsgraphql.PageInput) (*leadsgraphql.LeadConnection, error) {
-	return r.LeadResolver.LeadsByBusiness(ctx, businessID, filter, page)
+func (r *queryResolver) LeadsByBusiness(ctx context.Context, businessID string, filter *graphql11.LeadFilterInput, page *graphql11.PageInput) (*graphql11.LeadConnection, error) {
+	panic(fmt.Errorf("not implemented: LeadsByBusiness - leadsByBusiness"))
 }
 
 // MyLeads is the resolver for the myLeads field.
-func (r *queryResolver) MyLeads(ctx context.Context, filter *leadsgraphql.LeadFilterInput, page *leadsgraphql.PageInput) (*leadsgraphql.LeadConnection, error) {
-	return r.LeadResolver.MyLeads(ctx, filter, page)
+func (r *queryResolver) MyLeads(ctx context.Context, filter *graphql11.LeadFilterInput, page *graphql11.PageInput) (*graphql11.LeadConnection, error) {
+	panic(fmt.Errorf("not implemented: MyLeads - myLeads"))
 }
 
 // LeadHistory is the resolver for the leadHistory field.
-func (r *queryResolver) LeadHistory(ctx context.Context, leadID string) ([]*domain10.LeadEvent, error) {
-	return r.LeadResolver.LeadHistory(ctx, leadID)
+func (r *queryResolver) LeadHistory(ctx context.Context, leadID string) ([]*domain8.LeadEvent, error) {
+	panic(fmt.Errorf("not implemented: LeadHistory - leadHistory"))
 }
 
 // ListingAnalytics is the resolver for the listingAnalytics field.
-func (r *queryResolver) ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*interactionsgraphql.ListingAnalyticsResponse, error) {
-	return r.InteractionsResolver.ListingAnalytics(ctx, listingID, days)
+func (r *queryResolver) ListingAnalytics(ctx context.Context, listingID uuid.UUID, days int) (*graphql12.ListingAnalyticsResponse, error) {
+	panic(fmt.Errorf("not implemented: ListingAnalytics - listingAnalytics"))
 }
 
 // MyInteractionHistory is the resolver for the myInteractionHistory field.
-func (r *queryResolver) MyInteractionHistory(ctx context.Context, limit *int) ([]*interactionsgraphql.InteractionResponse, error) {
-	return r.InteractionsResolver.MyInteractionHistory(ctx, limit)
+func (r *queryResolver) MyInteractionHistory(ctx context.Context, limit *int) ([]*graphql12.InteractionResponse, error) {
+	panic(fmt.Errorf("not implemented: MyInteractionHistory - myInteractionHistory"))
 }
 
 // Discover is the resolver for the discover field.
-func (r *queryResolver) Discover(ctx context.Context, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) (*domain11.SearchResult, error) {
-	return r.DiscoveryResolver.Discover(ctx, filter, options)
+func (r *queryResolver) Discover(ctx context.Context, filter model.DiscoverySearchFilterInput, options *model.SearchOptionsInput) (*domain15.SearchResult, error) {
+	panic(fmt.Errorf("not implemented: Discover - discover"))
 }
 
 // HomeFeed is the resolver for the homeFeed field.
-func (r *queryResolver) HomeFeed(ctx context.Context, options *model.FeedOptionsInput) ([]*domain11.HomeFeedSection, error) {
-	return r.DiscoveryResolver.HomeFeed(ctx, options)
+func (r *queryResolver) HomeFeed(ctx context.Context, options *model.FeedOptionsInput) ([]*domain15.HomeFeedSection, error) {
+	panic(fmt.Errorf("not implemented: HomeFeed - homeFeed"))
 }
 
 // FeaturedListings is the resolver for the featuredListings field.
-func (r *queryResolver) FeaturedListings(ctx context.Context, limit *int) ([]*domain11.RankedListing, error) {
-	return r.DiscoveryResolver.FeaturedListings(ctx, limit)
+func (r *queryResolver) FeaturedListings(ctx context.Context, limit *int) ([]*domain15.RankedListing, error) {
+	panic(fmt.Errorf("not implemented: FeaturedListings - featuredListings"))
 }
 
 // DiscoverSimilar is the resolver for the discoverSimilar field.
-func (r *queryResolver) DiscoverSimilar(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain11.RankedListing, error) {
-	return r.DiscoveryResolver.DiscoverSimilar(ctx, listingID, limit)
+func (r *queryResolver) DiscoverSimilar(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain15.RankedListing, error) {
+	panic(fmt.Errorf("not implemented: DiscoverSimilar - discoverSimilar"))
 }
 
 // MyVerificationSession is the resolver for the myVerificationSession field.
-func (r *queryResolver) MyVerificationSession(ctx context.Context, typeArg domain12.VerificationType) (*domain12.VerificationSession, error) {
-	return r.VerificationResolver.MyVerificationSession(ctx, typeArg)
+func (r *queryResolver) MyVerificationSession(ctx context.Context, typeArg domain13.VerificationType) (*domain13.VerificationSession, error) {
+	panic(fmt.Errorf("not implemented: MyVerificationSession - myVerificationSession"))
 }
 
 // VerificationSession is the resolver for the verificationSession field.
-func (r *queryResolver) VerificationSession(ctx context.Context, id uuid.UUID) (*domain12.VerificationSession, error) {
-	return r.VerificationResolver.VerificationSession(ctx, id)
+func (r *queryResolver) VerificationSession(ctx context.Context, id uuid.UUID) (*domain13.VerificationSession, error) {
+	panic(fmt.Errorf("not implemented: VerificationSession - verificationSession"))
 }
 
 // VerificationAttempts is the resolver for the verificationAttempts field.
-func (r *queryResolver) VerificationAttempts(ctx context.Context, sessionID uuid.UUID) ([]*domain12.VerificationAttempt, error) {
-	return r.VerificationResolver.VerificationAttempts(ctx, sessionID)
+func (r *queryResolver) VerificationAttempts(ctx context.Context, sessionID uuid.UUID) ([]*domain13.VerificationAttempt, error) {
+	panic(fmt.Errorf("not implemented: VerificationAttempts - verificationAttempts"))
 }
 
 // OneStar is the resolver for the oneStar field.
-func (r *ratingDistributionResolver) OneStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
-	return obj.OneStarCount, nil
+func (r *ratingDistributionResolver) OneStar(ctx context.Context, obj *domain7.RatingDistribution) (int, error) {
+	panic(fmt.Errorf("not implemented: OneStar - oneStar"))
 }
 
 // TwoStar is the resolver for the twoStar field.
-func (r *ratingDistributionResolver) TwoStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
-	return obj.TwoStarCount, nil
+func (r *ratingDistributionResolver) TwoStar(ctx context.Context, obj *domain7.RatingDistribution) (int, error) {
+	panic(fmt.Errorf("not implemented: TwoStar - twoStar"))
 }
 
 // ThreeStar is the resolver for the threeStar field.
-func (r *ratingDistributionResolver) ThreeStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
-	return obj.ThreeStarCount, nil
+func (r *ratingDistributionResolver) ThreeStar(ctx context.Context, obj *domain7.RatingDistribution) (int, error) {
+	panic(fmt.Errorf("not implemented: ThreeStar - threeStar"))
 }
 
 // FourStar is the resolver for the fourStar field.
-func (r *ratingDistributionResolver) FourStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
-	return obj.FourStarCount, nil
+func (r *ratingDistributionResolver) FourStar(ctx context.Context, obj *domain7.RatingDistribution) (int, error) {
+	panic(fmt.Errorf("not implemented: FourStar - fourStar"))
 }
 
 // FiveStar is the resolver for the fiveStar field.
-func (r *ratingDistributionResolver) FiveStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
-	return obj.FiveStarCount, nil
+func (r *ratingDistributionResolver) FiveStar(ctx context.Context, obj *domain7.RatingDistribution) (int, error) {
+	panic(fmt.Errorf("not implemented: FiveStar - fiveStar"))
 }
 
 // AgencyFee is the resolver for the agencyFee field.
-func (r *rentalDetailResolver) AgencyFee(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatAgency {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *rentalDetailResolver) AgencyFee(ctx context.Context, obj *domain2.RentalDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: AgencyFee - agencyFee"))
 }
 
 // LegalFee is the resolver for the legalFee field.
-func (r *rentalDetailResolver) LegalFee(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatLegal {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *rentalDetailResolver) LegalFee(ctx context.Context, obj *domain2.RentalDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: LegalFee - legalFee"))
 }
 
 // RegistrationFee is the resolver for the registrationFee field.
-func (r *rentalDetailResolver) RegistrationFee(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if strings.Contains(strings.ToLower(fee.Name), "registration") {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *rentalDetailResolver) RegistrationFee(ctx context.Context, obj *domain2.RentalDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: RegistrationFee - registrationFee"))
 }
 
 // CautionFee is the resolver for the cautionFee field.
-func (r *rentalDetailResolver) CautionFee(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatCaution {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *rentalDetailResolver) CautionFee(ctx context.Context, obj *domain2.RentalDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: CautionFee - cautionFee"))
 }
 
 // ServiceCharge is the resolver for the serviceCharge field.
-func (r *rentalDetailResolver) ServiceCharge(ctx context.Context, obj *domain.RentalDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatService {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *rentalDetailResolver) ServiceCharge(ctx context.Context, obj *domain2.RentalDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: ServiceCharge - serviceCharge"))
 }
 
 // ServiceCharges is the resolver for the serviceCharges field.
-func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain.RentalDetail) ([]*domain.ServiceCharge, error) {
-	var charges []*domain.ServiceCharge
-
-	// Filter service-related fees from the Fees array
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatService {
-			charges = append(charges, &domain.ServiceCharge{
-				Name:   fee.Name,
-				Period: domain.PaymentPeriod(fee.Frequency),
-				Amount: fee.Amount,
-			})
-		}
-	}
-
-	return charges, nil
+func (r *rentalDetailResolver) ServiceCharges(ctx context.Context, obj *domain2.RentalDetail) ([]*domain2.ServiceCharge, error) {
+	panic(fmt.Errorf("not implemented: ServiceCharges - serviceCharges"))
 }
 
 // ReviewerProfile is the resolver for the reviewerProfile field.
-func (r *reviewResolver) ReviewerProfile(ctx context.Context, obj *domain8.Review) (*domain1.Profile, error) {
+func (r *reviewResolver) ReviewerProfile(ctx context.Context, obj *domain7.Review) (*domain9.Profile, error) {
 	panic(fmt.Errorf("not implemented: ReviewerProfile - reviewerProfile"))
 }
 
 // Visibility is the resolver for the visibility field.
-func (r *reviewResolver) Visibility(ctx context.Context, obj *domain8.Review) (model.ReviewVisibility, error) {
-	switch obj.Status {
-	case domain8.ReviewStatusPublished:
-		return model.ReviewVisibilityVisible, nil
-	case domain8.ReviewStatusHidden:
-		return model.ReviewVisibilityHidden, nil
-	default:
-		return model.ReviewVisibilityHidden, nil
-	}
+func (r *reviewResolver) Visibility(ctx context.Context, obj *domain7.Review) (model.ReviewVisibility, error) {
+	panic(fmt.Errorf("not implemented: Visibility - visibility"))
 }
 
 // CountryCode is the resolver for the countryCode field.
-func (r *reviewResolver) CountryCode(ctx context.Context, obj *domain8.Review) (*string, error) {
-	if obj.ReviewerCountryCode == "" {
-		return nil, nil
-	}
-	return &obj.ReviewerCountryCode, nil
+func (r *reviewResolver) CountryCode(ctx context.Context, obj *domain7.Review) (*string, error) {
+	panic(fmt.Errorf("not implemented: CountryCode - countryCode"))
 }
 
 // HiddenAt is the resolver for the hiddenAt field.
-func (r *reviewResolver) HiddenAt(ctx context.Context, obj *domain8.Review) (*time.Time, error) {
-	if obj.Status == domain8.ReviewStatusHidden {
-		return &obj.UpdatedAt, nil
-	}
-	return nil, nil
+func (r *reviewResolver) HiddenAt(ctx context.Context, obj *domain7.Review) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: HiddenAt - hiddenAt"))
 }
 
 // Rules is the resolver for the rules field.
-func (r *ruleGroupResolver) Rules(ctx context.Context, obj *domain.RuleGroup) ([]*domain.RuleItem, error) {
-	if obj == nil || len(obj.Rules) == 0 {
-		return []*domain.RuleItem{}, nil
-	}
-
-	rules := make([]*domain.RuleItem, len(obj.Rules))
-	for i := range obj.Rules {
-		rule := obj.Rules[i]
-		if rule.Description == nil {
-			rule.Description = map[string]any{}
-		}
-		rules[i] = &rule
-	}
-	return rules, nil
+func (r *ruleGroupResolver) Rules(ctx context.Context, obj *domain2.RuleGroup) ([]*domain2.RuleItem, error) {
+	panic(fmt.Errorf("not implemented: Rules - rules"))
 }
 
 // AgencyFee is the resolver for the agencyFee field.
-func (r *saleDetailResolver) AgencyFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatAgency {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *saleDetailResolver) AgencyFee(ctx context.Context, obj *domain2.SaleDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: AgencyFee - agencyFee"))
 }
 
 // LegalFee is the resolver for the legalFee field.
-func (r *saleDetailResolver) LegalFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatLegal {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *saleDetailResolver) LegalFee(ctx context.Context, obj *domain2.SaleDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: LegalFee - legalFee"))
 }
 
 // SurveyFee is the resolver for the surveyFee field.
-func (r *saleDetailResolver) SurveyFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if strings.Contains(strings.ToLower(fee.Name), "survey") {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *saleDetailResolver) SurveyFee(ctx context.Context, obj *domain2.SaleDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: SurveyFee - surveyFee"))
 }
 
 // TitleProcessingFee is the resolver for the titleProcessingFee field.
-func (r *saleDetailResolver) TitleProcessingFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if strings.Contains(strings.ToLower(fee.Name), "title") {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *saleDetailResolver) TitleProcessingFee(ctx context.Context, obj *domain2.SaleDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: TitleProcessingFee - titleProcessingFee"))
 }
 
 // DevelopmentFee is the resolver for the developmentFee field.
-func (r *saleDetailResolver) DevelopmentFee(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if strings.Contains(strings.ToLower(fee.Name), "development") {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *saleDetailResolver) DevelopmentFee(ctx context.Context, obj *domain2.SaleDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: DevelopmentFee - developmentFee"))
 }
 
 // OtherFees is the resolver for the otherFees field.
-func (r *saleDetailResolver) OtherFees(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if strings.Contains(strings.ToLower(fee.Name), "other") {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *saleDetailResolver) OtherFees(ctx context.Context, obj *domain2.SaleDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: OtherFees - otherFees"))
 }
 
 // ServiceCharge is the resolver for the serviceCharge field.
-func (r *saleDetailResolver) ServiceCharge(ctx context.Context, obj *domain.SaleDetail) (*float64, error) {
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatService {
-			return &fee.Amount, nil
-		}
-	}
-	return nil, nil
+func (r *saleDetailResolver) ServiceCharge(ctx context.Context, obj *domain2.SaleDetail) (*float64, error) {
+	panic(fmt.Errorf("not implemented: ServiceCharge - serviceCharge"))
 }
 
 // ServiceCharges is the resolver for the serviceCharges field.
-func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain.SaleDetail) ([]*domain.ServiceCharge, error) {
-	var charges []*domain.ServiceCharge
-
-	// Filter service-related fees from the Fees array
-	for _, fee := range obj.Fees {
-		if fee.Category == domain.FeeCatService {
-			charges = append(charges, &domain.ServiceCharge{
-				Name:   fee.Name,
-				Period: domain.PaymentPeriod(fee.Frequency),
-				Amount: fee.Amount,
-			})
-		}
-	}
-
-	return charges, nil
+func (r *saleDetailResolver) ServiceCharges(ctx context.Context, obj *domain2.SaleDetail) ([]*domain2.ServiceCharge, error) {
+	panic(fmt.Errorf("not implemented: ServiceCharges - serviceCharges"))
 }
 
 // DayOfWeek is the resolver for the dayOfWeek field.
-func (r *showingAvailabilityResolver) DayOfWeek(ctx context.Context, obj *domain.ShowingAvailability) (model.DayOfWeek, error) {
-	if obj == nil {
-		return "", nil
-	}
-
-	switch strings.ToLower(strings.TrimSpace(obj.DayOfWeek)) {
-	case "monday":
-		return model.DayOfWeekMonday, nil
-	case "tuesday":
-		return model.DayOfWeekTuesday, nil
-	case "wednesday":
-		return model.DayOfWeekWednesday, nil
-	case "thursday":
-		return model.DayOfWeekThursday, nil
-	case "friday":
-		return model.DayOfWeekFriday, nil
-	case "saturday":
-		return model.DayOfWeekSaturday, nil
-	case "sunday":
-		return model.DayOfWeekSunday, nil
-	default:
-		return model.DayOfWeek(obj.DayOfWeek), nil
-	}
+func (r *showingAvailabilityResolver) DayOfWeek(ctx context.Context, obj *domain2.ShowingAvailability) (model.DayOfWeek, error) {
+	panic(fmt.Errorf("not implemented: DayOfWeek - dayOfWeek"))
 }
 
 // Cleanliness is the resolver for the cleanliness field.
-func (r *subRatingsResolver) Cleanliness(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	val := int(obj.Cleanliness)
-	return &val, nil
+func (r *subRatingsResolver) Cleanliness(ctx context.Context, obj *domain7.SubRatings) (*int, error) {
+	panic(fmt.Errorf("not implemented: Cleanliness - cleanliness"))
 }
 
 // Accuracy is the resolver for the accuracy field.
-func (r *subRatingsResolver) Accuracy(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	val := int(obj.Accuracy)
-	return &val, nil
+func (r *subRatingsResolver) Accuracy(ctx context.Context, obj *domain7.SubRatings) (*int, error) {
+	panic(fmt.Errorf("not implemented: Accuracy - accuracy"))
 }
 
 // Communication is the resolver for the communication field.
-func (r *subRatingsResolver) Communication(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	val := int(obj.Communication)
-	return &val, nil
+func (r *subRatingsResolver) Communication(ctx context.Context, obj *domain7.SubRatings) (*int, error) {
+	panic(fmt.Errorf("not implemented: Communication - communication"))
 }
 
 // Location is the resolver for the location field.
-func (r *subRatingsResolver) Location(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	val := int(obj.Location)
-	return &val, nil
+func (r *subRatingsResolver) Location(ctx context.Context, obj *domain7.SubRatings) (*int, error) {
+	panic(fmt.Errorf("not implemented: Location - location"))
 }
 
 // Checkin is the resolver for the checkin field.
-func (r *subRatingsResolver) Checkin(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	val := int(obj.CheckIn)
-	return &val, nil
+func (r *subRatingsResolver) Checkin(ctx context.Context, obj *domain7.SubRatings) (*int, error) {
+	panic(fmt.Errorf("not implemented: Checkin - checkin"))
 }
 
 // Value is the resolver for the value field.
-func (r *subRatingsResolver) Value(ctx context.Context, obj *domain8.SubRatings) (*int, error) {
-	if obj == nil {
-		return nil, nil
-	}
-	val := int(obj.Value)
-	return &val, nil
+func (r *subRatingsResolver) Value(ctx context.Context, obj *domain7.SubRatings) (*int, error) {
+	panic(fmt.Errorf("not implemented: Value - value"))
 }
 
 // Currency is the resolver for the currency field.
-func (r *transactionResolver) Currency(ctx context.Context, obj *domain6.Transaction) (string, error) {
-	return string(obj.Currency), nil
+func (r *transactionResolver) Currency(ctx context.Context, obj *domain10.Transaction) (string, error) {
+	panic(fmt.Errorf("not implemented: Currency - currency"))
 }
 
 // ProviderRef is the resolver for the providerRef field.
-func (r *transactionResolver) ProviderRef(ctx context.Context, obj *domain6.Transaction) (*string, error) {
-	return obj.ProviderTxID, nil
+func (r *transactionResolver) ProviderRef(ctx context.Context, obj *domain10.Transaction) (*string, error) {
+	panic(fmt.Errorf("not implemented: ProviderRef - providerRef"))
 }
 
 // ProviderResponse is the resolver for the providerResponse field.
-func (r *transactionResolver) ProviderResponse(ctx context.Context, obj *domain6.Transaction) (map[string]any, error) {
-	// Convert metadata map[string]string to map[string]any
-	if obj.Metadata == nil {
-		return nil, nil
-	}
-	result := make(map[string]any, len(obj.Metadata))
-	for k, v := range obj.Metadata {
-		result[k] = v
-	}
-	return result, nil
+func (r *transactionResolver) ProviderResponse(ctx context.Context, obj *domain10.Transaction) (map[string]any, error) {
+	panic(fmt.Errorf("not implemented: ProviderResponse - providerResponse"))
 }
 
 // FailureReason is the resolver for the failureReason field.
-func (r *transactionResolver) FailureReason(ctx context.Context, obj *domain6.Transaction) (*string, error) {
-	return obj.ErrorMessage, nil
+func (r *transactionResolver) FailureReason(ctx context.Context, obj *domain10.Transaction) (*string, error) {
+	panic(fmt.Errorf("not implemented: FailureReason - failureReason"))
 }
 
 // AgeGroup is the resolver for the ageGroup field.
-func (r *travelCompanionResolver) AgeGroup(ctx context.Context, obj *domain1.TravelCompanion) (string, error) {
-	if obj == nil {
-		return "", nil
-	}
-	return string(obj.AgeGroup), nil
+func (r *travelCompanionResolver) AgeGroup(ctx context.Context, obj *domain9.TravelCompanion) (string, error) {
+	panic(fmt.Errorf("not implemented: AgeGroup - ageGroup"))
 }
 
 // Relationship is the resolver for the relationship field.
-func (r *travelCompanionResolver) Relationship(ctx context.Context, obj *domain1.TravelCompanion) (string, error) {
-	if obj == nil {
-		return "", nil
-	}
-	return string(obj.Relationship), nil
+func (r *travelCompanionResolver) Relationship(ctx context.Context, obj *domain9.TravelCompanion) (string, error) {
+	panic(fmt.Errorf("not implemented: Relationship - relationship"))
 }
 
 // FeaturedPromotionsUsed is the resolver for the featuredPromotionsUsed field.
-func (r *usageTrackingResolver) FeaturedPromotionsUsed(ctx context.Context, obj *domain9.UsageTracking) (int, error) {
-	if obj == nil {
-		return 0, nil
-	}
-	return obj.FeaturedUsed, nil
+func (r *usageTrackingResolver) FeaturedPromotionsUsed(ctx context.Context, obj *domain.UsageTracking) (int, error) {
+	panic(fmt.Errorf("not implemented: FeaturedPromotionsUsed - featuredPromotionsUsed"))
 }
 
 // PremiumPromotionsUsed is the resolver for the premiumPromotionsUsed field.
-func (r *usageTrackingResolver) PremiumPromotionsUsed(ctx context.Context, obj *domain9.UsageTracking) (int, error) {
-	if obj == nil {
-		return 0, nil
-	}
-	return obj.PremiumUsed, nil
+func (r *usageTrackingResolver) PremiumPromotionsUsed(ctx context.Context, obj *domain.UsageTracking) (int, error) {
+	panic(fmt.Errorf("not implemented: PremiumPromotionsUsed - premiumPromotionsUsed"))
 }
 
 // Status is the resolver for the status field.
-func (r *verificationAttemptResolver) Status(ctx context.Context, obj *domain12.VerificationAttempt) (string, error) {
-	return obj.Status.String(), nil
+func (r *verificationAttemptResolver) Status(ctx context.Context, obj *domain13.VerificationAttempt) (string, error) {
+	panic(fmt.Errorf("not implemented: Status - status"))
 }
 
 // ProcessingTimeMs is the resolver for the processingTimeMs field.
-func (r *verificationAttemptResolver) ProcessingTimeMs(ctx context.Context, obj *domain12.VerificationAttempt) (*int, error) {
-	if obj == nil || obj.ProcessingTime == nil {
-		return nil, nil
-	}
-	ms := int(obj.ProcessingTime.Milliseconds())
-	return &ms, nil
+func (r *verificationAttemptResolver) ProcessingTimeMs(ctx context.Context, obj *domain13.VerificationAttempt) (*int, error) {
+	panic(fmt.Errorf("not implemented: ProcessingTimeMs - processingTimeMs"))
 }
 
 // OwnerType is the resolver for the ownerType field.
-func (r *walletResolver) OwnerType(ctx context.Context, obj *domain7.Wallet) (string, error) {
-	return string(obj.OwnerType), nil
+func (r *walletResolver) OwnerType(ctx context.Context, obj *domain6.Wallet) (string, error) {
+	panic(fmt.Errorf("not implemented: OwnerType - ownerType"))
 }
 
 // ItemCount is the resolver for the itemCount field.
-func (r *wishlistResolver) ItemCount(ctx context.Context, obj *domain4.Wishlist) (int, error) {
-	return r.WishlistResolver.WishlistItemCount(ctx, obj)
+func (r *wishlistResolver) ItemCount(ctx context.Context, obj *domain12.Wishlist) (int, error) {
+	panic(fmt.Errorf("not implemented: ItemCount - itemCount"))
 }
 
 // Items is the resolver for the items field.
-func (r *wishlistResolver) Items(ctx context.Context, obj *domain4.Wishlist, limit *int, offset *int) ([]*domain4.WishlistItem, error) {
-	return r.WishlistResolver.WishlistItems(ctx, obj.ID, limit, offset)
+func (r *wishlistResolver) Items(ctx context.Context, obj *domain12.Wishlist, limit *int, offset *int) ([]*domain12.WishlistItem, error) {
+	panic(fmt.Errorf("not implemented: Items - items"))
 }
 
 // Listing is the resolver for the listing field.
-func (r *wishlistItemResolver) Listing(ctx context.Context, obj *domain4.WishlistItem) (*domain.Listing, error) {
-	return r.WishlistResolver.WishlistItemListing(ctx, obj)
+func (r *wishlistItemResolver) Listing(ctx context.Context, obj *domain12.WishlistItem) (*domain2.Listing, error) {
+	panic(fmt.Errorf("not implemented: Listing - listing"))
 }
 
 // BusinessID is the resolver for the businessId field.
-func (r *addPayoutDetailInputResolver) BusinessID(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data *uuid.UUID) error {
-	if data == nil {
-		obj.BusinessID = nil
-		return nil
-	}
-	value := data.String()
-	obj.BusinessID = &value
-	return nil
+func (r *addPayoutDetailInputResolver) BusinessID(ctx context.Context, obj *graphql5.AddPayoutDetailInput, data *uuid.UUID) error {
+	panic(fmt.Errorf("not implemented: BusinessID - businessId"))
 }
 
 // Currency is the resolver for the currency field.
-func (r *addPayoutDetailInputResolver) Currency(ctx context.Context, obj *graphql1.AddPayoutDetailInput, data string) error {
-	obj.Currency = payment.Currency(data)
-	return nil
+func (r *addPayoutDetailInputResolver) Currency(ctx context.Context, obj *graphql5.AddPayoutDetailInput, data string) error {
+	panic(fmt.Errorf("not implemented: Currency - currency"))
 }
 
 // IsDefault is the resolver for the isDefault field.
-func (r *createPaymentMethodInputResolver) IsDefault(ctx context.Context, obj *graphql1.SavePaymentMethodInput, data *bool) error {
-	obj.SetAsDefault = data
-	return nil
+func (r *createPaymentMethodInputResolver) IsDefault(ctx context.Context, obj *graphql5.SavePaymentMethodInput, data *bool) error {
+	panic(fmt.Errorf("not implemented: IsDefault - isDefault"))
 }
 
 // Currency is the resolver for the currency field.
-func (r *createPayoutInputResolver) Currency(ctx context.Context, obj *graphql1.CreatePayoutInput, data string) error {
-	obj.Currency = payment.Currency(data)
-	return nil
+func (r *createPayoutInputResolver) Currency(ctx context.Context, obj *graphql5.CreatePayoutInput, data string) error {
+	panic(fmt.Errorf("not implemented: Currency - currency"))
 }
 
 // BookingID is the resolver for the bookingId field.
-func (r *createReviewInputResolver) BookingID(ctx context.Context, obj *graphql3.CreateReviewInput, data uuid.UUID) error {
-	obj.BookingID = data.String()
-	return nil
+func (r *createReviewInputResolver) BookingID(ctx context.Context, obj *graphql9.CreateReviewInput, data uuid.UUID) error {
+	panic(fmt.Errorf("not implemented: BookingID - bookingId"))
 }
 
 // TargetID is the resolver for the targetId field.
-func (r *createReviewInputResolver) TargetID(ctx context.Context, obj *graphql3.CreateReviewInput, data uuid.UUID) error {
-	obj.TargetID = data.String()
-	return nil
+func (r *createReviewInputResolver) TargetID(ctx context.Context, obj *graphql9.CreateReviewInput, data uuid.UUID) error {
+	panic(fmt.Errorf("not implemented: TargetID - targetId"))
 }
 
 // AgentSubscription returns AgentSubscriptionResolver implementation.
@@ -2154,6 +1661,9 @@ func (r *Resolver) CalendarEvent() CalendarEventResolver { return &calendarEvent
 func (r *Resolver) CompleteBookingPayload() CompleteBookingPayloadResolver {
 	return &completeBookingPayloadResolver{r}
 }
+
+// Conversation returns ConversationResolver implementation.
+func (r *Resolver) Conversation() ConversationResolver { return &conversationResolver{r} }
 
 // Disbursement returns DisbursementResolver implementation.
 func (r *Resolver) Disbursement() DisbursementResolver { return &disbursementResolver{r} }
@@ -2291,6 +1801,7 @@ type bookingResolver struct{ *Resolver }
 type businessResolver struct{ *Resolver }
 type calendarEventResolver struct{ *Resolver }
 type completeBookingPayloadResolver struct{ *Resolver }
+type conversationResolver struct{ *Resolver }
 type disbursementResolver struct{ *Resolver }
 type financeTransactionResolver struct{ *Resolver }
 type hostStatsResolver struct{ *Resolver }

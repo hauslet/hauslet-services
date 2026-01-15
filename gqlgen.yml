@@ -6,6 +6,7 @@ schema:
   - internal/modules/auth/port/graphql/*.graphqls
   - internal/modules/profile/port/graphql/*.graphqls
   - internal/modules/property/port/graphql/*.graphqls
+  - internal/modules/messaging/port/graphql/*.graphqls
   - internal/modules/business/port/graphql/*.graphqls
   - internal/modules/booking/port/graphql/*.graphqls
   - internal/modules/calendar/port/graphql/*.graphqls
@@ -181,6 +182,22 @@ models:
     model: hauslet/internal/modules/property/domain.Thumbnail
   ThumbnailVariant:
     model: hauslet/internal/modules/property/domain.ThumbnailVariant
+
+  # --- Messaging Module Bindings ---
+  Conversation:
+    model: hauslet/internal/modules/messaging/domain.Conversation
+  Message:
+    model: hauslet/internal/modules/messaging/domain.Message
+  Participant:
+    model: hauslet/internal/modules/messaging/domain.Participant
+  ConversationType:
+    model: hauslet/internal/modules/messaging/domain.ConversationType
+  ConversationContextType:
+    model: hauslet/internal/modules/messaging/domain.ConversationContextType
+  ParticipantType:
+    model: hauslet/internal/modules/messaging/domain.ParticipantType
+  MessageType:
+    model: hauslet/internal/modules/messaging/domain.MessageType
 
   # Property Enums
   CountryCode:

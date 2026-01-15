@@ -5,6 +5,8 @@ scalar UUID
 scalar Map
 scalar Any
 
+directive @goField(name: String, forceResolver: Boolean) on FIELD_DEFINITION
+
 # The Root Mutation type
 type Mutation {
   # Generic ping

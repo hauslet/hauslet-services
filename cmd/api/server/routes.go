@@ -49,6 +49,17 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		})
 	}
 
+	// Setup messaging REST endpoints (attachments + helpers)
+	if cfg.App.Env == "production" {
+		r.Group(func(r chi.Router) {
+			container.MessagingHTTP.SetupRoutesWithRateLimiting(r, container.AuthSvc, container.RateLimiter)
+		})
+	} else {
+		r.Group(func(r chi.Router) {
+			container.MessagingHTTP.SetupRoutes(r, container.AuthSvc)
+		})
+	}
+
 	// Setup finance admin routes with optional rate limiting in production
 	authMiddleware := container.AuthSvc.OAuthService().Middleware()
 	if cfg.App.Env == "production" {
@@ -108,6 +119,7 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		container.InteractionReader,
 		container.DiscoverySvc,
 		container.VerificationSvc,
+		container.MessagingSvc,
 		container.BusinessMW.Auth.WithTenantSlug,
 		container.FXClient,
 		container.RateLimiter,

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	domain1 "hauslet/internal/modules/discovery/domain"
+	domain2 "hauslet/internal/modules/messaging/domain"
 	"hauslet/internal/modules/property/domain"
 	"io"
 	"strconv"
@@ -252,6 +253,22 @@ type SearchOptionsInput struct {
 	Limit           *int                `json:"limit,omitempty"`
 	IncludePromoted *bool               `json:"includePromoted,omitempty"`
 	RankingConfig   *RankingConfigInput `json:"rankingConfig,omitempty"`
+}
+
+type SendMessageAttachmentInput struct {
+	ID       *uuid.UUID     `json:"id,omitempty"`
+	URL      string         `json:"url"`
+	Type     *string        `json:"type,omitempty"`
+	Filename *string        `json:"filename,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
+}
+
+type SendMessageInput struct {
+	ConversationID uuid.UUID                     `json:"conversationId"`
+	Type           domain2.MessageType           `json:"type"`
+	Content        string                        `json:"content"`
+	Attachments    []*SendMessageAttachmentInput `json:"attachments,omitempty"`
+	Metadata       map[string]any                `json:"metadata,omitempty"`
 }
 
 type ShortletDetailInput struct {

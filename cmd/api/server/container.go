@@ -36,6 +36,10 @@ import (
 	leadhttp "hauslet/internal/modules/leads/port/http"
 	leadsrepository "hauslet/internal/modules/leads/repository"
 	leadsservice "hauslet/internal/modules/leads/service"
+	messaginghooks "hauslet/internal/modules/messaging/port/hooks"
+	messaginghttp "hauslet/internal/modules/messaging/port/http"
+	messagingrepository "hauslet/internal/modules/messaging/repository"
+	messagingservice "hauslet/internal/modules/messaging/service"
 	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
@@ -154,12 +158,15 @@ type Container struct {
 	DiscoverySvc       discoveryservice.DiscoveryService
 	VerificationSvc    verificationservice.VerificationService
 	SupplyGate         authorization.SupplyGate
+	MessagingSvc       messagingservice.MessagingService
+	AISupportSvc       messagingservice.AISupportService
 
 	// HTTP Handlers
 	AuthHTTP                *authhttp.HTTPHandler
 	PropertyHTTP            *propertyhttp.HTTPHandler
 	CalendarHTTP            *calendarhttp.HTTPHandler
 	LeadHTTP                *leadhttp.HTTPHandler
+	MessagingHTTP           *messaginghttp.HTTPHandler
 	FinanceHTTP             *financehttp.HTTPHandler
 	ReviewHTTP              *reviewhttp.AdminHandler
 	PaymentWebhookHTTP      *paymentshttp.WebhookHandler
@@ -250,6 +257,14 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 
 	if err := c.initBooking(); err != nil {
 		return nil, fmt.Errorf("failed to initialize booking: %w", err)
+	}
+
+	if err := c.initMessaging(); err != nil {
+		return nil, fmt.Errorf("failed to initialize messaging: %w", err)
+	}
+
+	if err := c.bindLeadMessagingHooks(); err != nil {
+		return nil, fmt.Errorf("failed to attach messaging hooks: %w", err)
 	}
 
 	if err := c.initPayout(); err != nil {
@@ -772,6 +787,49 @@ func (c *Container) initBooking() error {
 	return nil
 }
 
+// initMessaging initializes the messaging service and its hooks.
+func (c *Container) initMessaging() error {
+	convRepo := messagingrepository.NewConversationRepository(c.DB)
+	msgRepo := messagingrepository.NewMessageRepository(c.DB)
+	partRepo := messagingrepository.NewParticipantRepository(c.DB)
+
+	leadRepo := leadsrepository.NewLeadRepository(c.DB)
+	propertyRepo := propertyrepository.NewPropertyRepository(c.DB)
+	bookingRepo := bookingrepository.NewBookingRepository(c.DB)
+
+	leadHooks := messaginghooks.NewLeadHooksAdapter(leadRepo, propertyRepo, c.LeadSvc)
+	bookingHooks := messaginghooks.NewBookingHooksAdapter(bookingRepo, propertyRepo)
+	profileHooks := messaginghooks.NewProfileHooksAdapter(c.ProfileSvc)
+
+	c.MessagingSvc = messagingservice.NewMessagingService(
+		c.DB,
+		convRepo,
+		msgRepo,
+		partRepo,
+		c.AISupportSvc,
+		leadHooks,
+		bookingHooks,
+		profileHooks,
+		c.EventPublisher,
+		c.R2,
+		c.Logger,
+	)
+
+	return nil
+}
+
+func (c *Container) bindLeadMessagingHooks() error {
+	if c.LeadSvc == nil {
+		return fmt.Errorf("lead service is not initialized")
+	}
+	if c.MessagingSvc == nil {
+		return fmt.Errorf("messaging service is not initialized")
+	}
+
+	c.LeadSvc.RegisterMessagingHooks(messaginghooks.NewMessagingHooksAdapter(c.MessagingSvc))
+	return nil
+}
+
 // initPayout initializes the payout service (after booking)
 func (c *Container) initPayout() error {
 	emailSubject := c.Config.YAML.Queue.Subjects["email"]
@@ -947,6 +1005,9 @@ func (c *Container) initHTTPHandlers(ctx context.Context) error {
 
 	// Initialize lead HTTP handler
 	c.LeadHTTP = leadhttp.NewHTTPHandler(ctx, c.LeadSvc, c.Logger)
+
+	// Initialize messaging HTTP handler
+	c.MessagingHTTP = messaginghttp.NewHTTPHandler(ctx, c.MessagingSvc, c.Logger)
 
 	// Initialize finance HTTP handler (admin routes)
 	c.FinanceHTTP = financehttp.NewHTTPHandler(ctx, c.FinanceSvc, c.PayoutSvc, c.Logger)
