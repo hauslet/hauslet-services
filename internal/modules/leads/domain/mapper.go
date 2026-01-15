@@ -52,6 +52,7 @@ func MapLeadToSchema(domainLead *Lead) (*schema.Lead, error) {
 		ID:              domainLead.ID,
 		ListingID:       domainLead.ListingID,
 		UserID:          domainLead.UserID,
+		IsVerified:      domainLead.IsVerified,
 		BusinessID:      domainLead.BusinessID,
 		Name:            domainLead.Name,
 		Email:           domainLead.Email,
