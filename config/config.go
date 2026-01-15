@@ -119,6 +119,19 @@ func Load() *GlobalConfig {
 					TwilioAuthToken:  def("TWILIO_AUTH_TOKEN", ""),
 					TwilioFromNumber: def("TWILIO_FROM_NUMBER", ""),
 				},
+				VertexAI: VertexAIConfig{
+					ProjectID:       def("VERTEX_AI_PROJECT_ID", ""),
+					AgentID:         def("VERTEX_AI_AGENT_ID", ""),
+					Location:        def("VERTEX_AI_LOCATION", ""),
+					CredentialsPath: def("VERTEX_AI_CREDENTIALS_PATH", ""),
+				},
+				Messaging: MessagingConfig{
+					AIContextMessages:      getInt("MESSAGING_AI_CONTEXT_MESSAGES", 10),
+					AIConfidenceThreshold:  getFloat("MESSAGING_AI_CONFIDENCE_THRESHOLD", 0.6),
+					AITimeoutSeconds:       getInt("MESSAGING_AI_TIMEOUT_SECONDS", 15),
+					MaxConversationAgeDays: getInt("MESSAGING_MAX_CONVERSATION_AGE_DAYS", 30),
+					AIServingConfig:        def("MESSAGING_AI_SERVING_CONFIG", ""),
+				},
 			},
 			Infra: InfraConfig{
 				CloudTasks: CloudTasksConfig{

@@ -7,3 +7,5 @@ dist
 tmp
 coverage
 node_modules
+vertex-ai-credentials.json
+hauslet_policies.txt

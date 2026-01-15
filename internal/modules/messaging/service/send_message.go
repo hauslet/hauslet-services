@@ -1,7 +1,6 @@
 package service
 
 import (
-	"maps"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,6 +15,10 @@ import (
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
+
+// AIEscalationMarker is the exact string the AI agent returns when it needs to escalate to a human.
+// When detected, the message is not saved or sent to the guest.
+const AIEscalationMarker = "###ESCALATE_TO_HUMAN###"
 
 func (s *messagingServiceImpl) SendMessage(ctx context.Context, input SendMessageInput) (*SendMessageResult, error) {
 	if input.ConversationID == uuid.Nil || input.SenderID == uuid.Nil {
@@ -162,41 +165,75 @@ func (s *messagingServiceImpl) SendMessage(ctx context.Context, input SendMessag
 	}, nil
 }
 
-// Helpers for SendMessage
-func copyMetadata(src map[string]any) map[string]any {
-	if len(src) == 0 {
-		return map[string]any{}
+// tryTriggerAI attempts to generate an AI response in the background.
+// It creates a detached context to ensure the process survives the HTTP request lifecycle.
+func (s *messagingServiceImpl) tryTriggerAI(conv *domain.Conversation, userMsg *domain.Message) {
+	if s.aiSupport == nil {
+		return
 	}
-	out := make(map[string]any, len(src))
-	maps.Copy(out, src)
-	return out
-}
 
-func marshalJSON(payload map[string]any) ([]byte, error) {
-	if len(payload) == 0 {
-		return nil, nil
-	}
-	return json.Marshal(payload)
-}
+	// Create a detached context with a timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-func sanitizeAttachments(inputs []MessageAttachmentInput) ([]map[string]any, error) {
-	out := make([]map[string]any, 0, len(inputs))
-	for _, att := range inputs {
-		if strings.TrimSpace(att.URL) == "" {
-			return nil, fmt.Errorf("attachment url required")
-		}
-		entry := map[string]any{
-			"url":      att.URL,
-			"filename": att.Filename,
-			"type":     att.Type,
-		}
-		if att.Metadata != nil {
-			entry["meta"] = att.Metadata
-		}
-		if att.ID != nil {
-			entry["id"] = att.ID.String()
-		}
-		out = append(out, entry)
+	// 1. Process with AI Service
+	responseMsg, err := s.aiSupport.ProcessUserMessage(ctx, conv, userMsg)
+	if err != nil {
+		s.log.Error("ai_agent_failed", "conversation_id", conv.ID, "error", err)
+		return
 	}
-	return out, nil
+	if responseMsg == nil {
+		// AI decided not to respond (maybe low confidence or handled silently)
+		return
+	}
+
+	// 2. Check for explicit escalation marker
+	// If the AI returns this marker, escalate immediately without saving or sending the message
+	if strings.TrimSpace(responseMsg.Content) == AIEscalationMarker {
+		s.log.Info("ai_escalation_marker_detected", "conversation_id", conv.ID)
+		if _, err := s.RequestSupport(ctx, conv.ID, userMsg.SenderID); err != nil {
+			s.log.Error("ai_marker_escalation_failed", "conversation_id", conv.ID, "error", err)
+		}
+		return
+	}
+
+	// 3. Save AI Response
+	// Note: We use the logic similar to SendMessage but simplified for internal use
+	aiSchemaMsg := &schema.Message{
+		ID:             responseMsg.ID,
+		ConversationID: conv.ID,
+		SenderID:       responseMsg.SenderID,
+		SenderType:     string(domain.ParticipantTypeAIAgent),
+		MessageType:    string(domain.MessageTypeText),
+		Content:        responseMsg.Content,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		Metadata:       datatypes.JSON([]byte("{}")),
+	}
+
+	if responseMsg.AIContext != nil {
+		if b, err := json.Marshal(responseMsg.AIContext); err == nil {
+			aiSchemaMsg.AIContext = datatypes.JSON(b)
+		}
+	}
+
+	// 4. Persist
+	if err := s.messageRepo.Create(ctx, aiSchemaMsg); err != nil {
+		s.log.Error("failed to save ai message", "error", err)
+		return
+	}
+
+	// 5. Update Conversation
+	_ = s.convRepo.UpdateLastMessageTimestamp(ctx, conv.ID, aiSchemaMsg.CreatedAt)
+
+	// 6. Publish Event
+	if s.eventPublisher != nil {
+		actorID := responseMsg.SenderID.String()
+		_ = s.eventPublisher.Publish(ctx, events.ChannelMessages, events.EventMessageSent, responseMsg.ID.String(), responseMsg, &events.PublishOptions{
+			ActorID: &actorID,
+			Metadata: map[string]string{
+				"conversation_id": conv.ID.String(),
+			},
+		})
+	}
 }

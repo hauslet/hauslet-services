@@ -73,6 +73,8 @@ type ServicesConfig struct {
 	FX        FXConfig
 	KYC       KYCConfig
 	SMS       SMSConfig
+	VertexAI  VertexAIConfig
+	Messaging MessagingConfig
 }
 
 type EmailConfig struct {
@@ -142,11 +144,26 @@ type KYCConfig struct {
 }
 
 type SMSConfig struct {
-	TermiiAPIKey      string
-	TermiiSenderID    string
-	TwilioAccountSID  string
-	TwilioAuthToken   string
-	TwilioFromNumber  string
+	TermiiAPIKey     string
+	TermiiSenderID   string
+	TwilioAccountSID string
+	TwilioAuthToken  string
+	TwilioFromNumber string
+}
+
+type VertexAIConfig struct {
+	ProjectID       string
+	AgentID         string
+	Location        string
+	CredentialsPath string
+}
+
+type MessagingConfig struct {
+	AIContextMessages      int
+	AIConfidenceThreshold  float64
+	AITimeoutSeconds       int
+	MaxConversationAgeDays int
+	AIServingConfig        string
 }
 
 type InfraConfig struct {
@@ -186,6 +203,18 @@ func getInt(k string, d int) int {
 		return d
 	}
 	return i
+}
+
+func getFloat(k string, d float64) float64 {
+	v, ok := os.LookupEnv(k)
+	if !ok || v == "" {
+		return d
+	}
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return d
+	}
+	return f
 }
 
 func getBool(k string, d bool) bool {

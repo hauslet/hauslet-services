@@ -12,7 +12,8 @@ config/overrides/
 AGENTS.md
 CLAUDE.md
 todo.md
-
+vertex-ai-credentials.json
+hauslet_policies.txt
 # Binary outputs
 /bin/
 /dist/

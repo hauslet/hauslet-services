@@ -7,3 +7,5 @@
 !cmd/worker/**
 !internal/transport/worker
 !internal/transport/worker/**
+vertex-ai-credentials.json
+hauslet_policies.txt

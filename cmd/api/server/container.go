@@ -38,6 +38,7 @@ import (
 	leadsservice "hauslet/internal/modules/leads/service"
 	messaginghooks "hauslet/internal/modules/messaging/port/hooks"
 	messaginghttp "hauslet/internal/modules/messaging/port/http"
+	vertexai "hauslet/internal/modules/messaging/port/vertexai"
 	messagingrepository "hauslet/internal/modules/messaging/repository"
 	messagingservice "hauslet/internal/modules/messaging/service"
 	moderationhooks "hauslet/internal/modules/moderation/port/hooks"
@@ -259,7 +260,7 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 		return nil, fmt.Errorf("failed to initialize booking: %w", err)
 	}
 
-	if err := c.initMessaging(); err != nil {
+	if err := c.initMessaging(ctx); err != nil {
 		return nil, fmt.Errorf("failed to initialize messaging: %w", err)
 	}
 
@@ -785,7 +786,7 @@ func (c *Container) initBooking() error {
 }
 
 // initMessaging initializes the messaging service and its hooks.
-func (c *Container) initMessaging() error {
+func (c *Container) initMessaging(ctx context.Context) error {
 	convRepo := messagingrepository.NewConversationRepository(c.DB)
 	msgRepo := messagingrepository.NewMessageRepository(c.DB)
 	partRepo := messagingrepository.NewParticipantRepository(c.DB)
@@ -798,12 +799,31 @@ func (c *Container) initMessaging() error {
 	bookingHooks := messaginghooks.NewBookingHooksAdapter(bookingRepo, propertyRepo)
 	profileHooks := messaginghooks.NewProfileHooksAdapter(c.ProfileSvc)
 
+	var aiSupport messagingservice.AISupportService
+	aiCfg := c.Config.Services.VertexAI
+	if aiCfg.ProjectID != "" && aiCfg.AgentID != "" {
+		vertexCfg := c.Config.Services.Messaging
+		client, err := vertexai.NewVertexAIClient(ctx, aiCfg.ProjectID, aiCfg.Location, aiCfg.AgentID, aiCfg.CredentialsPath)
+		if err != nil {
+			return fmt.Errorf("failed to initialize vertex ai client: %w", err)
+		}
+		aiSupport = messagingservice.NewVertexAISupportService(client, msgRepo, vertexCfg, c.Logger)
+		if aiSupport == nil {
+			c.Logger.Warn("vertex ai support service unavailable, ai flow disabled")
+		} else {
+			c.AISupportSvc = aiSupport
+		}
+	} else {
+		c.Logger.Info("vertex ai disabled (missing configuration)", "project_id", aiCfg.ProjectID, "agent_id", aiCfg.AgentID)
+	}
+	c.AISupportSvc = aiSupport
+
 	c.MessagingSvc = messagingservice.NewMessagingService(
 		c.DB,
 		convRepo,
 		msgRepo,
-		partRepo, 
-		c.AISupportSvc,
+		partRepo,
+		aiSupport,
 		leadHooks,
 		bookingHooks,
 		profileHooks,
