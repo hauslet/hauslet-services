@@ -85,6 +85,7 @@ steps:
       - '--timeout=60s'
       - '--concurrency=80'
       - '--set-env-vars=APP_ENV=${_ENV},PORT=8080'
+      - '--set-secrets=VERTEX_AI_PROJECT_ID=VERTEX_AI_PROJECT_ID:latest,VERTEX_AI_AGENT_ID=VERTEX_AI_AGENT_ID:latest,VERTEX_AI_LOCATION=VERTEX_AI_LOCATION:latest,VERTEX_AI_CREDENTIALS_PATH=VERTEX_AI_CREDENTIALS_PATH:latest'
       - '--set-cloudsql-instances=$PROJECT_ID:${_REGION}:hauslet-postgres'
       - '--service-account=hauslet-api-sa@$PROJECT_ID.iam.gserviceaccount.com'
       - '--vpc-connector=hauslet-vpc-connector'
@@ -110,6 +111,7 @@ steps:
       - '--timeout=300s'  # 5 minutes for long-running tasks
       - '--concurrency=10'  # Lower concurrency for worker tasks
       - '--set-env-vars=APP_ENV=${_ENV},PORT=8080'
+      - '--set-secrets=VERTEX_AI_PROJECT_ID=VERTEX_AI_PROJECT_ID:latest,VERTEX_AI_AGENT_ID=VERTEX_AI_AGENT_ID:latest,VERTEX_AI_LOCATION=VERTEX_AI_LOCATION:latest,VERTEX_AI_CREDENTIALS_PATH=VERTEX_AI_CREDENTIALS_PATH:latest'
       - '--set-cloudsql-instances=$PROJECT_ID:${_REGION}:hauslet-postgres'
       - '--service-account=hauslet-worker-sa@$PROJECT_ID.iam.gserviceaccount.com'
       - '--vpc-connector=hauslet-vpc-connector'
