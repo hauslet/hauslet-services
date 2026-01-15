@@ -30,17 +30,15 @@ func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*d
 				// Don't fail - fall back to manual entry
 			} else if profile != nil {
 				// Auto-fill from verified profile
-				if input.Name == "" {
-					input.Name = profile.FullName
-				}
-				if input.Email == "" {
-					input.Email = profile.Email
-				}
-				if input.PhoneNumber == nil && profile.Phone != nil {
-					input.PhoneNumber = profile.Phone
-				}
+				// Override input fields
+				input.Name = profile.FullName
+
+				input.Email = profile.Email
+
+				input.PhoneNumber = profile.Phone
+
 				isVerified = true // Mark as verified since from authenticated user
-				s.log.Info("auto-filled lead from profile", "user_id", input.UserID, "name", input.Name)
+				s.log.Info("auto-filled lead from profile", "user_id", input.UserID, "name", input.Name, "is_verified", isVerified)
 			}
 		}
 	}
