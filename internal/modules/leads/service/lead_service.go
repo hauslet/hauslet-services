@@ -18,29 +18,26 @@ import (
 // - Authenticated users: Auto-fills from profile, marked as verified, lower spam score
 // - Anonymous users: Manual entry, spam checks applied, rate limited
 func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*domain.Lead, error) {
-	isVerified := false
+	// HYBRID: If UserID provided, mark as verified (authenticated user)
+	isVerified := input.UserID != nil
 
-	// HYBRID: If UserID provided, auto-fill from profile
+	// HYBRID: If UserID provided, try to auto-fill from profile
 	if input.UserID != nil {
-		s.log.Info("authenticated user creating lead", "user_id", input.UserID)
+		s.log.Info("authenticated user creating lead", "user_id", input.UserID, "is_verified", isVerified)
 
-		// Fetch profile data via hooks (if available)
+		// Fetch profile data via hooks (if available) for auto-filling
 		if s.profileHooks != nil {
 			profile, err := s.profileHooks.GetUserProfile(ctx, *input.UserID)
 			if err != nil {
-				s.log.Error("failed to fetch user profile", "error", err, "user_id", input.UserID)
-				// Don't fail - fall back to manual entry
+				s.log.Warn("failed to fetch user profile for auto-fill", "error", err, "user_id", input.UserID)
+				// Continue with manual entry - verified status doesn't depend on this
 			} else if profile != nil {
 				// Auto-fill from verified profile
 				// Override input fields
 				input.Name = profile.FullName
-
 				input.Email = profile.Email
-
 				input.PhoneNumber = profile.Phone
-
-				isVerified = true // Mark as verified since from authenticated user
-				s.log.Info("auto-filled lead from profile", "user_id", input.UserID, "name", input.Name, "is_verified", isVerified)
+				s.log.Info("auto-filled lead from profile", "user_id", input.UserID, "name", input.Name)
 			}
 		}
 	}
