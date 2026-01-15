@@ -12,3 +12,9 @@ type Mutation {
   # Generic ping
   ping: String!
 }
+
+# The Root Subscription type for real-time events
+type Subscription {
+  # Placeholder subscription - modules extend this type
+  _placeholder: String
+}

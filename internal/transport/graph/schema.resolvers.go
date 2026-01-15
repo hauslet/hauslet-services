@@ -1130,12 +1130,12 @@ func (r *queryResolver) SimilarListings(ctx context.Context, listingID uuid.UUID
 
 // Conversation is the resolver for the conversation field.
 func (r *queryResolver) Conversation(ctx context.Context, id uuid.UUID) (*domain14.Conversation, error) {
-	panic(fmt.Errorf("not implemented: Conversation - conversation"))
+	return r.MessagingResolver.Conversation(ctx, id)
 }
 
 // MyConversations is the resolver for the myConversations field.
 func (r *queryResolver) MyConversations(ctx context.Context, limit *int, offset *int) ([]*domain14.Conversation, error) {
-	panic(fmt.Errorf("not implemented: MyConversations - myConversations"))
+	return r.MessagingResolver.MyConversations(ctx, limit, offset)
 }
 
 // Business is the resolver for the business field.
@@ -2042,6 +2042,29 @@ func (r *subRatingsResolver) Value(ctx context.Context, obj *domain8.SubRatings)
 	return &val, nil
 }
 
+// Placeholder is the resolver for the _placeholder field.
+func (r *subscriptionResolver) Placeholder(ctx context.Context) (<-chan *string, error) {
+	// Placeholder subscription - not used, exists to define base Subscription type
+	ch := make(chan *string)
+	close(ch)
+	return ch, nil
+}
+
+// MessageReceived is the resolver for the messageReceived field.
+func (r *subscriptionResolver) MessageReceived(ctx context.Context, conversationID uuid.UUID) (<-chan *domain14.Message, error) {
+	return r.MessagingResolver.MessageReceived(ctx, conversationID)
+}
+
+// ConversationUpdated is the resolver for the conversationUpdated field.
+func (r *subscriptionResolver) ConversationUpdated(ctx context.Context, conversationID uuid.UUID) (<-chan *domain14.Conversation, error) {
+	return r.MessagingResolver.ConversationUpdated(ctx, conversationID)
+}
+
+// MyConversationsUpdated is the resolver for the myConversationsUpdated field.
+func (r *subscriptionResolver) MyConversationsUpdated(ctx context.Context) (<-chan *domain14.Conversation, error) {
+	return r.MessagingResolver.MyConversationsUpdated(ctx)
+}
+
 // Currency is the resolver for the currency field.
 func (r *transactionResolver) Currency(ctx context.Context, obj *domain6.Transaction) (string, error) {
 	return string(obj.Currency), nil
@@ -2287,6 +2310,9 @@ func (r *Resolver) ShowingAvailability() ShowingAvailabilityResolver {
 // SubRatings returns SubRatingsResolver implementation.
 func (r *Resolver) SubRatings() SubRatingsResolver { return &subRatingsResolver{r} }
 
+// Subscription returns SubscriptionResolver implementation.
+func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+
 // Transaction returns TransactionResolver implementation.
 func (r *Resolver) Transaction() TransactionResolver { return &transactionResolver{r} }
 
@@ -2362,6 +2388,7 @@ type ruleGroupResolver struct{ *Resolver }
 type saleDetailResolver struct{ *Resolver }
 type showingAvailabilityResolver struct{ *Resolver }
 type subRatingsResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }
 type transactionResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }
 type usageTrackingResolver struct{ *Resolver }

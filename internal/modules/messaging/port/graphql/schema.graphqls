@@ -119,3 +119,28 @@ extend type Mutation {
   sendMessage(input: SendMessageInput!): Message!
   markConversationAsRead(conversationId: UUID!): Boolean!
 }
+
+
+# ===========================
+# SUBSCRIPTIONS
+# ===========================
+
+extend type Subscription {
+  """
+  Subscribe to new messages in a specific conversation.
+  Requires user to be a participant in the conversation.
+  """
+  messageReceived(conversationId: UUID!): Message!
+
+  """
+  Subscribe to updates for a specific conversation (e.g., read receipts, participant changes).
+  Requires user to be a participant in the conversation.
+  """
+  conversationUpdated(conversationId: UUID!): Conversation!
+
+  """
+  Subscribe to any updates across all of the user's conversations.
+  Useful for inbox-level notifications.
+  """
+  myConversationsUpdated: Conversation!
+}

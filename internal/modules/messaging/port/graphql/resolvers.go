@@ -2,10 +2,12 @@ package graphql
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 
 	"hauslet/internal/modules/messaging/domain"
 	"hauslet/internal/modules/messaging/service"
+	"hauslet/internal/platform/events"
 	"hauslet/internal/transport/graph/model"
 	"hauslet/internal/transport/graph/viewer"
 
@@ -14,15 +16,17 @@ import (
 
 // Resolver provides the GraphQL handlers for messaging operations.
 type Resolver struct {
-	messagingSvc service.MessagingService
-	log          *slog.Logger
+	messagingSvc    service.MessagingService
+	eventSubscriber *events.Subscriber
+	log             *slog.Logger
 }
 
 // NewResolver constructs a messaging GraphQL resolver.
-func NewResolver(messagingSvc service.MessagingService, log *slog.Logger) *Resolver {
+func NewResolver(messagingSvc service.MessagingService, eventSubscriber *events.Subscriber, log *slog.Logger) *Resolver {
 	return &Resolver{
-		messagingSvc: messagingSvc,
-		log:          log,
+		messagingSvc:    messagingSvc,
+		eventSubscriber: eventSubscriber,
+		log:             log,
 	}
 }
 
@@ -221,4 +225,204 @@ func (r *Resolver) buildPagination(limit *int, offset *int) service.Pagination {
 		page.Offset = *offset
 	}
 	return page.Normalize()
+}
+
+// ============================================================================
+// Subscription Resolvers
+// ============================================================================
+
+// MessageReceived subscribes to new messages in a specific conversation.
+// The user must be a participant in the conversation to subscribe.
+func (r *Resolver) MessageReceived(ctx context.Context, conversationID uuid.UUID) (<-chan *domain.Message, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the user has access to this conversation before subscribing
+	_, err = r.messagingSvc.GetConversation(ctx, conversationID, userID)
+	if err != nil {
+		r.log.Error("subscription auth failed", "conversation_id", conversationID, "user_id", userID, "error", err)
+		return nil, err
+	}
+
+	// Subscribe to message events with filters
+	eventCh, err := r.eventSubscriber.SubscribeWithFilter(
+		ctx,
+		events.ChannelMessages,
+		events.FilterByType(events.EventMessageSent),
+		events.FilterByMetadata("conversation_id", conversationID.String()),
+	)
+	if err != nil {
+		r.log.Error("failed to subscribe to message events", "conversation_id", conversationID, "error", err)
+		return nil, err
+	}
+
+	// Create output channel
+	outCh := make(chan *domain.Message, 10)
+
+	// Process events in background
+	go func() {
+		defer close(outCh)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case event, ok := <-eventCh:
+				if !ok {
+					return
+				}
+
+				// Parse message from event payload
+				var msg domain.Message
+				if err := json.Unmarshal(event.Payload, &msg); err != nil {
+					r.log.Error("failed to unmarshal message event", "error", err)
+					continue
+				}
+
+				// Send to subscriber
+				select {
+				case outCh <- &msg:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return outCh, nil
+}
+
+// ConversationUpdated subscribes to updates for a specific conversation.
+// The user must be a participant in the conversation to subscribe.
+func (r *Resolver) ConversationUpdated(ctx context.Context, conversationID uuid.UUID) (<-chan *domain.Conversation, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the user has access to this conversation before subscribing
+	_, err = r.messagingSvc.GetConversation(ctx, conversationID, userID)
+	if err != nil {
+		r.log.Error("subscription auth failed", "conversation_id", conversationID, "user_id", userID, "error", err)
+		return nil, err
+	}
+
+	// Subscribe to conversation update events
+	eventCh, err := r.eventSubscriber.SubscribeWithFilter(
+		ctx,
+		events.ChannelMessages,
+		events.FilterByType(events.EventConversationUpdated, events.EventMessageRead),
+		events.FilterByMetadata("conversation_id", conversationID.String()),
+	)
+	if err != nil {
+		r.log.Error("failed to subscribe to conversation events", "conversation_id", conversationID, "error", err)
+		return nil, err
+	}
+
+	// Create output channel
+	outCh := make(chan *domain.Conversation, 10)
+
+	// Process events in background
+	go func() {
+		defer close(outCh)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case event, ok := <-eventCh:
+				if !ok {
+					return
+				}
+
+				// Parse conversation from event payload
+				var conv domain.Conversation
+				if err := json.Unmarshal(event.Payload, &conv); err != nil {
+					r.log.Error("failed to unmarshal conversation event", "error", err)
+					continue
+				}
+
+				// Send to subscriber
+				select {
+				case outCh <- &conv:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return outCh, nil
+}
+
+// MyConversationsUpdated subscribes to updates across all of the user's conversations.
+// Useful for inbox-level notifications.
+func (r *Resolver) MyConversationsUpdated(ctx context.Context) (<-chan *domain.Conversation, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Subscribe to all conversation events (we'll filter by user participation)
+	eventCh, err := r.eventSubscriber.SubscribeWithFilter(
+		ctx,
+		events.ChannelMessages,
+		events.FilterByType(events.EventMessageSent, events.EventConversationUpdated, events.EventConversationCreated),
+	)
+	if err != nil {
+		r.log.Error("failed to subscribe to conversation events", "user_id", userID, "error", err)
+		return nil, err
+	}
+
+	// Create output channel
+	outCh := make(chan *domain.Conversation, 10)
+
+	// Process events in background
+	go func() {
+		defer close(outCh)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+
+			case event, ok := <-eventCh:
+				if !ok {
+					return
+				}
+
+				// Extract conversation ID from metadata
+				convIDStr, ok := event.Metadata["conversation_id"]
+				if !ok {
+					continue
+				}
+
+				convID, err := uuid.Parse(convIDStr)
+				if err != nil {
+					continue
+				}
+
+				// Verify the user is a participant in this conversation
+				// This ensures we only deliver events for conversations the user can access
+				conv, err := r.messagingSvc.GetConversation(ctx, convID, userID)
+				if err != nil {
+					// User is not a participant or conversation doesn't exist
+					continue
+				}
+
+				// Send to subscriber
+				select {
+				case outCh <- conv:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return outCh, nil
 }

@@ -110,6 +110,6 @@ func NewResolver(
 		InteractionsResolver: interactionsgraphql.NewResolver(interactionsTracker, interactionsReader, log),
 		DiscoveryResolver:    discoverygraphql.NewResolver(discoverySvc, log),
 		VerificationResolver: verificationgraphql.NewResolver(verificationSvc, log),
-		MessagingResolver:    messaginggraphql.NewResolver(messagingSvc, log),
+		MessagingResolver:    messaginggraphql.NewResolver(messagingSvc, eventSubscriber, log),
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"hauslet/internal/modules/messaging/domain"
+	"hauslet/internal/platform/events"
 
 	"github.com/google/uuid"
 )
@@ -83,6 +84,32 @@ func (s *messagingServiceImpl) MarkAsRead(ctx context.Context, conversationID, u
 
 	if err := s.convRepo.MarkAsRead(ctx, conversationID, userID); err != nil {
 		return fmt.Errorf("failed to mark conversation as read: %w", err)
+	}
+
+	// Publish message read event for real-time updates
+	if s.eventPublisher != nil {
+		// Fetch updated conversation to include in event payload
+		updatedConv, err := s.convRepo.GetByID(ctx, conversationID)
+		if err == nil {
+			domainConv, mapErr := domain.MapConversationToDomain(updatedConv)
+			if mapErr == nil {
+				actorID := userID.String()
+				_ = s.eventPublisher.Publish(
+					ctx,
+					events.ChannelMessages,
+					events.EventMessageRead,
+					conversationID.String(),
+					domainConv,
+					&events.PublishOptions{
+						ActorID:      &actorID,
+						FailSilently: true,
+						Metadata: map[string]string{
+							"conversation_id": conversationID.String(),
+						},
+					},
+				)
+			}
+		}
 	}
 
 	return nil

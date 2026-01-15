@@ -102,6 +102,7 @@ type ResolverRoot interface {
 	SaleDetail() SaleDetailResolver
 	ShowingAvailability() ShowingAvailabilityResolver
 	SubRatings() SubRatingsResolver
+	Subscription() SubscriptionResolver
 	Transaction() TransactionResolver
 	TravelCompanion() TravelCompanionResolver
 	UsageTracking() UsageTrackingResolver
@@ -1446,6 +1447,13 @@ type ComplexityRoot struct {
 		Value         func(childComplexity int) int
 	}
 
+	Subscription struct {
+		ConversationUpdated    func(childComplexity int, conversationID uuid.UUID) int
+		MessageReceived        func(childComplexity int, conversationID uuid.UUID) int
+		MyConversationsUpdated func(childComplexity int) int
+		Placeholder            func(childComplexity int) int
+	}
+
 	Thumbnail struct {
 		Height    func(childComplexity int) int
 		Key       func(childComplexity int) int
@@ -1989,6 +1997,12 @@ type SubRatingsResolver interface {
 	Location(ctx context.Context, obj *domain11.SubRatings) (*int, error)
 	Checkin(ctx context.Context, obj *domain11.SubRatings) (*int, error)
 	Value(ctx context.Context, obj *domain11.SubRatings) (*int, error)
+}
+type SubscriptionResolver interface {
+	Placeholder(ctx context.Context) (<-chan *string, error)
+	MessageReceived(ctx context.Context, conversationID uuid.UUID) (<-chan *domain5.Message, error)
+	ConversationUpdated(ctx context.Context, conversationID uuid.UUID) (<-chan *domain5.Conversation, error)
+	MyConversationsUpdated(ctx context.Context) (<-chan *domain5.Conversation, error)
 }
 type TransactionResolver interface {
 	Currency(ctx context.Context, obj *domain9.Transaction) (string, error)
@@ -9437,6 +9451,41 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.SubRatings.Value(childComplexity), true
 
+	case "Subscription.conversationUpdated":
+		if e.complexity.Subscription.ConversationUpdated == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_conversationUpdated_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.ConversationUpdated(childComplexity, args["conversationId"].(uuid.UUID)), true
+	case "Subscription.messageReceived":
+		if e.complexity.Subscription.MessageReceived == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_messageReceived_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.MessageReceived(childComplexity, args["conversationId"].(uuid.UUID)), true
+	case "Subscription.myConversationsUpdated":
+		if e.complexity.Subscription.MyConversationsUpdated == nil {
+			break
+		}
+
+		return e.complexity.Subscription.MyConversationsUpdated(childComplexity), true
+	case "Subscription._placeholder":
+		if e.complexity.Subscription.Placeholder == nil {
+			break
+		}
+
+		return e.complexity.Subscription.Placeholder(childComplexity), true
+
 	case "Thumbnail.height":
 		if e.complexity.Thumbnail.Height == nil {
 			break
@@ -10297,6 +10346,23 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
 			data := ec._Mutation(ctx, opCtx.Operation.SelectionSet)
 			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
+	case ast.Subscription:
+		next := ec._Subscription(ctx, opCtx.Operation.SelectionSet)
+
+		var buf bytes.Buffer
+		return func(ctx context.Context) *graphql.Response {
+			buf.Reset()
+			data := next(ctx)
+
+			if data == nil {
+				return nil
+			}
 			data.MarshalGQL(&buf)
 
 			return &graphql.Response{
@@ -11558,6 +11624,31 @@ extend type Mutation {
   startTransactionConversation(contextType: ConversationContextType!, contextId: UUID!): Conversation!
   sendMessage(input: SendMessageInput!): Message!
   markConversationAsRead(conversationId: UUID!): Boolean!
+}
+
+
+# ===========================
+# SUBSCRIPTIONS
+# ===========================
+
+extend type Subscription {
+  """
+  Subscribe to new messages in a specific conversation.
+  Requires user to be a participant in the conversation.
+  """
+  messageReceived(conversationId: UUID!): Message!
+
+  """
+  Subscribe to updates for a specific conversation (e.g., read receipts, participant changes).
+  Requires user to be a participant in the conversation.
+  """
+  conversationUpdated(conversationId: UUID!): Conversation!
+
+  """
+  Subscribe to any updates across all of the user's conversations.
+  Useful for inbox-level notifications.
+  """
+  myConversationsUpdated: Conversation!
 }
 `, BuiltIn: false},
 	{Name: "../../modules/business/port/graphql/schema.graphqls", Input: `# internal/modules/business/port/graphql/schema.graphqls
@@ -16779,6 +16870,28 @@ func (ec *executionContext) field_Query_wishlist_args(ctx context.Context, rawAr
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_conversationUpdated_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "conversationId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["conversationId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_messageReceived_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "conversationId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["conversationId"] = arg0
 	return args, nil
 }
 
@@ -57182,6 +57295,214 @@ func (ec *executionContext) fieldContext_SubRatings_value(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _Subscription__placeholder(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription__placeholder,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Subscription().Placeholder(ctx)
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription__placeholder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_messageReceived(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription_messageReceived,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Subscription().MessageReceived(ctx, fc.Args["conversationId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNMessage2ᚖhausletᚋinternalᚋmodulesᚋmessagingᚋdomainᚐMessage,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription_messageReceived(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Message_id(ctx, field)
+			case "conversationId":
+				return ec.fieldContext_Message_conversationId(ctx, field)
+			case "senderId":
+				return ec.fieldContext_Message_senderId(ctx, field)
+			case "senderType":
+				return ec.fieldContext_Message_senderType(ctx, field)
+			case "type":
+				return ec.fieldContext_Message_type(ctx, field)
+			case "content":
+				return ec.fieldContext_Message_content(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Message_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Message_updatedAt(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Message_metadata(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Message", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_messageReceived_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_conversationUpdated(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription_conversationUpdated,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Subscription().ConversationUpdated(ctx, fc.Args["conversationId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNConversation2ᚖhausletᚋinternalᚋmodulesᚋmessagingᚋdomainᚐConversation,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription_conversationUpdated(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Conversation_id(ctx, field)
+			case "type":
+				return ec.fieldContext_Conversation_type(ctx, field)
+			case "status":
+				return ec.fieldContext_Conversation_status(ctx, field)
+			case "contextType":
+				return ec.fieldContext_Conversation_contextType(ctx, field)
+			case "contextId":
+				return ec.fieldContext_Conversation_contextId(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Conversation_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Conversation_updatedAt(ctx, field)
+			case "lastMessageAt":
+				return ec.fieldContext_Conversation_lastMessageAt(ctx, field)
+			case "participants":
+				return ec.fieldContext_Conversation_participants(ctx, field)
+			case "unreadCounts":
+				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
+			case "messages":
+				return ec.fieldContext_Conversation_messages(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_conversationUpdated_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_myConversationsUpdated(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription_myConversationsUpdated,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Subscription().MyConversationsUpdated(ctx)
+		},
+		nil,
+		ec.marshalNConversation2ᚖhausletᚋinternalᚋmodulesᚋmessagingᚋdomainᚐConversation,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription_myConversationsUpdated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Conversation_id(ctx, field)
+			case "type":
+				return ec.fieldContext_Conversation_type(ctx, field)
+			case "status":
+				return ec.fieldContext_Conversation_status(ctx, field)
+			case "contextType":
+				return ec.fieldContext_Conversation_contextType(ctx, field)
+			case "contextId":
+				return ec.fieldContext_Conversation_contextId(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Conversation_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Conversation_updatedAt(ctx, field)
+			case "lastMessageAt":
+				return ec.fieldContext_Conversation_lastMessageAt(ctx, field)
+			case "participants":
+				return ec.fieldContext_Conversation_participants(ctx, field)
+			case "unreadCounts":
+				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
+			case "messages":
+				return ec.fieldContext_Conversation_messages(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Thumbnail_key(ctx context.Context, field graphql.CollectedField, obj *domain12.Thumbnail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -80016,6 +80337,32 @@ func (ec *executionContext) _SubRatings(ctx context.Context, sel ast.SelectionSe
 	}
 
 	return out
+}
+
+var subscriptionImplementors = []string{"Subscription"}
+
+func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet) func(ctx context.Context) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Subscription",
+	})
+	if len(fields) != 1 {
+		graphql.AddErrorf(ctx, "must subscribe to exactly one stream")
+		return nil
+	}
+
+	switch fields[0].Name {
+	case "_placeholder":
+		return ec._Subscription__placeholder(ctx, fields[0])
+	case "messageReceived":
+		return ec._Subscription_messageReceived(ctx, fields[0])
+	case "conversationUpdated":
+		return ec._Subscription_conversationUpdated(ctx, fields[0])
+	case "myConversationsUpdated":
+		return ec._Subscription_myConversationsUpdated(ctx, fields[0])
+	default:
+		panic("unknown field " + strconv.Quote(fields[0].Name))
+	}
 }
 
 var thumbnailImplementors = []string{"Thumbnail"}

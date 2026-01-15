@@ -307,6 +307,9 @@ type ShortletFilterInput struct {
 	AccommodationTypes []domain.AccommodationType `json:"accommodationTypes,omitempty"`
 }
 
+type Subscription struct {
+}
+
 type UpdateListingInput struct {
 	Property         *UpdateListingPropertyInput `json:"property,omitempty"`
 	Title            *string                     `json:"title,omitempty"`

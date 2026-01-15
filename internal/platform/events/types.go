@@ -39,8 +39,11 @@ const (
 	EventVerificationCompleted EventType = "verification.completed"
 	EventVerificationFailed    EventType = "verification.failed"
 
-	// Message/Interaction events (future)
-	EventMessageSent EventType = "message.sent"
+	// Message/Conversation events
+	EventMessageSent         EventType = "message.sent"
+	EventMessageRead         EventType = "message.read"
+	EventConversationCreated EventType = "conversation.created"
+	EventConversationUpdated EventType = "conversation.updated"
 )
 
 // Event represents a domain event that can be published and subscribed to.
