@@ -1148,6 +1148,11 @@ func (r *queryResolver) MyConversations(ctx context.Context, limit *int, offset 
 	return r.MessagingResolver.MyConversations(ctx, limit, offset)
 }
 
+// HausletSupport is the resolver for the hausletSupport field.
+func (r *queryResolver) HausletSupport(ctx context.Context) (*domain14.Conversation, error) {
+	return r.MessagingResolver.HausletSupport(ctx)
+}
+
 // Business is the resolver for the business field.
 func (r *queryResolver) Business(ctx context.Context, id uuid.UUID) (*domain3.Business, error) {
 	return r.BusinessResolver.Business(ctx, id.String())

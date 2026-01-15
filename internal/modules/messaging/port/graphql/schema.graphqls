@@ -121,6 +121,11 @@ type Conversation {
 extend type Query {
   conversation(id: UUID!): Conversation
   myConversations(limit: Int, offset: Int): [Conversation!]!
+  """
+  Get or create the persistent Hauslet Support conversation for the authenticated user.
+  This is a single conversation per user for AI-powered support.
+  """
+  hausletSupport: Conversation!
 }
 
 

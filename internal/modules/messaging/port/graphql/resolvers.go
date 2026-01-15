@@ -66,6 +66,22 @@ func (r *Resolver) MyConversations(ctx context.Context, limit *int, offset *int)
 	return conversations, nil
 }
 
+// HausletSupport returns or creates the persistent Hauslet Support conversation for the user.
+func (r *Resolver) HausletSupport(ctx context.Context) (*domain.Conversation, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conversation, err := r.messagingSvc.GetOrCreateSupportConversation(ctx, userID)
+	if err != nil {
+		r.log.Error("failed to get/create support conversation", "user_id", userID, "error", err)
+		return nil, err
+	}
+
+	return conversation, nil
+}
+
 // StartInquiryConversation returns or creates the inbox for a lead inquiry.
 func (r *Resolver) StartInquiryConversation(ctx context.Context, leadID uuid.UUID) (*domain.Conversation, error) {
 	userID, err := viewer.GetUserIDFromContext(ctx)

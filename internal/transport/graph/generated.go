@@ -1182,6 +1182,7 @@ type ComplexityRoot struct {
 		GetPremiumListings             func(childComplexity int, limit *int) int
 		GetPromotion                   func(childComplexity int, id uuid.UUID) int
 		GetSubscription                func(childComplexity int, id uuid.UUID) int
+		HausletSupport                 func(childComplexity int) int
 		HomeFeed                       func(childComplexity int, options *model.FeedOptionsInput) int
 		HostStats                      func(childComplexity int, hostID uuid.UUID) int
 		IsListingInWishlist            func(childComplexity int, wishlistID uuid.UUID, listingID uuid.UUID) int
@@ -1870,6 +1871,7 @@ type QueryResolver interface {
 	SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error)
 	Conversation(ctx context.Context, id uuid.UUID) (*domain5.Conversation, error)
 	MyConversations(ctx context.Context, limit *int, offset *int) ([]*domain5.Conversation, error)
+	HausletSupport(ctx context.Context) (*domain5.Conversation, error)
 	Business(ctx context.Context, id uuid.UUID) (*domain.Business, error)
 	BusinessBySlug(ctx context.Context, slug string) (*domain.Business, error)
 	AllBusinesses(ctx context.Context, limit *int, offset *int) ([]*domain.Business, error)
@@ -7858,6 +7860,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.GetSubscription(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.hausletSupport":
+		if e.complexity.Query.HausletSupport == nil {
+			break
+		}
+
+		return e.complexity.Query.HausletSupport(childComplexity), true
 	case "Query.homeFeed":
 		if e.complexity.Query.HomeFeed == nil {
 			break
@@ -11696,6 +11704,11 @@ type Conversation {
 extend type Query {
   conversation(id: UUID!): Conversation
   myConversations(limit: Int, offset: Int): [Conversation!]!
+  """
+  Get or create the persistent Hauslet Support conversation for the authenticated user.
+  This is a single conversation per user for AI-powered support.
+  """
+  hausletSupport: Conversation!
 }
 
 
@@ -46770,6 +46783,59 @@ func (ec *executionContext) fieldContext_Query_myConversations(ctx context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_hausletSupport(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_hausletSupport,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().HausletSupport(ctx)
+		},
+		nil,
+		ec.marshalNConversation2ᚖhausletᚋinternalᚋmodulesᚋmessagingᚋdomainᚐConversation,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_hausletSupport(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Conversation_id(ctx, field)
+			case "type":
+				return ec.fieldContext_Conversation_type(ctx, field)
+			case "status":
+				return ec.fieldContext_Conversation_status(ctx, field)
+			case "contextType":
+				return ec.fieldContext_Conversation_contextType(ctx, field)
+			case "contextId":
+				return ec.fieldContext_Conversation_contextId(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Conversation_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Conversation_updatedAt(ctx, field)
+			case "lastMessageAt":
+				return ec.fieldContext_Conversation_lastMessageAt(ctx, field)
+			case "participants":
+				return ec.fieldContext_Conversation_participants(ctx, field)
+			case "unreadCounts":
+				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
+			case "messages":
+				return ec.fieldContext_Conversation_messages(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_business(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -76677,6 +76743,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_myConversations(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "hausletSupport":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_hausletSupport(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
