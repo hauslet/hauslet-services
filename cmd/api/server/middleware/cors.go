@@ -12,10 +12,10 @@ import (
 func CORSMiddleware(cfg *config.AppConfig) func(http.Handler) http.Handler {
 	return cors.Handler(cors.Options{
 		AllowedOrigins: func() []string {
-			if cfg.Env == "development" {
-				return []string{"http://localhost:8080", "https://hauslet-test-client.onrender.com/"}
+			if cfg.Env == "production" {
+				return []string{cfg.Client}
 			}
-			return []string{cfg.Client}
+			return []string{"http://localhost:8080", "https://hauslet-test-client.onrender.com"}
 		}(),
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-XSRF-TOKEN"},
