@@ -49,7 +49,7 @@ func (s *messagingServiceImpl) HandleLeadCreatedEvent(ctx context.Context, event
 
 	// Create conversation using system user context
 	// This bypasses lead access validation since the event is trusted
-	_, err = s.GetOrCreateInquiryConversation(ctx, leadID, userID)
+	_, err = s.getOrCreateInquiryConversation(ctx, leadID, userID, true)
 	if err != nil {
 		s.log.Error("failed to create inquiry conversation from event",
 			"lead_id", leadID,

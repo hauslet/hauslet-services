@@ -802,7 +802,7 @@ func (c *Container) initMessaging() error {
 		c.DB,
 		convRepo,
 		msgRepo,
-		partRepo,
+		partRepo, 
 		c.AISupportSvc,
 		leadHooks,
 		bookingHooks,

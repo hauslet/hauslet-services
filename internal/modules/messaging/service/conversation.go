@@ -16,61 +16,67 @@ import (
 const conversationStatusActive = "active"
 
 func (s *messagingServiceImpl) GetOrCreateInquiryConversation(ctx context.Context, leadID, requesterID uuid.UUID) (*domain.Conversation, error) {
-	if leadID == uuid.Nil || requesterID == uuid.Nil {
-		return nil, fmt.Errorf("lead_id and requester_id are required")
-	}
+    return s.getOrCreateInquiryConversation(ctx, leadID, requesterID, false)
+}
 
-	if s.leadHooks == nil {
-		return nil, fmt.Errorf("lead hooks not configured")
-	}
+func (s *messagingServiceImpl) getOrCreateInquiryConversation(ctx context.Context, leadID, requesterID uuid.UUID, skipLeadAccess bool) (*domain.Conversation, error) {
+    if leadID == uuid.Nil || requesterID == uuid.Nil {
+        return nil, fmt.Errorf("lead_id and requester_id are required")
+    }
 
-	allowed, err := s.leadHooks.ValidateLeadAccess(ctx, leadID, requesterID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to validate lead access: %w", err)
-	}
-	if !allowed {
-		return nil, domain.ErrUnauthorizedAccess
-	}
+    if s.leadHooks == nil {
+        return nil, fmt.Errorf("lead hooks not configured")
+    }
 
-	existing, err := s.convRepo.GetByContext(ctx, string(domain.ContextTypeLead), leadID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query conversation for lead %s: %w", leadID, err)
-	}
-	if existing != nil {
-		return s.ensureConversationAccess(existing, requesterID)
-	}
+    if !skipLeadAccess {
+        allowed, err := s.leadHooks.ValidateLeadAccess(ctx, leadID, requesterID)
+        if err != nil {
+            return nil, fmt.Errorf("failed to validate lead access: %w", err)
+        }
+        if !allowed {
+            return nil, domain.ErrUnauthorizedAccess
+        }
+    }
 
-	prospectID, ownerID, err := s.leadHooks.GetLeadParticipants(ctx, leadID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve lead participants: %w", err)
-	}
-	if prospectID == uuid.Nil || ownerID == uuid.Nil {
-		return nil, fmt.Errorf("invalid participants for lead %s", leadID)
-	}
+    existing, err := s.convRepo.GetByContext(ctx, string(domain.ContextTypeLead), leadID)
+    if err != nil {
+        return nil, fmt.Errorf("failed to query conversation for lead %s: %w", leadID, err)
+    }
+    if existing != nil {
+        return s.ensureConversationAccess(existing, requesterID)
+    }
 
-	convID := uuid.New()
-	participants := buildParticipants(convID, []participantSeed{
-		{userID: prospectID, typ: domain.ParticipantTypeGuest},
-		{userID: ownerID, typ: domain.ParticipantTypeHost},
-	})
-	if len(participants) == 0 {
-		return nil, fmt.Errorf("no participants could be created for lead %s", leadID)
-	}
+    prospectID, ownerID, err := s.leadHooks.GetLeadParticipants(ctx, leadID)
+    if err != nil {
+        return nil, fmt.Errorf("failed to resolve lead participants: %w", err)
+    }
+    if prospectID == uuid.Nil || ownerID == uuid.Nil {
+        return nil, fmt.Errorf("invalid participants for lead %s", leadID)
+    }
 
-	conversation := &schema.Conversation{
-		ID:           convID,
-		Type:         string(domain.ConversationTypeInquiry),
-		Status:       conversationStatusActive,
-		ContextType:  string(domain.ContextTypeLead),
-		ContextID:    leadID,
-		Participants: participants,
-	}
+    convID := uuid.New()
+    participants := buildParticipants(convID, []participantSeed{
+        {userID: prospectID, typ: domain.ParticipantTypeGuest},
+        {userID: ownerID, typ: domain.ParticipantTypeHost},
+    })
+    if len(participants) == 0 {
+        return nil, fmt.Errorf("no participants could be created for lead %s", leadID)
+    }
 
-	if err := s.convRepo.Create(ctx, conversation); err != nil {
-		return nil, fmt.Errorf("failed to create inquiry conversation: %w", err)
-	}
+    conversation := &schema.Conversation{
+        ID:           convID,
+        Type:         string(domain.ConversationTypeInquiry),
+        Status:       conversationStatusActive,
+        ContextType:  string(domain.ContextTypeLead),
+        ContextID:    leadID,
+        Participants: participants,
+    }
 
-	return s.ensureConversationAccess(conversation, requesterID)
+    if err := s.convRepo.Create(ctx, conversation); err != nil {
+        return nil, fmt.Errorf("failed to create inquiry conversation: %w", err)
+    }
+
+    return s.ensureConversationAccess(conversation, requesterID)
 }
 
 func (s *messagingServiceImpl) GetOrCreateTransactionConversation(ctx context.Context, contextType domain.ConversationContextType, contextID, requesterID uuid.UUID) (*domain.Conversation, error) {
