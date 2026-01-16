@@ -21,7 +21,7 @@ type Conversation struct {
 	// Polymorphic Context (links to Lead, Booking, etc.)
 	// Unique index ensures only one active conversation per context
 	ContextType string    `gorm:"type:varchar(50);index:idx_context"`
-	ContextID   uuid.UUID `gorm:"type:uuid;index:idx_context"`
+	ContextID   uuid.UUID `gorm:"type:uuid;index:idx_context;index:idx_support_unique,unique,where:((type = 'support'))"`
 
 	// Sorting & Preview
 	LastMessageAt *time.Time `gorm:"index;sort:desc"`
