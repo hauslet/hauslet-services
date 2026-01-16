@@ -7,7 +7,7 @@ import (
 
 	"hauslet/internal/modules/auth/repository"
 
-	"github.com/go-pkgz/auth/token"
+	"github.com/go-pkgz/auth/v2/token"
 )
 
 func NewValidator(repo repository.AuthRepository, log *slog.Logger) token.ValidatorFunc {

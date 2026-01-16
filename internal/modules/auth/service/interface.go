@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-pkgz/auth"
+	"github.com/go-pkgz/auth/v2"
 )
 
 type AuthService interface {
@@ -68,11 +68,17 @@ type AuthService interface {
 	SendIdentityLinkedEmail(ctx context.Context, emailAddr string, name string, provider string) error
 	SendPasswordChangedEmail(ctx context.Context, emailAddr string, name string) error
 	SendPasswordResetEmail(ctx context.Context, emailAddr string, name string, token string, ttlMinutes int) error
+	SendPasswordlessLoginEmail(ctx context.Context, emailAddr, otpCode, magicLink string, ttlMinutes int) error
 
-	// OTP Management
+	// OTP Management (registration verification)
 	GenerateEmailOTP(ctx context.Context, email string) (string, error)
 	VerifyEmailOTP(ctx context.Context, email, code string) error
 	DeleteEmailOTP(ctx context.Context, email string) error
+
+	// Passwordless Login OTP Management
+	GeneratePasswordlessOTP(ctx context.Context, email string) (string, error)
+	VerifyPasswordlessOTP(ctx context.Context, email, code string) error
+	DeletePasswordlessOTP(ctx context.Context, email string) error
 }
 
 type AuthServiceImpl struct {

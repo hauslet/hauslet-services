@@ -6,7 +6,7 @@ import (
 
 	"hauslet/internal/modules/auth/repository/schema"
 
-	"github.com/go-pkgz/auth/token"
+	"github.com/go-pkgz/auth/v2/token"
 )
 
 type claimsEnricher struct {
@@ -51,9 +51,12 @@ func (c *claimsEnricher) EnrichClaims(claims token.Claims) token.Claims {
 	var user *schema.User
 	var err error
 
-	if provider == "password" {
+	switch provider {
+	case "password":
 		user, err = handlePasswordFlow(ctx, c.deps, claims)
-	} else {
+	case "email":
+		user, err = handleEmailFlow(ctx, c.deps, claims)
+	default:
 		user, err = handleOAuthFlow(ctx, c.deps, claims, provider, providerUserID, email, name, isLinking, linkState)
 	}
 

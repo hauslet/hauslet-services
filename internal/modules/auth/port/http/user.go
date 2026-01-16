@@ -5,7 +5,7 @@ import (
 	"hauslet/internal/modules/auth/domain"
 	"net/http"
 
-	"github.com/go-pkgz/auth/token"
+	"github.com/go-pkgz/auth/v2/token"
 )
 
 // GetCurrentUser returns the authenticated user's profile

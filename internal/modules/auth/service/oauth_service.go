@@ -7,7 +7,7 @@ import (
 
 	"hauslet/internal/modules/auth/service/oauth"
 
-	"github.com/go-pkgz/auth"
+	"github.com/go-pkgz/auth/v2"
 )
 
 func (s *AuthServiceImpl) OAuthService() *auth.Service {
@@ -59,15 +59,17 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 		}
 
 		deps := oauth.Dependencies{
-			Config:               s.cfg,
-			Repository:           s.repository,
-			Log:                  s.log,
-			MetadataFetcher:      metadataFetcher,
-			LinkStateValidator:   linkStateValidator,
-			AuthenticatePassword: s.AuthenticatePassword,
-			LinkIdentity:         linkIdentity,
-			SendWelcomeEmail:     s.SendWelcomeEmail,
-			SendIdentityLinked:   s.SendIdentityLinkedEmail,
+			Config:                s.cfg,
+			Repository:            s.repository,
+			Log:                   s.log,
+			MetadataFetcher:       metadataFetcher,
+			LinkStateValidator:    linkStateValidator,
+			AuthenticatePassword:  s.AuthenticatePassword,
+			LinkIdentity:          linkIdentity,
+			SendWelcomeEmail:      s.SendWelcomeEmail,
+			SendIdentityLinked:    s.SendIdentityLinkedEmail,
+			SendPasswordlessEmail: s.SendPasswordlessLoginEmail,
+			GenerateAndStoreOTP:   s.GeneratePasswordlessOTP,
 			ProfileHook: func(ctx context.Context, userID, email, name string, birthDate *time.Time) error {
 				if s.profileHooks == nil {
 					return nil

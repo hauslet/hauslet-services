@@ -13,7 +13,7 @@ import (
 	"hauslet/internal/platform/ratelimit"
 
 	"github.com/go-chi/chi/v5"
-	authmw "github.com/go-pkgz/auth/middleware"
+	authmw "github.com/go-pkgz/auth/v2/middleware"
 )
 
 // HTTPHandler handles HTTP requests for finance module

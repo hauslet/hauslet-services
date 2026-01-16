@@ -8,7 +8,7 @@ import (
 	"hauslet/internal/platform/ratelimit"
 
 	"github.com/go-chi/chi/v5"
-	authmw "github.com/go-pkgz/auth/middleware"
+	authmw "github.com/go-pkgz/auth/v2/middleware"
 )
 
 // SetupRoutes configures payment admin routes without rate limiting

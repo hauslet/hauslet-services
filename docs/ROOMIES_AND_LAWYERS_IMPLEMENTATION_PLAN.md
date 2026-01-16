@@ -35,9 +35,7 @@ Both modules follow the same patterns already used in the codebase: service-laye
 
 ## Non-goals
 
-- No in-app chat or real-time messaging in v1.
-- No escrow or milestone payments in v1 (lawyers only).
-- No client-side flows in this document.
+ Note: Escrow and milestone payments can now be handled by the finance module as needed for lawyer engagements.
 
 ---
 
@@ -421,6 +419,51 @@ Phase 5: Reviews and Analytics
 
 ## Open Questions
 
-- Should roomie posts be linkable to an existing listing or be fully independent?
-- Do we require ID verification for all roomie posts, or only for offers?
-- Should lawyer subscriptions gate visibility or also gate booking acceptance?
+
+
+
+## Messaging System Integration
+
+### Overview
+The messaging system is now fully implemented and should be leveraged as the primary communication channel between roomies, lawyers, and other stakeholders. All direct and group communications, notifications, and support requests should be routed through this system to ensure auditability, security, and a seamless user experience.
+
+### Integration Points
+
+- **Roomie-to-Lawyer Communication:**
+  - All chat, document requests, and legal Q&A between roomies and lawyers must use the messaging system.
+  - Each legal case or consultation should have a dedicated message thread for context and history.
+
+- **Group Messaging:**
+  - Support group chats for roomies sharing a property, with optional lawyer participation.
+  - Allow creation of ad-hoc groups for specific legal or tenancy issues.
+
+- **Notifications & Escalations:**
+  - System notifications (e.g., new message, document uploaded, lawyer assigned) are sent via the messaging system.
+  - Escalations (e.g., unresolved disputes) should trigger automated messages to relevant parties.
+
+- **Audit & Compliance:**
+  - All messages are stored and auditable for compliance and dispute resolution.
+  - Sensitive information is encrypted and access-controlled per user role.
+
+### Implementation Guidelines
+
+- Use the messaging service layer for all business logic and permission checks.
+- Integrate messaging events with booking, legal, and support modules via service interfaces.
+- Ensure all user actions that require communication (e.g., request lawyer, respond to legal query) trigger or update message threads.
+- Expose messaging endpoints via GraphQL/REST as needed, but keep API layers thin and delegate logic to the messaging service.
+
+### Example Flows
+
+1. **Roomie Requests Legal Help:**
+   - Roomie initiates a request; system creates a message thread with the assigned lawyer.
+   - All subsequent communication is tracked in this thread.
+
+2. **Group Dispute:**
+   - Roomies escalate a dispute; a group chat is created including all involved parties and a lawyer.
+   - System posts automated updates as the dispute progresses.
+
+3. **Document Exchange:**
+   - Documents are shared as message attachments, with access logged and permissions enforced by the messaging service.
+
+---
+**Note:** All future features involving communication or notifications must use the messaging system for consistency and traceability.

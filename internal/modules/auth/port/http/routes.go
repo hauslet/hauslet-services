@@ -15,8 +15,8 @@ import (
 	"hauslet/internal/platform/ratelimit"
 
 	"github.com/go-chi/chi/v5"
-	authmw "github.com/go-pkgz/auth/middleware"
-	"github.com/go-pkgz/auth/token"
+	authmw "github.com/go-pkgz/auth/v2/middleware"
+	"github.com/go-pkgz/auth/v2/token"
 )
 
 // HTTPHandler handles HTTP requests for authentication
@@ -61,6 +61,9 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	// Email verification endpoints (public)
 	r.Post("/auth/verify-email", h.VerifyEmail)
 	r.Post("/auth/resend-otp", h.ResendOTP)
+
+	// Passwordless login code verification (public)
+	r.Post("/auth/passwordless/verify", h.VerifyPasswordlessCode)
 
 	// Protected routes (require authentication)
 	authMiddleware := h.authService.OAuthService().Middleware()
@@ -117,6 +120,10 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, limiter ratelimi
 
 	r.With(middleware.RateLimitIP(limiter, 5, 15*time.Minute)).
 		Post("/auth/reset-password", h.ResetPassword)
+
+	// Passwordless login code verification: Moderate rate limiting (prevent brute force)
+	r.With(middleware.RateLimitIP(limiter, 5, 10*time.Minute)).
+		Post("/auth/passwordless/verify", h.VerifyPasswordlessCode)
 
 	// Protected routes
 	authMiddleware := h.authService.OAuthService().Middleware()

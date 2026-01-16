@@ -10,9 +10,9 @@ import (
 	"hauslet/internal/modules/auth/domain"
 	"hauslet/internal/modules/auth/repository"
 
-	"github.com/go-pkgz/auth"
-	"github.com/go-pkgz/auth/avatar"
-	"github.com/go-pkgz/auth/token"
+	"github.com/go-pkgz/auth/v2"
+	"github.com/go-pkgz/auth/v2/avatar"
+	"github.com/go-pkgz/auth/v2/token"
 )
 
 // slogAdapter wraps *slog.Logger to implement go-pkgz/auth/logger.L interface.
@@ -21,7 +21,7 @@ type slogAdapter struct {
 }
 
 // Logf implements the logger.L interface required by go-pkgz/auth.
-func (a *slogAdapter) Logf(format string, args ...interface{}) {
+func (a *slogAdapter) Logf(format string, args ...any) {
 	a.logger.Info(fmt.Sprintf(format, args...))
 }
 
@@ -67,19 +67,27 @@ type ProfileAvatarFetcher func(ctx context.Context, userID string) (*string, err
 // ProfileHookFunc creates a default profile for new users.
 type ProfileHookFunc func(ctx context.Context, userID, email, name string, birthDate *time.Time) error
 
+// SendPasswordlessEmailFunc sends a passwordless login email with both a 6-digit code and magic link.
+type SendPasswordlessEmailFunc func(ctx context.Context, email, otpCode, magicLink string, ttlMinutes int) error
+
+// GenerateAndStoreOTPFunc generates a 6-digit OTP and stores it for later verification.
+type GenerateAndStoreOTPFunc func(ctx context.Context, email string) (string, error)
+
 // Dependencies groups the collaborators required by the OAuth service helpers.
 type Dependencies struct {
-	Config               *config.AuthConfig
-	Repository           repository.AuthRepository
-	Log                  *slog.Logger
-	MetadataFetcher      MetadataFetcher
-	LinkStateValidator   LinkStateValidator
-	AuthenticatePassword PasswordAuthenticator
-	LinkIdentity         LinkIdentityFunc
-	SendWelcomeEmail     SendWelcomeEmailFunc
-	SendIdentityLinked   SendIdentityLinkedEmailFunc
-	ProfileHook          ProfileHookFunc
-	ProfileAvatarFetcher ProfileAvatarFetcher
+	Config                *config.AuthConfig
+	Repository            repository.AuthRepository
+	Log                   *slog.Logger
+	MetadataFetcher       MetadataFetcher
+	LinkStateValidator    LinkStateValidator
+	AuthenticatePassword  PasswordAuthenticator
+	LinkIdentity          LinkIdentityFunc
+	SendWelcomeEmail      SendWelcomeEmailFunc
+	SendIdentityLinked    SendIdentityLinkedEmailFunc
+	SendPasswordlessEmail SendPasswordlessEmailFunc
+	GenerateAndStoreOTP   GenerateAndStoreOTPFunc
+	ProfileHook           ProfileHookFunc
+	ProfileAvatarFetcher  ProfileAvatarFetcher
 }
 
 // NewService builds the OAuth service with configured providers and validator.
@@ -109,6 +117,7 @@ func NewService(deps Dependencies) *auth.Service {
 
 	setupGoogleProvider(service, deps)
 	setupDirectProvider(service, deps)
+	setupEmailProvider(service, deps)
 
 	if deps.Config.DisableXSRF {
 		deps.Log.Warn("XSRF protection is DISABLED - only use in development")

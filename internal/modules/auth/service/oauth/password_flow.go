@@ -6,7 +6,7 @@ import (
 
 	"hauslet/internal/modules/auth/repository/schema"
 
-	"github.com/go-pkgz/auth/token"
+	"github.com/go-pkgz/auth/v2/token"
 )
 
 func handlePasswordFlow(ctx context.Context, deps Dependencies, claims token.Claims) (*schema.User, error) {

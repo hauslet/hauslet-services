@@ -8,7 +8,7 @@ import (
 	authmiddleware "hauslet/internal/modules/auth/middleware"
 	"hauslet/internal/platform/authz"
 
-	"github.com/go-pkgz/auth/token"
+	"github.com/go-pkgz/auth/v2/token"
 	"github.com/google/uuid"
 )
 

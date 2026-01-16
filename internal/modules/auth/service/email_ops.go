@@ -100,7 +100,7 @@ func (s *AuthServiceImpl) SendIdentityLinkedEmail(ctx context.Context, emailAddr
 	subject := "Security Alert: New Login Method Added"
 	preview := "A new login method has been added to your Hauslet account"
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"Name":      name,
 		"Provider":  provider,
 		"Email":     emailAddr,
@@ -143,7 +143,7 @@ func (s *AuthServiceImpl) SendPasswordResetEmail(ctx context.Context, emailAddr,
 	subject := "Reset your Hauslet password"
 	preview := "Use this code to reset your Hauslet password"
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"Name":    name,
 		"Token":   token,
 		"TTL":     ttlMinutes,
@@ -174,7 +174,7 @@ func (s *AuthServiceImpl) SendPasswordChangedEmail(ctx context.Context, emailAdd
 	subject := "Your Hauslet password was changed"
 	preview := "We updated your Hauslet password"
 
-	emailData := map[string]interface{}{
+	emailData := map[string]any{
 		"Name":      name,
 		"Timestamp": time.Now().Format("Monday, January 2, 2006 at 3:04 PM MST"),
 		"Subject":   subject,
@@ -198,4 +198,32 @@ func (s *AuthServiceImpl) SendPasswordChangedEmail(ctx context.Context, emailAdd
 	})
 
 	return nil
+}
+
+func (s *AuthServiceImpl) SendPasswordlessLoginEmail(ctx context.Context, emailAddr, otpCode, magicLink string, ttlMinutes int) error {
+	subject := "Your Hauslet login code"
+	preview := "Use this code to sign in to Hauslet"
+
+	emailData := map[string]any{
+		"Code":      otpCode,
+		"MagicLink": magicLink,
+		"TTL":       ttlMinutes,
+		"Subject":   subject,
+		"Preview":   preview,
+		"Year":      time.Now().Year(),
+	}
+
+	htmlBody, err := s.mailClient.RenderTemplate(authtemplates.FS, "passwordless_login.html", emailData)
+	if err != nil {
+		return err
+	}
+
+	// Send synchronously since the verified provider expects immediate delivery
+	job := emailJob.EmailJob{To: emailAddr, Subject: subject, HTML: htmlBody}
+	if err := s.publishEmailJob(job); err == nil {
+		return nil
+	} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+		return err
+	}
+	return s.mailClient.SendHTML(ctx, emailAddr, subject, htmlBody)
 }

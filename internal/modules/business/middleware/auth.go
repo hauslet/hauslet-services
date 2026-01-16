@@ -10,7 +10,7 @@ import (
 	"hauslet/internal/modules/business/service"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-pkgz/auth/token"
+	"github.com/go-pkgz/auth/v2/token"
 	"github.com/google/uuid"
 )
 

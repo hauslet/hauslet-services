@@ -11,7 +11,7 @@ import (
 	"hauslet/internal/modules/leads/service"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-pkgz/auth/token"
+	"github.com/go-pkgz/auth/v2/token"
 	"github.com/google/uuid"
 )
 
@@ -41,25 +41,25 @@ type createLeadResponse struct {
 
 // getLeadResponse represents the response for retrieving a lead
 type getLeadResponse struct {
-	LeadID       uuid.UUID          `json:"lead_id"`
-	ListingID    uuid.UUID          `json:"listing_id"`
-	BusinessID   *uuid.UUID         `json:"business_id,omitempty"`
-	Name         string             `json:"name"`
-	Email        string             `json:"email"`
-	PhoneNumber  *string            `json:"phone_number,omitempty"`
-	Message      string             `json:"message"`
-	Source       string             `json:"source"`
-	Status       string             `json:"status"`
-	IsSpam       bool               `json:"is_spam"`
-	SpamScore    float64            `json:"spam_score"`
-	AssignedTo   *uuid.UUID         `json:"assigned_to,omitempty"`
-	AssignedAt   *time.Time         `json:"assigned_at,omitempty"`
-	AutoAssigned bool               `json:"auto_assigned"`
-	UTMParams    map[string]string  `json:"utm_params,omitempty"`
-	IsVerified   bool               `json:"is_verified"`
-	CreatedAt    time.Time          `json:"created_at"`
-	UpdatedAt    time.Time          `json:"updated_at"`
-	ResponseTime *int64             `json:"response_time_seconds,omitempty"` // seconds to first response
+	LeadID       uuid.UUID         `json:"lead_id"`
+	ListingID    uuid.UUID         `json:"listing_id"`
+	BusinessID   *uuid.UUID        `json:"business_id,omitempty"`
+	Name         string            `json:"name"`
+	Email        string            `json:"email"`
+	PhoneNumber  *string           `json:"phone_number,omitempty"`
+	Message      string            `json:"message"`
+	Source       string            `json:"source"`
+	Status       string            `json:"status"`
+	IsSpam       bool              `json:"is_spam"`
+	SpamScore    float64           `json:"spam_score"`
+	AssignedTo   *uuid.UUID        `json:"assigned_to,omitempty"`
+	AssignedAt   *time.Time        `json:"assigned_at,omitempty"`
+	AutoAssigned bool              `json:"auto_assigned"`
+	UTMParams    map[string]string `json:"utm_params,omitempty"`
+	IsVerified   bool              `json:"is_verified"`
+	CreatedAt    time.Time         `json:"created_at"`
+	UpdatedAt    time.Time         `json:"updated_at"`
+	ResponseTime *int64            `json:"response_time_seconds,omitempty"` // seconds to first response
 }
 
 // createLead handles POST /api/v1/leads - PUBLIC endpoint for ad integrations

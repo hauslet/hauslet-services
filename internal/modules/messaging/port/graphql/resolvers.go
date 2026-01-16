@@ -114,7 +114,7 @@ func (r *Resolver) StartTransactionConversation(ctx context.Context, contextType
 	return conversation, nil
 }
 
-// SendMessage proxies the mutation to the messaging service for the authenticated user.
+
 // SendMessage proxies the mutation to the messaging service for the authenticated user.
 func (r *Resolver) SendMessage(
 	ctx context.Context,
