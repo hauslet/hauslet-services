@@ -111,6 +111,16 @@ type Conversation {
   participants: [Participant!]!
   unreadCounts: Map
   messages(limit: Int, offset: Int): [Message!]! @goField(forceResolver: true)
+  supportState: SupportState
+}
+
+type SupportState {
+  status: String!
+  ticketId: String
+  assignedAgentId: UUID
+  priority: String!
+  aiSessionId: String
+  lastAiResponse: Time
 }
 
 

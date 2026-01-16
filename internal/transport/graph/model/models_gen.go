@@ -310,6 +310,15 @@ type ShortletFilterInput struct {
 type Subscription struct {
 }
 
+type SupportState struct {
+	Status          string     `json:"status"`
+	TicketID        *string    `json:"ticketId,omitempty"`
+	AssignedAgentID *uuid.UUID `json:"assignedAgentId,omitempty"`
+	Priority        string     `json:"priority"`
+	AiSessionID     *string    `json:"aiSessionId,omitempty"`
+	LastAiResponse  *time.Time `json:"lastAiResponse,omitempty"`
+}
+
 // Represents a user's typing status in a conversation.
 type TypingIndicator struct {
 	ConversationID uuid.UUID `json:"conversationId"`

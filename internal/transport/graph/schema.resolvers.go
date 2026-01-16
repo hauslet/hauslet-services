@@ -159,6 +159,39 @@ func (r *conversationResolver) Messages(ctx context.Context, obj *domain14.Conve
 	return r.MessagingResolver.ConversationMessages(ctx, obj, limit, offset)
 }
 
+// SupportState is the resolver for the supportState field.
+func (r *conversationResolver) SupportState(ctx context.Context, obj *domain14.Conversation) (*model.SupportState, error) {
+	if obj == nil || obj.SupportState == nil {
+		return nil, nil
+	}
+
+	state := obj.SupportState
+
+	var ticketID *string
+	if strings.TrimSpace(state.TicketID) != "" {
+		ticketID = &state.TicketID
+	}
+
+	var aiSessionID *string
+	if strings.TrimSpace(state.AISessionID) != "" {
+		aiSessionID = &state.AISessionID
+	}
+
+	var lastAiResponse *time.Time
+	if !state.LastAIResponse.IsZero() {
+		lastAiResponse = &state.LastAIResponse
+	}
+
+	return &model.SupportState{
+		Status:          string(state.Status),
+		TicketID:        ticketID,
+		AssignedAgentID: state.AssignedAgentID,
+		Priority:        state.Priority,
+		AiSessionID:     aiSessionID,
+		LastAiResponse:  lastAiResponse,
+	}, nil
+}
+
 // TransferCode is the resolver for the transferCode field.
 func (r *disbursementResolver) TransferCode(ctx context.Context, obj *domain7.Disbursement) (*string, error) {
 	return obj.TransferCode, nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"hauslet/internal/modules/messaging/domain"
@@ -33,6 +34,7 @@ type messagingServiceImpl struct {
 	storage         *storage.R2Storage
 	notificationSvc *notification.NotificationService
 	log             *slog.Logger
+	presence        *presenceTracker
 }
 
 // NewMessagingService wires the messaging dependencies into a concrete implementation.
@@ -65,6 +67,7 @@ func NewMessagingService(
 		storage:         storage,
 		notificationSvc: notificationSvc,
 		log:             log,
+		presence:        newPresenceTracker(),
 	}
 }
 
@@ -104,4 +107,93 @@ func (s *messagingServiceImpl) GenerateUploadURL(ctx context.Context, input Atta
 		URL: url,
 		Key: key,
 	}, nil
+}
+
+func (s *messagingServiceImpl) MarkParticipantActive(conversationID, userID uuid.UUID) {
+	if s.presence == nil || conversationID == uuid.Nil || userID == uuid.Nil {
+		return
+	}
+	s.presence.markPresent(conversationID, userID)
+}
+
+func (s *messagingServiceImpl) MarkParticipantInactive(conversationID, userID uuid.UUID) {
+	if s.presence == nil || conversationID == uuid.Nil || userID == uuid.Nil {
+		return
+	}
+	s.presence.markAbsent(conversationID, userID)
+}
+
+func (s *messagingServiceImpl) IsParticipantPresent(conversationID, userID uuid.UUID) bool {
+	if s.presence == nil || conversationID == uuid.Nil || userID == uuid.Nil {
+		return false
+	}
+	return s.presence.isPresent(conversationID, userID)
+}
+
+type presenceTracker struct {
+	mu       sync.RWMutex
+	entries  map[uuid.UUID]map[uuid.UUID]time.Time
+	entryTTL time.Duration
+}
+
+const participantPresenceTTL = 2 * time.Minute
+
+func newPresenceTracker() *presenceTracker {
+	return &presenceTracker{
+		entries:  make(map[uuid.UUID]map[uuid.UUID]time.Time),
+		entryTTL: participantPresenceTTL,
+	}
+}
+
+func (p *presenceTracker) markPresent(conversationID, userID uuid.UUID) {
+	now := time.Now()
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	users, ok := p.entries[conversationID]
+	if !ok {
+		users = make(map[uuid.UUID]time.Time)
+		p.entries[conversationID] = users
+	}
+	users[userID] = now
+}
+
+func (p *presenceTracker) markAbsent(conversationID, userID uuid.UUID) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	users, ok := p.entries[conversationID]
+	if !ok {
+		return
+	}
+	delete(users, userID)
+	if len(users) == 0 {
+		delete(p.entries, conversationID)
+	}
+}
+
+func (p *presenceTracker) isPresent(conversationID, userID uuid.UUID) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	users, ok := p.entries[conversationID]
+	if !ok {
+		return false
+	}
+
+	lastSeen, ok := users[userID]
+	if !ok {
+		return false
+	}
+
+	if time.Since(lastSeen) > p.entryTTL {
+		delete(users, userID)
+		if len(users) == 0 {
+			delete(p.entries, conversationID)
+		}
+		return false
+	}
+
+	return true
 }

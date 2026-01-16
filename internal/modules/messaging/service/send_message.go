@@ -261,6 +261,24 @@ func (s *messagingServiceImpl) notifyMessageRecipients(conv *domain.Conversation
 		s.log.Warn("failed to get sender contact for notification", "sender_id", senderID, "error", err)
 	}
 
+	offlineParticipants := make([]domain.Participant, 0, len(conv.Participants))
+	for _, participant := range conv.Participants {
+		if participant.UserID == senderID {
+			continue
+		}
+		if s.IsParticipantPresent(conv.ID, participant.UserID) {
+			continue
+		}
+		offlineParticipants = append(offlineParticipants, participant)
+	}
+
+	if len(offlineParticipants) == 0 {
+		return
+	}
+
+	filteredConv := *conv
+	filteredConv.Participants = offlineParticipants
+
 	// Notify all recipients
-	s.notificationSvc.NotifyRecipients(ctx, conv, msg, senderContact, s.profileHooks.GetUserContact)
+	s.notificationSvc.NotifyRecipients(ctx, &filteredConv, msg, senderContact, s.profileHooks.GetUserContact)
 }

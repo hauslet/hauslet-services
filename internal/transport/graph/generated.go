@@ -38,6 +38,7 @@ import (
 	domain1 "hauslet/internal/modules/wishlist/domain"
 	graphql12 "hauslet/internal/modules/wishlist/port/graphql"
 	"hauslet/internal/transport/graph/model"
+
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -351,6 +352,7 @@ type ComplexityRoot struct {
 		Messages      func(childComplexity int, limit *int, offset *int) int
 		Participants  func(childComplexity int) int
 		Status        func(childComplexity int) int
+		SupportState  func(childComplexity int) int
 		Type          func(childComplexity int) int
 		UnreadCounts  func(childComplexity int) int
 		UpdatedAt     func(childComplexity int) int
@@ -1459,6 +1461,15 @@ type ComplexityRoot struct {
 		TypingIndicator        func(childComplexity int, conversationID uuid.UUID) int
 	}
 
+	SupportState struct {
+		AiSessionID     func(childComplexity int) int
+		AssignedAgentID func(childComplexity int) int
+		LastAiResponse  func(childComplexity int) int
+		Priority        func(childComplexity int) int
+		Status          func(childComplexity int) int
+		TicketID        func(childComplexity int) int
+	}
+
 	Thumbnail struct {
 		Height    func(childComplexity int) int
 		Key       func(childComplexity int) int
@@ -1654,6 +1665,7 @@ type CompleteBookingPayloadResolver interface {
 type ConversationResolver interface {
 	UnreadCounts(ctx context.Context, obj *domain5.Conversation) (map[string]any, error)
 	Messages(ctx context.Context, obj *domain5.Conversation, limit *int, offset *int) ([]*domain5.Message, error)
+	SupportState(ctx context.Context, obj *domain5.Conversation) (*model.SupportState, error)
 }
 type DisbursementResolver interface {
 	TransferCode(ctx context.Context, obj *domain6.Disbursement) (*string, error)
@@ -3181,6 +3193,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Conversation.Status(childComplexity), true
+	case "Conversation.supportState":
+		if e.complexity.Conversation.SupportState == nil {
+			break
+		}
+
+		return e.complexity.Conversation.SupportState(childComplexity), true
 	case "Conversation.type":
 		if e.complexity.Conversation.Type == nil {
 			break
@@ -9538,6 +9556,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Subscription.TypingIndicator(childComplexity, args["conversationId"].(uuid.UUID)), true
 
+	case "SupportState.aiSessionId":
+		if e.complexity.SupportState.AiSessionID == nil {
+			break
+		}
+
+		return e.complexity.SupportState.AiSessionID(childComplexity), true
+	case "SupportState.assignedAgentId":
+		if e.complexity.SupportState.AssignedAgentID == nil {
+			break
+		}
+
+		return e.complexity.SupportState.AssignedAgentID(childComplexity), true
+	case "SupportState.lastAiResponse":
+		if e.complexity.SupportState.LastAiResponse == nil {
+			break
+		}
+
+		return e.complexity.SupportState.LastAiResponse(childComplexity), true
+	case "SupportState.priority":
+		if e.complexity.SupportState.Priority == nil {
+			break
+		}
+
+		return e.complexity.SupportState.Priority(childComplexity), true
+	case "SupportState.status":
+		if e.complexity.SupportState.Status == nil {
+			break
+		}
+
+		return e.complexity.SupportState.Status(childComplexity), true
+	case "SupportState.ticketId":
+		if e.complexity.SupportState.TicketID == nil {
+			break
+		}
+
+		return e.complexity.SupportState.TicketID(childComplexity), true
+
 	case "Thumbnail.height":
 		if e.complexity.Thumbnail.Height == nil {
 			break
@@ -11694,6 +11749,16 @@ type Conversation {
   participants: [Participant!]!
   unreadCounts: Map
   messages(limit: Int, offset: Int): [Message!]! @goField(forceResolver: true)
+  supportState: SupportState
+}
+
+type SupportState {
+  status: String!
+  ticketId: String
+  assignedAgentId: UUID
+  priority: String!
+  aiSessionId: String
+  lastAiResponse: Time
 }
 
 
@@ -22777,6 +22842,49 @@ func (ec *executionContext) fieldContext_Conversation_messages(ctx context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Conversation_supportState(ctx context.Context, field graphql.CollectedField, obj *domain5.Conversation) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Conversation_supportState,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Conversation().SupportState(ctx, obj)
+		},
+		nil,
+		ec.marshalOSupportState2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐSupportState,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Conversation_supportState(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Conversation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "status":
+				return ec.fieldContext_SupportState_status(ctx, field)
+			case "ticketId":
+				return ec.fieldContext_SupportState_ticketId(ctx, field)
+			case "assignedAgentId":
+				return ec.fieldContext_SupportState_assignedAgentId(ctx, field)
+			case "priority":
+				return ec.fieldContext_SupportState_priority(ctx, field)
+			case "aiSessionId":
+				return ec.fieldContext_SupportState_aiSessionId(ctx, field)
+			case "lastAiResponse":
+				return ec.fieldContext_SupportState_lastAiResponse(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SupportState", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CreatePromotionPayload_promotion(ctx context.Context, field graphql.CollectedField, obj *graphql7.CreatePromotionPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -33227,6 +33335,8 @@ func (ec *executionContext) fieldContext_Mutation_startInquiryConversation(ctx c
 				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
 			case "messages":
 				return ec.fieldContext_Conversation_messages(ctx, field)
+			case "supportState":
+				return ec.fieldContext_Conversation_supportState(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
 		},
@@ -33292,6 +33402,8 @@ func (ec *executionContext) fieldContext_Mutation_startTransactionConversation(c
 				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
 			case "messages":
 				return ec.fieldContext_Conversation_messages(ctx, field)
+			case "supportState":
+				return ec.fieldContext_Conversation_supportState(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
 		},
@@ -46700,6 +46812,8 @@ func (ec *executionContext) fieldContext_Query_conversation(ctx context.Context,
 				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
 			case "messages":
 				return ec.fieldContext_Conversation_messages(ctx, field)
+			case "supportState":
+				return ec.fieldContext_Conversation_supportState(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
 		},
@@ -46765,6 +46879,8 @@ func (ec *executionContext) fieldContext_Query_myConversations(ctx context.Conte
 				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
 			case "messages":
 				return ec.fieldContext_Conversation_messages(ctx, field)
+			case "supportState":
+				return ec.fieldContext_Conversation_supportState(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
 		},
@@ -46829,6 +46945,8 @@ func (ec *executionContext) fieldContext_Query_hausletSupport(_ context.Context,
 				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
 			case "messages":
 				return ec.fieldContext_Conversation_messages(ctx, field)
+			case "supportState":
+				return ec.fieldContext_Conversation_supportState(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
 		},
@@ -57696,6 +57814,8 @@ func (ec *executionContext) fieldContext_Subscription_conversationUpdated(ctx co
 				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
 			case "messages":
 				return ec.fieldContext_Conversation_messages(ctx, field)
+			case "supportState":
+				return ec.fieldContext_Conversation_supportState(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
 		},
@@ -57760,6 +57880,8 @@ func (ec *executionContext) fieldContext_Subscription_myConversationsUpdated(_ c
 				return ec.fieldContext_Conversation_unreadCounts(ctx, field)
 			case "messages":
 				return ec.fieldContext_Conversation_messages(ctx, field)
+			case "supportState":
+				return ec.fieldContext_Conversation_supportState(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Conversation", field.Name)
 		},
@@ -57814,6 +57936,180 @@ func (ec *executionContext) fieldContext_Subscription_typingIndicator(ctx contex
 	if fc.Args, err = ec.field_Subscription_typingIndicator_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SupportState_status(ctx context.Context, field graphql.CollectedField, obj *model.SupportState) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SupportState_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SupportState_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SupportState",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SupportState_ticketId(ctx context.Context, field graphql.CollectedField, obj *model.SupportState) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SupportState_ticketId,
+		func(ctx context.Context) (any, error) {
+			return obj.TicketID, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_SupportState_ticketId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SupportState",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SupportState_assignedAgentId(ctx context.Context, field graphql.CollectedField, obj *model.SupportState) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SupportState_assignedAgentId,
+		func(ctx context.Context) (any, error) {
+			return obj.AssignedAgentID, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_SupportState_assignedAgentId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SupportState",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SupportState_priority(ctx context.Context, field graphql.CollectedField, obj *model.SupportState) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SupportState_priority,
+		func(ctx context.Context) (any, error) {
+			return obj.Priority, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_SupportState_priority(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SupportState",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SupportState_aiSessionId(ctx context.Context, field graphql.CollectedField, obj *model.SupportState) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SupportState_aiSessionId,
+		func(ctx context.Context) (any, error) {
+			return obj.AiSessionID, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_SupportState_aiSessionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SupportState",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SupportState_lastAiResponse(ctx context.Context, field graphql.CollectedField, obj *model.SupportState) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SupportState_lastAiResponse,
+		func(ctx context.Context) (any, error) {
+			return obj.LastAiResponse, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_SupportState_lastAiResponse(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SupportState",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
 	}
 	return fc, nil
 }
@@ -69988,6 +70284,39 @@ func (ec *executionContext) _Conversation(ctx context.Context, sel ast.Selection
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "supportState":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Conversation_supportState(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -80860,6 +81189,58 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 }
 
+var supportStateImplementors = []string{"SupportState"}
+
+func (ec *executionContext) _SupportState(ctx context.Context, sel ast.SelectionSet, obj *model.SupportState) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, supportStateImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SupportState")
+		case "status":
+			out.Values[i] = ec._SupportState_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ticketId":
+			out.Values[i] = ec._SupportState_ticketId(ctx, field, obj)
+		case "assignedAgentId":
+			out.Values[i] = ec._SupportState_assignedAgentId(ctx, field, obj)
+		case "priority":
+			out.Values[i] = ec._SupportState_priority(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "aiSessionId":
+			out.Values[i] = ec._SupportState_aiSessionId(ctx, field, obj)
+		case "lastAiResponse":
+			out.Values[i] = ec._SupportState_lastAiResponse(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var thumbnailImplementors = []string{"Thumbnail"}
 
 func (ec *executionContext) _Thumbnail(ctx context.Context, sel ast.SelectionSet, obj *domain12.Thumbnail) graphql.Marshaler {
@@ -90137,6 +90518,13 @@ func (ec *executionContext) marshalOSubRatings2ᚖhausletᚋinternalᚋmodules�
 		return graphql.Null
 	}
 	return ec._SubRatings(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOSupportState2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐSupportState(ctx context.Context, sel ast.SelectionSet, v *model.SupportState) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SupportState(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {

@@ -57,6 +57,13 @@ type MessagingService interface {
 	// AssignSupportAgent (Admin only) assigns a specific human agent to a support ticket.
 	AssignSupportAgent(ctx context.Context, conversationID, agentID uuid.UUID) error
 
+	// TrackParticipantPresence records when a participant is active in a conversation.
+	MarkParticipantActive(conversationID, userID uuid.UUID)
+	// MarkParticipantInactive removes an active participant flag.
+	MarkParticipantInactive(conversationID, userID uuid.UUID)
+	// IsParticipantPresent checks whether a participant is currently connected to the conversation.
+	IsParticipantPresent(conversationID, userID uuid.UUID) bool
+
 	// SubscribeToLeadEvents starts listening to lead.created events from the leads module.
 	// Conversations are automatically created when leads are created.
 	SubscribeToLeadEvents(ctx context.Context, subscriber *events.Subscriber) error

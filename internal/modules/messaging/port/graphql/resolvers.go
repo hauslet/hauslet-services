@@ -262,6 +262,8 @@ func (r *Resolver) MessageReceived(ctx context.Context, conversationID uuid.UUID
 		return nil, err
 	}
 
+	r.messagingSvc.MarkParticipantActive(conversationID, userID)
+
 	// Subscribe to message events with filters
 	eventCh, err := r.eventSubscriber.SubscribeWithFilter(
 		ctx,
@@ -279,7 +281,10 @@ func (r *Resolver) MessageReceived(ctx context.Context, conversationID uuid.UUID
 
 	// Process events in background
 	go func() {
-		defer close(outCh)
+		defer func() {
+			r.messagingSvc.MarkParticipantInactive(conversationID, userID)
+			close(outCh)
+		}()
 
 		for {
 			select {
