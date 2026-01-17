@@ -79,6 +79,9 @@ type AuthService interface {
 	GeneratePasswordlessOTP(ctx context.Context, email string) (string, error)
 	VerifyPasswordlessOTP(ctx context.Context, email, code string) error
 	DeletePasswordlessOTP(ctx context.Context, email string) error
+
+	// Config accessors
+	GetSiteURL() string
 }
 
 type AuthServiceImpl struct {
@@ -116,6 +119,11 @@ func NewAuthService(cfg *config.AuthConfig,
 		linkStateManager: NewLinkStateManager(cfg.EncryptAuthCodeKey),
 		profileHooks:     profileHooks,
 	}
+}
+
+// GetSiteURL returns the configured site URL (used as JWT audience).
+func (s *AuthServiceImpl) GetSiteURL() string {
+	return s.cfg.RedirectURL
 }
 
 // ProfileHooks defines hooks related to user profile management

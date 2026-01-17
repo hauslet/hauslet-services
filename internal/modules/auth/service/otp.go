@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 )
 
@@ -95,18 +96,22 @@ func (s *AuthServiceImpl) GeneratePasswordlessOTP(ctx context.Context, email str
 		return "", fmt.Errorf("failed to generate passwordless OTP: %w", err)
 	}
 
-	key := PasswordlessOTPKeyPrefix + email
+	// Normalize email to lowercase for consistent key lookup
+	normalizedEmail := strings.ToLower(strings.TrimSpace(email))
+	key := PasswordlessOTPKeyPrefix + normalizedEmail
 	if err := s.redisClient.Set(ctx, key, code, PasswordlessOTPExpiration).Err(); err != nil {
 		return "", fmt.Errorf("failed to store passwordless OTP in Redis: %w", err)
 	}
 
-	s.log.Info("generated passwordless OTP", "email", email, "expires_in", PasswordlessOTPExpiration)
+	s.log.Info("generated passwordless OTP", "email", normalizedEmail, "expires_in", PasswordlessOTPExpiration)
 	return code, nil
 }
 
 // VerifyPasswordlessOTP verifies the provided OTP code for passwordless login.
 func (s *AuthServiceImpl) VerifyPasswordlessOTP(ctx context.Context, email, code string) error {
-	key := PasswordlessOTPKeyPrefix + email
+	// Normalize email to lowercase for consistent key lookup
+	normalizedEmail := strings.ToLower(strings.TrimSpace(email))
+	key := PasswordlessOTPKeyPrefix + normalizedEmail
 
 	storedCode, err := s.redisClient.Get(ctx, key).Result()
 	if err != nil {
@@ -117,17 +122,19 @@ func (s *AuthServiceImpl) VerifyPasswordlessOTP(ctx context.Context, email, code
 		return fmt.Errorf("invalid OTP code")
 	}
 
-	s.log.Info("passwordless OTP verified", "email", email)
+	s.log.Info("passwordless OTP verified", "email", normalizedEmail)
 	return nil
 }
 
 // DeletePasswordlessOTP removes the passwordless OTP from Redis after successful verification.
 func (s *AuthServiceImpl) DeletePasswordlessOTP(ctx context.Context, email string) error {
-	key := PasswordlessOTPKeyPrefix + email
+	// Normalize email to lowercase for consistent key lookup
+	normalizedEmail := strings.ToLower(strings.TrimSpace(email))
+	key := PasswordlessOTPKeyPrefix + normalizedEmail
 	if err := s.redisClient.Del(ctx, key).Err(); err != nil {
 		return fmt.Errorf("failed to delete passwordless OTP: %w", err)
 	}
 
-	s.log.Info("deleted passwordless OTP", "email", email)
+	s.log.Info("deleted passwordless OTP", "email", normalizedEmail)
 	return nil
 }

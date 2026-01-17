@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-pkgz/auth/v2/token"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // PasswordlessLoginRequest represents the passwordless login verification request.
@@ -98,6 +99,9 @@ func (h *HTTPHandler) VerifyPasswordlessCode(w http.ResponseWriter, r *http.Requ
 
 	// Build claims for the JWT
 	claims := token.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Audience: jwt.ClaimStrings{h.authService.GetSiteURL()},
+		},
 		User: &token.User{
 			ID:    "email_" + user.ID.String(),
 			Name:  user.Name,
