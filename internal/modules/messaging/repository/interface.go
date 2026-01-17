@@ -43,6 +43,16 @@ type ConversationRepository interface {
 
 	// WithTx returns a new repository instance using the provided transaction
 	WithTx(tx *gorm.DB) ConversationRepository
+
+	// Cleanup Operations
+	// FindStaleConversations returns active conversations with no activity since inactiveBefore
+	FindStaleConversations(ctx context.Context, inactiveBefore time.Time, limit int) ([]*schema.Conversation, error)
+
+	// FindArchivedForDeletion returns archived conversations that were archived before archivedBefore
+	FindArchivedForDeletion(ctx context.Context, archivedBefore time.Time, limit int) ([]*schema.Conversation, error)
+
+	// SoftDelete marks a conversation as deleted (sets deleted_at timestamp)
+	SoftDelete(ctx context.Context, id uuid.UUID) error
 }
 
 // MessageRepository handles individual message storage and retrieval

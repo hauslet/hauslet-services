@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"hauslet/config"
 	"hauslet/internal/modules/messaging/domain"
 	"hauslet/internal/modules/messaging/notification"
 	"hauslet/internal/modules/messaging/repository"
@@ -33,13 +34,14 @@ type messagingServiceImpl struct {
 	eventSubscriber *events.Subscriber // For subscribing to lead events
 	storage         *storage.R2Storage
 	notificationSvc *notification.NotificationService
+	platformConfig  *config.PlatformYAMLConfig
 	log             *slog.Logger
 	presence        *presenceTracker
 }
 
 // NewMessagingService wires the messaging dependencies into a concrete implementation.
 func NewMessagingService(
-	db *gorm.DB, // Added
+	db *gorm.DB,
 	convRepo repository.ConversationRepository,
 	messageRepo repository.MessageRepository,
 	participantRepo repository.ParticipantRepository,
@@ -48,9 +50,10 @@ func NewMessagingService(
 	bookingHooks domain.BookingHooks,
 	profileHooks domain.ProfileHooks,
 	eventPublisher *events.Publisher,
-	eventSubscriber *events.Subscriber, // For subscribing to lead events
+	eventSubscriber *events.Subscriber,
 	storage *storage.R2Storage,
 	notificationSvc *notification.NotificationService,
+	platformConfig *config.PlatformYAMLConfig,
 	log *slog.Logger,
 ) MessagingService {
 	return &messagingServiceImpl{
@@ -66,6 +69,7 @@ func NewMessagingService(
 		eventSubscriber: eventSubscriber,
 		storage:         storage,
 		notificationSvc: notificationSvc,
+		platformConfig:  platformConfig,
 		log:             log,
 		presence:        newPresenceTracker(),
 	}

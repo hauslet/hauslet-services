@@ -680,6 +680,43 @@ resource "google_cloud_scheduler_job" "verification_reconciliation" {
   ]
 }
 
+# 20. Conversation Cleanup Scheduler (daily at 3 AM UTC)
+resource "google_cloud_scheduler_job" "conversation_cleanup" {
+  name        = "conversation-cleanup-scheduler"
+  description = "Archives stale conversations and deletes old archived ones"
+  schedule    = "0 3 * * *"  # Daily at 3:00 AM UTC
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 2
+    min_backoff_duration = "10s"
+    max_backoff_duration = "120s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/conversation/cleanup"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Job payload matching ConversationCleanupJob
+    # Handler will use current time (time.Now())
+    body = base64encode(jsonencode({}))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
 # Enable Cloud Scheduler API
 resource "google_project_service" "cloudscheduler" {
   project = var.project_id

@@ -73,6 +73,16 @@ type MessagingService interface {
 	// SetTypingIndicator broadcasts a typing indicator event.
 	// This is ephemeral and not persisted to the database.
 	SetTypingIndicator(ctx context.Context, conversationID, userID uuid.UUID, isTyping bool) error
+
+	// --- Cleanup Operations (Worker Tasks) ---
+
+	// ArchiveStaleConversations archives conversations that have been inactive for the configured period.
+	// Returns the IDs of archived conversations.
+	ArchiveStaleConversations(ctx context.Context) ([]uuid.UUID, error)
+
+	// DeleteOldArchivedConversations soft-deletes archived conversations older than the configured period.
+	// Returns the IDs of deleted conversations.
+	DeleteOldArchivedConversations(ctx context.Context) ([]uuid.UUID, error)
 }
 
 // AttachmentUploadRequest carries metadata needed to generate the presigned link.

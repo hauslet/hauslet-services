@@ -42,15 +42,16 @@ type FeatureYAMLConfig struct {
 
 // PlatformYAMLConfig defines platform-wide knobs (fees, payouts, etc.).
 type PlatformYAMLConfig struct {
-	Currency      PlatformCurrencyConfig     `yaml:"currency"`
-	Fees          PlatformFeesConfig         `yaml:"fees"`
-	Taxes         PlatformTaxConfig          `yaml:"taxes"`
-	Payouts       PlatformPayoutConfig       `yaml:"payouts"`
-	Refunds       PlatformRefundConfig       `yaml:"refunds"`
-	AutoAccept    PlatformAutoAcceptConfig   `yaml:"auto_accept"`
-	Reviews        PlatformReviewConfig        `yaml:"reviews"`
-	Notifications  PlatformNotificationConfig  `yaml:"notifications"`
+	Currency       PlatformCurrencyConfig       `yaml:"currency"`
+	Fees           PlatformFeesConfig           `yaml:"fees"`
+	Taxes          PlatformTaxConfig            `yaml:"taxes"`
+	Payouts        PlatformPayoutConfig         `yaml:"payouts"`
+	Refunds        PlatformRefundConfig         `yaml:"refunds"`
+	AutoAccept     PlatformAutoAcceptConfig     `yaml:"auto_accept"`
+	Reviews        PlatformReviewConfig         `yaml:"reviews"`
+	Notifications  PlatformNotificationConfig   `yaml:"notifications"`
 	Reconciliation PlatformReconciliationConfig `yaml:"reconciliation"`
+	Messaging      PlatformMessagingConfig      `yaml:"messaging"`
 }
 
 type PlatformCurrencyConfig struct {
@@ -143,6 +144,11 @@ type PlatformReconciliationConfig struct {
 	SendAlerts  bool     `yaml:"send_alerts"`
 	AdminRoles  []string `yaml:"admin_roles"`
 	MinSeverity string   `yaml:"min_severity"` // critical | high | medium | low
+}
+
+type PlatformMessagingConfig struct {
+	ArchiveAfterDays int `yaml:"archive_after_days"`
+	DeleteAfterDays  int `yaml:"delete_after_days"`
 }
 
 // RateLimitYAMLConfig defines rate limiting rules
@@ -389,6 +395,14 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 	}
 	if src.Reconciliation.MinSeverity != "" {
 		dst.Reconciliation.MinSeverity = src.Reconciliation.MinSeverity
+	}
+
+	// Messaging
+	if src.Messaging.ArchiveAfterDays != 0 {
+		dst.Messaging.ArchiveAfterDays = src.Messaging.ArchiveAfterDays
+	}
+	if src.Messaging.DeleteAfterDays != 0 {
+		dst.Messaging.DeleteAfterDays = src.Messaging.DeleteAfterDays
 	}
 }
 

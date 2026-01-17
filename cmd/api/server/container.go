@@ -829,6 +829,7 @@ func (c *Container) initMessaging(ctx context.Context) error {
 		c.EventSubscriber,
 		c.R2,
 		notificationSvc,
+		&c.Config.YAML.Platform,
 		c.Logger,
 	)
 

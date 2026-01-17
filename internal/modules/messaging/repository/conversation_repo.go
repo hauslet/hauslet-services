@@ -134,3 +134,31 @@ func (r *conversationRepository) MarkAsRead(ctx context.Context, conversationID 
 		UpdateColumn("unread_counts", gorm.Expr("unread_counts || jsonb_build_object(?, 0)", userID.String())).
 		Error
 }
+
+func (r *conversationRepository) FindStaleConversations(ctx context.Context, inactiveBefore time.Time, limit int) ([]*schema.Conversation, error) {
+	var convs []*schema.Conversation
+	err := r.db.WithContext(ctx).
+		Where("status = ?", "active").
+		Where("(last_message_at IS NOT NULL AND last_message_at < ?) OR (last_message_at IS NULL AND updated_at < ?)", inactiveBefore, inactiveBefore).
+		Order("COALESCE(last_message_at, updated_at) ASC").
+		Limit(limit).
+		Find(&convs).Error
+
+	return convs, err
+}
+
+func (r *conversationRepository) FindArchivedForDeletion(ctx context.Context, archivedBefore time.Time, limit int) ([]*schema.Conversation, error) {
+	var convs []*schema.Conversation
+	err := r.db.WithContext(ctx).
+		Where("status = ?", "archived").
+		Where("updated_at < ?", archivedBefore).
+		Order("updated_at ASC").
+		Limit(limit).
+		Find(&convs).Error
+
+	return convs, err
+}
+
+func (r *conversationRepository) SoftDelete(ctx context.Context, id uuid.UUID) error {
+	return r.db.WithContext(ctx).Delete(&schema.Conversation{}, "id = ?", id).Error
+}

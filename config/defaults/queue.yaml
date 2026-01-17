@@ -30,5 +30,6 @@ queue:
     verification_reconciliation: "verification-reconciliation-queue"
     interactions_batch: "interactions-batch-queue"
     interactions_aggregator: "interactions-aggregator-queue"
+    conversation_cleanup: "conversation-cleanup-queue"
 
 

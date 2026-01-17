@@ -105,6 +105,10 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/interactions/aggregate",
 		Timeout: 120 * time.Second,
 	},
+	"conversation_cleanup": {
+		Path:    "/tasks/conversation/cleanup",
+		Timeout: 120 * time.Second,
+	},
 }
 
 func BuildQueueRoutes(queueNames map[string]string) map[string]QueueRoute {

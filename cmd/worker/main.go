@@ -60,6 +60,7 @@ func main() {
 	// - /tasks/calendar/open-house/reminders (hourly)
 	// - /tasks/interactions/batch (every 2 min)
 	// - /tasks/interactions/aggregate (hourly at :05)
+	// - /tasks/conversation/cleanup (daily at 3 AM UTC)
 
 	ready.Store(true)
 

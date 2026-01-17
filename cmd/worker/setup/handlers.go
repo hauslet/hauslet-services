@@ -28,6 +28,8 @@ import (
 	financeservice "hauslet/internal/modules/finance/service"
 	interactionrepository "hauslet/internal/modules/interactions/repository"
 	interactionservice "hauslet/internal/modules/interactions/service"
+	messagingrepository "hauslet/internal/modules/messaging/repository"
+	messagingservice "hauslet/internal/modules/messaging/service"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
 	moderationservice "hauslet/internal/modules/moderation/service"
 	paymentsnotification "hauslet/internal/modules/payments/notification"
@@ -61,6 +63,7 @@ import (
 	financeHandler "hauslet/internal/transport/worker/handlers/finance"
 	interactionHandler "hauslet/internal/transport/worker/handlers/interactions"
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
+	messagingHandler "hauslet/internal/transport/worker/handlers/messaging"
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
 	paymentHandler "hauslet/internal/transport/worker/handlers/payments"
 	promotionHandler "hauslet/internal/transport/worker/handlers/promotions"
@@ -940,6 +943,34 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			)
 			registry.Register(h)
 		}
+	}
+
+	// Conversation cleanup handler
+	hasConversationCleanup := qCfg["conversation_cleanup"] != ""
+	if hasConversationCleanup {
+		messagingConvRepo := messagingrepository.NewConversationRepository(infra.DB)
+		messagingMsgRepo := messagingrepository.NewMessageRepository(infra.DB)
+		messagingParticipantRepo := messagingrepository.NewParticipantRepository(infra.DB)
+
+		messagingSvc := messagingservice.NewMessagingService(
+			infra.DB,
+			messagingConvRepo,
+			messagingMsgRepo,
+			messagingParticipantRepo,
+			nil, // aiSupport not needed for cleanup
+			nil, // leadHooks not needed for cleanup
+			nil, // bookingHooks not needed for cleanup
+			nil, // profileHooks not needed for cleanup
+			nil, // eventPublisher not needed for cleanup
+			nil, // eventSubscriber not needed for cleanup
+			nil, // storage not needed for cleanup
+			nil, // notificationSvc not needed for cleanup
+			&cfg.YAML.Platform,
+			log,
+		)
+
+		h := messagingHandler.NewConversationCleanupHandler(messagingSvc, log, qCfg["conversation_cleanup"])
+		registry.Register(h)
 	}
 
 	return registry
