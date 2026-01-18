@@ -4,7 +4,10 @@ import (
 	"hauslet/config"
 	"hauslet/internal/transport/graph"
 
+	_ "hauslet/docs"
+
 	"github.com/go-chi/chi/v5"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // setupRoutes configures all HTTP routes for the application
@@ -127,4 +130,11 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		cfg,
 		container.Logger,
 	)
+
+	// Setup Swagger UI (Dev/Staging only)
+	if cfg.App.Env != "production" {
+		r.Get("/swagger/*", httpSwagger.Handler(
+			httpSwagger.URL("/swagger/doc.json"),
+		))
+	}
 }

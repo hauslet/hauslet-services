@@ -17,7 +17,7 @@ import (
 // @Failure 400 {object} domain.ErrorResponse
 // @Failure 409 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
-// @Router /register [post]
+// @Router /auth/register [post]
 func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req domain.RegisterRequest
 

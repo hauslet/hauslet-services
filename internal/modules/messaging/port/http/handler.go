@@ -27,6 +27,18 @@ type GenerateUploadURLResponse struct {
 }
 
 // GenerateUploadURL hands a signed PUT URL to the caller after ensuring conversation access.
+// @Summary Generate attachment upload URL
+// @Description Generates a presigned URL to upload a file to storage
+// @Tags messaging
+// @Accept json
+// @Produce json
+// @Param request body GenerateUploadURLRequest true "Upload URL Request"
+// @Success 200 {object} GenerateUploadURLResponse
+// @Failure 401 {string} string "Unauthorized"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 500 {string} string "Internal Server Error"
+// @Security BearerAuth
+// @Router /messaging/attachments/upload-url [post]
 func (h *HTTPHandler) GenerateUploadURL(w http.ResponseWriter, r *http.Request) {
 	userID := authmiddleware.GetUserID(r)
 	if userID == "" {

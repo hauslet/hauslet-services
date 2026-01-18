@@ -76,6 +76,10 @@ scaffold:
 gql-gen:
 	$(GO) tool gqlgen generate
 
+.PHONY: swagger
+swagger:
+	swag init -g cmd/api/main.go --output docs --parseDependency --parseInternal
+
 .PHONY: migrate
 migrate :
 	@if [ -z "$(DATABASE_URL)" ]; then echo "DATABASE_URL is required, e.g. export DATABASE_URL=postgres://user:pass@localhost:5432/dbname?sslmode=disable"; exit 1; fi

@@ -5,7 +5,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-pkgz/auth/v2/token"
+
+	"hauslet/internal/modules/auth/domain"
 )
+
+// Force usage of domain package for Swagger
+var _ = domain.ErrorResponse{}
 
 // InitiateLinking initiates OAuth provider linking flow
 // @Summary Initiate identity linking

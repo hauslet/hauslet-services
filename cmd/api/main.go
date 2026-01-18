@@ -8,6 +8,24 @@ import (
 	"hauslet/internal/platform/logger"
 )
 
+// @title           Hauslet API
+// @version         1.0
+// @description     Hauslet Services API Server.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@hauslet.com
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      https://dev-api.hauslet.com
+// @BasePath  /
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 	cfg := config.Load()
 	log := logger.NewLogger()

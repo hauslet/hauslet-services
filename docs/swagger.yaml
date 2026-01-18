@@ -1,0 +1,939 @@
+basePath: /
+definitions:
+  hauslet_internal_modules_auth_domain.ChangePasswordRequest:
+    properties:
+      new_password:
+        minLength: 8
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  hauslet_internal_modules_auth_domain.ErrorResponse:
+    properties:
+      error:
+        type: string
+      field:
+        type: string
+      message:
+        type: string
+    type: object
+  hauslet_internal_modules_auth_domain.RegisterRequest:
+    properties:
+      birth_date:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  hauslet_internal_modules_auth_domain.RegisterResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      name:
+        type: string
+    type: object
+  hauslet_internal_modules_auth_domain.SessionResponse:
+    properties:
+      created_at:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: string
+      ip:
+        type: string
+      provider:
+        type: string
+      user_agent:
+        type: string
+    type: object
+  hauslet_internal_modules_auth_domain.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+    type: object
+  hauslet_internal_modules_auth_domain.UserIdentityResponse:
+    properties:
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      id:
+        type: string
+      provider:
+        type: string
+    type: object
+  hauslet_internal_modules_auth_domain.UserResponse:
+    properties:
+      avatar_url:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      role:
+        type: string
+    type: object
+  hauslet_internal_modules_property_domain.DeleteMediaRequest:
+    properties:
+      media:
+        items:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.MediaDeleteInput'
+        maxItems: 50
+        minItems: 1
+        type: array
+    required:
+    - media
+    type: object
+  hauslet_internal_modules_property_domain.ErrorResponse:
+    properties:
+      error:
+        type: string
+      field:
+        type: string
+      message:
+        type: string
+    type: object
+  hauslet_internal_modules_property_domain.FinalizeMediaRequest:
+    properties:
+      media_keys:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - media_keys
+    type: object
+  hauslet_internal_modules_property_domain.MediaDeleteInput:
+    properties:
+      key:
+        type: string
+      media_id:
+        type: string
+    required:
+    - key
+    - media_id
+    type: object
+  hauslet_internal_modules_property_domain.MediaType:
+    enum:
+    - image
+    - video
+    - 360_tour
+    - document
+    type: string
+    x-enum-varnames:
+    - MediaTypeImage
+    - MediaTypeVideo
+    - MediaTypeTour360
+    - MediaTypeDocument
+  hauslet_internal_modules_property_domain.MediaUploadInput:
+    properties:
+      caption:
+        type: string
+      duration:
+        type: integer
+      filename:
+        type: string
+      group:
+        type: string
+      is_group_cover:
+        type: boolean
+      is_primary:
+        type: boolean
+      mime_type:
+        type: string
+      order:
+        type: integer
+      size_bytes:
+        type: integer
+      type:
+        $ref: '#/definitions/hauslet_internal_modules_property_domain.MediaType'
+    required:
+    - filename
+    - size_bytes
+    - type
+    type: object
+  hauslet_internal_modules_property_domain.MediaUploadResult:
+    properties:
+      filename:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      url:
+        type: string
+    type: object
+  hauslet_internal_modules_property_domain.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  hauslet_internal_modules_property_domain.UpdateMediaRequest:
+    properties:
+      caption:
+        type: string
+      is_group_cover:
+        type: boolean
+      is_primary:
+        type: boolean
+      order:
+        type: integer
+    type: object
+  hauslet_internal_modules_property_domain.UploadMediaRequest:
+    properties:
+      media:
+        items:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.MediaUploadInput'
+        maxItems: 50
+        minItems: 1
+        type: array
+    required:
+    - media
+    type: object
+  hauslet_internal_modules_property_domain.UploadMediaResponse:
+    properties:
+      media:
+        items:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.MediaUploadResult'
+        type: array
+      total:
+        type: integer
+    type: object
+  internal_modules_auth_port_http.PasswordlessLoginRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    type: object
+  internal_modules_auth_port_http.ResendOTPRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  internal_modules_auth_port_http.VerifyEmailRequest:
+    properties:
+      code:
+        type: string
+      email:
+        type: string
+    type: object
+  internal_modules_messaging_port_http.GenerateUploadURLRequest:
+    properties:
+      attachment_id:
+        type: string
+      content_type:
+        type: string
+      conversation_id:
+        type: string
+      expires_in_seconds:
+        type: integer
+      filename:
+        type: string
+      size_bytes:
+        type: integer
+    type: object
+  internal_modules_messaging_port_http.GenerateUploadURLResponse:
+    properties:
+      key:
+        type: string
+      url:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@hauslet.com
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Hauslet Services API Server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Hauslet API
+  version: "1.0"
+paths:
+  /api/listings/{id}/media:
+    delete:
+      consumes:
+      - application/json
+      description: Delete one or more media items from a listing
+      parameters:
+      - description: Listing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media delete details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.DeleteMediaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete listing media
+      tags:
+      - listings
+    post:
+      consumes:
+      - application/json
+      description: Generate presigned upload URLs for listing media
+      parameters:
+      - description: Listing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media upload details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.UploadMediaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.UploadMediaResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload listing media
+      tags:
+      - listings
+  /api/listings/{id}/media/{mediaId}:
+    patch:
+      consumes:
+      - application/json
+      description: Update metadata for a specific media item
+      parameters:
+      - description: Listing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media ID
+        in: path
+        name: mediaId
+        required: true
+        type: string
+      - description: Media update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.UpdateMediaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update listing media
+      tags:
+      - listings
+  /api/listings/{id}/media/finalize:
+    post:
+      consumes:
+      - application/json
+      description: Mark media as uploaded and trigger thumbnail generation
+      parameters:
+      - description: Listing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media finalization details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.FinalizeMediaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Finalize listing media
+      tags:
+      - listings
+  /auth/link/{provider}:
+    get:
+      description: Start OAuth flow to link a provider (google) to authenticated user
+        account
+      parameters:
+      - description: Provider name (google)
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: 'URI to redirect after linking (default: /settings)'
+        in: query
+        name: redirect_uri
+        type: string
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to OAuth provider
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Initiate identity linking
+      tags:
+      - user
+  /auth/passwordless/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify the 6-digit code sent to email and issue a JWT session
+      parameters:
+      - description: Email and verification code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.PasswordlessLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Verify passwordless login code
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with email and password
+      parameters:
+      - description: Registration details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_auth_domain.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.RegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /auth/resend-otp:
+    post:
+      consumes:
+      - application/json
+      description: Resend verification code to user's email
+      parameters:
+      - description: Email address
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.ResendOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Resend OTP code
+      tags:
+      - auth
+  /auth/verify-email:
+    post:
+      consumes:
+      - application/json
+      description: Verify user's email address using OTP code
+      parameters:
+      - description: Verification details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.VerifyEmailRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Verify email address
+      tags:
+      - auth
+  /change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change the authenticated user's password
+      parameters:
+      - description: Password change details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_auth_domain.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - user
+  /me:
+    get:
+      description: Returns the authenticated user's information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - user
+    put:
+      consumes:
+      - application/json
+      description: Update user's name or email
+      parameters:
+      - description: Update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_auth_domain.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update current user profile
+      tags:
+      - user
+  /me/identities:
+    get:
+      description: List all authentication methods (OAuth providers and password)
+        linked to the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hauslet_internal_modules_auth_domain.UserIdentityResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user identities
+      tags:
+      - user
+  /me/identities/{id}:
+    delete:
+      description: Remove an OAuth provider or password authentication from user account
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Unlink identity
+      tags:
+      - user
+  /me/sessions:
+    delete:
+      description: Revoke all sessions for the authenticated user (useful for "logout
+        everywhere")
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke all sessions
+      tags:
+      - session
+    get:
+      description: List all active sessions for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hauslet_internal_modules_auth_domain.SessionResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user sessions
+      tags:
+      - session
+  /me/sessions/{id}:
+    delete:
+      description: Revoke a specific session by ID
+      parameters:
+      - description: Session ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Revoke session
+      tags:
+      - session
+  /messaging/attachments/upload-url:
+    post:
+      consumes:
+      - application/json
+      description: Generates a presigned URL to upload a file to storage
+      parameters:
+      - description: Upload URL Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_messaging_port_http.GenerateUploadURLRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_messaging_port_http.GenerateUploadURLResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Generate attachment upload URL
+      tags:
+      - messaging
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
