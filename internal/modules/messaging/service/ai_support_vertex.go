@@ -70,7 +70,7 @@ func (s *vertexAISupportService) ProcessUserMessage(ctx context.Context, convers
 		ServingConfig: s.config.AIServingConfig,
 	}
 
-	if history, err := s.buildHistory(ctx, conversation.ID, message.ID, request.MaxHistory); err == nil {
+	if history, err := s.buildHistory(ctx, conversation.ID, message, request.MaxHistory); err == nil {
 		request.History = history
 	} else {
 		return nil, fmt.Errorf("failed to build ai history: %w", err)
@@ -160,7 +160,7 @@ func (s *vertexAISupportService) requestTimeout() time.Duration {
 	return 15 * time.Second
 }
 
-func (s *vertexAISupportService) buildHistory(ctx context.Context, conversationID, skip uuid.UUID, limit int) ([]vertexai.HistoryEntry, error) {
+func (s *vertexAISupportService) buildHistory(ctx context.Context, conversationID uuid.UUID, referenceMsg *domain.Message, limit int) ([]vertexai.HistoryEntry, error) {
 	if conversationID == uuid.Nil || limit <= 0 {
 		return nil, nil
 	}
@@ -178,7 +178,14 @@ func (s *vertexAISupportService) buildHistory(ctx context.Context, conversationI
 	history := make([]vertexai.HistoryEntry, 0, len(messages))
 	for i := len(messages) - 1; i >= 0; i-- {
 		msg := messages[i]
-		if msg == nil || msg.ID == skip {
+		if msg == nil || msg.ID == referenceMsg.ID {
+			continue
+		}
+
+		// Fix Race Condition: Filter out messages that are newer than the reference message
+		// This ensures that even if a new message (B) arrives while we are processing (A),
+		// the processing of (A) will not include (B) in its history.
+		if msg.CreatedAt.After(referenceMsg.CreatedAt) {
 			continue
 		}
 
