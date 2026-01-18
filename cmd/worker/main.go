@@ -45,22 +45,7 @@ func main() {
 
 	// 6) Background publishers - Handled by Cloud Scheduler
 	// Cloud Scheduler jobs trigger these endpoints directly:
-	// - /tasks/media/cleanup (every 15 min)
-	// - /tasks/booking/expiry (every 2 min)
-	// - /tasks/booking/completion (every hour)
-	// - /tasks/booking/checkin-out (every hour)
-	// - /tasks/finance/payout/process (every hour)
-	// - /tasks/finance/payout/retry (every 15 min)
-	// - /tasks/finance/reconciliation (daily at 2 AM UTC)
-	// - /tasks/review/standoff/publish (daily at midnight UTC)
-	// - /tasks/review/reminders (daily at 10 AM UTC)
-	// - /tasks/promotion/expiry (daily at 1 AM UTC)
-	// - /tasks/promotion/billing (daily at 3 AM UTC)
-	// - /tasks/calendar/showing/reminders (hourly)
-	// - /tasks/calendar/open-house/reminders (hourly)
-	// - /tasks/interactions/batch (every 2 min)
-	// - /tasks/interactions/aggregate (hourly at :05)
-	// - /tasks/conversation/cleanup (daily at 3 AM UTC)
+	// see internal/platform/queue/routes.go
 
 	ready.Store(true)
 

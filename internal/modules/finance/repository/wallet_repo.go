@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type WalletRepositoryImpl struct {
@@ -23,6 +24,21 @@ func (r *WalletRepositoryImpl) Create(ctx context.Context, wallet *schema.Wallet
 func (r *WalletRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*schema.Wallet, error) {
 	var wallet schema.Wallet
 	err := r.db.WithContext(ctx).Where("id = ?", id).First(&wallet).Error
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &wallet, nil
+}
+
+func (r *WalletRepositoryImpl) GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*schema.Wallet, error) {
+	var wallet schema.Wallet
+	err := r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ?", id).
+		First(&wallet).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}

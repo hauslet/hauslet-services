@@ -95,8 +95,14 @@ func (s *FinanceServiceImpl) RecordCharge(
 		}
 
 		// Update wallet balance
-		oldBalance := escrowWallet.Balance
-		newBalance := escrowWallet.Balance + amount
+		// Lock wallet and get fresh balance to prevent race conditions
+		lockedWallet, err := walletRepo.GetByIDForUpdate(ctx, escrowWallet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock wallet: %w", err)
+		}
+
+		oldBalance := lockedWallet.Balance
+		newBalance := lockedWallet.Balance + amount
 		if err := walletRepo.UpdateBalance(ctx, escrowWallet.ID, newBalance); err != nil {
 			return fmt.Errorf("failed to update wallet balance: %w", err)
 		}
@@ -248,8 +254,14 @@ func (s *FinanceServiceImpl) RecordRefund(
 		}
 
 		// Update wallet balances
-		escrowOldBalance := escrowWallet.Balance
-		escrowNewBalance := escrowWallet.Balance - amount
+		// Lock wallets and get fresh balances
+		lockedEscrow, err := walletRepo.GetByIDForUpdate(ctx, escrowWallet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock escrow wallet: %w", err)
+		}
+
+		escrowOldBalance := lockedEscrow.Balance
+		escrowNewBalance := lockedEscrow.Balance - amount
 		if err := walletRepo.UpdateBalance(ctx, escrowWallet.ID, escrowNewBalance); err != nil {
 			return fmt.Errorf("failed to update escrow balance: %w", err)
 		}
@@ -262,8 +274,13 @@ func (s *FinanceServiceImpl) RecordRefund(
 			"reason", "refund",
 		)
 
-		refundOldBalance := refundPool.Balance
-		refundNewBalance := refundPool.Balance + amount
+		lockedRefundPool, err := walletRepo.GetByIDForUpdate(ctx, refundPool.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock refund pool wallet: %w", err)
+		}
+
+		refundOldBalance := lockedRefundPool.Balance
+		refundNewBalance := lockedRefundPool.Balance + amount
 		if err := walletRepo.UpdateBalance(ctx, refundPool.ID, refundNewBalance); err != nil {
 			return fmt.Errorf("failed to update refund pool balance: %w", err)
 		}
@@ -401,10 +418,20 @@ func (s *FinanceServiceImpl) RecordCommission(
 		}
 
 		// Update wallet balances
-		if err := walletRepo.UpdateBalance(ctx, escrowWallet.ID, escrowWallet.Balance-amount); err != nil {
+		// Lock wallets and get fresh balances
+		lockedEscrow, err := walletRepo.GetByIDForUpdate(ctx, escrowWallet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock escrow wallet: %w", err)
+		}
+		if err := walletRepo.UpdateBalance(ctx, escrowWallet.ID, lockedEscrow.Balance-amount); err != nil {
 			return fmt.Errorf("failed to update escrow balance: %w", err)
 		}
-		if err := walletRepo.UpdateBalance(ctx, feeWallet.ID, feeWallet.Balance+amount); err != nil {
+
+		lockedFeeWallet, err := walletRepo.GetByIDForUpdate(ctx, feeWallet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock fee wallet: %w", err)
+		}
+		if err := walletRepo.UpdateBalance(ctx, feeWallet.ID, lockedFeeWallet.Balance+amount); err != nil {
 			return fmt.Errorf("failed to update fee wallet balance: %w", err)
 		}
 
@@ -530,10 +557,20 @@ func (s *FinanceServiceImpl) RecordPayout(
 		}
 
 		// Update wallet balances
-		if err := walletRepo.UpdateBalance(ctx, escrowWallet.ID, escrowWallet.Balance-amount); err != nil {
+		// Lock wallets and get fresh balances
+		lockedEscrow, err := walletRepo.GetByIDForUpdate(ctx, escrowWallet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock escrow wallet: %w", err)
+		}
+		if err := walletRepo.UpdateBalance(ctx, escrowWallet.ID, lockedEscrow.Balance-amount); err != nil {
 			return fmt.Errorf("failed to update escrow balance: %w", err)
 		}
-		if err := walletRepo.UpdateBalance(ctx, hostWallet.ID, hostWallet.Balance+amount); err != nil {
+
+		lockedHostWallet, err := walletRepo.GetByIDForUpdate(ctx, hostWallet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock host wallet: %w", err)
+		}
+		if err := walletRepo.UpdateBalance(ctx, hostWallet.ID, lockedHostWallet.Balance+amount); err != nil {
 			return fmt.Errorf("failed to update host wallet balance: %w", err)
 		}
 

@@ -13,6 +13,7 @@ import (
 type WalletRepository interface {
 	Create(ctx context.Context, wallet *schema.Wallet) error
 	GetByID(ctx context.Context, id uuid.UUID) (*schema.Wallet, error)
+	GetByIDForUpdate(ctx context.Context, id uuid.UUID) (*schema.Wallet, error)
 	GetByOwner(ctx context.Context, ownerType string, ownerID uuid.UUID, walletType string) (*schema.Wallet, error)
 	UpdateBalance(ctx context.Context, id uuid.UUID, newBalance int64) error
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
