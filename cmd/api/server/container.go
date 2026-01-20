@@ -291,7 +291,7 @@ func NewContainer(ctx context.Context, deps InfrastructureDependencies) (*Contai
 // initPlatformServices initializes payment, FX, AI clients, and event infrastructure
 func (c *Container) initPlatformServices(ctx context.Context) error {
 	// Initialize payment client
-	paymentFactory := payment.NewProviderFactory(c.Config.Services.Payment)
+	paymentFactory := payment.NewProviderFactory(c.Config.Services.Payment, c.CircuitBreaker)
 	c.PaymentClient = payment.New(paymentFactory)
 
 	// Initialize FX client

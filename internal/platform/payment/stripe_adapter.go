@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hauslet/internal/platform/breaker"
 	"io"
 	"net/http"
 	"net/url"
@@ -22,9 +23,10 @@ const (
 
 // StripeAdapter implements TransactionClient, PayoutClient, and WebhookHandler for Stripe
 type StripeAdapter struct {
-	secretKey     string
-	webhookSecret string
-	httpClient    *http.Client
+	secretKey      string
+	webhookSecret  string
+	httpClient     *http.Client
+	circuitBreaker breaker.CircuitBreaker
 }
 
 // Ensure StripeAdapter implements all interfaces
@@ -33,13 +35,14 @@ var _ PayoutClient = (*StripeAdapter)(nil)
 var _ WebhookHandler = (*StripeAdapter)(nil)
 
 // NewStripeAdapter creates a new Stripe payment adapter
-func NewStripeAdapter(secretKey, webhookSecret string) *StripeAdapter {
+func NewStripeAdapter(secretKey, webhookSecret string, cb breaker.CircuitBreaker) *StripeAdapter {
 	return &StripeAdapter{
 		secretKey:     secretKey,
 		webhookSecret: webhookSecret,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		circuitBreaker: cb,
 	}
 }
 
@@ -367,6 +370,18 @@ func (s *StripeAdapter) ParseEvent(payload []byte) (*UnifiedEvent, error) {
 // ============================================================================
 
 func (s *StripeAdapter) makeRequest(ctx context.Context, method, endpoint string, params url.Values) (map[string]interface{}, error) {
+	provider := "stripe"
+
+	if s.circuitBreaker != nil {
+		allowed, err := s.circuitBreaker.AllowRequest(ctx, provider)
+		if err != nil {
+			// Log error but default to allowed
+		}
+		if !allowed {
+			return nil, fmt.Errorf("%w: circuit is open", ErrProviderUnavailable)
+		}
+	}
+
 	apiURL := stripeBaseURL + endpoint
 
 	var body io.Reader
@@ -385,9 +400,22 @@ func (s *StripeAdapter) makeRequest(ctx context.Context, method, endpoint string
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
+		if s.circuitBreaker != nil {
+			_ = s.circuitBreaker.RecordFailure(ctx, provider)
+		}
 		return nil, fmt.Errorf("%w: %v", ErrProviderUnavailable, err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 500 {
+		if s.circuitBreaker != nil {
+			_ = s.circuitBreaker.RecordFailure(ctx, provider)
+		}
+	} else {
+		if s.circuitBreaker != nil {
+			_ = s.circuitBreaker.RecordSuccess(ctx, provider)
+		}
+	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {

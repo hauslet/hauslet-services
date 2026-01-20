@@ -319,6 +319,64 @@ func (s *NotificationService) SendPayoutFailed(
 	return nil
 }
 
+// SendPayoutActionRequired sends notification when payout is blocked due to missing details
+func (s *NotificationService) SendPayoutActionRequired(
+	ctx context.Context,
+	bookingID uuid.UUID,
+	hostEmail string,
+	hostName string,
+	amount int64,
+	currency string,
+) error {
+	if s.mailClient == nil {
+		return nil
+	}
+
+	subject := "Action Required: Payout On Hold"
+	preview := "We need your banking details to process your payout."
+
+	emailData := map[string]any{
+		"BookingID":        bookingID.String(),
+		"ProcessingAmount": payment.FormatAmount(amount, payment.Currency(currency)),
+		"Currency":         currency,
+		"HostName":         hostName,
+		"SupportEmail":     "support@hauslet.com",
+		"DashboardURL":     fmt.Sprintf("%s/earnings/payouts", s.baseURL),
+
+		// Required for the Layout
+		"Subject": subject,
+		"Preview": preview,
+		"Year":    time.Now().Year(),
+	}
+
+	htmlBody, err := s.mailClient.RenderTemplate(
+		templates.FS,
+		"payout_action_required.html",
+		emailData,
+	)
+	if err != nil {
+		if s.log != nil {
+			s.log.Error("failed to render payout action required template", "error", err)
+		}
+		return nil
+	}
+
+	s.sendEmailAsync("send payout action required email", func() error {
+		job := emailJob.EmailJob{
+			To:      hostEmail,
+			Subject: subject,
+			HTML:    htmlBody,
+		}
+		if err := s.publishEmailJob(job); err == nil {
+			return nil
+		} else if s.queueClient != nil && !s.queueClient.AllowFallback() {
+			return err
+		}
+		return s.mailClient.SendHTML(ctx, hostEmail, subject, htmlBody)
+	})
+	return nil
+}
+
 // SendRefundProcessed sends notification when refund is processed
 func (s *NotificationService) SendRefundProcessed(
 	ctx context.Context,

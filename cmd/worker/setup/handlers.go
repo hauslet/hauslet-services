@@ -313,7 +313,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		}
 
 		if hasBookingRefund {
-			paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
+			paymentFactory := payment.NewProviderFactory(cfg.Services.Payment, infra.CircuitBreaker)
 			paymentClient := payment.New(paymentFactory)
 			paymentsRepo := paymentsrepository.NewRepository(infra.DB)
 			paymentsNotification := paymentsnotification.NewNotificationService(
@@ -418,7 +418,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		)
 		bookingHooksAdapter := bookinghooks.NewBookingHooksAdapter(bookingSvc)
 
-		paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
+		paymentFactory := payment.NewProviderFactory(cfg.Services.Payment, infra.CircuitBreaker)
 		paymentClient := payment.New(paymentFactory)
 		paymentsRepo := paymentsrepository.NewRepository(infra.DB)
 		paymentsNotification := paymentsnotification.NewNotificationService(
@@ -531,7 +531,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		paymentsRepo := paymentsrepository.NewRepository(infra.DB)
 
 		// Initialize payment client
-		paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
+		paymentFactory := payment.NewProviderFactory(cfg.Services.Payment, infra.CircuitBreaker)
 		paymentClient := payment.New(paymentFactory)
 
 		// Initialize booking repository for payout processing
@@ -782,7 +782,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		// Initialize payment service (needed for subscription billing)
 		var paymentsSvc paymentsservice.PaymentService
 		if hasSubscriptionBilling {
-			paymentFactory := payment.NewProviderFactory(cfg.Services.Payment)
+			paymentFactory := payment.NewProviderFactory(cfg.Services.Payment, infra.CircuitBreaker)
 			paymentClient := payment.New(paymentFactory)
 			paymentsRepo := paymentsrepository.NewRepository(infra.DB)
 			paymentsNotification := paymentsnotification.NewNotificationService(

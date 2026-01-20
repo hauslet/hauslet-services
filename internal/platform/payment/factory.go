@@ -3,6 +3,7 @@ package payment
 import (
 	"fmt"
 	"hauslet/config"
+	"hauslet/internal/platform/breaker"
 )
 
 // ProviderFactory creates and returns the appropriate payment provider based on currency
@@ -24,10 +25,10 @@ type DefaultProviderFactory struct {
 }
 
 // NewProviderFactory creates a new provider factory with configured adapters
-func NewProviderFactory(cfg config.PaymentConfig) *DefaultProviderFactory {
+func NewProviderFactory(cfg config.PaymentConfig, cb breaker.CircuitBreaker) *DefaultProviderFactory {
 	return &DefaultProviderFactory{
-		paystackAdapter: NewPaystackAdapter(cfg.PaystackSecretKey),
-		stripeAdapter:   NewStripeAdapter(cfg.StripeSecretKey, cfg.StripeWebhookSecret),
+		paystackAdapter: NewPaystackAdapter(cfg.PaystackSecretKey, cb),
+		stripeAdapter:   NewStripeAdapter(cfg.StripeSecretKey, cfg.StripeWebhookSecret, cb),
 	}
 }
 

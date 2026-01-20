@@ -26,91 +26,57 @@ func NewRedisCircuitBreaker(redisClient redis.RedisClient, config ProviderConfig
 
 // AllowRequest checks if a request is allowed for the provider
 func (cb *RedisCircuitBreaker) AllowRequest(ctx context.Context, providerName string) (bool, error) {
-	state, err := cb.GetState(ctx, providerName)
+	cfg := cb.getConfig(providerName)
+	keys := []string{
+		cb.getKey(providerName, "state"),
+		cb.getKey(providerName, "opened_at"),
+		cb.getKey(providerName, "probe_count"),
+	}
+	args := []any{
+		time.Now().Unix(),
+		cfg.Timeout.Seconds(),
+		cfg.HalfOpenRequests,
+		10, // probe key TTL (seconds)
+	}
+
+	allowed, err := allowRequestScript.Run(ctx, cb.redis, keys, args...).Bool()
 	if err != nil {
-		// Default to allowing on error
-		cb.logger.Error("failed to get circuit breaker state, allowing request",
+		// Default to allowing on error to avoid blocking traffic if Redis is down
+		cb.logger.Error("failed to run allow_request script, allowing request",
 			"provider", providerName,
 			"error", err,
 		)
 		return true, nil
 	}
 
-	switch state {
-	case StateClosed:
-		return true, nil
-
-	case StateOpen:
-		// Check if timeout has expired
-		if cb.shouldTransitionToHalfOpen(ctx, providerName) {
-			// Transition to half-open
-			if err := cb.setState(ctx, providerName, StateHalfOpen); err != nil {
-				cb.logger.Error("failed to transition to half-open",
-					"provider", providerName,
-					"error", err,
-				)
-				return false, nil
-			}
-			cb.logger.Info("circuit breaker transitioned to half-open",
-				"provider", providerName,
-			)
-			return true, nil
-		}
-		return false, nil
-
-	case StateHalfOpen:
-		// Allow one test request
-		return true, nil
-
-	default:
-		return true, nil
-	}
+	return allowed, nil
 }
 
 // RecordSuccess records a successful request
 func (cb *RedisCircuitBreaker) RecordSuccess(ctx context.Context, providerName string) error {
-	state, err := cb.GetState(ctx, providerName)
+	cfg := cb.getConfig(providerName)
+	keys := []string{
+		cb.getKey(providerName, "state"),
+		cb.getKey(providerName, "success_count"),
+		cb.getKey(providerName, "last_success"),
+		cb.getKey(providerName, "failure_count"),
+		cb.getKey(providerName, "opened_at"),
+		cb.getKey(providerName, "probe_count"),
+	}
+	args := []any{
+		cfg.SuccessThreshold,
+		time.Now().Unix(),
+	}
+
+	closed, err := recordSuccessScript.Run(ctx, cb.redis, keys, args...).Bool()
 	if err != nil {
-		return fmt.Errorf("failed to get state: %w", err)
+		return fmt.Errorf("failed to record success: %w", err)
 	}
 
-	// Increment success counter
-	successKey := cb.getKey(providerName, "success_count")
-	if err := cb.redis.Incr(ctx, successKey).Err(); err != nil {
-		return fmt.Errorf("failed to increment success count: %w", err)
-	}
-
-	// Update last success timestamp
-	lastSuccessKey := cb.getKey(providerName, "last_success")
-	if err := cb.redis.Set(ctx, lastSuccessKey, time.Now().Unix(), 0).Err(); err != nil {
-		return fmt.Errorf("failed to set last success time: %w", err)
-	}
-
-	// Handle state transitions based on success
-	if state == StateHalfOpen {
-		// Check if we have enough successes to close
-		successCount, err := cb.getCounter(ctx, successKey)
-		if err != nil {
-			return fmt.Errorf("failed to get success count: %w", err)
-		}
-
-		cfg := cb.getConfig(providerName)
-		if successCount >= int64(cfg.SuccessThreshold) {
-			// Transition to closed
-			if err := cb.setState(ctx, providerName, StateClosed); err != nil {
-				return fmt.Errorf("failed to close circuit: %w", err)
-			}
-
-			// Reset counters
-			if err := cb.resetCounters(ctx, providerName); err != nil {
-				return fmt.Errorf("failed to reset counters: %w", err)
-			}
-
-			cb.logger.Info("circuit breaker closed after successful recovery",
-				"provider", providerName,
-				"success_count", successCount,
-			)
-		}
+	if closed {
+		cb.logger.Info("circuit breaker closed after successful recovery",
+			"provider", providerName,
+		)
 	}
 
 	return nil
@@ -118,62 +84,27 @@ func (cb *RedisCircuitBreaker) RecordSuccess(ctx context.Context, providerName s
 
 // RecordFailure records a failed request
 func (cb *RedisCircuitBreaker) RecordFailure(ctx context.Context, providerName string) error {
-	state, err := cb.GetState(ctx, providerName)
+	cfg := cb.getConfig(providerName)
+	keys := []string{
+		cb.getKey(providerName, "state"),
+		cb.getKey(providerName, "failure_count"),
+		cb.getKey(providerName, "last_failure"),
+		cb.getKey(providerName, "opened_at"),
+		cb.getKey(providerName, "success_count"),
+		cb.getKey(providerName, "probe_count"),
+	}
+	args := []any{
+		cfg.FailureThreshold,
+		time.Now().Unix(),
+	}
+
+	opened, err := recordFailureScript.Run(ctx, cb.redis, keys, args...).Bool()
 	if err != nil {
-		return fmt.Errorf("failed to get state: %w", err)
+		return fmt.Errorf("failed to record failure: %w", err)
 	}
 
-	// Increment failure counter
-	failureKey := cb.getKey(providerName, "failure_count")
-	if err := cb.redis.Incr(ctx, failureKey).Err(); err != nil {
-		return fmt.Errorf("failed to increment failure count: %w", err)
-	}
-
-	// Update last failure timestamp
-	lastFailureKey := cb.getKey(providerName, "last_failure")
-	if err := cb.redis.Set(ctx, lastFailureKey, time.Now().Unix(), 0).Err(); err != nil {
-		return fmt.Errorf("failed to set last failure time: %w", err)
-	}
-
-	// Handle state transitions based on failure
-	if state == StateClosed {
-		// Check if we should open the circuit
-		failureCount, err := cb.getCounter(ctx, failureKey)
-		if err != nil {
-			return fmt.Errorf("failed to get failure count: %w", err)
-		}
-
-		cfg := cb.getConfig(providerName)
-		if failureCount >= int64(cfg.FailureThreshold) {
-			// Transition to open
-			if err := cb.setState(ctx, providerName, StateOpen); err != nil {
-				return fmt.Errorf("failed to open circuit: %w", err)
-			}
-
-			// Set opened timestamp
-			openedKey := cb.getKey(providerName, "opened_at")
-			if err := cb.redis.Set(ctx, openedKey, time.Now().Unix(), 0).Err(); err != nil {
-				return fmt.Errorf("failed to set opened time: %w", err)
-			}
-
-			cb.logger.Warn("circuit breaker opened due to failures",
-				"provider", providerName,
-				"failure_count", failureCount,
-			)
-		}
-	} else if state == StateHalfOpen {
-		// One failure in half-open means back to open
-		if err := cb.setState(ctx, providerName, StateOpen); err != nil {
-			return fmt.Errorf("failed to reopen circuit: %w", err)
-		}
-
-		// Reset success counter
-		successKey := cb.getKey(providerName, "success_count")
-		if err := cb.redis.Del(ctx, successKey).Err(); err != nil {
-			return fmt.Errorf("failed to reset success count: %w", err)
-		}
-
-		cb.logger.Warn("circuit breaker reopened after half-open failure",
+	if opened {
+		cb.logger.Warn("circuit breaker opened due to failures",
 			"provider", providerName,
 		)
 	}
@@ -245,23 +176,13 @@ func (cb *RedisCircuitBreaker) setState(ctx context.Context, providerName string
 	return cb.redis.Set(ctx, stateKey, string(state), 0).Err()
 }
 
-// Helper: shouldTransitionToHalfOpen checks if timeout has expired
-func (cb *RedisCircuitBreaker) shouldTransitionToHalfOpen(ctx context.Context, providerName string) bool {
-	openedAt := cb.getTimestamp(ctx, cb.getKey(providerName, "opened_at"))
-	if openedAt == nil {
-		return true
-	}
-
-	cfg := cb.getConfig(providerName)
-	return time.Since(*openedAt) >= cfg.Timeout
-}
-
 // Helper: resetCounters resets all counters for a provider
 func (cb *RedisCircuitBreaker) resetCounters(ctx context.Context, providerName string) error {
 	keys := []string{
 		cb.getKey(providerName, "failure_count"),
 		cb.getKey(providerName, "success_count"),
 		cb.getKey(providerName, "opened_at"),
+		cb.getKey(providerName, "probe_count"),
 	}
 
 	for _, key := range keys {

@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hauslet/internal/platform/breaker"
 	"io"
 	"net/http"
 	"net/url"
@@ -21,8 +22,9 @@ const (
 
 // PaystackAdapter implements TransactionClient, PayoutClient, and WebhookHandler for Paystack
 type PaystackAdapter struct {
-	secretKey  string
-	httpClient *http.Client
+	secretKey      string
+	httpClient     *http.Client
+	circuitBreaker breaker.CircuitBreaker
 }
 
 // Ensure PaystackAdapter implements all interfaces
@@ -31,12 +33,13 @@ var _ PayoutClient = (*PaystackAdapter)(nil)
 var _ WebhookHandler = (*PaystackAdapter)(nil)
 
 // NewPaystackAdapter creates a new Paystack payment adapter
-func NewPaystackAdapter(secretKey string) *PaystackAdapter {
+func NewPaystackAdapter(secretKey string, cb breaker.CircuitBreaker) *PaystackAdapter {
 	return &PaystackAdapter{
 		secretKey: secretKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		circuitBreaker: cb,
 	}
 }
 
@@ -523,6 +526,19 @@ func parsePaystackID(raw json.RawMessage) string {
 // ============================================================================
 
 func (p *PaystackAdapter) makeRequest(ctx context.Context, method, endpoint string, payload any) (map[string]any, error) {
+	provider := "paystack"
+
+	if p.circuitBreaker != nil {
+		allowed, err := p.circuitBreaker.AllowRequest(ctx, provider)
+		if err != nil {
+			// Log error but default to allowed if breaker fails
+			// implementation detail: relying on breaker to return default true on error
+		}
+		if !allowed {
+			return nil, fmt.Errorf("%w: circuit is open", ErrProviderUnavailable)
+		}
+	}
+
 	url := paystackBaseURL + endpoint
 
 	var body io.Reader
@@ -544,9 +560,24 @@ func (p *PaystackAdapter) makeRequest(ctx context.Context, method, endpoint stri
 
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
+		if p.circuitBreaker != nil {
+			_ = p.circuitBreaker.RecordFailure(ctx, provider)
+		}
 		return nil, fmt.Errorf("%w: %v", ErrProviderUnavailable, err)
 	}
 	defer resp.Body.Close()
+
+	// If server error, record failure
+	if resp.StatusCode >= 500 {
+		if p.circuitBreaker != nil {
+			_ = p.circuitBreaker.RecordFailure(ctx, provider)
+		}
+	} else {
+		// 2xx, 4xx are technically "successful" interactions with the provider
+		if p.circuitBreaker != nil {
+			_ = p.circuitBreaker.RecordSuccess(ctx, provider)
+		}
+	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {

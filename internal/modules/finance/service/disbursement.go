@@ -24,37 +24,15 @@ func (s *PayoutServiceImpl) initiateDisbursement(ctx context.Context, disburseme
 	}
 
 	// Get host's payout details (recipient code)
+	// Note: We already validated these details exist and are verified in processSinglePayout
+	// so strictly speaking they should be here. If they were deleted in the interim,
+	// we fail securely.
 	payoutDetail, err := s.payoutDetailRepo.GetDefaultPayoutDetail(ctx, &walletSchema.OwnerID, nil)
 	if err != nil {
-		errMsg := fmt.Sprintf("host has no payout details configured: %v", err)
-		if s.log != nil {
-			s.log.Error("host payout details error", "message", errMsg)
-		}
-		// Update disbursement status to failed
-		disbursement.FailureReason = &errMsg
-		disbursement.Status = string(domain.DisbursementStatusFailed)
-		nextRetry := time.Now().Add(s.calculateRetryDelay(disbursement.Attempts))
-		disbursement.NextRetryAt = &nextRetry
-		if updateErr := s.disbursementRepo.UpdateStatus(ctx, disbursement.ID, disbursement.Status, &errMsg); updateErr != nil {
-			return fmt.Errorf("failed to update disbursement status: %w (original error: %v)", updateErr, err)
-		}
-		return fmt.Errorf("host has no payout details configured: %w", err)
+		return fmt.Errorf("failed to get payout details: %w", err)
 	}
-
-	// Ensure payout details are verified
-	if !payoutDetail.IsVerified {
-		errMsg := "host payout details not verified"
-		if s.log != nil {
-			s.log.Error(errMsg, "host_id", walletSchema.OwnerID)
-		}
-		disbursement.FailureReason = &errMsg
-		disbursement.Status = string(domain.DisbursementStatusFailed)
-		nextRetry := time.Now().Add(s.calculateRetryDelay(disbursement.Attempts))
-		disbursement.NextRetryAt = &nextRetry
-		if updateErr := s.disbursementRepo.UpdateStatus(ctx, disbursement.ID, disbursement.Status, &errMsg); updateErr != nil {
-			return fmt.Errorf("failed to update disbursement status: %w", updateErr)
-		}
-		return fmt.Errorf("host payout details not verified")
+	if payoutDetail == nil || !payoutDetail.IsVerified {
+		return fmt.Errorf("payout details missing or unverified at transfer time")
 	}
 
 	// Initiate the actual transfer with recipient code

@@ -217,6 +217,40 @@ func (s *PayoutServiceImpl) processSinglePayout(
 		walletRepo := s.walletRepo.WithTx(tx)
 		disbursementRepo := s.disbursementRepo.WithTx(tx)
 
+		// Step 0: Pre-validate payout details (Industry Standard: Hold & Notify)
+		// We verify host has valid banking details BEFORE moving any money.
+		payoutDetail, err := s.payoutDetailRepo.GetDefaultPayoutDetail(ctx, &hostID, nil)
+		if err != nil || payoutDetail == nil || !payoutDetail.IsVerified {
+			if s.log != nil {
+				s.log.Warn("[AUDIT] payout_skipped_missing_details",
+					"booking_id", bookingID,
+					"host_id", hostID,
+					"reason", "missing_or_unverified_payout_details",
+				)
+			}
+
+			// Notify host provided we have notification service
+			if s.notificationSvc != nil && s.profileAdapter != nil {
+				// Get host profile for email and name
+				hostName, hostEmail, err := s.profileAdapter.GetProfileData(ctx, hostID)
+				if err == nil && hostEmail != "" {
+					// Use specific "Action Required" notification
+					s.notificationSvc.SendPayoutActionRequired(
+						ctx,
+						bookingID,
+						hostEmail,
+						hostName,
+						totalAmount,
+						currency,
+					)
+				}
+			}
+
+			// Return nil to skip this payout for now. It will be picked up again
+			// in the next cron run once the user adds their details.
+			return nil
+		}
+
 		// Step 1: Calculate platform commission from config
 		commission := calculateCommission(totalAmount, s.platformConfig.Fees.HostCommissionPercent)
 		hostPayout := totalAmount - commission
