@@ -1,4 +1,4 @@
-# internal/property/port/graphql/schema.graphqls
+
 
 # ===========================
 # ENUMS
@@ -853,12 +853,9 @@ extend type Query {
   businessListings(businessId: UUID!, filter: ListingFilterInput, first: Int, after: String): ListingConnection!
   myIndividualListings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
 
-  # Geospatial
-  listingsNearPoint(lat: Float!, lng: Float!, radiusMeters: Float!, filter: ListingFilterInput, limit: Int): [ListingWithDistance!]!
 
-  # Search
-  searchListings(filter: ListingFilterInput, limit: Int): [ScoredListing!]!
-  similarListings(listingId: UUID!, limit: Int, minSimilarity: Float): [ScoredListing!]!
+
+
 }
 
 # ===========================

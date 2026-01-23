@@ -375,15 +375,25 @@ func (s *ServiceImpl) FinalizeListingMedia(ctx context.Context, data domain.Fina
 	}
 
 	if s.queue != nil && s.thumbnailSubject != "" {
-		job := listingJob.ListingMediaThumbnailJob{
-			ListingID: data.ListingID,
-			MediaKeys: data.MediaKeys,
+		// Filter for only image media types for thumbnail generation
+		var imageKeys []string
+		for _, key := range data.MediaKeys {
+			if m, ok := byKey[key]; ok && m.Type == schema.MediaTypeImage {
+				imageKeys = append(imageKeys, key)
+			}
 		}
-		if err := s.queue.Publish(ctx, s.thumbnailSubject, job); err != nil {
-			s.log.Error("failed to enqueue thumbnail job", "listing_id", data.ListingID, "error", err)
-			return err
+
+		if len(imageKeys) > 0 {
+			job := listingJob.ListingMediaThumbnailJob{
+				ListingID: data.ListingID,
+				MediaKeys: imageKeys,
+			}
+			if err := s.queue.Publish(ctx, s.thumbnailSubject, job); err != nil {
+				s.log.Error("failed to enqueue thumbnail job", "listing_id", data.ListingID, "error", err)
+				return err
+			}
+			s.log.Info("enqueued thumbnail generation", "listing_id", data.ListingID, "count", len(imageKeys))
 		}
-		s.log.Info("enqueued thumbnail generation", "listing_id", data.ListingID, "count", len(data.MediaKeys))
 	}
 
 	s.log.Info("finalized media items", "count", len(data.MediaKeys), "listing_id", data.ListingID)

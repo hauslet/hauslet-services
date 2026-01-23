@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"hauslet/internal/modules/interactions/domain"
 	"hauslet/internal/modules/interactions/repository"
@@ -54,12 +53,6 @@ func (s *AggregatorServiceImpl) AggregateForAllEntities(
 	// Calculate period end based on type
 	periodEnd := s.calculatePeriodEnd(periodStart, periodType)
 
-	// Get all interactions for this period
-	// Note: This is simplified - in production you'd want to batch this
-	// by querying distinct entity_id values and processing in chunks
-
-	// For now, we'll aggregate by querying the DB
-	// In a high-traffic system, you'd use a more efficient approach
 	if s.log != nil {
 		s.log.Info("starting aggregation",
 			"period_type", periodType.String(),
@@ -67,37 +60,47 @@ func (s *AggregatorServiceImpl) AggregateForAllEntities(
 			"period_end", periodEnd)
 	}
 
-	// Get unique entity combinations from the period
-	entities, err := s.getUniqueEntities(ctx, periodStart, periodEnd)
-	if err != nil {
-		return fmt.Errorf("failed to get unique entities: %w", err)
-	}
+	totalSuccess := 0
+	totalError := 0
+	batchSize := 1000
+	offset := 0
 
-	successCount := 0
-	errorCount := 0
-
-	// Aggregate for each entity
-	for _, entity := range entities {
-		err := s.aggregateForEntity(ctx, entity.EntityType, entity.EntityID, periodType, periodStart, periodEnd)
+	for {
+		// Get unique entity combinations in batches
+		entities, err := s.getUniqueEntities(ctx, periodStart, periodEnd, batchSize, offset)
 		if err != nil {
-			if s.log != nil {
-				s.log.Error("failed to aggregate for entity",
-					"error", err,
-					"entity_type", entity.EntityType,
-					"entity_id", entity.EntityID)
-			}
-			errorCount++
-			continue
+			return fmt.Errorf("failed to get unique entities: %w", err)
 		}
-		successCount++
+
+		if len(entities) == 0 {
+			break // No more entities
+		}
+
+		// Aggregate for each entity
+		for _, entity := range entities {
+			err := s.aggregateForEntity(ctx, entity.EntityType, entity.EntityID, periodType, periodStart, periodEnd)
+			if err != nil {
+				if s.log != nil {
+					s.log.Error("failed to aggregate for entity",
+						"error", err,
+						"entity_type", entity.EntityType,
+						"entity_id", entity.EntityID)
+				}
+				totalError++
+				continue
+			}
+			totalSuccess++
+		}
+
+		offset += batchSize
 	}
 
 	if s.log != nil {
 		s.log.Info("aggregation completed",
 			"period_type", periodType.String(),
 			"period_start", periodStart,
-			"success_count", successCount,
-			"error_count", errorCount)
+			"success_count", totalSuccess,
+			"error_count", totalError)
 	}
 
 	return nil
@@ -118,9 +121,9 @@ func (s *AggregatorServiceImpl) AggregateDaily(ctx context.Context, periodStart 
 }
 
 // getUniqueEntities returns all unique entity combinations in the period
-func (s *AggregatorServiceImpl) getUniqueEntities(ctx context.Context, start, end time.Time) ([]repository.EntityKey, error) {
+func (s *AggregatorServiceImpl) getUniqueEntities(ctx context.Context, start, end time.Time, limit, offset int) ([]repository.EntityKey, error) {
 	// Delegate to repository method
-	return s.interactionRepo.GetUniqueEntities(ctx, start, end)
+	return s.interactionRepo.GetUniqueEntities(ctx, start, end, limit, offset)
 }
 
 // aggregateForEntity aggregates interactions for a specific entity
@@ -131,18 +134,31 @@ func (s *AggregatorServiceImpl) aggregateForEntity(
 	periodType domain.PeriodType,
 	periodStart, periodEnd time.Time,
 ) error {
-	// Get all interactions for this entity in the period
-	interactions, err := s.interactionRepo.GetEntityInteractions(ctx, entityType, entityID, periodStart, periodEnd)
+	// Get aggregated metrics directly from DB
+	aggregate, err := s.interactionRepo.GetAggregationMetrics(ctx, entityType, entityID, periodStart, periodEnd)
 	if err != nil {
-		return fmt.Errorf("failed to get entity interactions: %w", err)
+		return fmt.Errorf("failed to get aggregation metrics: %w", err)
 	}
 
-	if len(interactions) == 0 {
-		return nil // No interactions to aggregate
+	// If no activity, we might still want to record a zero-record or skip.
+	// Current logic: if no views, maybe skip?
+	// But GetAggregationMetrics returns 0s if no rows match (count/sum returns 0 or null->0).
+	// If ViewsTotal and ViewsUnique are 0, we can probably assume no interaction.
+	if aggregate.ViewsTotal == 0 && aggregate.ViewsUnique == 0 && aggregate.SavesTotal == 0 {
+		return nil // No significant interactions
 	}
 
-	// Calculate metrics
-	aggregate := s.calculateMetrics(interactions, entityType, entityID, periodType, periodStart)
+	// Populate metadata
+	aggregate.ID = uuid.New()
+	aggregate.EntityType = entityType.String()
+	aggregate.EntityID = entityID
+	aggregate.PeriodType = periodType.String()
+	aggregate.PeriodStart = periodStart
+	aggregate.CreatedAt = time.Now()
+	aggregate.UpdatedAt = time.Now()
+
+	// Calculate engagement score
+	aggregate.EngagementScore = s.calculateEngagementScore(aggregate)
 
 	// Upsert into aggregates table
 	if err := s.analyticsRepo.UpsertAggregate(ctx, aggregate); err != nil {
@@ -159,89 +175,6 @@ func (s *AggregatorServiceImpl) aggregateForEntity(
 	}
 
 	return nil
-}
-
-// calculateMetrics calculates aggregate metrics from raw interactions
-func (s *AggregatorServiceImpl) calculateMetrics(
-	interactions []*schema.Interaction,
-	entityType domain.EntityType,
-	entityID uuid.UUID,
-	periodType domain.PeriodType,
-	periodStart time.Time,
-) *schema.InteractionAggregate {
-	aggregate := &schema.InteractionAggregate{
-		ID:          uuid.New(),
-		EntityType:  entityType.String(),
-		EntityID:    entityID,
-		PeriodType:  periodType.String(),
-		PeriodStart: periodStart,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
-	}
-
-	// Track unique sessions for unique view counting
-	uniqueSessions := make(map[string]bool)
-	var totalTimeOnPage int64
-
-	for _, interaction := range interactions {
-		// Skip bot interactions for most metrics
-		if interaction.IsBot {
-			continue
-		}
-
-		interactionType := domain.ParseInteractionType(interaction.InteractionType)
-
-		switch interactionType {
-		case domain.InteractionViewListing, domain.InteractionViewListingDetail:
-			aggregate.ViewsTotal++
-			uniqueSessions[interaction.SessionID] = true
-
-		case domain.InteractionViewMedia:
-			// Counted separately but not in total views
-
-		case domain.InteractionViewMap:
-			// Counted separately but not in total views
-
-		case domain.InteractionSaveListing:
-			aggregate.SavesTotal++
-
-		case domain.InteractionUnsaveListing:
-			aggregate.UnsavesTotal++
-
-		case domain.InteractionShareListing:
-			aggregate.SharesTotal++
-
-		case domain.InteractionContactOwner:
-			aggregate.ContactsTotal++
-
-		case domain.InteractionBookingRequest:
-			aggregate.BookingRequests++
-
-		case domain.InteractionTimeMilestone:
-			// Extract time spent from context if available
-			if len(interaction.Context) > 0 {
-				var contextMap map[string]interface{}
-				if err := json.Unmarshal(interaction.Context, &contextMap); err == nil {
-					if timeSpent, ok := contextMap["timeSpent"].(float64); ok {
-						totalTimeOnPage += int64(timeSpent)
-					}
-				}
-			}
-		}
-	}
-
-	// Calculate unique views
-	aggregate.ViewsUnique = int64(len(uniqueSessions))
-
-	// Calculate average time on page
-	if aggregate.ViewsTotal > 0 && totalTimeOnPage > 0 {
-		aggregate.AvgTimeOnPageSec = int(totalTimeOnPage / aggregate.ViewsTotal)
-	}
-
-	// Calculate engagement score
-	aggregate.EngagementScore = s.calculateEngagementScore(aggregate)
-
-	return aggregate
 }
 
 // calculateEngagementScore calculates an engagement score based on metrics

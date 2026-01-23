@@ -24,7 +24,7 @@ hauslet_policies.txt
 test-client/
 # Test binary, built with `go test -c`
 *.test
-
+GEMINI.md
 # Output of the go coverage tool
 *.out
 coverage.txt

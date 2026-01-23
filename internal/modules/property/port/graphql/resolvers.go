@@ -45,7 +45,7 @@ func NewResolver(propertyService service.PropertyService, cfg *config.StorageCon
 
 // ListingByPublicId retrieves a listing by its public ID.
 func (r *Resolver) ListingByPublicId(ctx context.Context, publicId string) (*domain.Listing, error) {
-	listing, err := r.propertyService.GetListingByPublicID(ctx, publicId, false)
+	listing, err := r.propertyService.GetListingByPublicID(ctx, publicId, true)
 	if err != nil {
 		r.log.Error("failed to get listing by public ID", "public_id", publicId, "error", err)
 		return nil, err
@@ -70,7 +70,7 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 		}
 	}
 
-	listing, err := r.propertyService.GetListingByID(ctx, id, false)
+	listing, err := r.propertyService.GetListingByID(ctx, id, true)
 	if err != nil {
 		r.log.Error("failed to get listing by ID", "listing_id", id, "error", err)
 		return nil, err
@@ -84,7 +84,7 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 
 // ListingBySlug retrieves a listing by its slug.
 func (r *Resolver) ListingBySlug(ctx context.Context, slug string) (*domain.Listing, error) {
-	listing, err := r.propertyService.GetListingBySlug(ctx, slug, false)
+	listing, err := r.propertyService.GetListingBySlug(ctx, slug, true)
 	if err != nil {
 		r.log.Error("failed to get listing by slug", "slug", slug, "error", err)
 		return nil, err
@@ -350,108 +350,6 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 	}
 
 	return buildListingConnection(listings, total, offset, limit, ctx, v), nil
-}
-
-// ListingsNearPoint finds listings near a geographic point.
-func (r *Resolver) ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error) {
-	r.log.Warn("listingsNearPoint not supported")
-	return nil, fmt.Errorf("listingsNearPoint not supported")
-}
-
-// SearchListings performs full-text search on listings.
-// SECURITY NOTE: This endpoint ONLY returns published listings. The published filter
-// has been removed from the GraphQL API and is enforced at the service layer to prevent
-// exposure of unpublished listings. Draft listings are additionally filtered by sanitizeListingForViewer.
-func (r *Resolver) SearchListings(ctx context.Context, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error) {
-	searchLimit := 20
-	if limit != nil && *limit > 0 {
-		searchLimit = min(*limit, 50)
-	}
-
-	serviceFilter := mapListingFilterToService(filter)
-
-	results, err := r.propertyService.SearchListings(ctx, serviceFilter, searchLimit)
-	if err != nil {
-		r.log.Error("failed to search listings", "error", err)
-		return nil, err
-	}
-
-	v := viewer.FromContext(ctx)
-	if len(results) > 0 {
-		listings := make([]domain.Listing, 0, len(results))
-		for _, res := range results {
-			listings = append(listings, res.Listing)
-		}
-		r.warmListingLoaders(ctx, listings)
-	}
-	scored := make([]*model.ScoredListing, 0, len(results))
-	for _, res := range results {
-		l := res.Listing
-		if len(l.Media) > 0 {
-			l.Media = helpers.BuildListingMediaURLs(l.Media, r.cdnHost)
-		}
-		r.localizeListing(ctx, &l)
-		sanitized := sanitizeListingForViewer(ctx, &l, v)
-		if sanitized == nil {
-			continue
-		}
-		scored = append(scored, &model.ScoredListing{
-			Listing: sanitized,
-			Score:   res.Score,
-			Ranking: res.Ranking,
-		})
-	}
-
-	return scored, nil
-}
-
-// SimilarListings finds similar listings using vector similarity.
-func (r *Resolver) SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error) {
-	searchLimit := 10
-	if limit != nil && *limit > 0 {
-		searchLimit = min(*limit, 50)
-	}
-
-	minSim := 0.7
-	if minSimilarity != nil {
-		minSim = *minSimilarity
-	}
-
-	// Call service method
-	results, err := r.propertyService.FindSimilarListings(ctx, listingID, searchLimit, minSim)
-	if err != nil {
-		r.log.Error("failed to find similar listings", "listing_id", listingID, "error", err)
-		return nil, err
-	}
-
-	// Build media URLs and sanitize for viewer
-	v := viewer.FromContext(ctx)
-	if len(results) > 0 {
-		listings := make([]domain.Listing, 0, len(results))
-		for _, res := range results {
-			listings = append(listings, res.Listing)
-		}
-		r.warmListingLoaders(ctx, listings)
-	}
-	scored := make([]*model.ScoredListing, 0, len(results))
-	for _, res := range results {
-		l := res.Listing
-		if len(l.Media) > 0 {
-			l.Media = helpers.BuildListingMediaURLs(l.Media, r.cdnHost)
-		}
-		r.localizeListing(ctx, &l)
-		sanitized := sanitizeListingForViewer(ctx, &l, v)
-		if sanitized == nil {
-			continue
-		}
-		scored = append(scored, &model.ScoredListing{
-			Listing: sanitized,
-			Score:   res.Score,
-			Ranking: res.Ranking,
-		})
-	}
-
-	return scored, nil
 }
 
 // ===========================

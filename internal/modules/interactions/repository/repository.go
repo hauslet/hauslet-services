@@ -33,8 +33,11 @@ type InteractionRepository interface {
 	// CountBySessionAndEntity counts interactions by session and entity (for deduplication)
 	CountBySessionAndEntity(ctx context.Context, sessionID string, entityType domain.EntityType, entityID uuid.UUID, interactionType domain.InteractionType, since time.Time) (int64, error)
 
-	// GetUniqueEntities returns distinct entity combinations within a time range (for aggregation)
-	GetUniqueEntities(ctx context.Context, start, end time.Time) ([]EntityKey, error)
+	// GetUniqueEntities returns distinct entity combinations within a time range (for aggregation) with pagination
+	GetUniqueEntities(ctx context.Context, start, end time.Time, limit, offset int) ([]EntityKey, error)
+
+	// GetAggregationMetrics calculates metrics using SQL aggregation for efficiency
+	GetAggregationMetrics(ctx context.Context, entityType domain.EntityType, entityID uuid.UUID, start, end time.Time) (*schema.InteractionAggregate, error)
 }
 
 // EntityKey represents a unique entity combination
@@ -147,7 +150,7 @@ func (r *InteractionRepositoryImpl) CountBySessionAndEntity(
 }
 
 // GetUniqueEntities returns distinct entity combinations within a time range
-func (r *InteractionRepositoryImpl) GetUniqueEntities(ctx context.Context, start, end time.Time) ([]EntityKey, error) {
+func (r *InteractionRepositoryImpl) GetUniqueEntities(ctx context.Context, start, end time.Time, limit, offset int) ([]EntityKey, error) {
 	var results []EntityKey
 
 	// Use raw SQL for efficiency
@@ -155,6 +158,8 @@ func (r *InteractionRepositoryImpl) GetUniqueEntities(ctx context.Context, start
 		Table("interactions").
 		Select("DISTINCT entity_type, entity_id").
 		Where("created_at >= ? AND created_at < ? AND entity_id IS NOT NULL", start, end).
+		Limit(limit).
+		Offset(offset).
 		Rows()
 
 	if err != nil {
@@ -180,4 +185,81 @@ func (r *InteractionRepositoryImpl) GetUniqueEntities(ctx context.Context, start
 	}
 
 	return results, nil
+}
+
+// GetAggregationMetrics calculates metrics using SQL aggregation
+func (r *InteractionRepositoryImpl) GetAggregationMetrics(
+	ctx context.Context,
+	entityType domain.EntityType,
+	entityID uuid.UUID,
+	start, end time.Time,
+) (*schema.InteractionAggregate, error) {
+	var result schema.InteractionAggregate
+
+	// Query breakdown:
+	// 1. Filter by entity and time range
+	// 2. Filter out bots
+	// 3. Count various interaction types
+	// 4. Count unique sessions (views_unique)
+	// 5. Sum time spent from context (assuming JSONB)
+
+	// Note: gorm:"type:jsonb" implies PostgreSQL.
+	// The operator ->> returns text, which we cast to numeric/float.
+
+	query := `
+		SELECT
+			COALESCE(SUM(CASE WHEN interaction_type IN ('view_listing', 'view_listing_detail') THEN 1 ELSE 0 END), 0) as views_total,
+			COUNT(DISTINCT CASE WHEN interaction_type IN ('view_listing', 'view_listing_detail') THEN session_id END) as views_unique,
+			COALESCE(SUM(CASE WHEN interaction_type = 'save_listing' THEN 1 ELSE 0 END), 0) as saves_total,
+			COALESCE(SUM(CASE WHEN interaction_type = 'unsave_listing' THEN 1 ELSE 0 END), 0) as unsaves_total,
+			COALESCE(SUM(CASE WHEN interaction_type = 'share_listing' THEN 1 ELSE 0 END), 0) as shares_total,
+			COALESCE(SUM(CASE WHEN interaction_type = 'contact_owner' THEN 1 ELSE 0 END), 0) as contacts_total,
+			COALESCE(SUM(CASE WHEN interaction_type = 'booking_request' THEN 1 ELSE 0 END), 0) as booking_requests,
+			COALESCE(SUM(CASE 
+				WHEN interaction_type = 'time_milestone' 
+				THEN COALESCE((context->>'timeSpent')::numeric, 0) 
+				ELSE 0 
+			END), 0) as total_time_seconds
+		FROM interactions
+		WHERE 
+			entity_type = ? AND 
+			entity_id = ? AND 
+			created_at >= ? AND 
+			created_at < ? AND 
+			is_bot = false
+	`
+
+	// Using a temporary struct to scan the results including total_time_seconds which isn't in InteractionAggregate directly (it has AvgTimeOnPageSec)
+	type AggResult struct {
+		ViewsTotal       int64
+		ViewsUnique      int64
+		SavesTotal       int64
+		UnsavesTotal     int64
+		SharesTotal      int64
+		ContactsTotal    int64
+		BookingRequests  int64
+		TotalTimeSeconds float64
+	}
+
+	var raw AggResult
+	err := r.db.WithContext(ctx).Raw(query, entityType.String(), entityID, start, end).Scan(&raw).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Map to schema.InteractionAggregate
+	result.ViewsTotal = raw.ViewsTotal
+	result.ViewsUnique = raw.ViewsUnique
+	result.SavesTotal = raw.SavesTotal
+	result.UnsavesTotal = raw.UnsavesTotal
+	result.SharesTotal = raw.SharesTotal
+	result.ContactsTotal = raw.ContactsTotal
+	result.BookingRequests = raw.BookingRequests
+
+	// Calculate Average Time On Page immediately if possible, or leave it to caller
+	if raw.ViewsTotal > 0 {
+		result.AvgTimeOnPageSec = int(raw.TotalTimeSeconds / float64(raw.ViewsTotal))
+	}
+
+	return &result, nil
 }

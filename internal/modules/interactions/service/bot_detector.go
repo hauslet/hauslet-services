@@ -16,45 +16,31 @@ type SimpleBotDetector struct {
 func NewBotDetector() BotDetector {
 	return &SimpleBotDetector{
 		botPatterns: []string{
-			"bot",
-			"crawler",
-			"spider",
-			"crawling",
-			"scraper",
-			"googlebot",
-			"bingbot",
-			"slurp",
-			"duckduckbot",
-			"baiduspider",
-			"yandexbot",
-			"facebookexternalhit",
-			"twitterbot",
-			"rogerbot",
-			"linkedinbot",
-			"embedly",
-			"quora link preview",
-			"showyoubot",
-			"outbrain",
-			"pinterest",
-			"slackbot",
-			"vkshare",
-			"w3c_validator",
-			"redditbot",
-			"applebot",
-			"whatsapp",
-			"flipboard",
-			"tumblr",
-			"bitlybot",
-			"skypeuripreview",
-			"nuzzel",
-			"discordbot",
-			"qwantify",
-			"pinterestbot",
-			"telegrambot",
-			"headlesschrome",
-			"phantom",
-			"selenium",
-			"webdriver",
+			// Generic terms
+			"bot", "crawler", "spider", "crawling", "scraper", "headless",
+
+			// Major Search Engines
+			"googlebot", "bingbot", "slurp", "duckduckbot", "baiduspider", "yandexbot",
+			"sogou", "exabot", "ia_archiver",
+
+			// Social Media
+			"facebookexternalhit", "twitterbot", "pinterest", "linkedinbot", "slackbot",
+			"discordbot", "whatsapp", "telegrambot", "vkshare", "tumblr", "redditbot",
+
+			// SEO and Tools
+			"ahrefsbot", "mj12bot", "semrushbot", "dotbot", "rogerbot", "seokicks",
+			"screaming frog", "w3c_validator", "lighthouse", "pagespeed",
+
+			// Content Fetchers
+			"embedly", "quora link preview", "showyoubot", "outbrain", "flipboard",
+			"nuzzel", "qwantify", "bitlybot", "skypeuripreview",
+
+			// Technical / Libraries
+			"python", "java", "wget", "curl", "libwww", "urllib", "okhttp",
+			"phantom", "selenium", "webdriver", "chrome-lighthouse",
+
+			// Cloud / Monitoring
+			"aws-security-scanner", "datadog", "newrelic", "pingdom",
 		},
 	}
 }
@@ -65,9 +51,15 @@ func (d *SimpleBotDetector) IsBot(userAgent string) bool {
 		return true // Empty user agent is suspicious
 	}
 
+	// Fast path for very short user agents
+	if len(userAgent) < 5 {
+		return true
+	}
+
 	lowerUA := strings.ToLower(userAgent)
 
 	for _, pattern := range d.botPatterns {
+		// Manual strings.Contains is often faster than regex for simple substring matches
 		if strings.Contains(lowerUA, pattern) {
 			return true
 		}

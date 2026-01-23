@@ -1156,21 +1156,6 @@ func (r *queryResolver) MyIndividualListings(ctx context.Context, filter *model.
 	return r.PropertyResolver.MyIndividualListings(ctx, filter, first, after)
 }
 
-// ListingsNearPoint is the resolver for the listingsNearPoint field.
-func (r *queryResolver) ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error) {
-	return r.PropertyResolver.ListingsNearPoint(ctx, lat, lng, radiusMeters, filter, limit)
-}
-
-// SearchListings is the resolver for the searchListings field.
-func (r *queryResolver) SearchListings(ctx context.Context, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error) {
-	return r.PropertyResolver.SearchListings(ctx, filter, limit)
-}
-
-// SimilarListings is the resolver for the similarListings field.
-func (r *queryResolver) SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error) {
-	return r.PropertyResolver.SimilarListings(ctx, listingID, limit, minSimilarity)
-}
-
 // Conversation is the resolver for the conversation field.
 func (r *queryResolver) Conversation(ctx context.Context, id uuid.UUID) (*domain14.Conversation, error) {
 	return r.MessagingResolver.Conversation(ctx, id)

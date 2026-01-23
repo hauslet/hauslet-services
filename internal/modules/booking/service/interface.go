@@ -9,6 +9,7 @@ import (
 	calendardomain "hauslet/internal/modules/calendar/domain"
 	pricingdomain "hauslet/internal/modules/pricing/domain"
 	platformQueue "hauslet/internal/platform/queue"
+	"hauslet/internal/platform/xchange"
 	"log/slog"
 	"time"
 
@@ -61,6 +62,10 @@ type BookingService interface {
 
 	// Check-in/out fallback
 	AutoPopulateCheckInOut(ctx context.Context) (int, int, error)
+
+	// Localization
+	LocalizeBooking(ctx context.Context, booking *domain.Booking)
+	LocalizeQuote(ctx context.Context, quote *domain.BookingQuote)
 }
 
 type ContactInfo struct {
@@ -216,6 +221,7 @@ type BookingServiceImpl struct {
 	reviewHooks    ReviewHooks
 	platformConfig config.PlatformYAMLConfig
 	log            *slog.Logger
+	fx             xchange.XChange
 }
 
 func NewBookingService(
@@ -232,6 +238,7 @@ func NewBookingService(
 	reviewHooks ReviewHooks,
 	platformConfig config.PlatformYAMLConfig,
 	log *slog.Logger,
+	fx xchange.XChange,
 ) BookingService {
 	return &BookingServiceImpl{
 		repo:           repo,
@@ -247,5 +254,6 @@ func NewBookingService(
 		reviewHooks:    reviewHooks,
 		platformConfig: platformConfig,
 		log:            log,
+		fx:             fx,
 	}
 }

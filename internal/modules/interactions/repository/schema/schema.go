@@ -10,14 +10,14 @@ import (
 // Interaction represents the database schema for interactions table
 // Note: This table uses declarative partitioning by created_at
 type Interaction struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
+	ID        uuid.UUID  `gorm:"type:uuid;primaryKey"`
 	UserID    *uuid.UUID `gorm:"type:uuid;index:idx_interactions_user"`
 	SessionID string     `gorm:"type:varchar(64);not null;index:idx_interactions_session"`
 
 	// Core Data
 	InteractionType string     `gorm:"type:varchar(32);not null"`
-	EntityType      string     `gorm:"type:varchar(32);not null;index:idx_interactions_lookup"`
-	EntityID        *uuid.UUID `gorm:"type:uuid;index:idx_interactions_lookup"`
+	EntityType      string     `gorm:"type:varchar(32);not null;index:idx_interactions_lookup;index:idx_interactions_entity_time,priority:1"`
+	EntityID        *uuid.UUID `gorm:"type:uuid;index:idx_interactions_lookup;index:idx_interactions_entity_time,priority:2"`
 
 	// Context - JSONB for flexible metadata
 	Context datatypes.JSON `gorm:"type:jsonb;default:'{}'"`
@@ -31,7 +31,7 @@ type Interaction struct {
 
 	// Technical
 	IsBot     bool      `gorm:"default:false"`
-	CreatedAt time.Time `gorm:"not null;index:idx_interactions_created;primaryKey"` // Part of composite primary key for partitioning
+	CreatedAt time.Time `gorm:"not null;index:idx_interactions_created;primaryKey;index:idx_interactions_entity_time,priority:3"` // Part of composite primary key for partitioning
 }
 
 // TableName returns the table name for GORM
@@ -48,13 +48,13 @@ type InteractionAggregate struct {
 	PeriodStart time.Time `gorm:"not null;uniqueIndex:idx_aggregate_unique"`
 
 	// Metrics
-	ViewsTotal        int64 `gorm:"default:0"`
-	ViewsUnique       int64 `gorm:"default:0"`
-	SavesTotal        int64 `gorm:"default:0"`
-	UnsavesTotal      int64 `gorm:"default:0"`
-	SharesTotal       int64 `gorm:"default:0"`
-	ContactsTotal     int64 `gorm:"default:0"`
-	BookingRequests   int64 `gorm:"default:0"`
+	ViewsTotal      int64 `gorm:"default:0"`
+	ViewsUnique     int64 `gorm:"default:0"`
+	SavesTotal      int64 `gorm:"default:0"`
+	UnsavesTotal    int64 `gorm:"default:0"`
+	SharesTotal     int64 `gorm:"default:0"`
+	ContactsTotal   int64 `gorm:"default:0"`
+	BookingRequests int64 `gorm:"default:0"`
 
 	// Derived Metrics
 	AvgTimeOnPageSec int     `gorm:"default:0"`

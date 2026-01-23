@@ -38,7 +38,6 @@ import (
 	domain1 "hauslet/internal/modules/wishlist/domain"
 	graphql12 "hauslet/internal/modules/wishlist/port/graphql"
 	"hauslet/internal/transport/graph/model"
-
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -1203,7 +1202,6 @@ type ComplexityRoot struct {
 		ListingStats                   func(childComplexity int, listingID uuid.UUID) int
 		Listings                       func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		ListingsByProperty             func(childComplexity int, propertyID uuid.UUID, first *int, after *string) int
-		ListingsNearPoint              func(childComplexity int, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) int
 		Me                             func(childComplexity int) int
 		MultiPropertyDiscountsForOwner func(childComplexity int) int
 		MyBookings                     func(childComplexity int, limit *int, offset *int) int
@@ -1247,9 +1245,7 @@ type ComplexityRoot struct {
 		ReviewResponse                 func(childComplexity int, reviewID uuid.UUID) int
 		Reviews                        func(childComplexity int, targetType domain11.ReviewTargetType, targetID uuid.UUID, filter *graphql11.ReviewFilterInput) int
 		SearchBusinesses               func(childComplexity int, query string, limit *int, offset *int) int
-		SearchListings                 func(childComplexity int, filter *model.ListingFilterInput, limit *int) int
 		SearchProfiles                 func(childComplexity int, query string, limit *int, offset *int) int
-		SimilarListings                func(childComplexity int, listingID uuid.UUID, limit *int, minSimilarity *float64) int
 		Transaction                    func(childComplexity int, id uuid.UUID) int
 		TransactionsByBooking          func(childComplexity int, bookingID uuid.UUID) int
 		UpcomingListingEvents          func(childComplexity int, listingID uuid.UUID, limit *int) int
@@ -1878,9 +1874,6 @@ type QueryResolver interface {
 	ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain12.ListingCompleteness, error)
 	BusinessListings(ctx context.Context, businessID uuid.UUID, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
 	MyIndividualListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error)
-	ListingsNearPoint(ctx context.Context, lat float64, lng float64, radiusMeters float64, filter *model.ListingFilterInput, limit *int) ([]*model.ListingWithDistance, error)
-	SearchListings(ctx context.Context, filter *model.ListingFilterInput, limit *int) ([]*model.ScoredListing, error)
-	SimilarListings(ctx context.Context, listingID uuid.UUID, limit *int, minSimilarity *float64) ([]*model.ScoredListing, error)
 	Conversation(ctx context.Context, id uuid.UUID) (*domain5.Conversation, error)
 	MyConversations(ctx context.Context, limit *int, offset *int) ([]*domain5.Conversation, error)
 	HausletSupport(ctx context.Context) (*domain5.Conversation, error)
@@ -8082,17 +8075,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ListingsByProperty(childComplexity, args["propertyId"].(uuid.UUID), args["first"].(*int), args["after"].(*string)), true
-	case "Query.listingsNearPoint":
-		if e.complexity.Query.ListingsNearPoint == nil {
-			break
-		}
-
-		args, err := ec.field_Query_listingsNearPoint_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.ListingsNearPoint(childComplexity, args["lat"].(float64), args["lng"].(float64), args["radiusMeters"].(float64), args["filter"].(*model.ListingFilterInput), args["limit"].(*int)), true
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
@@ -8526,17 +8508,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.SearchBusinesses(childComplexity, args["query"].(string), args["limit"].(*int), args["offset"].(*int)), true
-	case "Query.searchListings":
-		if e.complexity.Query.SearchListings == nil {
-			break
-		}
-
-		args, err := ec.field_Query_searchListings_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.SearchListings(childComplexity, args["filter"].(*model.ListingFilterInput), args["limit"].(*int)), true
 	case "Query.searchProfiles":
 		if e.complexity.Query.SearchProfiles == nil {
 			break
@@ -8548,17 +8519,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.SearchProfiles(childComplexity, args["query"].(string), args["limit"].(*int), args["offset"].(*int)), true
-	case "Query.similarListings":
-		if e.complexity.Query.SimilarListings == nil {
-			break
-		}
-
-		args, err := ec.field_Query_similarListings_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.SimilarListings(childComplexity, args["listingId"].(uuid.UUID), args["limit"].(*int), args["minSimilarity"].(*float64)), true
 	case "Query.transaction":
 		if e.complexity.Query.Transaction == nil {
 			break
@@ -10758,7 +10718,7 @@ extend type Mutation {
   deleteProfile(userId: String!): Boolean!
 }
 `, BuiltIn: false},
-	{Name: "../../modules/property/port/graphql/schema.graphqls", Input: `# internal/property/port/graphql/schema.graphqls
+	{Name: "../../modules/property/port/graphql/schema.graphqls", Input: `
 
 # ===========================
 # ENUMS
@@ -11613,12 +11573,9 @@ extend type Query {
   businessListings(businessId: UUID!, filter: ListingFilterInput, first: Int, after: String): ListingConnection!
   myIndividualListings(filter: ListingFilterInput, first: Int, after: String): ListingConnection!
 
-  # Geospatial
-  listingsNearPoint(lat: Float!, lng: Float!, radiusMeters: Float!, filter: ListingFilterInput, limit: Int): [ListingWithDistance!]!
 
-  # Search
-  searchListings(filter: ListingFilterInput, limit: Int): [ScoredListing!]!
-  similarListings(listingId: UUID!, limit: Int, minSimilarity: Float): [ScoredListing!]!
+
+
 }
 
 # ===========================
@@ -16257,37 +16214,6 @@ func (ec *executionContext) field_Query_listingsByProperty_args(ctx context.Cont
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_listingsNearPoint_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "lat", ec.unmarshalNFloat2float64)
-	if err != nil {
-		return nil, err
-	}
-	args["lat"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "lng", ec.unmarshalNFloat2float64)
-	if err != nil {
-		return nil, err
-	}
-	args["lng"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "radiusMeters", ec.unmarshalNFloat2float64)
-	if err != nil {
-		return nil, err
-	}
-	args["radiusMeters"] = arg2
-	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOListingFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingFilterInput)
-	if err != nil {
-		return nil, err
-	}
-	args["filter"] = arg3
-	arg4, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
-	if err != nil {
-		return nil, err
-	}
-	args["limit"] = arg4
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_listings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -16854,22 +16780,6 @@ func (ec *executionContext) field_Query_searchBusinesses_args(ctx context.Contex
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_searchListings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "filter", ec.unmarshalOListingFilterInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingFilterInput)
-	if err != nil {
-		return nil, err
-	}
-	args["filter"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
-	if err != nil {
-		return nil, err
-	}
-	args["limit"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_searchProfiles_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -16888,27 +16798,6 @@ func (ec *executionContext) field_Query_searchProfiles_args(ctx context.Context,
 		return nil, err
 	}
 	args["offset"] = arg2
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_similarListings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "listingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
-	if err != nil {
-		return nil, err
-	}
-	args["listingId"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
-	if err != nil {
-		return nil, err
-	}
-	args["limit"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "minSimilarity", ec.unmarshalOFloat2ᚖfloat64)
-	if err != nil {
-		return nil, err
-	}
-	args["minSimilarity"] = arg2
 	return args, nil
 }
 
@@ -46612,153 +46501,6 @@ func (ec *executionContext) fieldContext_Query_myIndividualListings(ctx context.
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_myIndividualListings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_listingsNearPoint(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_listingsNearPoint,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().ListingsNearPoint(ctx, fc.Args["lat"].(float64), fc.Args["lng"].(float64), fc.Args["radiusMeters"].(float64), fc.Args["filter"].(*model.ListingFilterInput), fc.Args["limit"].(*int))
-		},
-		nil,
-		ec.marshalNListingWithDistance2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingWithDistanceᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_listingsNearPoint(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "listing":
-				return ec.fieldContext_ListingWithDistance_listing(ctx, field)
-			case "distanceMeters":
-				return ec.fieldContext_ListingWithDistance_distanceMeters(ctx, field)
-			case "score":
-				return ec.fieldContext_ListingWithDistance_score(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ListingWithDistance", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_listingsNearPoint_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_searchListings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_searchListings,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().SearchListings(ctx, fc.Args["filter"].(*model.ListingFilterInput), fc.Args["limit"].(*int))
-		},
-		nil,
-		ec.marshalNScoredListing2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐScoredListingᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_searchListings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "listing":
-				return ec.fieldContext_ScoredListing_listing(ctx, field)
-			case "score":
-				return ec.fieldContext_ScoredListing_score(ctx, field)
-			case "ranking":
-				return ec.fieldContext_ScoredListing_ranking(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ScoredListing", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_searchListings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_similarListings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_similarListings,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().SimilarListings(ctx, fc.Args["listingId"].(uuid.UUID), fc.Args["limit"].(*int), fc.Args["minSimilarity"].(*float64))
-		},
-		nil,
-		ec.marshalNScoredListing2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐScoredListingᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_similarListings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "listing":
-				return ec.fieldContext_ScoredListing_listing(ctx, field)
-			case "score":
-				return ec.fieldContext_ScoredListing_score(ctx, field)
-			case "ranking":
-				return ec.fieldContext_ScoredListing_ranking(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ScoredListing", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_similarListings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -76977,72 +76719,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "listingsNearPoint":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_listingsNearPoint(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "searchListings":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_searchListings(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "similarListings":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_similarListings(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "conversation":
 			field := field
 
@@ -85566,60 +85242,6 @@ func (ec *executionContext) marshalNListingType2hausletᚋinternalᚋmodulesᚋp
 	return res
 }
 
-func (ec *executionContext) marshalNListingWithDistance2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingWithDistanceᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ListingWithDistance) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNListingWithDistance2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingWithDistance(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNListingWithDistance2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐListingWithDistance(ctx context.Context, sel ast.SelectionSet, v *model.ListingWithDistance) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._ListingWithDistance(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNMap2map(ctx context.Context, v any) (map[string]any, error) {
 	res, err := graphql.UnmarshalMap(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -87099,60 +86721,6 @@ func (ec *executionContext) marshalNRuleType2hausletᚋinternalᚋmodulesᚋpric
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalNScoredListing2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐScoredListingᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.ScoredListing) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNScoredListing2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐScoredListing(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNScoredListing2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐScoredListing(ctx context.Context, sel ast.SelectionSet, v *model.ScoredListing) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._ScoredListing(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNSearchResult2hausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐSearchResult(ctx context.Context, sel ast.SelectionSet, v domain15.SearchResult) graphql.Marshaler {

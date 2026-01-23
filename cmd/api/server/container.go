@@ -781,6 +781,7 @@ func (c *Container) initBooking() error {
 		reviewBookingHooksAdapter,
 		c.Config.YAML.Platform,
 		c.Logger,
+		c.FXClient,
 	)
 
 	return nil

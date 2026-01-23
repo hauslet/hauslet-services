@@ -3,19 +3,14 @@ package graphql
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
-	"math"
-	"strings"
 	"time"
 
 	"hauslet/internal/modules/booking/domain"
 	"hauslet/internal/modules/booking/service"
 	propertydomain "hauslet/internal/modules/property/domain"
-	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/viewer"
-	localization "hauslet/internal/transport/middleware/localization"
 
 	"github.com/google/uuid"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -25,15 +20,13 @@ import (
 type Resolver struct {
 	bookingService service.BookingService
 	log            *slog.Logger
-	fx             xchange.XChange
 }
 
 // NewResolver creates a new GraphQL resolver
-func NewResolver(bookingService service.BookingService, fx xchange.XChange, log *slog.Logger) *Resolver {
+func NewResolver(bookingService service.BookingService, log *slog.Logger) *Resolver {
 	return &Resolver{
 		bookingService: bookingService,
 		log:            log,
-		fx:             fx,
 	}
 }
 
@@ -43,10 +36,6 @@ func NewResolver(bookingService service.BookingService, fx xchange.XChange, log 
 
 // QuoteBooking returns pricing and availability without creating a booking
 func (r *Resolver) QuoteBooking(ctx context.Context, listingID uuid.UUID, checkIn time.Time, checkOut time.Time, guestCount int) (*domain.BookingQuote, error) {
-	// Validate guest count
-	if guestCount < 1 {
-		return nil, fmt.Errorf("guest count must be at least 1")
-	}
 
 	quote, err := r.bookingService.QuoteBooking(ctx, listingID, checkIn, checkOut, guestCount)
 	if err != nil {
@@ -54,7 +43,7 @@ func (r *Resolver) QuoteBooking(ctx context.Context, listingID uuid.UUID, checkI
 		return nil, r.translateBookingError(err)
 	}
 
-	r.localizeBookingQuote(ctx, quote)
+	r.bookingService.LocalizeQuote(ctx, quote)
 	return quote, nil
 }
 
@@ -72,7 +61,7 @@ func (r *Resolver) Booking(ctx context.Context, id uuid.UUID) (*domain.Booking, 
 		return nil, err
 	}
 
-	r.localizeBooking(ctx, booking)
+	r.bookingService.LocalizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -89,7 +78,7 @@ func (r *Resolver) BookingByReference(ctx context.Context, reference string) (*d
 		return nil, err
 	}
 
-	r.localizeBooking(ctx, booking)
+	r.bookingService.LocalizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -118,7 +107,7 @@ func (r *Resolver) MyBookings(ctx context.Context, limit *int, offset *int) ([]*
 	}
 
 	for i := range bookings {
-		r.localizeBooking(ctx, bookings[i])
+		r.bookingService.LocalizeBooking(ctx, bookings[i])
 	}
 	return bookings, nil
 }
@@ -148,7 +137,7 @@ func (r *Resolver) ListingBookings(ctx context.Context, listingID uuid.UUID, sta
 	}
 
 	for i := range bookings {
-		r.localizeBooking(ctx, bookings[i])
+		r.bookingService.LocalizeBooking(ctx, bookings[i])
 	}
 	return bookings, nil
 }
@@ -213,7 +202,7 @@ func (r *Resolver) ReserveBooking(ctx context.Context, input ReserveBookingInput
 		RequiresAuthorization: paymentResult.AuthorizationURL != nil,
 	}
 
-	r.localizeBooking(ctx, payload.Booking)
+	r.bookingService.LocalizeBooking(ctx, payload.Booking)
 	return payload, nil
 }
 
@@ -249,7 +238,7 @@ func (r *Resolver) RequestBooking(ctx context.Context, input RequestBookingInput
 	}
 
 	r.log.Info("booking request created", "booking_id", booking.ID)
-	r.localizeBooking(ctx, booking)
+	r.bookingService.LocalizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -285,7 +274,7 @@ func (r *Resolver) PayForBooking(ctx context.Context, input PayForBookingInput) 
 		RequiresAuthorization: paymentResult.AuthorizationURL != nil,
 	}
 
-	r.localizeBooking(ctx, payload.Booking)
+	r.bookingService.LocalizeBooking(ctx, payload.Booking)
 	return payload, nil
 }
 
@@ -304,7 +293,7 @@ func (r *Resolver) ConfirmBooking(ctx context.Context, bookingID uuid.UUID) (*do
 	}
 
 	r.log.Info("booking confirmed", "booking_id", booking.ID)
-	r.localizeBooking(ctx, booking)
+	r.bookingService.LocalizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -329,7 +318,7 @@ func (r *Resolver) CancelBooking(ctx context.Context, input CancelBookingInput) 
 	}
 
 	r.log.Info("booking cancelled", "booking_id", booking.ID)
-	r.localizeBooking(ctx, booking)
+	r.bookingService.LocalizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -346,7 +335,7 @@ func (r *Resolver) CheckInBooking(ctx context.Context, bookingID uuid.UUID) (*do
 		return nil, err
 	}
 
-	r.localizeBooking(ctx, booking)
+	r.bookingService.LocalizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -363,7 +352,7 @@ func (r *Resolver) CheckOutBooking(ctx context.Context, bookingID uuid.UUID) (*d
 		return nil, err
 	}
 
-	r.localizeBooking(ctx, booking)
+	r.bookingService.LocalizeBooking(ctx, booking)
 	return booking, nil
 }
 
@@ -375,119 +364,6 @@ type CompleteBookingPayload struct {
 	PaymentReference      string          `json:"paymentReference"`
 	AuthorizationURL      *string         `json:"authorizationUrl"`
 	RequiresAuthorization bool            `json:"requiresAuthorization"`
-}
-
-func (r *Resolver) localizeBookingQuote(ctx context.Context, quote *domain.BookingQuote) {
-	if quote == nil || r.fx == nil {
-		return
-	}
-
-	target, ok := localization.PreferredCurrency(ctx)
-	if !ok {
-		return
-	}
-	target = xchange.NormalizeCurrency(target)
-
-	source := quote.Currency
-	if source == "" {
-		source = xchange.NormalizeCurrency("")
-	}
-	if strings.EqualFold(source, target) {
-		return
-	}
-
-	rate, err := r.fx.GetExchangeRate(source, target)
-	if err != nil {
-		if r.log != nil {
-			r.log.Warn("failed to convert booking quote", "listing_id", quote.ListingID, "from", source, "to", target, "error", err)
-		}
-		return
-	}
-
-	convert := func(value float64) float64 {
-		return math.Round(value*rate*100) / 100
-	}
-
-	quote.TotalPrice = convert(quote.TotalPrice)
-	r.localizePriceBreakdownSnapshot(quote.PriceBreakdown, convert, target)
-	quote.Currency = target
-}
-
-func (r *Resolver) localizeBooking(ctx context.Context, booking *domain.Booking) {
-	if booking == nil || r.fx == nil {
-		return
-	}
-
-	target, ok := localization.PreferredCurrency(ctx)
-	if !ok {
-		return
-	}
-	target = xchange.NormalizeCurrency(target)
-
-	source := booking.Currency
-	if source == "" {
-		source = xchange.NormalizeCurrency("")
-	}
-	if strings.EqualFold(source, target) {
-		return
-	}
-
-	rate, err := r.fx.GetExchangeRate(source, target)
-	if err != nil {
-		if r.log != nil {
-			r.log.Warn("failed to convert booking", "booking_id", booking.ID, "from", source, "to", target, "error", err)
-		}
-		return
-	}
-
-	convert := func(value float64) float64 {
-		return math.Round(value*rate*100) / 100
-	}
-
-	booking.TotalPrice = convert(booking.TotalPrice)
-	r.localizePriceBreakdownSnapshot(booking.PriceBreakdown, convert, target)
-	booking.Currency = target
-}
-
-func (r *Resolver) localizePriceBreakdownSnapshot(breakdown *domain.PriceBreakdownSnapshot, convert func(float64) float64, currency string) {
-	if breakdown == nil {
-		return
-	}
-
-	breakdown.BaseTotal = convert(breakdown.BaseTotal)
-	breakdown.ExtraGuestFee = convert(breakdown.ExtraGuestFee)
-	breakdown.Subtotal = convert(breakdown.Subtotal)
-	breakdown.Total = convert(breakdown.Total)
-	breakdown.Currency = currency
-
-	if breakdown.CleaningFee != nil {
-		val := convert(*breakdown.CleaningFee)
-		breakdown.CleaningFee = &val
-	}
-	if breakdown.ServiceFee != nil {
-		val := convert(*breakdown.ServiceFee)
-		breakdown.ServiceFee = &val
-	}
-	if breakdown.CautionFee != nil {
-		val := convert(*breakdown.CautionFee)
-		breakdown.CautionFee = &val
-	}
-
-	for i := range breakdown.Discounts {
-		breakdown.Discounts[i].Amount = convert(breakdown.Discounts[i].Amount)
-	}
-
-	for i := range breakdown.NightlyRates {
-		breakdown.NightlyRates[i].BaseRate = convert(breakdown.NightlyRates[i].BaseRate)
-		breakdown.NightlyRates[i].FinalRate = convert(breakdown.NightlyRates[i].FinalRate)
-	}
-
-	if breakdown.PlatformFees != nil {
-		breakdown.PlatformFees.GuestFeeAmount = convert(breakdown.PlatformFees.GuestFeeAmount)
-		breakdown.PlatformFees.HostCommissionAmount = convert(breakdown.PlatformFees.HostCommissionAmount)
-		breakdown.PlatformFees.PayoutProcessingAmount = convert(breakdown.PlatformFees.PayoutProcessingAmount)
-		breakdown.PlatformFees.HostNetAmount = convert(breakdown.PlatformFees.HostNetAmount)
-	}
 }
 
 func (r *Resolver) translateBookingError(err error) error {

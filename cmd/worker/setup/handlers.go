@@ -301,6 +301,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				reviewBookingHooksAdapter, // review hooks initialized for completion handler
 				cfg.YAML.Platform,
 				log,
+				nil, // fx not needed for worker
 			)
 			if hasBookingExpiry {
 				h := bookingHandler.NewBookingExpiryCheckHandler(bookingSvc, log, qCfg["booking_expiry"])
@@ -354,6 +355,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			nil, // review hooks not required for check-in/out sync
 			cfg.YAML.Platform,
 			log,
+			nil, // fx not needed for worker
 		)
 
 		h := bookingHandler.NewBookingCheckInOutHandler(bookingSvc, log, qCfg["booking_checkin_out"])
@@ -415,6 +417,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			nil, // review hooks not required for webhook processing
 			cfg.YAML.Platform,
 			log,
+			nil, // fx not needed for worker
 		)
 		bookingHooksAdapter := bookinghooks.NewBookingHooksAdapter(bookingSvc)
 

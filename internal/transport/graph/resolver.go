@@ -101,7 +101,7 @@ func NewResolver(
 		PaymentsResolver:     paymentsgraphql.NewResolver(paymentsSvc, log),
 		PricingResolver:      pricinggraphql.NewResolver(pricingSvc, log),
 		FinanceResolver:      financegraphql.NewResolver(financeSvc, payoutSvc, businessSvc, log),
-		BookingResolver:      bookinggraphql.NewResolver(bookingSvc, fxClient, log),
+		BookingResolver:      bookinggraphql.NewResolver(bookingSvc, log),
 		CalendarResolver:     calendargraphql.NewResolver(calendarSvc, log),
 		WishlistResolver:     wishlistgraphql.NewResolver(wishlistSvc, log),
 		ReviewResolver:       reviewgraphql.NewResolver(reviewSvc, log),
