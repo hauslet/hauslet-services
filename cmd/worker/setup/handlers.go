@@ -48,6 +48,7 @@ import (
 	propertynotification "hauslet/internal/modules/property/notification"
 	propertyhooks "hauslet/internal/modules/property/port/hooks"
 	propertyrepository "hauslet/internal/modules/property/repository"
+	propertyservice "hauslet/internal/modules/property/service"
 	reviewnotification "hauslet/internal/modules/review/notification"
 	reviewhooks "hauslet/internal/modules/review/port/hooks"
 	reviewrepository "hauslet/internal/modules/review/repository"
@@ -110,6 +111,30 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	// Cleanup handler
 	if hasCleanup {
 		h := listingHandler.NewListingMediaCleanupHandler(propertyRepo, infra.Storage, log, qCfg["media_cleanup"])
+		registry.Register(h)
+	}
+
+	// Embedding generator handler
+	if qCfg["listing_embedding"] != "" {
+		// Initialize PropertyService with minimal dependencies for embedding generation
+		// We only need Repo, Embedding Client, and Logger for this specific task
+		propSvc := propertyservice.NewPropertyService(
+			propertyRepo,
+			nil, // notification (not needed)
+			nil, // profiles (not needed)
+			nil, // storage (not needed)
+			nil, // queue (not needed)
+			"",  // thumbnail subject (not needed)
+			nil, // moderation hooks (not needed)
+			nil, // cache (not needed)
+			infra.embedding,
+			log,
+			nil, // business auth (not needed)
+			nil, // business svc (not needed)
+			nil, // subscription svc (not needed)
+			nil, // supply gate (not needed)
+		)
+		h := listingHandler.NewEmbeddingGeneratorHandler(propSvc, log, qCfg["listing_embedding"])
 		registry.Register(h)
 	}
 

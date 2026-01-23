@@ -52,8 +52,9 @@ type PaginatedResult[T any] struct {
 
 // ScoredListing carries a listing with a vector similarity score.
 type ScoredListing struct {
-	Listing schema.Listing `gorm:"embedded"`
-	Score   float64        `gorm:"column:score"`
+	Listing  schema.Listing         `gorm:"embedded"`
+	Score    float64                `gorm:"column:score"`
+	Location *schema.GeographyPoint `gorm:"-"` // Manual hydration
 }
 
 // PropertyFilter defines optional criteria for querying properties.

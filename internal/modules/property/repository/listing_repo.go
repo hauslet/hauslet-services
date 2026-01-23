@@ -334,12 +334,14 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 
 	var results []ScoredListing
 
+	// Updated query to select location fields along with listing fields and score
 	query := r.db.WithContext(ctx).
-		Model(&schema.Listing{}).
-		Select("listings.*, (text_embedding <=> ?) AS score", embedding)
+		Table("listings").
+		Select("listings.*, (listings.text_embedding <=> ?) AS score, ST_Y(properties.location::geometry) as lat, ST_X(properties.location::geometry) as lng", embedding).
+		Joins("JOIN properties ON properties.id = listings.property_id")
 
 	if !filter.IncludeDeleted {
-		query = query.Where("deleted_at IS NULL")
+		query = query.Where("listings.deleted_at IS NULL")
 	}
 
 	query = applyListingFilter(query, filter)
@@ -348,9 +350,6 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 	query = applyShortletFilter(query, filter.ShortletFilter)
 	query = applyRentalFilter(query, filter.RentalFilter)
 	query = applySaleFilter(query, filter.SaleFilter)
-
-	// Join properties for location/attribute filters.
-	query = query.Joins("JOIN properties ON properties.id = listings.property_id")
 
 	// Apply property extension filters (requires properties table to be joined)
 	query = applyPropertyExtensionFilter(query, filter.PropertyExtension)
@@ -405,12 +404,31 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 		query = query.Where("currency = ?", *filter.Currency)
 	}
 
-	if err := query.
-		Preload("Media").
-		Order("score ASC").
-		Limit(limit).
-		Find(&results).Error; err != nil {
+	// Use a dedicated result struct that flat-maps the columns we need.
+	type SearchResultRow struct {
+		schema.Listing
+		Score float64  `gorm:"column:score"`
+		Lat   *float64 `gorm:"column:lat"`
+		Lng   *float64 `gorm:"column:lng"`
+	}
+
+	var rowsData []SearchResultRow
+
+	// Preload Media relation for the embedded Listing
+	if err := query.Preload("Media").Find(&rowsData).Error; err != nil {
 		return nil, fmt.Errorf("failed to search listings: %w", err)
+	}
+
+	results = make([]ScoredListing, len(rowsData))
+	for i, row := range rowsData {
+		sl := ScoredListing{
+			Listing: row.Listing,
+			Score:   row.Score,
+		}
+		if row.Lat != nil && row.Lng != nil {
+			sl.Location = schema.NewGeographyPoint(*row.Lat, *row.Lng)
+		}
+		results[i] = sl
 	}
 
 	return results, nil

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"math"
 	"sort"
 
 	"hauslet/internal/modules/discovery/domain"
@@ -14,16 +15,27 @@ func (s *ServiceImpl) rankListings(
 	propertyResults []propertydomain.ScoredListing,
 	promotions map[uuid.UUID]*PromotionInfo,
 	config domain.RankingConfig,
+	locationFilter *LocationFilter,
 ) []domain.RankedListing {
 	ranked := make([]domain.RankedListing, 0, len(propertyResults))
 
 	for _, pr := range propertyResults {
+		// Calculate location score if filter and listing location are available
+		var locationScore *float64
+		if locationFilter != nil && pr.Location != nil {
+			score := CalculateLocationScore(
+				locationFilter.Latitude, locationFilter.Longitude, locationFilter.RadiusKm,
+				pr.Location.Lat, pr.Location.Lng,
+			)
+			locationScore = &score
+		}
+
 		// Build ranking score
 		score := domain.RankingScore{
 			SemanticScore:  pr.Score, // From property search (0-1 range)
 			PromotionBoost: 1.0,      // Default: no boost
 			RecencyScore:   domain.CalculateRecencyScore(pr.Listing.CreatedAt),
-			LocationScore:  nil, // TODO: Implement location scoring
+			LocationScore:  locationScore,
 		}
 
 		var promoInfo *domain.PromotionBoostInfo
@@ -61,6 +73,33 @@ func (s *ServiceImpl) rankListings(
 	}
 
 	return ranked
+}
+
+// CalculateLocationScore calculates a 0-1 score based on distance from a center point.
+// Uses linear decay: 1.0 at center, 0.0 at radius and beyond.
+func CalculateLocationScore(centerLat, centerLng, radiusKm, targetLat, targetLng float64) float64 {
+	distKm := haversineDistance(centerLat, centerLng, targetLat, targetLng)
+	if distKm >= radiusKm {
+		return 0.0
+	}
+	return 1.0 - (distKm / radiusKm)
+}
+
+// haversineDistance calculates the great-circle distance between two points in kilometers.
+func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
+	const earthRadiusKm = 6371.0
+
+	dLat := (lat2 - lat1) * (math.Pi / 180.0)
+	dLon := (lon2 - lon1) * (math.Pi / 180.0)
+
+	lat1Rad := lat1 * (math.Pi / 180.0)
+	lat2Rad := lat2 * (math.Pi / 180.0)
+
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Sin(dLon/2)*math.Sin(dLon/2)*math.Cos(lat1Rad)*math.Cos(lat2Rad)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return earthRadiusKm * c
 }
 
 // extractListingIDsFromScored extracts listing IDs from scored listings

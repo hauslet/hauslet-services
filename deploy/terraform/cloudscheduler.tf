@@ -717,6 +717,44 @@ resource "google_cloud_scheduler_job" "conversation_cleanup" {
   ]
 }
 
+# 21. Listing Embedding Generator (daily at midnight)
+resource "google_cloud_scheduler_job" "listing_embedding" {
+  name        = "listing-embedding-scheduler"
+  description = "Generates embeddings for listings without them daily"
+  schedule    = "0 0 * * *"  # Daily at midnight
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count = 3
+    min_backoff_duration = "10s"
+    max_backoff_duration = "300s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/listing/embedding"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Job payload matching GenerateEmbeddingsJob
+    body = base64encode(jsonencode({
+      batch_size = 50
+    }))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
 # Enable Cloud Scheduler API
 resource "google_project_service" "cloudscheduler" {
   project = var.project_id

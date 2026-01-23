@@ -87,7 +87,7 @@ func (s *ServiceImpl) buildFeaturedSection(ctx context.Context, limit int) (*dom
 
 	// Convert to scored and rank
 	scoredListings := convertToScoredListings(listings, 1.0)
-	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig)
+	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig, nil)
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionFeatured,
@@ -128,7 +128,7 @@ func (s *ServiceImpl) buildPremiumSection(ctx context.Context, limit int) (*doma
 
 	// Convert to scored and rank
 	scoredListings := convertToScoredListings(listings, 1.0)
-	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig)
+	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig, nil)
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionPremium,
@@ -160,7 +160,7 @@ func (s *ServiceImpl) buildRecentSection(ctx context.Context, limit int) (*domai
 
 	// Convert to scored and rank
 	scoredListings := convertToScoredListings(recentListings, 1.0)
-	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig)
+	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig, nil)
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionRecent,

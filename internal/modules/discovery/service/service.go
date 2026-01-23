@@ -84,7 +84,7 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter SearchFilter, o
 	}
 
 	// 3. Calculate rankings
-	rankedListings := s.rankListings(propertyResults, promotions, *rankingConfig)
+	rankedListings := s.rankListings(propertyResults, promotions, *rankingConfig, filter.Location)
 
 	// 4. Apply limit after ranking
 	totalCount := len(rankedListings)
@@ -135,7 +135,7 @@ func (s *ServiceImpl) GetFeaturedListings(ctx context.Context, limit int) ([]dom
 	scoredListings := convertToScoredListings(listings, 1.0)
 
 	// 5. Rank the listings
-	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig)
+	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig, nil)
 
 	return rankedListings, nil
 }
@@ -166,7 +166,7 @@ func (s *ServiceImpl) FindSimilarListings(ctx context.Context, listingID uuid.UU
 	}
 
 	// 3. Rank the similar listings
-	rankedListings := s.rankListings(similarListings, promotions, s.rankingConfig)
+	rankedListings := s.rankListings(similarListings, promotions, s.rankingConfig, nil)
 
 	// 4. Apply limit
 	if len(rankedListings) > limit {

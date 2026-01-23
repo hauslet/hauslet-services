@@ -89,11 +89,22 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter ListingFilter, 
 		if l == nil {
 			continue
 		}
+
+		var loc *domain.Location
+		if item.Location != nil {
+			loc = &domain.Location{
+				Lat:  item.Location.Lat,
+				Lng:  item.Location.Lng,
+				SRID: item.Location.SRID,
+			}
+		}
+
 		score := item.Score
 		scored = append(scored, domain.ScoredListing{
-			Listing: *l,
-			Score:   &score,
-			Ranking: rank,
+			Listing:  *l,
+			Score:    &score,
+			Ranking:  rank,
+			Location: loc,
 		})
 		rank++
 	}
@@ -111,6 +122,10 @@ func (s *ServiceImpl) searchWithFiltersOnly(ctx context.Context, repoFilter repo
 	scored := make([]domain.ScoredListing, 0, len(domainListings))
 	rank := 1
 	for i := range domainListings {
+		// Note: We don't have location data here unless we preload Property and map it.
+		// For filtered-only search, location scoring might be less critical or handled differently.
+		// If needed, we could fetch properties, but that's expensive.
+
 		scored = append(scored, domain.ScoredListing{
 			Listing: domainListings[i],
 			Score:   nil,
@@ -266,14 +281,101 @@ func (s *ServiceImpl) FindSimilarListings(ctx context.Context, listingID uuid.UU
 			continue
 		}
 
+		var loc *domain.Location
+		if item.Location != nil {
+			loc = &domain.Location{
+				Lat:  item.Location.Lat,
+				Lng:  item.Location.Lng,
+				SRID: item.Location.SRID,
+			}
+		}
+
 		score := item.Score
 		scored = append(scored, domain.ScoredListing{
-			Listing: *l,
-			Score:   &score,
-			Ranking: rank,
+			Listing:  *l,
+			Score:    &score,
+			Ranking:  rank,
+			Location: loc,
 		})
 		rank++
 	}
 
 	return scored, nil
+}
+
+// GenerateListingEmbeddings finds listings without embeddings and generates them.
+// It returns the number of listings processed.
+func (s *ServiceImpl) GenerateListingEmbeddings(ctx context.Context, batchSize int) (int, error) {
+	if s.embedding == nil {
+		return 0, fmt.Errorf("embedding client not configured")
+	}
+
+	if batchSize <= 0 {
+		batchSize = 10
+	}
+
+	listings, err := s.repo.GetListingsWithoutEmbedding(ctx, batchSize)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch listings without embedding: %w", err)
+	}
+
+	if len(listings) == 0 {
+		return 0, nil
+	}
+
+	processed := 0
+	for _, l := range listings {
+		// Log progress
+		s.log.Info("generating embedding for listing", "listing_id", l.ID)
+
+		// 1. Fetch property to build complete context
+		property, err := s.repo.GetPropertyByID(ctx, l.PropertyID)
+		if err != nil {
+			s.log.Error("failed to get property for embedding generation", "listing_id", l.ID, "error", err)
+			continue // Skip this one but try others
+		}
+
+		// 2. Map schema to domain for the builder
+		domainListing := domain.MapListingFromSchema(&l)
+		domainProperty := domain.MapPropertyFromSchema(property)
+
+		if domainListing == nil || domainProperty == nil {
+			s.log.Error("failed to map listing or property to domain", "listing_id", l.ID)
+			continue
+		}
+
+		// 3. Build document
+		doc := domain.NewEmbeddingDocumentBuilder().
+			WithListing(domainListing).
+			WithProperty(domainProperty).
+			Build()
+
+		// 4. Generate embedding
+		// Use a short timeout for each embedding generation to prevent stalling
+		embedCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		vec, err := s.embedding.Embed(embedCtx, doc.Text)
+		cancel()
+
+		if err != nil {
+			s.log.Error("failed to generate embedding via AI service", "listing_id", l.ID, "error", err)
+			continue
+		}
+
+		// 5. Update listing with new embedding
+		updates := map[string]any{
+			"text_embedding":         schema.NewVectorEmbedding(vec),
+			"embedding_model":        s.embedding.GetModelName(),
+			"embedding_version":      doc.Version,
+			"embedding_generated_at": time.Now(),
+		}
+
+		if err := s.repo.PatchListing(ctx, l.ID, updates); err != nil {
+			s.log.Error("failed to save embedding to listing", "listing_id", l.ID, "error", err)
+			continue
+		}
+
+		processed++
+	}
+
+	return processed, nil
 }
