@@ -14,9 +14,9 @@ type RankingConfig struct {
 // DefaultRankingConfig returns the default ranking configuration
 func DefaultRankingConfig() RankingConfig {
 	return RankingConfig{
-		SemanticWeight:        0.4,
-		PromotionWeight:       0.3,
-		RecencyWeight:         0.2,
+		SemanticWeight:        0.8,
+		PromotionWeight:       0.1,
+		RecencyWeight:         0.1,
 		LocationWeight:        0.1,
 		PersonalizationWeight: 0.0,
 	}
