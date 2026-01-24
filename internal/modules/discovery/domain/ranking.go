@@ -8,6 +8,7 @@ type RankingConfig struct {
 	PromotionWeight       float64 // Weight for promotion boost
 	RecencyWeight         float64 // Weight for listing recency
 	LocationWeight        float64 // Weight for location proximity
+	TextMatchWeight       float64 // Weight for fuzzy text matching
 	PersonalizationWeight float64 // Weight for personalization (future)
 }
 
@@ -18,6 +19,7 @@ func DefaultRankingConfig() RankingConfig {
 		PromotionWeight:       0.10, // Small bonus
 		RecencyWeight:         0.05, // Tie-breaker only
 		LocationWeight:        0.05,
+		TextMatchWeight:       0.10, // Important signal for exact matches/typos
 		PersonalizationWeight: 0.00,
 	}
 }
@@ -27,7 +29,7 @@ func (r RankingConfig) Validate() error {
 	// Ensure all weights are non-negative
 	if r.SemanticWeight < 0 || r.PromotionWeight < 0 ||
 		r.RecencyWeight < 0 || r.LocationWeight < 0 ||
-		r.PersonalizationWeight < 0 {
+		r.TextMatchWeight < 0 || r.PersonalizationWeight < 0 {
 		return ErrInvalidRankingConfig
 	}
 
@@ -41,6 +43,7 @@ type RankingScore struct {
 	SemanticScore     *float64 // Semantic similarity score (nil if not semantic search)
 	PromotionBoost    float64  // Promotion boost multiplier (1.0 = no boost)
 	LocationScore     *float64 // Location proximity score (nil if not location-based)
+	TextMatchScore    *float64 // Fuzzy text match score (nil if not text-based)
 	RecencyScore      float64  // Recency score (decay over time)
 	PersonalizedScore *float64 // Personalization score (nil if not personalized, future)
 }
@@ -67,6 +70,11 @@ func (r RankingScore) CalculateFinalScore(config RankingConfig) float64 {
 	// Add location score if available
 	if r.LocationScore != nil {
 		score += *r.LocationScore * config.LocationWeight
+	}
+
+	// Add text match score if available
+	if r.TextMatchScore != nil {
+		score += *r.TextMatchScore * config.TextMatchWeight
 	}
 
 	// Add personalization score if available

@@ -138,10 +138,11 @@ type Listing struct {
 
 // ScoredListing pairs a listing with a similarity/relevance score.
 type ScoredListing struct {
-	Listing  Listing
-	Score    *float64
-	Ranking  int
-	Location *Location // Enriched from property (if available)
+	Listing        Listing
+	Score          *float64
+	TextMatchScore *float64 // Fuzzy text similarity score
+	Ranking        int
+	Location       *Location // Enriched from property (if available)
 }
 
 // --- 3. HELPER STRUCTS ---

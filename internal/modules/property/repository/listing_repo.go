@@ -320,13 +320,14 @@ func (r *GormRepository) GetListingsByPropertyIDs(ctx context.Context, propertyI
 }
 
 // SearchListings performs a vector similarity search with optional filters.
+// SearchListings performs semantic search if Query is provided; otherwise applies filters only.
 func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.VectorEmbedding, filter ListingFilter, limit int) ([]ScoredListing, error) {
 	if embedding == nil {
 		return nil, fmt.Errorf("embedding is required")
 	}
 
 	if limit <= 0 {
-		limit = DefaultPaginationLimit
+		limit = DefaultSearchLimit
 	}
 	if limit > MaxPaginationLimit {
 		limit = MaxPaginationLimit
@@ -334,10 +335,21 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 
 	var results []ScoredListing
 
-	// Updated query to select location fields along with listing fields and score
+	// Updated query for Hybrid Search (Vector + Fuzzy Text)
+	// We calculate two scores:
+	// 1. Vector Score: (listings.text_embedding <=> ?) -> Cosine Distance (0=best, 2=worst)
+	// 2. Text Score: similarity(title, ?) -> Trigam Similarity (1=best, 0=worst)
+	//
+	// We order by a combined rank to surface the best results from either method.
 	query := r.db.WithContext(ctx).
 		Table("listings").
-		Select("listings.*, (listings.text_embedding <=> ?) AS score, ST_Y(properties.location::geometry) as lat, ST_X(properties.location::geometry) as lng", embedding).
+		Select(`
+			listings.*, 
+			(listings.text_embedding <=> ?) AS vector_dist, 
+			similarity(listings.title, ?) AS text_score,
+			ST_Y(properties.location::geometry) as lat, 
+			ST_X(properties.location::geometry) as lng
+		`, embedding, filter.Query).
 		Joins("JOIN properties ON properties.id = listings.property_id")
 
 	if !filter.IncludeDeleted {
@@ -351,9 +363,10 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 	query = applyRentalFilter(query, filter.RentalFilter)
 	query = applySaleFilter(query, filter.SaleFilter)
 
-	// Apply property extension filters (requires properties table to be joined)
+	// Apply property extension filters
 	query = applyPropertyExtensionFilter(query, filter.PropertyExtension)
 
+	// Apply robust location/attribute filters
 	if filter.City != nil && *filter.City != "" {
 		query = query.Where("LOWER(properties.city) = LOWER(?)", *filter.City)
 	}
@@ -385,7 +398,7 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 		query = query.Where("properties.location IS NOT NULL").
 			Where("ST_DWithin(properties.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)", *filter.Longitude, *filter.Latitude, *filter.RadiusMeters)
 	}
-	// Price filters (type-specific)
+	// Price filters
 	if filter.MinPrice != nil {
 		query = query.Where(
 			r.db.Where("listing_type = ? AND (rental_details->>'rental_price')::numeric >= ?", schema.ListingRent, *filter.MinPrice).
@@ -404,12 +417,36 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 		query = query.Where("currency = ?", *filter.Currency)
 	}
 
+	// Hybrid Search Logic:
+	// We want to find listings that match EITHER vector similarity OR text similarity.
+	// 1. Vector Match: Distance < 0.6 (fairly loose to capture concepts)
+	// 2. Text Match: Similarity > 0.2 (loose fuzzy match for typos)
+	//
+	// Then sort by refined hybrid score:
+	// - Convert vector distance to similarity: (1 - dist/2)
+	// - Combine with text score
+	if filter.Query != nil && *filter.Query != "" {
+		// Only apply hybrid logic if there is a query text
+		// Note using raw SQL because GORM conditions on computed columns can be tricky
+		// 0.6 distance roughly equates to 0.7 similarity
+		query = query.Where("(listings.text_embedding <=> ?) < 0.6 OR similarity(listings.title, ?) > 0.2", embedding, filter.Query)
+		// Use gorm.Expr for complex ordering with arguments
+		query = query.Order(gorm.Expr("((1 - (listings.text_embedding <=> ?)/2) + similarity(listings.title, ?)) DESC", embedding, filter.Query))
+	} else {
+		// Fallback for no-query search (e.g. "similar listings") - rely purely on vector distance
+		query = query.Order("vector_dist ASC")
+	}
+
+	// Limit results
+	query = query.Limit(limit)
+
 	// Use a dedicated result struct that flat-maps the columns we need.
 	type SearchResultRow struct {
 		schema.Listing
-		Score float64  `gorm:"column:score"`
-		Lat   *float64 `gorm:"column:lat"`
-		Lng   *float64 `gorm:"column:lng"`
+		VectorDist float64  `gorm:"column:vector_dist"`
+		TextScore  float64  `gorm:"column:text_score"`
+		Lat        *float64 `gorm:"column:lat"`
+		Lng        *float64 `gorm:"column:lng"`
 	}
 
 	var rowsData []SearchResultRow
@@ -422,8 +459,9 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 	results = make([]ScoredListing, len(rowsData))
 	for i, row := range rowsData {
 		sl := ScoredListing{
-			Listing: row.Listing,
-			Score:   row.Score,
+			Listing:   row.Listing,
+			Score:     row.VectorDist, // Used as SemanticScore (Distance)
+			TextScore: row.TextScore,  // Used for fuzzy match boost
 		}
 		if row.Lat != nil && row.Lng != nil {
 			sl.Location = schema.NewGeographyPoint(*row.Lat, *row.Lng)

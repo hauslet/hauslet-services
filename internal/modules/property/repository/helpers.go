@@ -52,9 +52,10 @@ type PaginatedResult[T any] struct {
 
 // ScoredListing carries a listing with a vector similarity score.
 type ScoredListing struct {
-	Listing  schema.Listing         `gorm:"embedded"`
-	Score    float64                `gorm:"column:score"`
-	Location *schema.GeographyPoint `gorm:"-"` // Manual hydration
+	Listing   schema.Listing         `gorm:"embedded"`
+	Score     float64                `gorm:"column:score"`
+	TextScore float64                `gorm:"column:text_score"` // Fuzzy text match score
+	Location  *schema.GeographyPoint `gorm:"-"`                 // Manual hydration
 }
 
 // PropertyFilter defines optional criteria for querying properties.
@@ -183,6 +184,8 @@ const (
 	MaxPaginationLimit = 1000
 	// DefaultPaginationLimit is used when no limit is specified.
 	DefaultPaginationLimit = 20
+	// DefaultSearchLimit is used when no limit is specified for search queries.
+	DefaultSearchLimit = 20
 	// BatchInsertSize controls how many records to insert in a single batch.
 	BatchInsertSize = 100
 )

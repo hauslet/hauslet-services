@@ -45,8 +45,6 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter ListingFilter, 
 	}
 
 	// SECURITY: ALWAYS enforce published=true for public search.
-	// This cannot be overridden by clients to prevent exposure of unpublished listings.
-	// The published field has been removed from the GraphQL API for this reason.
 	pub := true
 	filter.Published = &pub
 
@@ -100,11 +98,13 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter ListingFilter, 
 		}
 
 		score := item.Score
+		textScore := item.TextScore
 		scored = append(scored, domain.ScoredListing{
-			Listing:  *l,
-			Score:    &score,
-			Ranking:  rank,
-			Location: loc,
+			Listing:        *l,
+			Score:          &score,
+			TextMatchScore: &textScore,
+			Ranking:        rank,
+			Location:       loc,
 		})
 		rank++
 	}
