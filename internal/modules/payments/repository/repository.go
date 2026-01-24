@@ -192,6 +192,18 @@ func (r *RepositoryImpl) GetTransactionByReference(ctx context.Context, referenc
 	return &tx, nil
 }
 
+// GetTransactionByProviderTxID retrieves a transaction by provider transaction ID
+func (r *RepositoryImpl) GetTransactionByProviderTxID(ctx context.Context, providerTxID string) (*schema.Transaction, error) {
+	var tx schema.Transaction
+	if err := r.db.WithContext(ctx).Where("provider_tx_id = ?", providerTxID).First(&tx).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get transaction by provider tx id: %w", err)
+	}
+	return &tx, nil
+}
+
 // UpdateTransaction updates an existing transaction
 func (r *RepositoryImpl) UpdateTransaction(ctx context.Context, tx *schema.Transaction) error {
 	if err := r.db.WithContext(ctx).Save(tx).Error; err != nil {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	paymentdomain "hauslet/internal/modules/payments/domain"
 	"hauslet/internal/platform/payment"
+	"time"
 )
 
 // ProcessEvent handles a parsed webhook event.
@@ -190,6 +191,30 @@ func (h *WebhookHandler) handleRefundProcessed(ctx context.Context, event *payme
 
 	h.log.Info("refund processed", "payment_id", pmt.ID, "refunded_amount", verifiedPmt.RefundedAmount, "status", verifiedPmt.Status)
 
+	// Update the refund transaction status if found
+	// Update the refund transaction status if found
+	if event.ProviderTxID != "" {
+		tx, err := h.paymentService.GetTransactionByProviderTxID(ctx, event.ProviderTxID)
+		if err == nil && tx != nil {
+			h.log.Info("found refund transaction, updating status", "tx_id", tx.ID, "status", event.Status)
+
+			// Update status to success if event is success
+			// Note: event.Status is processed by ParseEvent into UnifiedEvent status
+			// For processed refunds, it should be success
+			tx.Status = paymentdomain.TransactionStatusSucceeded
+			now := time.Now()
+			tx.ProcessedAt = &now
+
+			if err := h.paymentService.UpdateTransaction(ctx, tx); err != nil {
+				h.log.Error("failed to update refund transaction status", "tx_id", tx.ID, "error", err)
+			} else {
+				h.log.Info("refund transaction status updated", "tx_id", tx.ID)
+			}
+		} else if err != nil && err != paymentdomain.ErrTransactionNotFound {
+			h.log.Error("failed to lookup refund transaction", "provider_tx_id", event.ProviderTxID, "error", err)
+		}
+	}
+
 	if verifiedPmt.BookingID != nil {
 		if h.financeHooks != nil {
 			h.log.Info(" recording refund in finance", "booking", *verifiedPmt.BookingID, "amount", verifiedPmt.RefundedAmount)
@@ -219,11 +244,32 @@ func (h *WebhookHandler) handleRefundFailed(ctx context.Context, event *payment.
 
 	h.log.Warn("refund failed", "payment_id", pmt.ID, "ref", event.Reference, "provider_tx", event.ProviderTxID)
 
-	// TODO: Create a failed transaction record and notify business/admin
-	// For now, just log the failure
-	// In a production system, you might want to:
-	// 1. Create a failed transaction record
-	// 2. Send an alert to the business owner
-	// 3. Queue for manual review
+	// Update the refund transaction status if found
+	if event.ProviderTxID != "" {
+		tx, err := h.paymentService.GetTransactionByProviderTxID(ctx, event.ProviderTxID)
+		if err == nil && tx != nil {
+			h.log.Info("found refund transaction, updating status to failed", "tx_id", tx.ID)
+
+			tx.Status = paymentdomain.TransactionStatusFailed
+			now := time.Now()
+			// We can capture the error message from the event if available,
+			// but UnifiedEvent struct might not have a dedicated ErrorMessage field populated for all events.
+			// event.Data.Message or similar might be useful if parsed.
+			// For now, we set status to failed.
+			tx.UpdatedAt = now
+
+			if err := h.paymentService.UpdateTransaction(ctx, tx); err != nil {
+				h.log.Error("failed to update refund transaction status", "tx_id", tx.ID, "error", err)
+			} else {
+				h.log.Info("refund transaction marked as failed", "tx_id", tx.ID)
+			}
+		} else if err != nil && err != paymentdomain.ErrTransactionNotFound {
+			h.log.Error("failed to lookup refund transaction", "provider_tx_id", event.ProviderTxID, "error", err)
+		}
+	}
+
+	// TODO: Consider reverting the RefundedAmount on the main Payment record if necessary
+	// This would require more complex logic to ensure we don't revert confirmed refunds if this is a duplicate event or similar.
+
 	return nil
 }

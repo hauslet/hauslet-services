@@ -56,7 +56,7 @@ func NormalizeStatus(providerStatus string, provider string) TransactionStatus {
 			return StatusSuccess
 		case "failed":
 			return StatusFailed
-		case "pending", "ongoing", "send_otp", "otp":
+		case "pending", "ongoing", "send_otp", "otp", "processing":
 			return StatusPending
 		default:
 			return StatusFailed

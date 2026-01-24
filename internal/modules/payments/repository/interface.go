@@ -34,6 +34,7 @@ type TransactionRepository interface {
 	CreateTransactionTx(ctx context.Context, db *gorm.DB, tx *schema.Transaction) error
 	GetTransactionByID(ctx context.Context, id uuid.UUID) (*schema.Transaction, error)
 	GetTransactionByReference(ctx context.Context, reference string) (*schema.Transaction, error)
+	GetTransactionByProviderTxID(ctx context.Context, providerTxID string) (*schema.Transaction, error)
 	UpdateTransaction(ctx context.Context, tx *schema.Transaction) error
 
 	// Transaction queries

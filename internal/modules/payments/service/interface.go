@@ -43,6 +43,8 @@ type PaymentService interface {
 
 	// Transaction queries
 	GetTransaction(ctx context.Context, id uuid.UUID) (*domain.Transaction, error)
+	GetTransactionByProviderTxID(ctx context.Context, providerTxID string) (*domain.Transaction, error)
+	UpdateTransaction(ctx context.Context, tx *domain.Transaction) error
 	ListTransactionsByPayment(ctx context.Context, paymentID uuid.UUID) ([]domain.Transaction, error)
 	ListTransactionsByBooking(ctx context.Context, bookingID uuid.UUID) ([]domain.Transaction, error)
 }

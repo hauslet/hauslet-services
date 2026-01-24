@@ -112,6 +112,14 @@ func (m *MockRepository) GetTransactionByReference(ctx context.Context, referenc
 	return args.Get(0).(*schema.Transaction), args.Error(1)
 }
 
+func (m *MockRepository) GetTransactionByProviderTxID(ctx context.Context, providerTxID string) (*schema.Transaction, error) {
+	args := m.Called(ctx, providerTxID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*schema.Transaction), args.Error(1)
+}
+
 func (m *MockRepository) UpdateTransaction(ctx context.Context, tx *schema.Transaction) error {
 	args := m.Called(ctx, tx)
 	return args.Error(0)
