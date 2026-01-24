@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"strings"
 	"time"
 )
@@ -45,6 +46,62 @@ func (b *EmbeddingDocumentBuilder) WithListing(listing *Listing) *EmbeddingDocum
 		b.addWithLabel("Listing type", string(listing.ListingType))
 	}
 
+	// Handle polymorphic details based on listing type
+	switch listing.ListingType {
+	case ListingShortLet:
+		if listing.ShortletDetails != nil {
+			b.addWithLabel("Accommodation type", string(listing.ShortletDetails.AccommodationType))
+			b.addWithLabel("Max guests", fmt.Sprintf("%d", listing.ShortletDetails.MaxGuests))
+
+			// Add highlights
+			var highlights []string
+			for _, h := range listing.ShortletDetails.AmenitiesHighlights {
+				if h.Title != "" {
+					highlights = append(highlights, h.Title)
+				}
+			}
+			if len(highlights) > 0 {
+				b.addWithLabel("Highlights", strings.Join(highlights, ", "))
+			}
+
+			// Add rules
+			var rules []string
+			for _, group := range listing.ShortletDetails.Rules {
+				for _, rule := range group.Rules {
+					rules = append(rules, string(rule.Name))
+				}
+			}
+			if len(rules) > 0 {
+				b.addWithLabel("Rules", strings.Join(rules, ", "))
+			}
+		}
+
+	case ListingRent:
+		if listing.RentalDetails != nil {
+			if listing.RentalDetails.RentalTerms != "" {
+				b.addWithLabel("Rental terms", listing.RentalDetails.RentalTerms)
+			}
+			// Add rental rules
+			var rules []string
+			for _, group := range listing.RentalDetails.RentalRules {
+				for _, rule := range group.Rules {
+					rules = append(rules, string(rule.Name))
+				}
+			}
+			if len(rules) > 0 {
+				b.addWithLabel("Rental rules", strings.Join(rules, ", "))
+			}
+		}
+
+	case ListingSale:
+		if listing.SaleDetails != nil {
+			b.addWithLabel("Ownership title", listing.SaleDetails.OwnershipTitle)
+			if listing.SaleDetails.SaleTerms != "" {
+				b.addWithLabel("Sale terms", listing.SaleDetails.SaleTerms)
+			}
+		}
+	}
+
 	return b
 }
 
@@ -65,6 +122,23 @@ func (b *EmbeddingDocumentBuilder) WithProperty(property *Property) *EmbeddingDo
 	}
 	if property.FurnishingType != "" {
 		b.addWithLabel("Furnishing", string(property.FurnishingType))
+	}
+
+	// Physical attributes
+	if property.Bedrooms != nil {
+		b.addWithLabel("Bedrooms", fmt.Sprintf("%d", *property.Bedrooms))
+	}
+	if property.Bathrooms != nil {
+		b.addWithLabel("Bathrooms", fmt.Sprintf("%d", *property.Bathrooms))
+	}
+	if property.Toilets != nil {
+		b.addWithLabel("Toilets", fmt.Sprintf("%d", *property.Toilets))
+	}
+	if property.Floors != nil {
+		b.addWithLabel("Floors", fmt.Sprintf("%d", *property.Floors))
+	}
+	if property.SquareMeters > 0 {
+		b.addWithLabel("Size", fmt.Sprintf("%.0f sqm", property.SquareMeters))
 	}
 
 	var locationParts []string

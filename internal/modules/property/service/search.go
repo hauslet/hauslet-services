@@ -314,7 +314,7 @@ func (s *ServiceImpl) GenerateListingEmbeddings(ctx context.Context, batchSize i
 		batchSize = 10
 	}
 
-	listings, err := s.repo.GetListingsWithoutEmbedding(ctx, batchSize)
+	listings, err := s.repo.GetListingsWithoutEmbedding(ctx, domain.EmbeddingDocumentVersion, batchSize)
 	if err != nil {
 		return 0, fmt.Errorf("failed to fetch listings without embedding: %w", err)
 	}
