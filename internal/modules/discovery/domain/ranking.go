@@ -14,11 +14,11 @@ type RankingConfig struct {
 // DefaultRankingConfig returns the default ranking configuration
 func DefaultRankingConfig() RankingConfig {
 	return RankingConfig{
-		SemanticWeight:        0.8,
-		PromotionWeight:       0.1,
-		RecencyWeight:         0.1,
-		LocationWeight:        0.1,
-		PersonalizationWeight: 0.0,
+		SemanticWeight:        0.80, // Primary driver
+		PromotionWeight:       0.10, // Small bonus
+		RecencyWeight:         0.05, // Tie-breaker only
+		LocationWeight:        0.05,
+		PersonalizationWeight: 0.00,
 	}
 }
 
@@ -54,10 +54,14 @@ func (r RankingScore) CalculateFinalScore(config RankingConfig) float64 {
 		score += *r.SemanticScore * config.SemanticWeight
 	}
 
-	// Add promotion boost
-	score += r.PromotionBoost * config.PromotionWeight
+	// 2. Promotion (The Bonus - Fixed Logic)
+	// Only add points if there is an ACTUAL boost (greater than 1.0)
+	if r.PromotionBoost > 1.0 {
+		// Example: Boost 1.2 adds (0.2 * Weight)
+		score += (r.PromotionBoost - 1.0) * config.PromotionWeight
+	}
 
-	// Add recency score
+	// 3. Recency (The Tie-Breaker)
 	score += r.RecencyScore * config.RecencyWeight
 
 	// Add location score if available
