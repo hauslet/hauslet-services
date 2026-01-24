@@ -199,7 +199,7 @@ func (r *Resolver) ReserveBooking(ctx context.Context, input ReserveBookingInput
 		PaymentStatus:         paymentResult.Status,
 		PaymentReference:      paymentResult.Reference,
 		AuthorizationURL:      paymentResult.AuthorizationURL,
-		RequiresAuthorization: paymentResult.AuthorizationURL != nil,
+		RequiresAuthorization: paymentResult.RequiresAction,
 	}
 
 	r.bookingService.LocalizeBooking(ctx, payload.Booking)
@@ -271,7 +271,7 @@ func (r *Resolver) PayForBooking(ctx context.Context, input PayForBookingInput) 
 		PaymentStatus:         paymentResult.Status,
 		PaymentReference:      paymentResult.Reference,
 		AuthorizationURL:      paymentResult.AuthorizationURL,
-		RequiresAuthorization: paymentResult.AuthorizationURL != nil,
+		RequiresAuthorization: paymentResult.RequiresAction,
 	}
 
 	r.bookingService.LocalizeBooking(ctx, payload.Booking)

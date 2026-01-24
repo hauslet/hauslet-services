@@ -119,6 +119,7 @@ type PaymentResult struct {
 	Status           string
 	AuthorizationURL *string
 	Reference        string
+	RequiresAction   bool
 }
 
 type PaymentStatus struct {

@@ -63,9 +63,10 @@ func (a *PaymentServiceAdapter) InitiatePayment(
 
 	// Map to booking's PaymentResult
 	result := &service.PaymentResult{
-		PaymentID: payment.ID,
-		Status:    string(payment.Status),
-		Reference: payment.Reference,
+		PaymentID:      payment.ID,
+		Status:         string(payment.Status),
+		Reference:      payment.Reference,
+		RequiresAction: payment.RequiresAction,
 	}
 
 	// Add redirect URL if present

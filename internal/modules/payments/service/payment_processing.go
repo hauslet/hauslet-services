@@ -115,7 +115,9 @@ func (s *PaymentServiceImpl) CreatePayment(ctx context.Context, input domain.Cre
 
 	// Update payment with provider response
 	pmt.ProviderRef = providerResp.TransactionID
-	pmt.RedirectURL = &providerResp.RedirectURL
+	if providerResp.RedirectURL != "" {
+		pmt.RedirectURL = &providerResp.RedirectURL
+	}
 	pmt.RequiresAction = providerResp.RequiresAction
 
 	// Update status based on response
