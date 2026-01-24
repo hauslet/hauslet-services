@@ -31,9 +31,20 @@ func (s *ServiceImpl) rankListings(
 		}
 
 		// Build ranking score
+		// Note: pr.Score from search is Cosine Distance (0-2), where 0 is identical.
+		// We convert it to Similarity (0-1), where 1 is identical.
+		var semanticScore *float64
+		if pr.Score != nil {
+			// Convert distance to similarity: 1 - (distance / 2)
+			// Distance 0 (identical) -> 1.0
+			// Distance 2 (opposite) -> 0.0
+			sim := 1.0 - (*pr.Score / 2.0)
+			semanticScore = &sim
+		}
+
 		score := domain.RankingScore{
-			SemanticScore:  pr.Score, // From property search (0-1 range)
-			PromotionBoost: 1.0,      // Default: no boost
+			SemanticScore:  semanticScore,
+			PromotionBoost: 1.0, // Default: no boost
 			RecencyScore:   domain.CalculateRecencyScore(pr.Listing.CreatedAt),
 			LocationScore:  locationScore,
 		}
