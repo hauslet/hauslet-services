@@ -85,8 +85,8 @@ Backend for **Hauslet**, a hybrid real estate platform (Zillow + Airbnb) for the
    ```
 
 6. **Development:**
-   - API: http://localhost:8080
-   - GraphQL Playground (dev only): http://localhost:8080/playground
+   - API: [https://dev-api.hauslet.com](https://dev-api.hauslet.com)
+   - GraphQL Playground (dev only): [https://dev-api.hauslet.com](https://dev-api.hauslet.com/playground)
 
 ## API Endpoints
 
