@@ -70,24 +70,11 @@ func (h *HTTPHandler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify OTP
-	if err := h.authService.VerifyEmailOTP(r.Context(), req.Email, req.Code); err != nil {
-		h.log.Warn("OTP verification failed", "email", req.Email, "error", err)
+	// Verify OTP and activate email identity (service handles all steps)
+	if err := h.authService.VerifyAndActivateEmail(r.Context(), req.Email, req.Code); err != nil {
+		h.log.Warn("Email verification failed", "email", req.Email, "error", err)
 		h.sendError(w, "Invalid or expired verification code", http.StatusBadRequest, "code")
 		return
-	}
-
-	// Update email verified status in UserIdentity
-	if err := h.authService.UpdateIdentityVerified(r.Context(), req.Email); err != nil {
-		h.log.Error("Failed to update identity verified status", "error", err)
-		h.sendError(w, "Failed to verify email", http.StatusInternalServerError, "")
-		return
-	}
-
-	// Delete OTP from Redis
-	if err := h.authService.DeleteEmailOTP(r.Context(), req.Email); err != nil {
-		h.log.Warn("Failed to delete OTP", "email", req.Email, "error", err)
-		// Don't fail the request, OTP will expire anyway
 	}
 
 	h.log.Info("Email verified successfully", "email", req.Email)

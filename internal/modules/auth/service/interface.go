@@ -4,9 +4,8 @@ import (
 	"context"
 	"hauslet/config"
 	"hauslet/internal/modules/auth/domain"
+	"hauslet/internal/modules/auth/notification"
 	"hauslet/internal/modules/auth/repository"
-	"hauslet/internal/platform/email"
-	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	"log/slog"
 	"sync"
@@ -63,13 +62,6 @@ type AuthService interface {
 	// Request metadata (for session creation)
 	StoreRequestMetadata(email, ip, userAgent string)
 
-	// Email operations
-	SendWelcomeEmail(ctx context.Context, email, name string, otpCode string) error
-	SendIdentityLinkedEmail(ctx context.Context, emailAddr string, name string, provider string) error
-	SendPasswordChangedEmail(ctx context.Context, emailAddr string, name string) error
-	SendPasswordResetEmail(ctx context.Context, emailAddr string, name string, token string, ttlMinutes int) error
-	SendPasswordlessLoginEmail(ctx context.Context, emailAddr, otpCode, magicLink string, ttlMinutes int) error
-
 	// OTP Management (registration verification)
 	GenerateEmailOTP(ctx context.Context, email string) (string, error)
 	VerifyEmailOTP(ctx context.Context, email, code string) error
@@ -80,19 +72,39 @@ type AuthService interface {
 	VerifyPasswordlessOTP(ctx context.Context, email, code string) error
 	DeletePasswordlessOTP(ctx context.Context, email string) error
 
+	// Two-Factor Authentication
+	InitiateSetup2FA(ctx context.Context, userID string, method domain.TwoFactorMethod, phoneNumber string) (*domain.SetupResponse, error)
+	CompleteSetup2FA(ctx context.Context, userID, code string) (*domain.BackupCodesResult, error)
+	Send2FACode(ctx context.Context, userID string) error
+	Verify2FACode(ctx context.Context, userID, code string) error
+	Verify2FABackupCode(ctx context.Context, userID, code string) error
+	Disable2FA(ctx context.Context, userID, code string) error
+	RegenerateBackupCodes(ctx context.Context, userID, code string) (*domain.BackupCodesResult, error)
+	Get2FAStatus(ctx context.Context, userID string) (*domain.TwoFactorStatus, error)
+
+	// Verification Email (for resending OTP)
+	ResendVerificationEmail(ctx context.Context, email string) error
+
+	// Email Verification (composite: verify OTP + activate identity + cleanup)
+	VerifyAndActivateEmail(ctx context.Context, email, code string) error
+
+	// Passwordless Login (composite: verify OTP + get user + cleanup)
+	VerifyPasswordlessLogin(ctx context.Context, email, code string) (*domain.User, error)
+
 	// Config accessors
 	GetSiteURL() string
 }
 
 type AuthServiceImpl struct {
-	repository       repository.AuthRepository
-	cfg              *config.AuthConfig
-	log              *slog.Logger
-	requestMetadata  *RequestMetadataStore
-	mailClient       *email.Client
-	redisClient      redis.RedisClient
-	queueClient      *queue.Client
-	queueSubject     string
+	repository      repository.AuthRepository
+	cfg             *config.AuthConfig
+	log             *slog.Logger
+	requestMetadata *RequestMetadataStore
+	notifier        *notification.NotificationService
+	// mailClient       *email.Client
+	redisClient redis.RedisClient
+	// queueClient      *queue.Client
+	// queueSubject     string
 	linkStateManager *LinkStateManager
 	profileHooks     ProfileHooks
 	oauthOnce        sync.Once
@@ -102,19 +114,21 @@ type AuthServiceImpl struct {
 func NewAuthService(cfg *config.AuthConfig,
 	repository repository.AuthRepository,
 	log *slog.Logger,
-	emailClient *email.Client,
+	notifier *notification.NotificationService,
+	// emailClient *email.Client,
 	redisClient redis.RedisClient,
-	queueClient *queue.Client,
-	queueSubject string,
+	// queueClient *queue.Client,
+	// queueSubject string,
 	profileHooks ProfileHooks) AuthService {
 	return &AuthServiceImpl{
-		cfg:              cfg,
-		repository:       repository,
-		log:              log,
-		mailClient:       emailClient,
-		redisClient:      redisClient,
-		queueClient:      queueClient,
-		queueSubject:     queueSubject,
+		cfg:        cfg,
+		repository: repository,
+		log:        log,
+		notifier:   notifier,
+		// mailClient:       emailClient,
+		redisClient: redisClient,
+		// queueClient:      queueClient,
+		// queueSubject:     queueSubject,
 		requestMetadata:  NewRequestMetadataStore(),
 		linkStateManager: NewLinkStateManager(cfg.EncryptAuthCodeKey),
 		profileHooks:     profileHooks,
@@ -124,6 +138,9 @@ func NewAuthService(cfg *config.AuthConfig,
 // GetSiteURL returns the configured site URL (used as JWT audience).
 func (s *AuthServiceImpl) GetSiteURL() string {
 	return s.cfg.RedirectURL
+}
+func (s *AuthServiceImpl) StoreRequestMetadata(email, ip, userAgent string) {
+	s.requestMetadata.Set(email, ip, userAgent)
 }
 
 // ProfileHooks defines hooks related to user profile management

@@ -46,4 +46,12 @@ type AuthRepository interface {
 	GetUsersByRole(ctx context.Context, role schema.UserRole) ([]schema.User, error)
 	UpdateUserRole(ctx context.Context, userID string, role schema.UserRole) error
 	CountUsersByRole(ctx context.Context, role schema.UserRole) (int64, error)
+
+	// Two-Factor Authentication
+	GetUser2FA(ctx context.Context, userID string) (*schema.User2FA, error)
+	GetUser2FAForUpdate(ctx context.Context, userID string) (*schema.User2FA, error) // Row locking for backup codes
+	CreateUser2FA(ctx context.Context, twoFA *schema.User2FA) error
+	UpdateUser2FA(ctx context.Context, twoFA *schema.User2FA) error
+	DeleteUser2FA(ctx context.Context, userID string) error
+	ConsumeBackupCode(ctx context.Context, userID string, codeHash string) error // Atomic backup code consumption
 }

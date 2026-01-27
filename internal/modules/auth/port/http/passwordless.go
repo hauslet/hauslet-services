@@ -70,31 +70,21 @@ func (h *HTTPHandler) VerifyPasswordlessCode(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Verify OTP code
-	if err := h.authService.VerifyPasswordlessOTP(r.Context(), req.Email, req.Code); err != nil {
-		h.log.Warn("Passwordless OTP verification failed", "email", req.Email, "error", err)
-		h.sendError(w, "Invalid or expired verification code", http.StatusUnauthorized, "code")
+	// Verify OTP and get user (service handles verification, lookup, active check, cleanup)
+	user, err := h.authService.VerifyPasswordlessLogin(r.Context(), req.Email, req.Code)
+	if err != nil {
+		h.log.Warn("Passwordless login failed", "email", req.Email, "error", err)
+		switch err.Error() {
+		case "invalid or expired verification code":
+			h.sendError(w, "Invalid or expired verification code", http.StatusUnauthorized, "code")
+		case "user not found":
+			h.sendError(w, "User not found", http.StatusUnauthorized, "")
+		case "account is deactivated":
+			h.sendError(w, "Account is deactivated", http.StatusUnauthorized, "")
+		default:
+			h.sendError(w, "Login failed", http.StatusUnauthorized, "")
+		}
 		return
-	}
-
-	// Look up user by email
-	user, err := h.authService.GetUserByEmail(r.Context(), req.Email)
-	if err != nil || user == nil {
-		h.log.Error("User not found for passwordless login", "email", req.Email, "error", err)
-		h.sendError(w, "User not found", http.StatusUnauthorized, "")
-		return
-	}
-
-	if !user.IsActive {
-		h.log.Warn("Inactive user attempted passwordless login", "email", req.Email, "user_id", user.ID)
-		h.sendError(w, "Account is deactivated", http.StatusUnauthorized, "")
-		return
-	}
-
-	// Delete OTP after successful verification
-	if err := h.authService.DeletePasswordlessOTP(r.Context(), req.Email); err != nil {
-		h.log.Warn("Failed to delete passwordless OTP", "email", req.Email, "error", err)
-		// Continue - OTP will expire anyway
 	}
 
 	// Build claims for the JWT

@@ -3,6 +3,7 @@ package service
 import (
 	"hauslet/config"
 	"hauslet/internal/modules/verification/domain"
+	"hauslet/internal/modules/verification/notification"
 	"hauslet/internal/modules/verification/port"
 	"hauslet/internal/modules/verification/repository"
 	"hauslet/internal/platform/breaker"
@@ -11,7 +12,6 @@ import (
 	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/ratelimit"
 	"hauslet/internal/platform/redis"
-	"hauslet/internal/platform/sms"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -21,14 +21,14 @@ import (
 type verificationService struct {
 	repo            repository.VerificationRepository
 	kycClient       *kyc.Client
-	smsClient       *sms.Client
+	notifier        *notification.NotificationService
 	evidenceStore   evidence.Store
 	rateLimiter     ratelimit.Limiter
 	circuitBreaker  breaker.CircuitBreaker
 	redisClient     redis.RedisClient
 	profileAdapter  port.ProfileAdapter
 	businessAdapter port.BusinessAdapter
-	queueClient     *queue.Client
+	queueClient     *queue.Client // Still needed for other jobs?
 	config          *config.GlobalConfig
 	logger          *slog.Logger
 }
@@ -37,7 +37,7 @@ type verificationService struct {
 func NewVerificationService(
 	repo repository.VerificationRepository,
 	kycClient *kyc.Client,
-	smsClient *sms.Client,
+	notifier *notification.NotificationService,
 	evidenceStore evidence.Store,
 	rateLimiter ratelimit.Limiter,
 	circuitBreaker breaker.CircuitBreaker,
@@ -59,7 +59,7 @@ func NewVerificationService(
 	return &verificationService{
 		repo:            repo,
 		kycClient:       kycClient,
-		smsClient:       smsClient,
+		notifier:        notifier,
 		evidenceStore:   evidenceStore,
 		rateLimiter:     rateLimiter,
 		circuitBreaker:  circuitBreaker,

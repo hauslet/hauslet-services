@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // AuthRepositoryImpl implements AuthRepository using PostgreSQL via GORM
@@ -601,4 +602,121 @@ func (r *AuthRepositoryImpl) CountUsersByRole(ctx context.Context, role schema.U
 	}
 
 	return count, nil
+}
+
+// ============================================================================
+// Two-Factor Authentication
+// ============================================================================
+
+// GetUser2FA retrieves 2FA settings for a user
+func (r *AuthRepositoryImpl) GetUser2FA(ctx context.Context, userID string) (*schema.User2FA, error) {
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID format")
+	}
+
+	var twoFA schema.User2FA
+	err = r.db.WithContext(ctx).
+		Where("user_id = ?", parsedUserID).
+		First(&twoFA).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &twoFA, nil
+}
+
+// CreateUser2FA creates a new 2FA record for a user
+func (r *AuthRepositoryImpl) CreateUser2FA(ctx context.Context, twoFA *schema.User2FA) error {
+	if twoFA == nil {
+		return errors.New("2FA settings cannot be nil")
+	}
+
+	if twoFA.ID == uuid.Nil {
+		twoFA.ID = uuid.New()
+	}
+
+	return r.db.WithContext(ctx).Create(twoFA).Error
+}
+
+// UpdateUser2FA updates existing 2FA settings
+func (r *AuthRepositoryImpl) UpdateUser2FA(ctx context.Context, twoFA *schema.User2FA) error {
+	if twoFA == nil {
+		return errors.New("2FA settings cannot be nil")
+	}
+
+	if twoFA.ID == uuid.Nil {
+		return errors.New("2FA ID is required for update")
+	}
+
+	return r.db.WithContext(ctx).
+		Model(&schema.User2FA{}).
+		Where("id = ?", twoFA.ID).
+		Updates(twoFA).Error
+}
+
+// DeleteUser2FA removes 2FA settings for a user
+func (r *AuthRepositoryImpl) DeleteUser2FA(ctx context.Context, userID string) error {
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("invalid user ID format")
+	}
+
+	return r.db.WithContext(ctx).
+		Where("user_id = ?", parsedUserID).
+		Delete(&schema.User2FA{}).Error
+}
+
+// GetUser2FAForUpdate retrieves 2FA settings with a row lock for safe concurrent updates
+func (r *AuthRepositoryImpl) GetUser2FAForUpdate(ctx context.Context, userID string) (*schema.User2FA, error) {
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, errors.New("invalid user ID format")
+	}
+
+	var twoFA schema.User2FA
+	err = r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("user_id = ?", parsedUserID).
+		First(&twoFA).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &twoFA, nil
+}
+
+// ConsumeBackupCode atomically removes a used backup code
+func (r *AuthRepositoryImpl) ConsumeBackupCode(ctx context.Context, userID string, codeHash string) error {
+	parsedUserID, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("invalid user ID format")
+	}
+
+	// Use PostgreSQL array_remove to atomically remove the code
+	result := r.db.WithContext(ctx).
+		Model(&schema.User2FA{}).
+		Where("user_id = ? AND ? = ANY(backup_codes_hash)", parsedUserID, codeHash).
+		Updates(map[string]interface{}{
+			"backup_codes_hash":      gorm.Expr("array_remove(backup_codes_hash, ?)", codeHash),
+			"backup_codes_remaining": gorm.Expr("backup_codes_remaining - 1"),
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("backup code not found or already used")
+	}
+
+	return nil
 }

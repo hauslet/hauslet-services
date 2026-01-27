@@ -42,7 +42,7 @@ func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create user
+	// Create user (service handles OTP generation and welcome email internally)
 	user, err := h.authService.CreatePasswordUser(r.Context(), req.Email, req.Password, req.Name, req.BirthDate)
 	if err != nil {
 		h.log.Error("failed to create user", "error", err)
@@ -59,18 +59,6 @@ func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.log.Info("user registered successfully", "email", user.PrimaryEmail)
-
-	// Generate OTP and send welcome email (non-blocking, fire-and-forget)
-	otpCode, err := h.authService.GenerateEmailOTP(r.Context(), user.PrimaryEmail)
-	if err != nil {
-		h.log.Warn("failed to generate OTP", "email", user.PrimaryEmail, "error", err)
-	} else {
-		if err := h.authService.SendWelcomeEmail(r.Context(), user.PrimaryEmail, user.Name, otpCode); err != nil {
-			h.log.Warn("failed to send welcome email", "email", user.PrimaryEmail, "error", err)
-		} else {
-			h.log.Info("welcome OTP email queued", "email", user.PrimaryEmail)
-		}
-	}
 
 	// Send success response
 	response := domain.RegisterResponse{

@@ -64,3 +64,43 @@ type UserIdentity struct {
 	UpdatedAt  time.Time
 	DeletedAt  gorm.DeletedAt `gorm:"index"`
 }
+
+// TwoFactorMethod represents the available 2FA verification methods
+type TwoFactorMethod string
+
+const (
+	TwoFactorEmail         TwoFactorMethod = "email"
+	TwoFactorSMS           TwoFactorMethod = "sms"
+	TwoFactorAuthenticator TwoFactorMethod = "authenticator"
+)
+
+// User2FA represents the 2FA settings for a user
+type User2FA struct {
+	ID     uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
+	UserID uuid.UUID `gorm:"type:uuid;uniqueIndex;not null"`
+	User   User      `gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
+
+	// Method: 'email', 'sms', 'authenticator'
+	Method TwoFactorMethod `gorm:"column:method;type:text;not null"`
+
+	// For SMS method: phone number to send codes to
+	PhoneNumber *string `gorm:"column:phone_number"`
+
+	// For Authenticator method: encrypted TOTP secret
+	TOTPSecretEncrypted *string `gorm:"column:totp_secret_encrypted"`
+
+	// Status
+	IsEnabled bool       `gorm:"column:is_enabled;default:false"`
+	EnabledAt *time.Time `gorm:"column:enabled_at"`
+
+	// Backup codes (stored as PostgreSQL text array)
+	BackupCodesHash      []string `gorm:"column:backup_codes_hash;type:text[]"`
+	BackupCodesRemaining int      `gorm:"column:backup_codes_remaining;default:8"`
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (User2FA) TableName() string {
+	return "user_2fa"
+}

@@ -89,7 +89,7 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/verification/submission",
 		Timeout: 180 * time.Second,
 	},
-	"verification_sms": {
+	"sms": {
 		Path:    "/tasks/verification/sms",
 		Timeout: 30 * time.Second,
 	},

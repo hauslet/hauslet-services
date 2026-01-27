@@ -53,6 +53,7 @@ import (
 	reviewhooks "hauslet/internal/modules/review/port/hooks"
 	reviewrepository "hauslet/internal/modules/review/repository"
 	reviewservice "hauslet/internal/modules/review/service"
+	verificationnotification "hauslet/internal/modules/verification/notification"
 	verificationrepository "hauslet/internal/modules/verification/repository"
 	verificationservice "hauslet/internal/modules/verification/service"
 	"hauslet/internal/platform/payment"
@@ -69,6 +70,7 @@ import (
 	paymentHandler "hauslet/internal/transport/worker/handlers/payments"
 	promotionHandler "hauslet/internal/transport/worker/handlers/promotions"
 	reviewHandler "hauslet/internal/transport/worker/handlers/review"
+	smsHandler "hauslet/internal/transport/worker/handlers/sms"
 	verificationHandler "hauslet/internal/transport/worker/handlers/verification"
 )
 
@@ -80,6 +82,12 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	// Email handler
 	emailH := emailHandler.NewEmailHandler(infra.Email, log, qCfg["email"])
 	registry.Register(emailH)
+
+	// SMS handler
+	if qCfg["sms"] != "" {
+		h := smsHandler.NewSMSHandler(infra.SMS, log, qCfg["sms"])
+		registry.Register(h)
+	}
 
 	// Feature flags
 	hasThumbnail := qCfg["media_thumbnail"] != ""
@@ -625,10 +633,8 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			&cfg.Auth,
 			authRepo,
 			log,
-			nil, // emailClient not needed for GetUsersByRole
+			nil, // notifier not needed for GetUsersByRole
 			infra.Redis,
-			nil, // queueClient not needed for GetUsersByRole
-			"",  // queueSubject not needed for GetUsersByRole
 			nil, // profileHooks not needed for GetUsersByRole
 		)
 
@@ -877,7 +883,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 
 	// Verification handlers
 	hasVerificationSubmission := qCfg["verification_submission"] != ""
-	hasVerificationSMS := qCfg["verification_sms"] != ""
+	hasVerificationSMS := qCfg["sms"] != ""
 	hasVerificationReconciliation := qCfg["verification_reconciliation"] != ""
 
 	if hasVerificationSubmission || hasVerificationSMS || hasVerificationReconciliation {
@@ -885,11 +891,20 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		verificationRepo := verificationrepository.NewVerificationRepo(infra.DB)
 
 		if hasVerificationSubmission {
+			// Initialize notification service for worker context (queue subjects might not be needed for worker if it doesn't enqueue, but likely safe to pass empty or from config)
+			smsQueueSubject := qCfg["sms"]
+			verificationNotifier := verificationnotification.NewNotificationService(
+				infra.SMS,
+				nil, // Queue client might not be available/needed here or is `infra.Queue`? Worker usually consumes. But service might produce?
+				smsQueueSubject,
+				log,
+			)
+
 			// Submission handler needs KYC client and evidence store
 			verificationSvc := verificationservice.NewVerificationService(
 				verificationRepo,
 				infra.KYC,
-				infra.SMS,
+				verificationNotifier,
 				infra.EvidenceStore,
 				infra.RateLimiter,
 				infra.CircuitBreaker,
@@ -908,16 +923,6 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				infra.EvidenceStore,
 				log,
 				qCfg["verification_submission"],
-			)
-			registry.Register(h)
-		}
-
-		if hasVerificationSMS {
-			// SMS handler only needs SMS client
-			h := verificationHandler.NewSMSHandler(
-				infra.SMS,
-				log,
-				qCfg["verification_sms"],
 			)
 			registry.Register(h)
 		}

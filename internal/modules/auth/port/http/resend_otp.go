@@ -57,47 +57,25 @@ func (h *HTTPHandler) ResendOTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get user by email
-	user, err := h.authService.GetUserByEmail(r.Context(), req.Email)
+	// Call service to resend verification email
+	err := h.authService.ResendVerificationEmail(r.Context(), req.Email)
 	if err != nil {
-		h.log.Warn("user not found for email", "email", req.Email, "error", err)
-		// Don't reveal if user exists or not for security
-		h.sendSuccess(w, map[string]string{
-			"message": "If this email is registered and not verified, a new verification code has been sent.",
-		}, http.StatusOK)
-		return
-	}
-
-	// Check if user's email is already verified
-	identities, err := h.authService.ListUserIdentities(r.Context(), user.ID.String())
-	if err != nil {
-		h.log.Error("failed to list user identities", "error", err)
-		h.sendError(w, "Failed to resend verification code", http.StatusInternalServerError, "")
-		return
-	}
-
-	// Check if email is already verified
-	for _, identity := range identities {
-		if identity.Provider == "password" && identity.Email == req.Email && identity.EmailVerified {
-			h.log.Info("email already verified", "email", req.Email)
+		// Check for specific error types
+		switch err.Error() {
+		case "user not found":
+			// Don't reveal if user exists for security
+			h.sendSuccess(w, map[string]string{
+				"message": "If this email is registered and not verified, a new verification code has been sent.",
+			}, http.StatusOK)
+			return
+		case "email is already verified":
 			h.sendError(w, "Email is already verified", http.StatusBadRequest, "email")
 			return
+		default:
+			h.log.Error("failed to resend verification email", "email", req.Email, "error", err)
+			h.sendError(w, "Failed to send verification email", http.StatusInternalServerError, "")
+			return
 		}
-	}
-
-	// Generate new OTP (this will overwrite the old one in Redis)
-	otpCode, err := h.authService.GenerateEmailOTP(r.Context(), req.Email)
-	if err != nil {
-		h.log.Error("failed to generate OTP", "email", req.Email, "error", err)
-		h.sendError(w, "Failed to generate verification code", http.StatusInternalServerError, "")
-		return
-	}
-
-	// Send welcome email with new OTP
-	if err := h.authService.SendWelcomeEmail(r.Context(), req.Email, user.Name, otpCode); err != nil {
-		h.log.Error("failed to send OTP email", "email", req.Email, "error", err)
-		h.sendError(w, "Failed to send verification email", http.StatusInternalServerError, "")
-		return
 	}
 
 	h.log.Info("resent OTP", "email", req.Email)

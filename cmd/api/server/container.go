@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hauslet/config"
 	"hauslet/internal/modules/auth/authorization"
+	authnotification "hauslet/internal/modules/auth/notification"
 	authrepository "hauslet/internal/modules/auth/repository"
 	authservice "hauslet/internal/modules/auth/service"
 	authsession "hauslet/internal/modules/auth/session"
@@ -69,6 +70,7 @@ import (
 	reviewhttp "hauslet/internal/modules/review/port/http"
 	reviewrepository "hauslet/internal/modules/review/repository"
 	reviewservice "hauslet/internal/modules/review/service"
+	verificationnotification "hauslet/internal/modules/verification/notification"
 	verificationhttp "hauslet/internal/modules/verification/port/http"
 	verificationrepository "hauslet/internal/modules/verification/repository"
 	verificationservice "hauslet/internal/modules/verification/service"
@@ -964,14 +966,23 @@ func (c *Container) initAuth() error {
 	authRepo := authrepository.NewAuthRepository(c.DB, sessionStore)
 	authProfileAdapter := profileport.NewAuthHooksAdapter(c.ProfileSvc, c.Config.Storage.R2.CDNHost)
 
+	// Initialize auth notification service
+	smsQueueSubject := c.Config.YAML.Queue.Subjects["sms"] // Use specific subject for auth SMS
+	authNotifier := authnotification.NewNotificationService(
+		c.EmailClient,
+		c.SMSClient,
+		c.Queue,
+		emailSubject,
+		smsQueueSubject,
+		c.Logger,
+	)
+
 	c.AuthSvc = authservice.NewAuthService(
 		&c.Config.Auth,
 		authRepo,
 		c.Logger,
-		c.EmailClient,
+		authNotifier,
 		*c.Redis,
-		c.Queue,
-		emailSubject,
 		authProfileAdapter,
 	)
 
@@ -1007,10 +1018,19 @@ func (c *Container) initVerification() error {
 	profileVerificationAdapter := profileadapter.NewVerificationAdapter(c.ProfileSvc, c.Logger)
 	businessVerificationAdapter := businessadapter.NewVerificationAdapter(c.BusinessSvc, c.Logger)
 
+	// Initialize verification notification service
+	smsQueueSubject := c.Config.YAML.Queue.Subjects["sms"]
+	verificationNotifier := verificationnotification.NewNotificationService(
+		c.SMSClient,
+		c.Queue,
+		smsQueueSubject,
+		c.Logger,
+	)
+
 	c.VerificationSvc = verificationservice.NewVerificationService(
 		verificationRepo,
 		c.KYCClient,
-		c.SMSClient,
+		verificationNotifier,
 		c.EvidenceStore,
 		c.RateLimiter,
 		c.CircuitBreaker,

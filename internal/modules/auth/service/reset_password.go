@@ -35,7 +35,7 @@ func (s *AuthServiceImpl) RequestPasswordReset(ctx context.Context, email string
 		return fmt.Errorf("failed to store reset token: %w", err)
 	}
 
-	if err := s.SendPasswordResetEmail(ctx, email, user.Name, token, int(resetTokenTTL.Minutes())); err != nil {
+	if err := s.notifier.SendPasswordResetEmail(ctx, email, user.Name, token, int(resetTokenTTL.Minutes())); err != nil {
 		s.log.Warn("failed to send password reset email", "email", email, "error", err)
 	}
 
@@ -101,7 +101,7 @@ func (s *AuthServiceImpl) ResetPassword(ctx context.Context, email, token, newPa
 	// Cleanup token
 	_ = s.redisClient.Del(ctx, key).Err()
 
-	if err := s.SendPasswordChangedEmail(ctx, email, user.Name); err != nil {
+	if err := s.notifier.SendPasswordChangedEmail(ctx, email, user.Name); err != nil {
 		s.log.Warn("failed to send password changed email", "email", email, "error", err)
 	}
 

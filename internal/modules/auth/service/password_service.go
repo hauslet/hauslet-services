@@ -121,6 +121,21 @@ func (s *AuthServiceImpl) CreatePasswordUser(ctx context.Context, email, passwor
 		}
 	}
 
+	// Generate OTP and send welcome email (non-blocking)
+	go func(userEmail, userName string) {
+		bgCtx := context.Background()
+		otpCode, err := s.GenerateEmailOTP(bgCtx, userEmail)
+		if err != nil {
+			s.log.Warn("failed to generate OTP for new user", "email", userEmail, "error", err)
+			return
+		}
+		if err := s.notifier.SendWelcomeEmail(bgCtx, userEmail, userName, otpCode); err != nil {
+			s.log.Warn("failed to send welcome email", "email", userEmail, "error", err)
+		} else {
+			s.log.Info("welcome OTP email queued", "email", userEmail)
+		}
+	}(email, name)
+
 	return domain.MapUserFromSchema(user), nil
 }
 

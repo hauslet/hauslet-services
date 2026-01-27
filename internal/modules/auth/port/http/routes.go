@@ -87,6 +87,17 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 		r.Get("/me/sessions", h.GetUserSessions)
 		r.Delete("/me/sessions", h.RevokeAllSessions)
 		r.Delete("/me/session", h.RevokeSession) // Query param: ?id=session_id
+
+		// Two-Factor Authentication
+		r.Route("/2fa", func(r chi.Router) {
+			r.Get("/status", h.Get2FAStatus)
+			r.Post("/setup", h.InitiateSetup2FA)
+			r.Post("/setup/complete", h.CompleteSetup2FA)
+			r.Post("/send-code", h.Send2FACode)
+			r.Post("/verify", h.Verify2FACode)
+			r.Post("/disable", h.Disable2FA)
+			r.Post("/backup-codes", h.RegenerateBackupCodes)
+		})
 	})
 }
 
@@ -151,6 +162,36 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, limiter ratelimi
 		r.Get("/me/sessions", h.GetUserSessions)
 		r.Delete("/me/sessions", h.RevokeAllSessions)
 		r.Delete("/me/session", h.RevokeSession)
+
+		// Two-Factor Authentication
+		r.Route("/2fa", func(r chi.Router) {
+			// Read-only: light rate limiting
+			r.Get("/status", h.Get2FAStatus)
+
+			// Setup initiation: moderate rate limiting
+			r.With(middleware.RateLimitIP(limiter, 5, 10*time.Minute)).
+				Post("/setup", h.InitiateSetup2FA)
+
+			// Setup completion: strict rate limiting (brute force target)
+			r.With(middleware.RateLimitIP(limiter, 5, 15*time.Minute)).
+				Post("/setup/complete", h.CompleteSetup2FA)
+
+			// Send code: strict rate limiting (prevent spam)
+			r.With(middleware.RateLimitIP(limiter, 3, 10*time.Minute)).
+				Post("/send-code", h.Send2FACode)
+
+			// Verification: strict rate limiting (brute force target)
+			r.With(middleware.RateLimitIP(limiter, 10, 15*time.Minute)).
+				Post("/verify", h.Verify2FACode)
+
+			// Disable: very strict rate limiting (security-critical)
+			r.With(middleware.RateLimitIP(limiter, 3, time.Hour)).
+				Post("/disable", h.Disable2FA)
+
+			// Backup codes regeneration: strict rate limiting
+			r.With(middleware.RateLimitIP(limiter, 3, time.Hour)).
+				Post("/backup-codes", h.RegenerateBackupCodes)
+		})
 	})
 }
 

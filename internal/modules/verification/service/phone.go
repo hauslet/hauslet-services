@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"hauslet/internal/modules/verification/domain"
-	"hauslet/internal/platform/sms"
-	verificationJob "hauslet/internal/queue/jobs/verification"
 )
 
 // =======================
@@ -68,41 +66,18 @@ func (s *verificationService) GeneratePhoneOTP(ctx context.Context, req Generate
 		return nil, fmt.Errorf("failed to update session: %w", err)
 	}
 
-	// Enqueue SMS job for async sending
-	if s.queueClient != nil {
-		smsJob := verificationJob.SMSJob{
-			PhoneNumber: phoneData.PhoneNumber,
-			OTP:         otpCode,
-			UserID:      session.UserID.String(),
-			Provider:    "termii",
-			RetryCount:  0,
-		}
-
-		if err := s.queueClient.Publish(ctx, "verification_sms", smsJob); err != nil {
-			s.logger.Error("failed to enqueue SMS job", "error", err, "phone", phoneData.PhoneNumber)
-			// Fallback to synchronous SMS sending
-			smsResp, err := s.sendSMSDirect(ctx, phoneData.PhoneNumber, otpCode)
-			if err != nil {
-				_ = s.redisClient.Del(ctx, otpKey)
-				return nil, fmt.Errorf("failed to send OTP: %w", err)
-			}
-			provider := smsResp.Provider
-			phoneData.SMSProvider = &provider
-			session.Data.Phone = phoneData
-			_ = s.repo.UpdateSession(ctx, session)
-		}
-	} else {
-		// No queue configured, send synchronously
-		smsResp, err := s.sendSMSDirect(ctx, phoneData.PhoneNumber, otpCode)
-		if err != nil {
-			_ = s.redisClient.Del(ctx, otpKey)
-			return nil, fmt.Errorf("failed to send OTP: %w", err)
-		}
-		provider := smsResp.Provider
-		phoneData.SMSProvider = &provider
-		session.Data.Phone = phoneData
-		_ = s.repo.UpdateSession(ctx, session)
+	// Enqueue SMS job for async sending or send directly (abstracted by notifier)
+	smsResp, err := s.notifier.SendVerificationSMS(ctx, phoneData.PhoneNumber, otpCode)
+	if err != nil {
+		_ = s.redisClient.Del(ctx, otpKey)
+		s.logger.Error("failed to send verification SMS", "error", err, "phone", phoneData.PhoneNumber)
+		return nil, fmt.Errorf("failed to send OTP: %w", err)
 	}
+
+	provider := smsResp.Provider
+	phoneData.SMSProvider = &provider
+	session.Data.Phone = phoneData
+	_ = s.repo.UpdateSession(ctx, session)
 
 	s.logger.Info("OTP generated and queued/sent",
 		"session_id", session.ID,
@@ -115,7 +90,7 @@ func (s *verificationService) GeneratePhoneOTP(ctx context.Context, req Generate
 		Session:     session,
 		OTPSent:     true,
 		ExpiresAt:   &expiresAtStr,
-		SMSProvider: "queued",
+		SMSProvider: provider,
 		Message:     "OTP sent successfully",
 	}, nil
 }
@@ -238,13 +213,4 @@ func (s *verificationService) VerifyPhoneOTP(ctx context.Context, req VerifyPhon
 		Remaining: session.AttemptsRemaining(),
 		Message:   "Phone verified successfully",
 	}, nil
-}
-
-// sendSMSDirect sends SMS synchronously (fallback when queue unavailable)
-func (s *verificationService) sendSMSDirect(ctx context.Context, phoneNumber, otpCode string) (*sms.SMSResponse, error) {
-	smsReq := sms.SMSRequest{
-		To:      phoneNumber,
-		Message: fmt.Sprintf("Your verification code is: %s. Valid for 10 minutes.", otpCode),
-	}
-	return s.smsClient.Send(ctx, smsReq)
 }

@@ -66,9 +66,9 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 			LinkStateValidator:    linkStateValidator,
 			AuthenticatePassword:  s.AuthenticatePassword,
 			LinkIdentity:          linkIdentity,
-			SendWelcomeEmail:      s.SendWelcomeEmail,
-			SendIdentityLinked:    s.SendIdentityLinkedEmail,
-			SendPasswordlessEmail: s.SendPasswordlessLoginEmail,
+			SendWelcomeEmail:      s.notifier.SendWelcomeEmail,
+			SendIdentityLinked:    s.notifier.SendIdentityLinkedEmail,
+			SendPasswordlessEmail: s.notifier.SendPasswordlessLoginEmail,
 			GenerateAndStoreOTP:   s.GeneratePasswordlessOTP,
 			ProfileHook: func(ctx context.Context, userID, email, name string, birthDate *time.Time) error {
 				if s.profileHooks == nil {

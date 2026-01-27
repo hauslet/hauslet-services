@@ -15,6 +15,8 @@ func HandleServerLifecycle(srv *http.Server, log *slog.Logger) {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	serverErr := make(chan error, 1)
+	defer close(serverErr)
+
 	go func() {
 		log.Info("🌐 HTTP server listening on " + srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

@@ -82,11 +82,9 @@ func (s *AuthServiceImpl) linkIdentityToUser(ctx context.Context, linkState *Lin
 	s.log.Info("Identity Linking: Linked identity", "provider", provider, "user_id", user.ID)
 
 	// Send security notification email
-	go func(userEmail, userName, provider string) {
-		if err := s.SendIdentityLinkedEmail(context.Background(), userEmail, userName, provider); err != nil {
-			s.log.Warn("Failed to send identity linked notification", "user_email", userEmail, "error", err)
-		}
-	}(user.PrimaryEmail, user.Name, provider)
+	if err := s.notifier.SendIdentityLinkedEmail(context.Background(), user.PrimaryEmail, user.Name, provider); err != nil {
+		s.log.Warn("Failed to send identity linked notification", "user_email", user.PrimaryEmail, "error", err)
+	}
 
 	return nil
 }

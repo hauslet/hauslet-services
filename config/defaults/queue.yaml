@@ -5,6 +5,7 @@ queue:
   # Queue mappings (key=purpose, value=Cloud Tasks queue name)
   subjects:
     email: "email-queue"
+    sms: "sms-queue"
     notification: "notification-queue"
     moderation: "moderation-queue"
     media_thumbnail: "media-thumbnail-queue"
@@ -27,7 +28,6 @@ queue:
     calendar_showing_reminders: "calendar-showing-reminders-queue"
     calendar_open_house_reminders: "calendar-open-house-reminders-queue"
     verification_submission: "verification-submission-queue"
-    verification_sms: "verification-sms-queue"
     verification_reconciliation: "verification-reconciliation-queue"
     interactions_batch: "interactions-batch-queue"
     interactions_aggregator: "interactions-aggregator-queue"
