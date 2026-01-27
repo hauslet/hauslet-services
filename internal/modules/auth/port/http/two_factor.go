@@ -6,6 +6,9 @@ import (
 
 	"hauslet/internal/modules/auth/domain"
 	authmiddleware "hauslet/internal/modules/auth/middleware"
+
+	"github.com/go-pkgz/auth/v2/token"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // ============================================================================
@@ -266,4 +269,122 @@ func (h *HTTPHandler) RegenerateBackupCodes(w http.ResponseWriter, r *http.Reque
 	}
 
 	h.sendSuccess(w, result, http.StatusOK)
+}
+
+// Verify2FALogin completes 2FA verification during login
+// @Summary Complete 2FA login
+// @Description Verifies the 2FA code and issues a full JWT token
+// @Tags 2FA
+// @Accept json
+// @Produce json
+// @Param request body domain.Verify2FALoginRequest true "Temp token and verification code"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} domain.ErrorResponse
+// @Router /auth/2fa/verify [post]
+func (h *HTTPHandler) Verify2FALogin(w http.ResponseWriter, r *http.Request) {
+	var req domain.Verify2FALoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendError(w, "invalid request body", http.StatusBadRequest, "")
+		return
+	}
+
+	if req.TempToken == "" {
+		h.sendError(w, "temp_token is required", http.StatusBadRequest, "temp_token")
+		return
+	}
+
+	if req.Code == "" {
+		h.sendError(w, "code is required", http.StatusBadRequest, "code")
+		return
+	}
+
+	// Verify the 2FA code and get the user
+	user, err := h.authService.Verify2FALogin(r.Context(), req.TempToken, req.Code)
+	if err != nil {
+		h.sendError(w, err.Error(), http.StatusBadRequest, "code")
+		return
+	}
+
+	// Build claims for the JWT (same pattern as passwordless login)
+	claims := token.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Audience: jwt.ClaimStrings{h.authService.GetSiteURL()},
+		},
+		User: &token.User{
+			ID:    "password_" + user.ID.String(),
+			Name:  user.Name,
+			Email: user.PrimaryEmail,
+		},
+	}
+	claims.User.SetStrAttr("uid", user.ID.String())
+	claims.User.SetStrAttr("email", user.PrimaryEmail)
+	claims.User.SetStrAttr("role", string(user.Role))
+	claims.User.SetStrAttr("provider", "password")
+	claims.User.SetStrAttr("2fa_verified", "true") // Marker to skip 2FA check in ClaimsEnricher
+
+	// Issue JWT token and set cookie
+	tokenService := h.authService.OAuthService().TokenService()
+	if _, err := tokenService.Set(w, claims); err != nil {
+		h.log.Error("Failed to issue JWT after 2FA verification", "user_id", user.ID, "error", err)
+		h.sendError(w, "failed to complete login", http.StatusInternalServerError, "")
+		return
+	}
+
+	h.log.Info("2FA login completed", "user_id", user.ID, "email", user.PrimaryEmail)
+
+	h.sendSuccess(w, map[string]interface{}{
+		"success": true,
+		"user": map[string]interface{}{
+			"id":    user.ID.String(),
+			"email": user.PrimaryEmail,
+			"name":  user.Name,
+			"role":  user.Role,
+		},
+	}, http.StatusOK)
+}
+
+// Resend2FACode resends the 2FA code for pending login (public endpoint)
+// @Summary Resend 2FA code
+// @Description Resends the verification code for pending 2FA login
+// @Tags 2FA
+// @Accept json
+// @Produce json
+// @Param request body map[string]string true "Temp token"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {object} domain.ErrorResponse
+// @Router /auth/2fa/resend [post]
+func (h *HTTPHandler) Resend2FACode(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TempToken string `json:"temp_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendError(w, "invalid request body", http.StatusBadRequest, "")
+		return
+	}
+
+	if req.TempToken == "" {
+		h.sendError(w, "temp_token is required", http.StatusBadRequest, "temp_token")
+		return
+	}
+
+	// Get pending state to find user ID
+	state, err := h.authService.Get2FAPendingState(r.Context(), req.TempToken)
+	if err != nil {
+		h.sendError(w, err.Error(), http.StatusBadRequest, "temp_token")
+		return
+	}
+
+	// Only send code for email/SMS methods
+	if state.Method == domain.TwoFactorAuthenticator {
+		h.sendSuccess(w, map[string]bool{"sent": false, "authenticator": true}, http.StatusOK)
+		return
+	}
+
+	// Send the 2FA code
+	if err := h.authService.Send2FACode(r.Context(), state.UserID); err != nil {
+		h.sendError(w, "failed to send verification code", http.StatusInternalServerError, "")
+		return
+	}
+
+	h.sendSuccess(w, map[string]bool{"sent": true}, http.StatusOK)
 }

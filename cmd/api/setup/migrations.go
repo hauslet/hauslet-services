@@ -29,6 +29,7 @@ import (
 func RunMigrations(db *gorm.DB, log *slog.Logger) error {
 	if err := database.RunMigrations(db, log,
 		&authSchema.User{},
+		&authSchema.User2FA{},
 		&authSchema.UserIdentity{},
 		&profileSchema.Profile{},
 		&profileSchema.TravelCompanion{},

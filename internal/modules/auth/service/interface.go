@@ -82,6 +82,12 @@ type AuthService interface {
 	RegenerateBackupCodes(ctx context.Context, userID, code string) (*domain.BackupCodesResult, error)
 	Get2FAStatus(ctx context.Context, userID string) (*domain.TwoFactorStatus, error)
 
+	// Two-Factor Authentication Login Flow
+	Create2FAPendingState(ctx context.Context, userID, email, name, provider string, method domain.TwoFactorMethod) (string, error)
+	Get2FAPendingState(ctx context.Context, tempToken string) (*domain.Pending2FAState, error)
+	Verify2FALogin(ctx context.Context, tempToken, code string) (*domain.User, error)
+	Delete2FAPendingState(ctx context.Context, tempToken string) error
+
 	// Verification Email (for resending OTP)
 	ResendVerificationEmail(ctx context.Context, email string) error
 

@@ -73,6 +73,25 @@ type SendPasswordlessEmailFunc func(ctx context.Context, email, otpCode, magicLi
 // GenerateAndStoreOTPFunc generates a 6-digit OTP and stores it for later verification.
 type GenerateAndStoreOTPFunc func(ctx context.Context, email string) (string, error)
 
+// TwoFactorMethod represents 2FA method type
+type TwoFactorMethod string
+
+// GetUser2FAFunc retrieves 2FA settings for a user
+type GetUser2FAFunc func(ctx context.Context, userID string) (enabled bool, method TwoFactorMethod, err error)
+
+// Create2FAPendingStateFunc creates a pending 2FA state and returns temp token
+type Create2FAPendingStateFunc func(ctx context.Context, userID, email, name, provider string, method TwoFactorMethod) (tempToken string, err error)
+
+// Send2FACodeFunc sends a 2FA verification code to the user
+type Send2FACodeFunc func(ctx context.Context, userID string) error
+
+// Pending2FAResult is returned when 2FA verification is required
+type Pending2FAResult struct {
+	Required  bool
+	TempToken string
+	Method    TwoFactorMethod
+}
+
 // Dependencies groups the collaborators required by the OAuth service helpers.
 type Dependencies struct {
 	Config                *config.AuthConfig
@@ -88,6 +107,10 @@ type Dependencies struct {
 	GenerateAndStoreOTP   GenerateAndStoreOTPFunc
 	ProfileHook           ProfileHookFunc
 	ProfileAvatarFetcher  ProfileAvatarFetcher
+	// 2FA login flow dependencies
+	GetUser2FA            GetUser2FAFunc
+	Create2FAPendingState Create2FAPendingStateFunc
+	Send2FACode           Send2FACodeFunc
 }
 
 // NewService builds the OAuth service with configured providers and validator.

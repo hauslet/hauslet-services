@@ -17,18 +17,6 @@ func newClaimsEnricher(deps Dependencies) *claimsEnricher {
 	return &claimsEnricher{deps: deps}
 }
 
-// maskEmail masks email addresses for non-debug logs to reduce PII exposure.
-// Example: "user@example.com" -> "u***@example.com"
-func maskEmail(email string) string {
-	if email == "" {
-		return "***"
-	}
-	if idx := strings.Index(email, "@"); idx > 0 {
-		return email[:1] + "***@" + email[idx+1:]
-	}
-	return "***"
-}
-
 func (c *claimsEnricher) EnrichClaims(claims token.Claims) token.Claims {
 	ctx := context.Background()
 
@@ -58,6 +46,21 @@ func (c *claimsEnricher) EnrichClaims(claims token.Claims) token.Claims {
 		user, err = handleEmailFlow(ctx, c.deps, claims)
 	default:
 		user, err = handleOAuthFlow(ctx, c.deps, claims, provider, providerUserID, email, name, isLinking, linkState)
+	}
+
+	// Handle 2FA required case - return claims with 2FA pending attributes
+	if err == ErrTwoFactorRequired {
+		// The password flow has already set the 2FA attributes on claims.User
+		// We need to keep claims.User so the attributes can be passed to the response
+		// But we mark it as a 2FA pending state, not a full login
+		c.deps.Log.Info("2FA verification required, returning pending state")
+
+		// Set a special marker that the HTTP layer can detect
+		claims.User.SetStrAttr("login_state", "2fa_pending")
+
+		// Don't create a session - user is not fully authenticated yet
+		// Don't set uid, role, etc. - those are for authenticated users
+		return claims
 	}
 
 	if err != nil || user == nil {

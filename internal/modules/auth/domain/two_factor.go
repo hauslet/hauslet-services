@@ -55,3 +55,19 @@ type AuthResultWith2FA struct {
 	Method      TwoFactorMethod `json:"method,omitempty"`
 	TempToken   string          `json:"temp_token,omitempty"` // Short-lived token for 2FA verification
 }
+
+// Pending2FAState is stored in Redis while waiting for 2FA verification
+type Pending2FAState struct {
+	UserID    string          `json:"user_id"`
+	Email     string          `json:"email"`
+	Name      string          `json:"name"`
+	Method    TwoFactorMethod `json:"method"`
+	Provider  string          `json:"provider"` // "password", "email", etc.
+	CreatedAt time.Time       `json:"created_at"`
+}
+
+// Verify2FALoginRequest is the request body for completing 2FA login
+type Verify2FALoginRequest struct {
+	TempToken string `json:"temp_token"`
+	Code      string `json:"code"`
+}

@@ -65,6 +65,10 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	// Passwordless login code verification (public)
 	r.Post("/auth/passwordless/verify", h.VerifyPasswordlessCode)
 
+	// 2FA login verification (public - user is not yet authenticated)
+	r.Post("/auth/2fa/verify", h.Verify2FALogin)
+	r.Post("/auth/2fa/resend", h.Resend2FACode)
+
 	// Protected routes (require authentication)
 	authMiddleware := h.authService.OAuthService().Middleware()
 	updater := h.userUpdater()
@@ -89,16 +93,15 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 		r.Delete("/me/session", h.RevokeSession) // Query param: ?id=session_id
 
 		// Two-Factor Authentication
-		r.Route("/2fa", func(r chi.Router) {
-			r.Get("/status", h.Get2FAStatus)
-			r.Post("/setup", h.InitiateSetup2FA)
-			r.Post("/setup/complete", h.CompleteSetup2FA)
-			r.Post("/send-code", h.Send2FACode)
-			r.Post("/verify", h.Verify2FACode)
-			r.Post("/disable", h.Disable2FA)
-			r.Post("/backup-codes", h.RegenerateBackupCodes)
-		})
+		r.Get("/2fa/status", h.Get2FAStatus)
+		r.Post("/2fa/setup", h.InitiateSetup2FA)
+		r.Post("/2fa/setup/complete", h.CompleteSetup2FA)
+		r.Post("/2fa/send-code", h.Send2FACode)
+		r.Post("/2fa/verify", h.Verify2FACode)
+		r.Post("/2fa/disable", h.Disable2FA)
+		r.Post("/2fa/backup-codes", h.RegenerateBackupCodes)
 	})
+
 }
 
 // SetupRoutesWithRateLimiting configures auth routes with rate limiting (caller decides when to use)
@@ -135,6 +138,12 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, limiter ratelimi
 	// Passwordless login code verification: Moderate rate limiting (prevent brute force)
 	r.With(middleware.RateLimitIP(limiter, 5, 10*time.Minute)).
 		Post("/auth/passwordless/verify", h.VerifyPasswordlessCode)
+
+	// 2FA login verification: Strict rate limiting (brute force target)
+	r.With(middleware.RateLimitIP(limiter, 10, 15*time.Minute)).
+		Post("/auth/2fa/verify", h.Verify2FALogin)
+	r.With(middleware.RateLimitIP(limiter, 3, 10*time.Minute)).
+		Post("/auth/2fa/resend", h.Resend2FACode)
 
 	// Protected routes
 	authMiddleware := h.authService.OAuthService().Middleware()

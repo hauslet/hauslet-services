@@ -25,9 +25,11 @@ const (
 	twoFACodeRedisPrefix    = "2fa_code:"
 	twoFASetupRedisPrefix   = "2fa_setup:"
 	twoFARateLimitPrefix    = "2fa_ratelimit:"
+	twoFAPendingPrefix      = "2fa_pending:"
 	twoFACodeTTL            = 5 * time.Minute
 	twoFASetupTTL           = 10 * time.Minute
 	twoFARateLimitTTL       = 15 * time.Minute
+	twoFAPendingTTL         = 5 * time.Minute
 	backupCodeCount         = 8
 	maxVerificationAttempts = 5
 )
@@ -588,4 +590,101 @@ func (s *AuthServiceImpl) Get2FAStatus(ctx context.Context, userID string) (*dom
 		Method:          domain.TwoFactorMethod(twoFA.Method),
 		BackupCodesLeft: twoFA.BackupCodesRemaining,
 	}, nil
+}
+
+// ============================================================================
+// Two-Factor Authentication Login Flow
+// ============================================================================
+
+// Create2FAPendingState generates a temporary token and stores pending 2FA state in Redis
+func (s *AuthServiceImpl) Create2FAPendingState(ctx context.Context, userID, email, name, provider string, method domain.TwoFactorMethod) (string, error) {
+	// Generate a cryptographically secure random token
+	tokenBytes := make([]byte, 32)
+	if _, err := io.ReadFull(rand.Reader, tokenBytes); err != nil {
+		return "", fmt.Errorf("failed to generate temp token: %w", err)
+	}
+	tempToken := base64.URLEncoding.EncodeToString(tokenBytes)
+
+	// Create pending state
+	state := domain.Pending2FAState{
+		UserID:    userID,
+		Email:     email,
+		Name:      name,
+		Method:    method,
+		Provider:  provider,
+		CreatedAt: time.Now(),
+	}
+
+	// Serialize to JSON
+	jsonData, err := json.Marshal(state)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal pending state: %w", err)
+	}
+
+	// Store in Redis
+	key := twoFAPendingPrefix + tempToken
+	if err := s.redisClient.Set(ctx, key, string(jsonData), twoFAPendingTTL).Err(); err != nil {
+		return "", fmt.Errorf("failed to store pending state: %w", err)
+	}
+
+	s.log.Info("2FA pending state created", "user_id", userID, "method", method)
+	return tempToken, nil
+}
+
+// Get2FAPendingState retrieves pending 2FA state from Redis
+func (s *AuthServiceImpl) Get2FAPendingState(ctx context.Context, tempToken string) (*domain.Pending2FAState, error) {
+	if tempToken == "" {
+		return nil, errors.New("temp token is required")
+	}
+
+	key := twoFAPendingPrefix + tempToken
+	value, err := s.redisClient.Get(ctx, key).Result()
+	if err != nil {
+		return nil, errors.New("invalid or expired temp token")
+	}
+
+	var state domain.Pending2FAState
+	if err := json.Unmarshal([]byte(value), &state); err != nil {
+		return nil, errors.New("invalid pending state")
+	}
+
+	return &state, nil
+}
+
+// Delete2FAPendingState removes pending 2FA state from Redis
+func (s *AuthServiceImpl) Delete2FAPendingState(ctx context.Context, tempToken string) error {
+	key := twoFAPendingPrefix + tempToken
+	return s.redisClient.Del(ctx, key).Err()
+}
+
+// Verify2FALogin verifies the 2FA code and returns the user if successful
+func (s *AuthServiceImpl) Verify2FALogin(ctx context.Context, tempToken, code string) (*domain.User, error) {
+	// Get pending state
+	state, err := s.Get2FAPendingState(ctx, tempToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify the 2FA code
+	if err := s.Verify2FACode(ctx, state.UserID, code); err != nil {
+		// Try backup code if regular code fails
+		if bkErr := s.Verify2FABackupCode(ctx, state.UserID, code); bkErr != nil {
+			return nil, errors.New("invalid verification code")
+		}
+	}
+
+	// Delete pending state
+	_ = s.Delete2FAPendingState(ctx, tempToken)
+
+	// Get the user
+	user, err := s.GetUser(ctx, state.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	// Update last login
+	_ = s.repository.UpdateUserLastLogin(ctx, state.UserID)
+
+	s.log.Info("2FA login verified", "user_id", state.UserID)
+	return user, nil
 }

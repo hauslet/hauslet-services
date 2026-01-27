@@ -3,9 +3,8 @@ package http
 import (
 	"encoding/json"
 	"hauslet/internal/modules/auth/domain"
+	authmiddleware "hauslet/internal/modules/auth/middleware"
 	"net/http"
-
-	"github.com/go-pkgz/auth/v2/token"
 )
 
 // GetCurrentUser returns the authenticated user's profile
@@ -20,16 +19,11 @@ import (
 // @Security BearerAuth
 func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims (set by auth middleware)
-	userInfo, err := token.GetUserInfo(r)
-	if err != nil {
-		h.log.Error("Failed to get user info", "error", err)
+	userID := authmiddleware.GetUserID(r)
+	if userID == "" {
+		h.log.Error("failed to get user info")
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
-	}
-
-	userID := userInfo.StrAttr("uid")
-	if userID == "" {
-		userID = userInfo.ID
 	}
 
 	// Get user from database
@@ -73,18 +67,12 @@ func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 func (h *HTTPHandler) UpdateCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims
-	userInfo, err := token.GetUserInfo(r)
-	if err != nil {
-		h.log.Error("Failed to get user info", "error", err)
+	userID := authmiddleware.GetUserID(r)
+	if userID == "" {
+		h.log.Error("failed to get user info")
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}
-
-	userID := userInfo.StrAttr("uid")
-	if userID == "" {
-		userID = userInfo.ID
-	}
-
 	// Decode request body
 	var req domain.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -174,16 +162,11 @@ func (h *HTTPHandler) UpdateCurrentUser(w http.ResponseWriter, r *http.Request) 
 // @Security BearerAuth
 func (h *HTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims
-	userInfo, err := token.GetUserInfo(r)
-	if err != nil {
-		h.log.Error("Failed to get user info", "error", err)
+	userID := authmiddleware.GetUserID(r)
+	if userID == "" {
+		h.log.Error("failed to get user info")
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
-	}
-
-	userID := userInfo.StrAttr("uid")
-	if userID == "" {
-		userID = userInfo.ID
 	}
 
 	// Decode request body
@@ -248,16 +231,11 @@ func (h *HTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 func (h *HTTPHandler) GetUserIdentities(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims
-	userInfo, err := token.GetUserInfo(r)
-	if err != nil {
-		h.log.Error("Failed to get user info", "error", err)
+	userID := authmiddleware.GetUserID(r)
+	if userID == "" {
+		h.log.Error("failed to get user info")
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
-	}
-
-	userID := userInfo.StrAttr("uid")
-	if userID == "" {
-		userID = userInfo.ID
 	}
 
 	// Get identities
@@ -296,9 +274,9 @@ func (h *HTTPHandler) GetUserIdentities(w http.ResponseWriter, r *http.Request) 
 // @Security BearerAuth
 func (h *HTTPHandler) UnlinkIdentity(w http.ResponseWriter, r *http.Request) {
 	// Extract user from JWT claims
-	_, err := token.GetUserInfo(r)
-	if err != nil {
-		h.log.Error("Failed to get user info", "error", err)
+	userID := authmiddleware.GetUserID(r)
+	if userID == "" {
+		h.log.Error("failed to get user info")
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
 	}

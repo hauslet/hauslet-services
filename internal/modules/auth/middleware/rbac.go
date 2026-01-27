@@ -59,9 +59,9 @@ func GetUserRole(r *http.Request) string {
 
 // GetUserID extracts the user ID from token claims
 func GetUserID(r *http.Request) string {
-	user, err := token.GetUserInfo(r)
+	userinfo, err := token.GetUserInfo(r)
 	if err != nil {
 		return ""
 	}
-	return user.ID
+	return userinfo.StrAttr("uid")
 }

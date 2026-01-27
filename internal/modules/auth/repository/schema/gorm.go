@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -94,8 +95,8 @@ type User2FA struct {
 	EnabledAt *time.Time `gorm:"column:enabled_at"`
 
 	// Backup codes (stored as PostgreSQL text array)
-	BackupCodesHash      []string `gorm:"column:backup_codes_hash;type:text[]"`
-	BackupCodesRemaining int      `gorm:"column:backup_codes_remaining;default:8"`
+	BackupCodesHash      pq.StringArray `gorm:"column:backup_codes_hash;type:text[]"`
+	BackupCodesRemaining int            `gorm:"column:backup_codes_remaining;default:8"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time

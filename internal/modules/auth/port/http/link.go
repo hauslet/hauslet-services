@@ -3,8 +3,9 @@ package http
 import (
 	"net/http"
 
+	authmiddleware "hauslet/internal/modules/auth/middleware"
+
 	"github.com/go-chi/chi/v5"
-	"github.com/go-pkgz/auth/v2/token"
 
 	"hauslet/internal/modules/auth/domain"
 )
@@ -27,16 +28,11 @@ var _ = domain.ErrorResponse{}
 // @Security BearerAuth
 func (h *HTTPHandler) InitiateLinking(w http.ResponseWriter, r *http.Request) {
 	// Extract authenticated user
-	userInfo, err := token.GetUserInfo(r)
-	if err != nil {
-		h.log.Error("Failed to get user info", "error", err)
+	userID := authmiddleware.GetUserID(r)
+	if userID == "" {
+		h.log.Error("failed to get user info")
 		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
 		return
-	}
-
-	userID := userInfo.StrAttr("uid")
-	if userID == "" {
-		userID = userInfo.ID
 	}
 
 	// Get provider from URL
