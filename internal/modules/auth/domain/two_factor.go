@@ -39,9 +39,10 @@ type TwoFactorStatus struct {
 
 // SetupResponse is returned when initiating 2FA setup
 type SetupResponse struct {
-	Method    TwoFactorMethod `json:"method"`
-	QRCodeURL string          `json:"qr_code_url,omitempty"` // Only for authenticator
-	Secret    string          `json:"secret,omitempty"`      // Only for authenticator (shown once)
+	Method      TwoFactorMethod `json:"method"`
+	QRCodeURL   string          `json:"qr_code_url,omitempty"`   // otpauth:// URL (for authenticator)
+	QRCodeImage string          `json:"qr_code_image,omitempty"` // Base64 data URL for QR code image
+	Secret      string          `json:"secret,omitempty"`        // Only for authenticator (shown once)
 }
 
 // BackupCodesResult is returned after 2FA is enabled or codes regenerated

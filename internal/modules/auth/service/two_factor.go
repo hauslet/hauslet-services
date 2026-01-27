@@ -18,6 +18,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
+	"github.com/skip2/go-qrcode"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -245,6 +246,16 @@ func (s *AuthServiceImpl) initiateAuthenticatorSetup(ctx context.Context, user *
 		return nil, fmt.Errorf("failed to generate TOTP secret: %w", err)
 	}
 
+	// Generate QR code as PNG
+	otpauthURL := key.URL()
+	png, err := qrcode.Encode(otpauthURL, qrcode.Medium, 256)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate QR code: %w", err)
+	}
+
+	// Convert to base64 data URL
+	qrCodeImage := "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
+
 	// Store secret in Redis temporarily as JSON until setup is completed
 	setupData := twoFASetupData{
 		Method:     string(domain.TwoFactorAuthenticator),
@@ -261,9 +272,10 @@ func (s *AuthServiceImpl) initiateAuthenticatorSetup(ctx context.Context, user *
 	}
 
 	return &domain.SetupResponse{
-		Method:    domain.TwoFactorAuthenticator,
-		QRCodeURL: key.URL(),
-		Secret:    key.Secret(),
+		Method:      domain.TwoFactorAuthenticator,
+		QRCodeURL:   otpauthURL,
+		QRCodeImage: qrCodeImage,
+		Secret:      key.Secret(),
 	}, nil
 }
 
