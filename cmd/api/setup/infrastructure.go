@@ -21,16 +21,16 @@ import (
 
 // Infrastructure holds shared platform dependencies for the API.
 type Infrastructure struct {
-	DB            *gorm.DB
-	Storage       *storage.R2Storage
-	Email         *email.Client
-	Queue         *queue.Client
-	Cache         redis.RedisClient
+	DB      *gorm.DB
+	Storage *storage.R2Storage
+	Email   *email.Client
+	Queue   *queue.Client
+	Cache   redis.RedisClient
 	// Verification services
-	KYC           *kyc.Client
-	SMS           *sms.Client
-	Evidence      evidence.Store
-	RateLimiter   ratelimit.Limiter
+	KYC            *kyc.Client
+	SMS            *sms.Client
+	Evidence       evidence.Store
+	RateLimiter    ratelimit.Limiter
 	CircuitBreaker breaker.CircuitBreaker
 }
 
@@ -85,7 +85,7 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *slog
 		redis.CloseRedis()
 		return nil, err
 	}
-	r2Storage := storage.NewR2Storage(storageClient, &cfg.Storage.R2)
+	r2Storage := storage.NewR2Storage(storageClient, cfg.Storage.R2.BucketName)
 	log.Info(" ✅ Cloudflare R2 storage client initialized")
 
 	emailClient := InitializeEmailClient(cfg, log)

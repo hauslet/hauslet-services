@@ -12,22 +12,23 @@ import (
 )
 
 const (
-	termiiBaseURL = "https://api.ng.termii.com"
 	termiiTimeout = 30 * time.Second
 )
 
 // TermiiAdapter implements Provider for Termii
 type TermiiAdapter struct {
 	apiKey     string
+	baseURL    string
 	senderID   string
 	httpClient *http.Client
 }
 
 // NewTermiiAdapter creates a new Termii adapter
-func NewTermiiAdapter(apiKey, senderID string) *TermiiAdapter {
+func NewTermiiAdapter(apiKey, senderID, baseURL string) *TermiiAdapter {
 	return &TermiiAdapter{
 		apiKey:   apiKey,
 		senderID: senderID,
+		baseURL:  baseURL,
 		httpClient: &http.Client{
 			Timeout: termiiTimeout,
 		},
@@ -67,11 +68,11 @@ func (t *TermiiAdapter) Send(ctx context.Context, req SMSRequest) (*SMSResponse,
 
 	// 2. Prepare Termii API request
 	// Reference: https://developers.termii.com/messaging
-	termiiReq := map[string]interface{}{
+	termiiReq := map[string]any{
 		"to":      req.To,
 		"from":    t.getSenderID(req.From),
 		"sms":     req.Message,
-		"type":    "plain", // Use "unicode" if sending emojis or non-latin chars
+		"type":    "plain",
 		"channel": channel,
 		"api_key": t.apiKey,
 	}
@@ -124,7 +125,7 @@ func (t *TermiiAdapter) HealthCheck(ctx context.Context) error {
 }
 
 // Helper: makeRequest handles HTTP requests to Termii API
-func (t *TermiiAdapter) makeRequest(ctx context.Context, method, path string, body interface{}) ([]byte, error) {
+func (t *TermiiAdapter) makeRequest(ctx context.Context, method, path string, body any) ([]byte, error) {
 	var reqBody io.Reader
 	if body != nil {
 		jsonData, err := json.Marshal(body)
@@ -135,7 +136,7 @@ func (t *TermiiAdapter) makeRequest(ctx context.Context, method, path string, bo
 	}
 
 	// Termii sometimes requires the Content-Type header to be strictly set
-	req, err := http.NewRequestWithContext(ctx, method, termiiBaseURL+path, reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, t.baseURL+path, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -228,8 +229,10 @@ func isTransactionalMessage(message string) bool {
 		"one-time",
 		"one time",
 		"verification",
+		"Authentication",
 		"verify",
 		"code",
+		"2FA",
 		"passcode",
 		"security",
 		"login",

@@ -146,9 +146,11 @@ type KYCConfig struct {
 type SMSConfig struct {
 	TermiiAPIKey     string
 	TermiiSenderID   string
+	TermiiBaseURL    string
 	TwilioAccountSID string
 	TwilioAuthToken  string
 	TwilioFromNumber string
+	TwilioBaseURL    string
 }
 
 type VertexAIConfig struct {

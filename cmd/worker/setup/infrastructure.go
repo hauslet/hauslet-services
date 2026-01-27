@@ -72,7 +72,7 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *slog
 	if err != nil {
 		return nil, err
 	}
-	r2Storage := storage.NewR2Storage(storageClient, &cfg.Storage.R2)
+	r2Storage := storage.NewR2Storage(storageClient, cfg.Storage.R2.BucketName)
 
 	// AI providers
 	geminiClient, err := aimoderation.NewGeminiClient(ctx, cfg.Services.Gemini, r2Storage)
@@ -121,8 +121,17 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *slog
 	kycClient := kyc.New(kycFactory)
 
 	// SMS Client (for verification OTP)
-	termiiProvider := sms.NewTermiiAdapter(cfg.Services.SMS.TermiiAPIKey, cfg.Services.SMS.TermiiSenderID)
-	twilioProvider := sms.NewTwilioAdapter(cfg.Services.SMS.TwilioAccountSID, cfg.Services.SMS.TwilioAuthToken, cfg.Services.SMS.TwilioFromNumber)
+	termiiProvider := sms.NewTermiiAdapter(
+		cfg.Services.SMS.TermiiAPIKey,
+		cfg.Services.SMS.TermiiSenderID,
+		cfg.Services.SMS.TermiiBaseURL,
+	)
+	twilioProvider := sms.NewTwilioAdapter(
+		cfg.Services.SMS.TwilioAccountSID,
+		cfg.Services.SMS.TwilioAuthToken,
+		cfg.Services.SMS.TwilioFromNumber,
+		cfg.Services.SMS.TwilioBaseURL,
+	)
 	smsClient := sms.New(termiiProvider, twilioProvider, log)
 
 	// Evidence Store (uses R2 storage)

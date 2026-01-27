@@ -32,6 +32,7 @@ func InitSMSClient(cfg *config.GlobalConfig, log *slog.Logger) *sms.Client {
 	termiiAdapter := sms.NewTermiiAdapter(
 		cfg.Services.SMS.TermiiAPIKey,
 		cfg.Services.SMS.TermiiSenderID,
+		cfg.Services.SMS.TermiiBaseURL,
 	)
 
 	// Initialize Twilio adapter (fallback)
@@ -39,6 +40,7 @@ func InitSMSClient(cfg *config.GlobalConfig, log *slog.Logger) *sms.Client {
 		cfg.Services.SMS.TwilioAccountSID,
 		cfg.Services.SMS.TwilioAuthToken,
 		cfg.Services.SMS.TwilioFromNumber,
+		cfg.Services.SMS.TwilioBaseURL,
 	)
 
 	// Create SMS client with fallback

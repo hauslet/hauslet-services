@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	twilioBaseURL = "https://api.twilio.com/2010-04-01"
 	twilioTimeout = 30 * time.Second
 )
 
@@ -21,16 +20,18 @@ const (
 type TwilioAdapter struct {
 	accountSID string
 	authToken  string
+	baseURL    string
 	fromNumber string
 	httpClient *http.Client
 }
 
 // NewTwilioAdapter creates a new Twilio adapter
-func NewTwilioAdapter(accountSID, authToken, fromNumber string) *TwilioAdapter {
+func NewTwilioAdapter(accountSID, authToken, fromNumber, baseURL string) *TwilioAdapter {
 	return &TwilioAdapter{
 		accountSID: accountSID,
 		authToken:  authToken,
 		fromNumber: fromNumber,
+		baseURL:    baseURL,
 		httpClient: &http.Client{
 			Timeout: twilioTimeout,
 		},
@@ -135,7 +136,7 @@ func (tw *TwilioAdapter) makeRequest(ctx context.Context, method, path string, f
 		reqBody = strings.NewReader(formData.Encode())
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, twilioBaseURL+path, reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, tw.baseURL+path, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

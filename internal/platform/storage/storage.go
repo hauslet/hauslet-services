@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	cfg "hauslet/config"
 	"io"
 	"strings"
 	"time"
@@ -12,19 +11,21 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
+type BucketName string
+
 type R2Storage struct {
 	client        *s3.Client
 	presignClient *s3.PresignClient
 	bucketName    string
 }
 
-func NewR2Storage(client *s3.Client, config *cfg.R2Config) *R2Storage {
+func NewR2Storage(client *s3.Client, bucketName string) *R2Storage {
 	presignClient := s3.NewPresignClient(client)
 
 	return &R2Storage{
 		client:        client,
 		presignClient: presignClient,
-		bucketName:    config.BucketName,
+		bucketName:    bucketName,
 	}
 }
 

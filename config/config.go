@@ -115,9 +115,11 @@ func Load() *GlobalConfig {
 				SMS: SMSConfig{
 					TermiiAPIKey:     def("TERMII_API_KEY", ""),
 					TermiiSenderID:   def("TERMII_SENDER_ID", "Hauslet"),
+					TermiiBaseURL:    def("TERMII_BASE_URL", "https://v3.api.termii.com"),
 					TwilioAccountSID: def("TWILIO_ACCOUNT_SID", ""),
 					TwilioAuthToken:  def("TWILIO_AUTH_TOKEN", ""),
 					TwilioFromNumber: def("TWILIO_FROM_NUMBER", ""),
+					TwilioBaseURL:    def("TWILIO_BASE_URL", "https://api.twilio.com/2010-04-01"),
 				},
 				VertexAI: VertexAIConfig{
 					ProjectID:       def("VERTEX_AI_PROJECT_ID", ""),
