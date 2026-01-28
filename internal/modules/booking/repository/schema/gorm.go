@@ -144,27 +144,22 @@ func (b *Booking) BeforeSave(tx *gorm.DB) error {
 	return nil
 }
 
-// generateBookingReference creates a unique booking reference in format H123456-XYZ.
+// generateBookingReference creates a unique booking reference in format HM + 8 chars (e.g., HMP4M3YMWD).
 func generateBookingReference(tx *gorm.DB) (string, error) {
 	const maxRetries = 5
-	const prefix = "H"
+	const prefix = "HM"
+	const suffixLength = 8
 
-	for i := 0; i < maxRetries; i++ {
-		// 1. Generate Number Part
-		numPart, err := cryptoRandInt(100000, 999999)
+	for range maxRetries {
+		// Generate 8 alphanumeric characters
+		suffix, err := cryptoRandAlphanumeric(suffixLength)
 		if err != nil {
-			return "", fmt.Errorf("failed to generate number part: %w", err)
+			return "", fmt.Errorf("failed to generate reference suffix: %w", err)
 		}
 
-		// 2. Generate Letter Part (Using Safe Charset)
-		letterPart, err := cryptoRandSafeChars(3)
-		if err != nil {
-			return "", fmt.Errorf("failed to generate letter part: %w", err)
-		}
+		reference := prefix + suffix
 
-		reference := fmt.Sprintf("%s%d-%s", prefix, numPart, letterPart)
-
-		// 3. Check Uniqueness
+		// Check Uniqueness
 		var count int64
 		if err := tx.Model(&Booking{}).Where("booking_reference = ?", reference).Count(&count).Error; err != nil {
 			return "", fmt.Errorf("failed to check reference uniqueness: %w", err)
@@ -178,33 +173,23 @@ func generateBookingReference(tx *gorm.DB) (string, error) {
 	return "", errors.New("failed to generate unique booking reference after max retries")
 }
 
-// cryptoRandSafeChars generates n random characters from a safe list.
-// Removed: A, E, I, O, U (Vowels to prevent bad words)
-// Removed: 0, 1, I, L (To prevent visual confusion)
-func cryptoRandSafeChars(n int) (string, error) {
-	// "Crockford's Base32" inspired, but without numbers since you handle them separately
-	const letters = "BCDFGHJKMNPQRSTVWXYZ"
+// cryptoRandAlphanumeric generates n random alphanumeric characters.
+// Uses a safe charset: removed vowels (A, E, I, O, U) to prevent bad words,
+// and removed confusing chars (0, 1, L) to improve readability.
+func cryptoRandAlphanumeric(n int) (string, error) {
+	// Safe alphanumeric: no vowels, no 0/1/L for clarity
+	const charset = "BCDFGHJKMNPQRSTVWXYZ23456789"
 
 	result := make([]byte, n)
-	for i := 0; i < n; i++ {
-		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))
+	for i := range n {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		if err != nil {
 			return "", err
 		}
-		result[i] = letters[num.Int64()]
+		result[i] = charset[num.Int64()]
 	}
 
 	return string(result), nil
-}
-
-// cryptoRandInt remains the same as your original code
-func cryptoRandInt(min, max int) (int, error) {
-	rangeSize := max - min + 1
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(rangeSize)))
-	if err != nil {
-		return 0, err
-	}
-	return int(n.Int64()) + min, nil
 }
 
 // PriceBreakdownSnapshot is stored as JSON.
