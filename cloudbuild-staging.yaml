@@ -43,7 +43,7 @@ steps:
       - '-f'
       - 'deploy/Dockerfile.worker'
       - '.'
-    waitFor: ['-']
+    waitFor: ['build-api']
 
   # Step 3: Push API image
   - name: 'gcr.io/cloud-builders/docker'

@@ -45,7 +45,7 @@ steps:
       - '-f'
       - 'deploy/Dockerfile.worker'
       - '.'
-    waitFor: ['-']  # Start immediately (parallel with API build)
+    waitFor: ['build-api'] # Wait for API build to complete
 
   # Step 3: Push API image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
