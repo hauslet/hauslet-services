@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -9,6 +10,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"hauslet/internal/platform/redis"
 )
 
 // LinkState represents the state data for OAuth linking
@@ -18,17 +21,20 @@ type LinkState struct {
 	RedirectURI string    `json:"redirect_uri"`
 	Nonce       string    `json:"nonce"`
 	ExpiresAt   time.Time `json:"expires_at"`
+	TargetEmail string    `json:"target_email,omitempty"`
 }
 
 // LinkStateManager handles stateless OAuth linking state via signed tokens
 type LinkStateManager struct {
-	secret []byte
+	secret      []byte
+	redisClient redis.RedisClient
 }
 
 // NewLinkStateManager creates a new state manager
-func NewLinkStateManager(secret []byte) *LinkStateManager {
+func NewLinkStateManager(secret []byte, redisClient redis.RedisClient) *LinkStateManager {
 	return &LinkStateManager{
-		secret: secret,
+		secret:      secret,
+		redisClient: redisClient,
 	}
 }
 
@@ -62,6 +68,41 @@ func (m *LinkStateManager) GenerateState(userID, provider, redirectURI string) (
 
 	// Combine: encoded.signature
 	return fmt.Sprintf("link.%s.%s", encoded, signature), nil
+}
+
+// RegisterPendingLink stores a pending link state for lookup during OAuth callback
+func (m *LinkStateManager) RegisterPendingLink(ctx context.Context, targetEmail string, state *LinkState) error {
+	state.TargetEmail = targetEmail
+
+	// Marshal state
+	data, err := json.Marshal(state)
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
+	key := fmt.Sprintf("link_pending:%s", targetEmail)
+	return m.redisClient.Set(ctx, key, data, 10*time.Minute).Err()
+}
+
+// GetPendingLink retrieves and removes a pending link state by target email
+func (m *LinkStateManager) GetPendingLink(ctx context.Context, targetEmail string) *LinkState {
+	key := fmt.Sprintf("link_pending:%s", targetEmail)
+
+	// Get from Redis
+	val, err := m.redisClient.Get(ctx, key).Result()
+	if err != nil {
+		return nil
+	}
+
+	// Delete immediately (one-time use)
+	m.redisClient.Del(ctx, key)
+
+	var state LinkState
+	if err := json.Unmarshal([]byte(val), &state); err != nil {
+		return nil
+	}
+
+	return &state
 }
 
 // ValidateState verifies and decodes a state token

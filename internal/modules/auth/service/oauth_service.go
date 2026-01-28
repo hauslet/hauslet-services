@@ -98,6 +98,24 @@ func (s *AuthServiceImpl) OAuthService() *auth.Service {
 				return s.profileHooks.CreateDefaultProfile(ctx, userID, email, name, birthDate)
 			},
 			ProfileAvatarFetcher: profileAvatarFetcher,
+			GetPendingLink: func(email string) *oauth.LinkState {
+				if s.linkStateManager == nil {
+					return nil
+				}
+				// Get pending link from state manager
+				// Note: accessing internal LinkStateManager from service package
+				// Using Background context as we don't have request context here
+				state := s.linkStateManager.GetPendingLink(context.Background(), email)
+				if state == nil {
+					return nil
+				}
+				// Convert service.LinkState to oauth.LinkState
+				return &oauth.LinkState{
+					UserID:      state.UserID,
+					Provider:    state.Provider,
+					RedirectURI: state.RedirectURI,
+				}
+			},
 			// 2FA dependencies
 			GetUser2FA:            getUser2FA,
 			Create2FAPendingState: create2FAPendingState,

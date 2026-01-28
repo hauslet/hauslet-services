@@ -7,6 +7,8 @@ import (
 
 	"hauslet/internal/modules/auth/repository/schema"
 
+	"time"
+
 	"github.com/google/uuid"
 )
 
@@ -31,6 +33,19 @@ func (s *AuthServiceImpl) InitiateIdentityLinking(userID, provider, redirectURI 
 	if err != nil {
 		return "", fmt.Errorf("failed to generate state: %w", err)
 	}
+
+	// Register pending link so we can detect linking during OAuth callback
+	// The claims enricher will check for pending links by email
+	linkState := &LinkState{
+		UserID:      userID,
+		Provider:    provider,
+		RedirectURI: redirectURI,
+		ExpiresAt:   time.Now().Add(10 * time.Minute),
+	}
+	if err := s.linkStateManager.RegisterPendingLink(ctx, user.PrimaryEmail, linkState); err != nil {
+		return "", fmt.Errorf("failed to register pending link: %w", err)
+	}
+	s.log.Info("Registered pending link", "user_id", userID, "email", user.PrimaryEmail, "provider", provider)
 
 	// Embed the link state in the `from` parameter
 	// go-pkgz/auth preserves this through the handshake and stores it in claims.Handshake.From

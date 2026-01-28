@@ -92,6 +92,9 @@ type Pending2FAResult struct {
 	Method    TwoFactorMethod
 }
 
+// GetPendingLinkFunc retrieves a pending link state by target email
+type GetPendingLinkFunc func(email string) *LinkState
+
 // Dependencies groups the collaborators required by the OAuth service helpers.
 type Dependencies struct {
 	Config                *config.AuthConfig
@@ -99,6 +102,7 @@ type Dependencies struct {
 	Log                   *slog.Logger
 	MetadataFetcher       MetadataFetcher
 	LinkStateValidator    LinkStateValidator
+	GetPendingLink        GetPendingLinkFunc
 	AuthenticatePassword  PasswordAuthenticator
 	LinkIdentity          LinkIdentityFunc
 	SendWelcomeEmail      SendWelcomeEmailFunc

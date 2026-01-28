@@ -111,32 +111,36 @@ func (c *claimsEnricher) detectLinking(claims token.Claims) (bool, *LinkState) {
 		return false, nil
 	}
 
-	// Link state is embedded in claims.Handshake.From as a query parameter
+	// Try to detect linking via pending link state first (more robust)
+	// Extract email from user claims
+	email := claims.User.Email
+	if email == "" && claims.User.Attributes != nil {
+		if val, ok := claims.User.Attributes["email"]; ok {
+			email = val.(string)
+		}
+	}
+
+	if email != "" && c.deps.GetPendingLink != nil {
+		if linkState := c.deps.GetPendingLink(email); linkState != nil {
+			c.deps.Log.Info("detectLinking: Found pending link state", "email", email, "provider", linkState.Provider)
+			return true, linkState
+		}
+	}
+
+	// Fallback: Link state embedded in claims.Handshake.From as a query parameter
 	// e.g., "/settings?link_state=link.{base64}.{sig}"
-	if claims.Handshake == nil {
-		c.deps.Log.Info("detectLinking: claims.Handshake is nil")
+	if claims.Handshake == nil || claims.Handshake.From == "" {
 		return false, nil
 	}
-
-	if claims.Handshake.From == "" {
-		c.deps.Log.Info("detectLinking: claims.Handshake.From is empty")
-		return false, nil
-	}
-
-	c.deps.Log.Info("detectLinking: Handshake.From", "from", claims.Handshake.From)
 
 	// Parse the From URL to extract link_state parameter
 	fromURL, err := url.Parse(claims.Handshake.From)
 	if err != nil {
-		c.deps.Log.Info("detectLinking: failed to parse From URL", "error", err)
 		return false, nil
 	}
 
 	stateToken := fromURL.Query().Get("link_state")
-	c.deps.Log.Info("detectLinking: extracted link_state", "state_token", stateToken)
-
 	if !strings.HasPrefix(stateToken, "link.") {
-		c.deps.Log.Info("detectLinking: state token doesn't have link. prefix")
 		return false, nil
 	}
 

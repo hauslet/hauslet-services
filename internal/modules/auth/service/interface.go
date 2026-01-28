@@ -136,7 +136,7 @@ func NewAuthService(cfg *config.AuthConfig,
 		// queueClient:      queueClient,
 		// queueSubject:     queueSubject,
 		requestMetadata:  NewRequestMetadataStore(),
-		linkStateManager: NewLinkStateManager(cfg.EncryptAuthCodeKey),
+		linkStateManager: NewLinkStateManager(cfg.EncryptAuthCodeKey, redisClient),
 		profileHooks:     profileHooks,
 	}
 }

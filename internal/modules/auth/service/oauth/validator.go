@@ -28,6 +28,11 @@ func NewValidator(repo repository.AuthRepository, log *slog.Logger) token.Valida
 			log.Debug("Validator using fallback user ID from token", "userID", userID)
 		}
 
+		// Allow 2FA pending state to pass validation (restricted access checked by handlers)
+		if claims.User.StrAttr("login_state") == "2fa_pending" {
+			return true
+		}
+
 		sessionID := claims.User.StrAttr("sid")
 		if sessionID == "" {
 			log.Warn("Token rejected - missing session ID for user", "userID", userID)
