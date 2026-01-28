@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"net/url"
 	"strings"
 
 	"hauslet/internal/modules/auth/repository/schema"
@@ -63,6 +64,15 @@ func (c *claimsEnricher) EnrichClaims(claims token.Claims) token.Claims {
 		return claims
 	}
 
+	// Handle auto-link blocked error - return claims with error for frontend display
+	if err != nil && strings.Contains(err.Error(), "account with this email already exists") {
+		c.deps.Log.Info("OAuth: Returning auto-link blocked error to client")
+		claims.User.SetStrAttr("login_state", "auto_link_blocked")
+		claims.User.SetStrAttr("error", "account_exists")
+		claims.User.SetStrAttr("error_message", err.Error())
+		return claims
+	}
+
 	if err != nil || user == nil {
 		// Prevent issuing a token without a backed session/user (e.g., provider not linked)
 		claims.User = nil
@@ -78,6 +88,7 @@ func (c *claimsEnricher) EnrichClaims(claims token.Claims) token.Claims {
 	claims.User.Name = user.Name
 	claims.User.SetStrAttr("email", user.PrimaryEmail)
 	claims.User.SetStrAttr("role", string(user.Role))
+	claims.User.Role = string(user.Role) // Also set top-level field for clean logging
 	claims.User.SetStrAttr("pid", providerUserID)
 	claims.User.SetStrAttr("provider", provider)
 
@@ -96,15 +107,36 @@ func (c *claimsEnricher) EnrichClaims(claims token.Claims) token.Claims {
 
 func (c *claimsEnricher) detectLinking(claims token.Claims) (bool, *LinkState) {
 	if c.deps.LinkStateValidator == nil {
+		c.deps.Log.Info("detectLinking: LinkStateValidator is nil")
 		return false, nil
 	}
 
-	if claims.User == nil {
+	// Link state is embedded in claims.Handshake.From as a query parameter
+	// e.g., "/settings?link_state=link.{base64}.{sig}"
+	if claims.Handshake == nil {
+		c.deps.Log.Info("detectLinking: claims.Handshake is nil")
 		return false, nil
 	}
 
-	stateToken := claims.User.StrAttr("state")
+	if claims.Handshake.From == "" {
+		c.deps.Log.Info("detectLinking: claims.Handshake.From is empty")
+		return false, nil
+	}
+
+	c.deps.Log.Info("detectLinking: Handshake.From", "from", claims.Handshake.From)
+
+	// Parse the From URL to extract link_state parameter
+	fromURL, err := url.Parse(claims.Handshake.From)
+	if err != nil {
+		c.deps.Log.Info("detectLinking: failed to parse From URL", "error", err)
+		return false, nil
+	}
+
+	stateToken := fromURL.Query().Get("link_state")
+	c.deps.Log.Info("detectLinking: extracted link_state", "state_token", stateToken)
+
 	if !strings.HasPrefix(stateToken, "link.") {
+		c.deps.Log.Info("detectLinking: state token doesn't have link. prefix")
 		return false, nil
 	}
 
@@ -114,6 +146,7 @@ func (c *claimsEnricher) detectLinking(claims token.Claims) (bool, *LinkState) {
 		return false, nil
 	}
 
+	c.deps.Log.Info("OAuth Linking: Detected link state", "user_id", linkState.UserID, "provider", linkState.Provider)
 	return true, linkState
 }
 

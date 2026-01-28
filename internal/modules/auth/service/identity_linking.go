@@ -3,13 +3,16 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"hauslet/internal/modules/auth/repository/schema"
 
 	"github.com/google/uuid"
 )
 
-// InitiateIdentityLinking generates OAuth URL for linking a provider to authenticated user
+// InitiateIdentityLinking generates OAuth URL for linking a provider to authenticated user.
+// We redirect through go-pkgz/auth's login endpoint with the link state embedded in the `from` parameter.
+// This ensures compatibility with go-pkgz/auth's handshake token flow.
 func (s *AuthServiceImpl) InitiateIdentityLinking(userID, provider, redirectURI string) (string, error) {
 	// Validate provider
 	if provider != "google" {
@@ -23,18 +26,22 @@ func (s *AuthServiceImpl) InitiateIdentityLinking(userID, provider, redirectURI 
 		return "", fmt.Errorf("user not found")
 	}
 
-	// Generate state token
+	// Generate state token (e.g., "link.{base64_payload}.{signature}")
 	stateToken, err := s.linkStateManager.GenerateState(userID, provider, redirectURI)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate state: %w", err)
 	}
 
-	// Build OAuth URL with state
+	// Embed the link state in the `from` parameter
+	// go-pkgz/auth preserves this through the handshake and stores it in claims.Handshake.From
+	// We'll detect linking in the claims enricher by checking for "link_state=" prefix in From
+	fromURL := fmt.Sprintf("%s?link_state=%s", redirectURI, url.QueryEscape(stateToken))
+
+	// Build OAuth URL using go-pkgz/auth's login endpoint (for proper handshake token handling)
 	oauthURL := fmt.Sprintf(
-		"https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=profile email&state=%s",
-		s.cfg.GoogleClientID,
+		"%s/auth/google/login?from=%s",
 		s.cfg.RedirectURL,
-		stateToken,
+		url.QueryEscape(fromURL),
 	)
 
 	return oauthURL, nil

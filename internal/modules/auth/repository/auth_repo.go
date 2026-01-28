@@ -381,7 +381,8 @@ func (r *AuthRepositoryImpl) UpdateUserIdentity(ctx context.Context, identity *s
 		Updates(identity).Error
 }
 
-// DeleteUserIdentity soft deletes a user identity
+// DeleteUserIdentity permanently deletes a user identity (hard delete).
+// This allows re-linking the same provider identity in the future.
 func (r *AuthRepositoryImpl) DeleteUserIdentity(ctx context.Context, id string) error {
 	identityID, err := uuid.Parse(id)
 	if err != nil {
@@ -389,6 +390,7 @@ func (r *AuthRepositoryImpl) DeleteUserIdentity(ctx context.Context, id string) 
 	}
 
 	return r.db.WithContext(ctx).
+		Unscoped(). // Hard delete - removes from unique index
 		Delete(&schema.UserIdentity{}, identityID).Error
 }
 
