@@ -13,12 +13,15 @@ import (
 )
 
 // PublishListingRequest handles the lifecycle transition of a listing to 'Under Review'.
-func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.UUID) error {
+func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.UUID, requesterID uuid.UUID) error {
 	if listingID == uuid.Nil {
 		return domain.ErrInvalidListingID
 	}
+	if requesterID == uuid.Nil {
+		return domain.ErrUnauthorized
+	}
 
-	s.log.Info("starting publish request for listing", "listing_id", listingID)
+	s.log.Info("starting publish request for listing", "listing_id", listingID, "requester_id", requesterID)
 
 	// 1. Fetch Data
 	listing, err := s.ensureListing(ctx, listingID, true)
@@ -34,6 +37,23 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 	}
 
 	// 2. Validate State & Permissions
+	// Explicit ownership check
+	if listing.OwnerID != requesterID {
+		// Business check handled in validatePublishEligibility or here
+		if listing.OwnerType == domain.OwnerBusiness {
+			if s.businessAuthorizer == nil {
+				return domain.ErrForbidden
+			}
+			if err := s.businessAuthorizer.CanPublishListing(ctx, listing.OwnerID); err != nil {
+				s.log.Warn("requester lacks permission to publish business listing", "requester_id", requesterID, "listing_id", listingID)
+				return domain.ErrForbidden
+			}
+		} else {
+			s.log.Warn("requester is not the owner", "requester_id", requesterID, "owner_id", listing.OwnerID)
+			return domain.ErrForbidden
+		}
+	}
+
 	if err := s.validatePublishEligibility(ctx, listing); err != nil {
 		return err
 	}
@@ -72,17 +92,35 @@ func (s *ServiceImpl) PublishListingRequest(ctx context.Context, listingID uuid.
 }
 
 // UnpublishListing retracts an active listing.
-func (s *ServiceImpl) UnpublishListing(ctx context.Context, listingID uuid.UUID) (*domain.Listing, error) {
+func (s *ServiceImpl) UnpublishListing(ctx context.Context, listingID uuid.UUID, requesterID uuid.UUID) (*domain.Listing, error) {
 	if listingID == uuid.Nil {
 		return nil, domain.ErrInvalidListingID
 	}
+	if requesterID == uuid.Nil {
+		return nil, domain.ErrUnauthorized
+	}
 
-	s.log.Info("starting unpublish for listing", "listing_id", listingID)
+	s.log.Info("starting unpublish for listing", "listing_id", listingID, "requester_id", requesterID)
 
 	existing, err := s.ensureListing(ctx, listingID, false)
 	if err != nil {
 		s.log.Error("failed to fetch listing for unpublish", "listing_id", listingID, "error", err)
 		return nil, err
+	}
+
+	// Ownership check
+	if existing.OwnerID != requesterID {
+		if existing.OwnerType == domain.OwnerBusiness {
+			if s.businessAuthorizer == nil {
+				return nil, domain.ErrForbidden
+			}
+			if err := s.businessAuthorizer.CanEditListing(ctx, existing.OwnerID); err != nil {
+				// Retracting implies edit permission? Assuming yes.
+				return nil, domain.ErrForbidden
+			}
+		} else {
+			return nil, domain.ErrForbidden
+		}
 	}
 
 	if !existing.Published || existing.Status != domain.StatusActive {

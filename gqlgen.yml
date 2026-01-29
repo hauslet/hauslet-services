@@ -190,6 +190,8 @@ models:
     model: hauslet/internal/modules/property/domain.ListingStatus
   ReviewStatus:
     model: hauslet/internal/modules/property/domain.ReviewStatus
+  VerificationLevel:
+    model: hauslet/internal/modules/property/domain.VerificationLevel
   PaymentPeriod:
     model: hauslet/internal/modules/property/domain.PaymentPeriod
   AccommodationType:

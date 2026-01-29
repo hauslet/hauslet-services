@@ -9,7 +9,6 @@ import (
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/service"
 	"hauslet/internal/transport/graph/model"
-	"hauslet/internal/transport/graph/viewer"
 
 	"github.com/google/uuid"
 )
@@ -18,30 +17,14 @@ import (
 // HELPER FUNCTIONS
 // ===========================
 
-func isAdminRole(role string) bool {
-	return role == "admin" || role == "root"
-}
-
-func sanitizePropertyForViewer(p *domain.Property, v *viewer.Viewer) *domain.Property {
-	if p == nil {
-		return nil
-	}
-	// Admins and owners see full property
-	if v != nil && (v.UserID == p.OwnerID.String() || isAdminRole(v.Role)) {
-		return p
-	}
-	// Public view - no sensitive data to hide for properties
-	return p
-}
-
-func sanitizeListingForViewer(ctx context.Context, l *domain.Listing, v *viewer.Viewer) *domain.Listing {
+func sanitizeListingForViewer(ctx context.Context, l *domain.Listing, userID uuid.UUID) *domain.Listing {
 	if l == nil {
 		return nil
 	}
 
 	// Draft listings only visible to owner/admin/business members
 	if l.Status == domain.StatusDraft {
-		if v != nil && (v.UserID == l.OwnerID.String() || isAdminRole(v.Role)) {
+		if userID == l.OwnerID {
 			return l
 		}
 
@@ -56,8 +39,8 @@ func sanitizeListingForViewer(ctx context.Context, l *domain.Listing, v *viewer.
 		return nil
 	}
 
-	// Admins and owners see everything
-	if v != nil && (v.UserID == l.OwnerID.String() || isAdminRole(v.Role)) {
+	// Owners see everything
+	if userID == l.OwnerID {
 		return l
 	}
 
@@ -66,14 +49,36 @@ func sanitizeListingForViewer(ctx context.Context, l *domain.Listing, v *viewer.
 	clone.CreatedBy = nil
 	clone.UpdatedBy = nil
 	clone.ChangeReason = ""
+	clone.ChangeReason = ""
 	return &clone
 }
 
-func buildListingConnection(listings []domain.Listing, total int64, offset int, limit int, ctx context.Context, v *viewer.Viewer) *model.ListingConnection {
+func sanitizePropertyForViewer(ctx context.Context, p *domain.Property, userID uuid.UUID) *domain.Property {
+	if p == nil {
+		return nil
+	}
+	// Hide address fields for non-owners while letting owners or their business members see full details.
+	if userID == p.OwnerID {
+		return p
+	}
+	if bc, ok := businessmiddleware.GetBusinessContext(ctx); ok && bc.BusinessID == p.OwnerID && bc.Membership != nil {
+		return p
+	}
+
+	clone := *p
+	clone.UnitNumber = ""
+	clone.Address = ""
+	clone.City = ""
+	clone.State = ""
+	clone.PostalCode = ""
+	return &clone
+}
+
+func buildListingConnection(listings []domain.Listing, total int64, offset int, ctx context.Context, userID uuid.UUID) *model.ListingConnection {
 	edges := make([]*model.ListingEdge, 0, len(listings))
 	for i, listing := range listings {
 		l := listing
-		sanitized := sanitizeListingForViewer(ctx, &l, v)
+		sanitized := sanitizeListingForViewer(ctx, &l, userID)
 		if sanitized != nil {
 			edges = append(edges, &model.ListingEdge{
 				Node:   sanitized,

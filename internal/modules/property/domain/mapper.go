@@ -170,6 +170,9 @@ func MapListingFromSchema(schemaListing *schema.Listing) *Listing {
 		Published:             schemaListing.Published,
 		PublishedAt:           schemaListing.PublishedAt,
 		LatestReviewStatus:    ReviewStatus(schemaListing.LatestReviewStatus),
+		IsVerified:            schemaListing.IsVerified,
+		VerificationLevel:     VerificationLevel(schemaListing.VerificationLevel),
+		VerifiedAt:            schemaListing.VerifiedAt,
 		EmbeddingModel:        schemaListing.EmbeddingModel,
 		EmbeddingVersion:      schemaListing.EmbeddingVersion,
 		EmbeddingGeneratedAt:  schemaListing.EmbeddingGeneratedAt,
@@ -223,6 +226,9 @@ func MapListingToSchema(domainListing *Listing) *schema.Listing {
 		Published:             domainListing.Published,
 		PublishedAt:           domainListing.PublishedAt,
 		LatestReviewStatus:    schema.ReviewStatus(domainListing.LatestReviewStatus),
+		IsVerified:            domainListing.IsVerified,
+		VerificationLevel:     schema.VerificationLevel(domainListing.VerificationLevel),
+		VerifiedAt:            domainListing.VerifiedAt,
 		EmbeddingModel:        domainListing.EmbeddingModel,
 		EmbeddingVersion:      domainListing.EmbeddingVersion,
 		EmbeddingGeneratedAt:  domainListing.EmbeddingGeneratedAt,
@@ -526,7 +532,7 @@ func MapShortletDetailToSchema(domainDetail *ShortletDetail) *schema.ShortletDet
 		CheckOutTime:         domainDetail.CheckOutTime,
 		AccommodationType:    schema.AccommodationType(domainDetail.AccommodationType),
 		AutoGenerateCalendar: domainDetail.AutoGenerateCalendar,
-	} 
+	}
 
 	// Map rules
 	detail.Rules = MapRuleGroupsToSchema(domainDetail.Rules)

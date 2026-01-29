@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	propertyservice "hauslet/internal/modules/property/service"
 	"hauslet/internal/modules/verification/domain"
 	"hauslet/internal/modules/verification/service"
 	"hauslet/internal/transport/graph/viewer"
@@ -17,12 +18,14 @@ import (
 // Resolver handles verification-specific GraphQL operations
 type Resolver struct {
 	verificationService service.VerificationService
+	propertyService     propertyservice.PropertyService
 	log                 *slog.Logger
 }
 
-func NewResolver(verificationService service.VerificationService, log *slog.Logger) *Resolver {
+func NewResolver(verificationService service.VerificationService, propertyService propertyservice.PropertyService, log *slog.Logger) *Resolver {
 	return &Resolver{
 		verificationService: verificationService,
+		propertyService:     propertyService,
 		log:                 log,
 	}
 }
@@ -33,17 +36,12 @@ func NewResolver(verificationService service.VerificationService, log *slog.Logg
 
 // MyVerificationSession retrieves the user's verification session by type
 func (r *Resolver) MyVerificationSession(ctx context.Context, vType domain.VerificationType) (*domain.VerificationSession, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
-	userUUID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
-	session, err := r.verificationService.GetSessionByUser(ctx, userUUID, userUUID, vType)
+	session, err := r.verificationService.GetSessionByUser(ctx, userID, userID, vType)
 	if err != nil {
 		if err == domain.ErrSessionNotFound {
 			return nil, nil
@@ -57,17 +55,12 @@ func (r *Resolver) MyVerificationSession(ctx context.Context, vType domain.Verif
 
 // VerificationSession retrieves a specific verification session (admin or owner)
 func (r *Resolver) VerificationSession(ctx context.Context, id uuid.UUID) (*domain.VerificationSession, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
-	userUUID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
-	session, err := r.verificationService.GetSession(ctx, id, userUUID)
+	session, err := r.verificationService.GetSession(ctx, id, userID)
 	if err != nil {
 		r.log.Error("failed to get verification session", "session_id", id, "error", err)
 		return nil, err
@@ -78,17 +71,12 @@ func (r *Resolver) VerificationSession(ctx context.Context, id uuid.UUID) (*doma
 
 // VerificationAttempts lists attempts for a session (admin or owner)
 func (r *Resolver) VerificationAttempts(ctx context.Context, sessionID uuid.UUID) ([]*domain.VerificationAttempt, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
-	userUUID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
-	attempts, err := r.verificationService.ListAttempts(ctx, sessionID, userUUID)
+	attempts, err := r.verificationService.ListAttempts(ctx, sessionID, userID)
 	if err != nil {
 		r.log.Error("failed to list verification attempts", "session_id", sessionID, "error", err)
 		return nil, err
@@ -103,14 +91,9 @@ func (r *Resolver) VerificationAttempts(ctx context.Context, sessionID uuid.UUID
 
 // CreatePhoneVerification creates a new phone verification session
 func (r *Resolver) CreatePhoneVerification(ctx context.Context, input CreatePhoneVerificationInput) (*domain.VerificationSession, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userUUID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	phoneData := &domain.PhoneData{
@@ -119,7 +102,7 @@ func (r *Resolver) CreatePhoneVerification(ctx context.Context, input CreatePhon
 	}
 
 	req := service.CreateSessionRequest{
-		UserID:  userUUID,
+		UserID:  userID,
 		Type:    domain.VerificationPhone,
 		Tier:    domain.TierBasic,
 		Country: input.Country,
@@ -134,25 +117,20 @@ func (r *Resolver) CreatePhoneVerification(ctx context.Context, input CreatePhon
 		return nil, err
 	}
 
-	r.log.Info("phone verification session created", "session_id", session.ID, "user_id", v.UserID)
+	r.log.Info("phone verification session created", "session_id", session.ID, "user_id", userID)
 	return session, nil
 }
 
 // GeneratePhoneOTP generates and sends OTP for phone verification
 func (r *Resolver) GeneratePhoneOTP(ctx context.Context, sessionID uuid.UUID) (*OTPResponse, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userUUID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	req := service.GeneratePhoneOTPRequest{
 		SessionID: sessionID,
-		UserID:    userUUID,
+		UserID:    userID,
 	}
 
 	resp, err := r.verificationService.GeneratePhoneOTP(ctx, req)
@@ -172,19 +150,14 @@ func (r *Resolver) GeneratePhoneOTP(ctx context.Context, sessionID uuid.UUID) (*
 
 // VerifyPhoneOTP verifies the OTP code
 func (r *Resolver) VerifyPhoneOTP(ctx context.Context, sessionID uuid.UUID, code string) (*OTPVerificationResponse, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userUUID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	req := service.VerifyPhoneOTPRequest{
 		SessionID: sessionID,
-		UserID:    userUUID,
+		UserID:    userID,
 		OTPCode:   code,
 	}
 
@@ -209,14 +182,9 @@ func (r *Resolver) VerifyPhoneOTP(ctx context.Context, sessionID uuid.UUID, code
 
 // CreateIdentityVerification creates a new identity verification session
 func (r *Resolver) CreateIdentityVerification(ctx context.Context, input CreateIdentityVerificationInput) (*domain.VerificationSession, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userUUID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	var dob time.Time
@@ -233,7 +201,7 @@ func (r *Resolver) CreateIdentityVerification(ctx context.Context, input CreateI
 	}
 
 	req := service.CreateSessionRequest{
-		UserID:  userUUID,
+		UserID:  userID,
 		Type:    domain.VerificationIdentity,
 		Tier:    input.Tier,
 		Country: input.Country,
@@ -248,20 +216,15 @@ func (r *Resolver) CreateIdentityVerification(ctx context.Context, input CreateI
 		return nil, err
 	}
 
-	r.log.Info("identity verification session created", "session_id", session.ID, "user_id", v.UserID, "tier", input.Tier)
+	r.log.Info("identity verification session created", "session_id", session.ID, "user_id", userID, "tier", input.Tier)
 	return session, nil
 }
 
 // SubmitIdentityVerification submits identity verification documents
 func (r *Resolver) SubmitIdentityVerification(ctx context.Context, input SubmitIdentityVerificationInput) (*VerificationSubmitResponse, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userUUID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	selfieBytes, err := base64.StdEncoding.DecodeString(input.SelfieImage)
@@ -276,7 +239,7 @@ func (r *Resolver) SubmitIdentityVerification(ctx context.Context, input SubmitI
 
 	req := service.SubmitIdentityVerificationRequest{
 		SessionID:      input.SessionID,
-		UserID:         userUUID,
+		UserID:         userID,
 		SelfieImage:    selfieBytes,
 		DocumentImage:  documentBytes,
 		DocumentType:   input.DocumentType,
@@ -304,16 +267,10 @@ func (r *Resolver) SubmitIdentityVerification(ctx context.Context, input SubmitI
 
 // CreateAddressVerification creates a new address verification session
 func (r *Resolver) CreateAddressVerification(ctx context.Context, input CreateAddressVerificationInput) (*domain.VerificationSession, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("unauthenticated")
 	}
-
-	userUUID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
 	addressData := &domain.AddressData{
 		FullAddress: input.Address,
 		City:        input.City,
@@ -323,7 +280,7 @@ func (r *Resolver) CreateAddressVerification(ctx context.Context, input CreateAd
 	}
 
 	req := service.CreateSessionRequest{
-		UserID:  userUUID,
+		UserID:  userID,
 		Type:    domain.VerificationAddress,
 		Tier:    domain.TierBasic,
 		Country: input.Country,
@@ -338,22 +295,16 @@ func (r *Resolver) CreateAddressVerification(ctx context.Context, input CreateAd
 		return nil, err
 	}
 
-	r.log.Info("address verification session created", "session_id", session.ID, "user_id", v.UserID)
+	r.log.Info("address verification session created", "session_id", session.ID, "user_id", userID)
 	return session, nil
 }
 
 // SubmitAddressVerification submits address verification proof
 func (r *Resolver) SubmitAddressVerification(ctx context.Context, input SubmitAddressVerificationInput) (*VerificationSubmitResponse, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("unauthenticated")
 	}
-
-	userUUID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
 	documentBytes, err := base64.StdEncoding.DecodeString(input.ProofDocument)
 	if err != nil {
 		return nil, fmt.Errorf("invalid proof document encoding")
@@ -361,7 +312,7 @@ func (r *Resolver) SubmitAddressVerification(ctx context.Context, input SubmitAd
 
 	req := service.SubmitAddressVerificationRequest{
 		SessionID:     input.SessionID,
-		UserID:        userUUID,
+		UserID:        userID,
 		ProofDocument: documentBytes,
 		DocumentType:  input.DocumentType,
 	}
@@ -387,25 +338,19 @@ func (r *Resolver) SubmitAddressVerification(ctx context.Context, input SubmitAd
 
 // CreateBusinessVerification creates a new business verification session
 func (r *Resolver) CreateBusinessVerification(ctx context.Context, input CreateBusinessVerificationInput) (*domain.VerificationSession, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("unauthenticated")
 	}
-
-	userUUID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
 	businessData := &domain.BusinessData{
 		BusinessName:       input.BusinessName,
 		RegistrationNumber: *input.RegistrationNumber,
 		Country:            input.Country,
-		OwnerUserID:        &input.BusinessID,
+		OwnerUserID:        &userID,
 	}
 
 	req := service.CreateSessionRequest{
-		UserID:  userUUID,
+		UserID:  userID,
 		Type:    domain.VerificationBusiness,
 		Tier:    domain.TierBasic,
 		Country: input.Country,
@@ -420,22 +365,16 @@ func (r *Resolver) CreateBusinessVerification(ctx context.Context, input CreateB
 		return nil, err
 	}
 
-	r.log.Info("business verification session created", "session_id", session.ID, "user_id", v.UserID, "business_id", input.BusinessID)
+	r.log.Info("business verification session created", "session_id", session.ID, "user_id", userID, "business_id", input.BusinessID)
 	return session, nil
 }
 
 // SubmitBusinessVerification submits business verification documents
 func (r *Resolver) SubmitBusinessVerification(ctx context.Context, input SubmitBusinessVerificationInput) (*VerificationSubmitResponse, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("unauthenticated")
 	}
-
-	userUUID, err := uuid.Parse(v.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid user ID")
-	}
-
 	registrationBytes, err := base64.StdEncoding.DecodeString(input.RegistrationDocument)
 	if err != nil {
 		return nil, fmt.Errorf("invalid registration document encoding")
@@ -461,7 +400,7 @@ func (r *Resolver) SubmitBusinessVerification(ctx context.Context, input SubmitB
 
 	req := service.SubmitBusinessVerificationRequest{
 		SessionID:               input.SessionID,
-		UserID:                  userUUID,
+		UserID:                  userID,
 		RegistrationDocument:    registrationBytes,
 		TaxIDDocument:           taxIDBytes,
 		BusinessLicenseDocument: licenseBytes,
@@ -483,82 +422,84 @@ func (r *Resolver) SubmitBusinessVerification(ctx context.Context, input SubmitB
 }
 
 // =======================
-// Response Types
+// Mutations - Listing Verification
 // =======================
 
-type OTPResponse struct {
-	SessionID   uuid.UUID
-	OTPSent     bool
-	ExpiresAt   string
-	SMSProvider string
-	Message     string
+// CreateListingVerification creates a new listing verification session
+func (r *Resolver) CreateListingVerification(ctx context.Context, input CreateListingVerificationInput) (*domain.VerificationSession, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unauthenticated")
+	}
+	// Fetch listing to verify ownership and get property ID
+	listing, err := r.propertyService.GetListingByID(ctx, input.ListingID, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch listing: %w", err)
+	}
+	if listing == nil {
+		return nil, fmt.Errorf("listing not found")
+	}
+
+	// Verify ownership
+	if listing.OwnerID != userID {
+		return nil, fmt.Errorf("unauthorized: you do not own this listing")
+	}
+
+	listingData := &domain.ListingData{
+		ListingID:  input.ListingID,
+		PropertyID: listing.PropertyID,
+	}
+
+	req := service.CreateSessionRequest{
+		UserID:   userID,
+		TargetID: &input.ListingID,
+		Type:     domain.VerificationListing,
+		Tier:     input.Tier,
+		Country:  input.Country,
+		Data: domain.VerificationData{
+			Listing: listingData,
+		},
+	}
+
+	session, err := r.verificationService.CreateSession(ctx, req)
+	if err != nil {
+		r.log.Error("failed to create listing verification session", "error", err)
+		return nil, err
+	}
+
+	r.log.Info("listing verification session created", "session_id", session.ID, "user_id", userID, "listing_id", input.ListingID)
+	return session, nil
 }
 
-type OTPVerificationResponse struct {
-	SessionID         uuid.UUID
-	Verified          bool
-	RemainingAttempts int
-	Message           string
-	Session           *domain.VerificationSession
-}
+// SubmitListingVerification submits listing verification documents
+func (r *Resolver) SubmitListingVerification(ctx context.Context, input SubmitListingVerificationInput) (*VerificationSubmitResponse, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unauthenticated")
+	}
+	proofBytes, err := base64.StdEncoding.DecodeString(input.ProofDocument)
+	if err != nil {
+		return nil, fmt.Errorf("invalid proof document encoding")
+	}
 
-type VerificationSubmitResponse struct {
-	SessionID    uuid.UUID
-	AttemptID    uuid.UUID
-	Status       string
-	ProviderName string
-	Message      string
-}
+	req := service.SubmitListingVerificationRequest{
+		SessionID:     input.SessionID,
+		UserID:        userID,
+		ProofDocument: proofBytes,
+		DocumentType:  input.DocumentType,
+	}
 
-// =======================
-// Input Types
-// =======================
+	resp, err := r.verificationService.SubmitListingVerification(ctx, req)
+	if err != nil {
+		r.log.Error("failed to submit listing verification", "session_id", input.SessionID, "error", err)
+		return nil, err
+	}
 
-type CreatePhoneVerificationInput struct {
-	PhoneNumber string
-	Country     string
-}
-
-type CreateIdentityVerificationInput struct {
-	Tier        domain.VerificationTier
-	Country     string
-	FirstName   string
-	LastName    string
-	DateOfBirth *time.Time
-}
-
-type SubmitIdentityVerificationInput struct {
-	SessionID      uuid.UUID
-	SelfieImage    string
-	DocumentImage  string
-	DocumentType   domain.DocumentType
-	DocumentNumber *string
-}
-
-type CreateAddressVerificationInput struct {
-	Country string
-	Address string
-	City    string
-	State   string
-	ZipCode *string
-}
-
-type SubmitAddressVerificationInput struct {
-	SessionID     uuid.UUID
-	ProofDocument string
-	DocumentType  string
-}
-
-type CreateBusinessVerificationInput struct {
-	BusinessID         uuid.UUID
-	BusinessName       string
-	Country            string
-	RegistrationNumber *string
-}
-
-type SubmitBusinessVerificationInput struct {
-	SessionID               uuid.UUID
-	RegistrationDocument    string
-	TaxIDDocument           *string
-	BusinessLicenseDocument *string
+	return &VerificationSubmitResponse{
+		SessionID:    resp.Session.ID,
+		AttemptID:    resp.Attempt.ID,
+		Status:       resp.Status,
+		ProviderName: resp.ProviderName,
+		Message:      resp.Message,
+	}, nil
 }

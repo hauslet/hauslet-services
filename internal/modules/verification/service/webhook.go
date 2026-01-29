@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"hauslet/internal/modules/verification/domain"
+	"hauslet/internal/platform/events"
+	"hauslet/internal/platform/events/payoads"
 )
 
 // =======================
@@ -137,6 +139,28 @@ func (s *verificationService) notifyVerificationSuccess(ctx context.Context, ses
 			)
 			// Note: Business verification completion requires the business entity ID
 			// which should be associated with the session or looked up by registration number
+		}
+	}
+
+	// Publish verification completed event
+	if s.eventPublisher != nil {
+		userIDStr := session.UserID.String()
+		payload := payoads.VerificationCompletedPayload{
+			SessionID:        session.ID,
+			UserID:           session.UserID,
+			VerificationType: string(session.Type),
+			VerificationTier: string(session.Tier),
+			Status:           "approved",
+			CompletedAt:      now,
+			TargetID:         session.TargetID,
+			TargetType:       string(session.TargetType),
+		}
+
+		if err := s.eventPublisher.PublishVerificationEvent(ctx, events.EventVerificationCompleted, session.ID.String(), payload, &userIDStr); err != nil {
+			s.logger.Error("failed to publish verification completed event",
+				"session_id", session.ID,
+				"error", err,
+			)
 		}
 	}
 }

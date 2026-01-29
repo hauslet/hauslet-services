@@ -9,11 +9,13 @@ import (
 
 // VerificationSession is the aggregate root for all verification types
 type VerificationSession struct {
-	ID     uuid.UUID
-	UserID uuid.UUID
-	Type   VerificationType // identity, phone, address, business
-	Tier   VerificationTier
-	Status SessionStatus
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	TargetID   *uuid.UUID       // ID of the entity being verified (if different from UserID)
+	TargetType TargetType       // user, listing
+	Type       VerificationType // identity, phone, address, business
+	Tier       VerificationTier
+	Status     SessionStatus
 
 	// Type-specific data (union type - only one populated based on Type)
 	Data VerificationData
@@ -49,6 +51,7 @@ func NewVerificationSession(
 	tier VerificationTier,
 	data VerificationData,
 	country string,
+	targetID *uuid.UUID, // Optional target, defaults to UserID for user verification
 ) (*VerificationSession, error) {
 	// Validate inputs
 	if userID == uuid.Nil {
@@ -80,9 +83,26 @@ func NewVerificationSession(
 		expiryDuration = 7 * 24 * time.Hour // Default 7 days
 	}
 
+	// Determine TargetType
+	var targetType TargetType
+	if vType == VerificationListing {
+		targetType = TargetListing
+		if targetID == nil {
+			return nil, fmt.Errorf("targetID required for listing verification")
+		}
+	} else {
+		targetType = TargetUser
+		// For user verification, target is the user if not specified
+		if targetID == nil {
+			targetID = &userID
+		}
+	}
+
 	return &VerificationSession{
 		ID:           uuid.New(),
 		UserID:       userID,
+		TargetID:     targetID,
+		TargetType:   targetType,
 		Type:         vType,
 		Tier:         tier,
 		Status:       SessionPending,
@@ -245,4 +265,15 @@ func (s *VerificationSession) GetBusinessData() (*BusinessData, error) {
 		return nil, fmt.Errorf("business data not set")
 	}
 	return s.Data.Business, nil
+}
+
+// GetListingData returns listing data if session is listing type
+func (s *VerificationSession) GetListingData() (*ListingData, error) {
+	if s.Type != VerificationListing {
+		return nil, fmt.Errorf("session is not listing verification type")
+	}
+	if s.Data.Listing == nil {
+		return nil, fmt.Errorf("listing data not set")
+	}
+	return s.Data.Listing, nil
 }

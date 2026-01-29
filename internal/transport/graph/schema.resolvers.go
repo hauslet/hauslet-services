@@ -914,6 +914,24 @@ func (r *mutationResolver) SubmitBusinessVerification(ctx context.Context, input
 	return r.VerificationResolver.SubmitBusinessVerification(ctx, input)
 }
 
+// CreateListingVerification is the resolver for the createListingVerification field.
+func (r *mutationResolver) CreateListingVerification(ctx context.Context, input model.CreateListingVerificationInput) (*domain12.VerificationSession, error) {
+	return r.VerificationResolver.CreateListingVerification(ctx, graphql6.CreateListingVerificationInput{
+		ListingID: input.ListingID,
+		Tier:      input.Tier,
+		Country:   input.Country,
+	})
+}
+
+// SubmitListingVerification is the resolver for the submitListingVerification field.
+func (r *mutationResolver) SubmitListingVerification(ctx context.Context, input model.SubmitListingVerificationInput) (*graphql6.VerificationSubmitResponse, error) {
+	return r.VerificationResolver.SubmitListingVerification(ctx, graphql6.SubmitListingVerificationInput{
+		SessionID:     input.SessionID,
+		ProofDocument: input.ProofDocument,
+		DocumentType:  input.DocumentType,
+	})
+}
+
 // Currency is the resolver for the currency field.
 func (r *paymentResolver) Currency(ctx context.Context, obj *domain6.Payment) (string, error) {
 	return string(obj.Currency), nil
@@ -2021,6 +2039,11 @@ func (r *verificationAttemptResolver) ProcessingTimeMs(ctx context.Context, obj 
 	return &ms, nil
 }
 
+// TargetType is the resolver for the targetType field.
+func (r *verificationSessionResolver) TargetType(ctx context.Context, obj *domain12.VerificationSession) (*string, error) {
+	panic(fmt.Errorf("not implemented: TargetType - targetType"))
+}
+
 // OwnerType is the resolver for the ownerType field.
 func (r *walletResolver) OwnerType(ctx context.Context, obj *domain7.Wallet) (string, error) {
 	return string(obj.OwnerType), nil
@@ -2206,6 +2229,11 @@ func (r *Resolver) VerificationAttempt() VerificationAttemptResolver {
 	return &verificationAttemptResolver{r}
 }
 
+// VerificationSession returns VerificationSessionResolver implementation.
+func (r *Resolver) VerificationSession() VerificationSessionResolver {
+	return &verificationSessionResolver{r}
+}
+
 // Wallet returns WalletResolver implementation.
 func (r *Resolver) Wallet() WalletResolver { return &walletResolver{r} }
 
@@ -2271,6 +2299,7 @@ type transactionResolver struct{ *Resolver }
 type travelCompanionResolver struct{ *Resolver }
 type usageTrackingResolver struct{ *Resolver }
 type verificationAttemptResolver struct{ *Resolver }
+type verificationSessionResolver struct{ *Resolver }
 type walletResolver struct{ *Resolver }
 type wishlistResolver struct{ *Resolver }
 type wishlistItemResolver struct{ *Resolver }

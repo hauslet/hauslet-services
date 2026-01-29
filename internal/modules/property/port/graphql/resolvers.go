@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math"
 	"path/filepath"
 	"strings"
 
@@ -12,12 +11,10 @@ import (
 	profiledomain "hauslet/internal/modules/profile/domain"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/service"
-	"hauslet/internal/platform/xchange"
 	"hauslet/internal/transport/graph/helpers"
 	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/model"
 	"hauslet/internal/transport/graph/viewer"
-	localization "hauslet/internal/transport/middleware/localization"
 
 	"github.com/google/uuid"
 )
@@ -27,14 +24,12 @@ type Resolver struct {
 	propertyService service.PropertyService
 	log             *slog.Logger
 	cdnHost         string
-	fx              xchange.XChange
 }
 
-func NewResolver(propertyService service.PropertyService, cfg *config.StorageConfig, fx xchange.XChange, log *slog.Logger) *Resolver {
+func NewResolver(propertyService service.PropertyService, cfg *config.StorageConfig, log *slog.Logger) *Resolver {
 	return &Resolver{
 		propertyService: propertyService,
 		cdnHost:         cfg.R2.CDNHost,
-		fx:              fx,
 		log:             log,
 	}
 }
@@ -45,6 +40,8 @@ func NewResolver(propertyService service.PropertyService, cfg *config.StorageCon
 
 // ListingByPublicId retrieves a listing by its public ID.
 func (r *Resolver) ListingByPublicId(ctx context.Context, publicId string) (*domain.Listing, error) {
+	userID, _ := viewer.GetOptionalUserIDFromContext(ctx)
+
 	listing, err := r.propertyService.GetListingByPublicID(ctx, publicId, true)
 	if err != nil {
 		r.log.Error("failed to get listing by public ID", "public_id", publicId, "error", err)
@@ -53,20 +50,21 @@ func (r *Resolver) ListingByPublicId(ctx context.Context, publicId string) (*dom
 	if listing != nil && len(listing.Media) > 0 {
 		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
-
-	r.localizeListing(ctx, listing)
-	return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
+	r.propertyService.LocalizeListing(ctx, listing)
+	return sanitizeListingForViewer(ctx, listing, userID), nil
 }
 
 // Listing retrieves a listing by ID.
 func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
+	userID, _ := viewer.GetOptionalUserIDFromContext(ctx)
+
 	if l := loaders.For(ctx); l != nil && l.Listing != nil {
 		if listing, err := l.Listing.Load(ctx, id); err == nil {
 			if listing != nil && len(listing.Media) > 0 {
 				listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 			}
-			r.localizeListing(ctx, listing)
-			return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
+			r.propertyService.LocalizeListing(ctx, listing)
+			return sanitizeListingForViewer(ctx, listing, userID), nil
 		}
 	}
 
@@ -78,12 +76,13 @@ func (r *Resolver) Listing(ctx context.Context, id uuid.UUID) (*domain.Listing, 
 	if listing != nil && len(listing.Media) > 0 {
 		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
-	r.localizeListing(ctx, listing)
-	return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
+	r.propertyService.LocalizeListing(ctx, listing)
+	return sanitizeListingForViewer(ctx, listing, userID), nil
 }
 
 // ListingBySlug retrieves a listing by its slug.
 func (r *Resolver) ListingBySlug(ctx context.Context, slug string) (*domain.Listing, error) {
+	userID, _ := viewer.GetOptionalUserIDFromContext(ctx)
 	listing, err := r.propertyService.GetListingBySlug(ctx, slug, true)
 	if err != nil {
 		r.log.Error("failed to get listing by slug", "slug", slug, "error", err)
@@ -92,12 +91,13 @@ func (r *Resolver) ListingBySlug(ctx context.Context, slug string) (*domain.List
 	if listing != nil && len(listing.Media) > 0 {
 		listing.Media = helpers.BuildListingMediaURLs(listing.Media, r.cdnHost)
 	}
-	r.localizeListing(ctx, listing)
-	return sanitizeListingForViewer(ctx, listing, viewer.FromContext(ctx)), nil
+	r.propertyService.LocalizeListing(ctx, listing)
+	return sanitizeListingForViewer(ctx, listing, userID), nil
 }
 
 // Listings retrieves listings with cursor-based pagination.
 func (r *Resolver) Listings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
+	userID, _ := viewer.GetOptionalUserIDFromContext(ctx)
 	limit := 20
 	offset := 0
 
@@ -130,10 +130,10 @@ func (r *Resolver) Listings(ctx context.Context, filter *model.ListingFilterInpu
 		if len(listings[i].Media) > 0 {
 			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
 		}
-		r.localizeListing(ctx, &listings[i])
+		r.propertyService.LocalizeListing(ctx, &listings[i])
 	}
 
-	return buildListingConnection(listings, total, offset, limit, ctx, viewer.FromContext(ctx)), nil
+	return buildListingConnection(listings, total, offset, ctx, userID), nil
 }
 
 // ListingsByProperty retrieves listings for a specific property.
@@ -146,16 +146,9 @@ func (r *Resolver) ListingsByProperty(ctx context.Context, propertyID uuid.UUID,
 
 // MyListings retrieves listings owned by the authenticated user.
 func (r *Resolver) MyListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("Unauthenticated attempt to access myListings")
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	ownerID, err := uuid.Parse(v.UserID)
+	ownerID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("invalid user ID in myListings", "user_id", v.UserID)
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
 
 	if filter == nil {
@@ -168,18 +161,11 @@ func (r *Resolver) MyListings(ctx context.Context, filter *model.ListingFilterIn
 
 // ListingCompleteness calculates listing completeness.
 func (r *Resolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID) (*domain.ListingCompleteness, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("unauthenticated attempt to get listing completeness", "listing_id", listingID)
-		return nil, fmt.Errorf("unauthenticated")
-	}
 
-	requesterID, err := uuid.Parse(v.UserID)
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("invalid user ID in listingCompleteness", "user_id", v.UserID)
-		return nil, fmt.Errorf("invalid user ID")
+		return nil, err
 	}
-
 	completeness, err := r.propertyService.GetListingCompleteness(ctx, listingID, requesterID)
 	if err != nil {
 		r.log.Error("failed to get listing completeness", "listing_id", listingID, "error", err)
@@ -192,6 +178,7 @@ func (r *Resolver) ListingCompleteness(ctx context.Context, listingID uuid.UUID)
 // BusinessListings retrieves all listings owned by a specific business.
 func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID,
 	filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
+
 	if businessID == uuid.Nil {
 		r.log.Warn("BusinessListings called with nil businessID")
 		return nil, fmt.Errorf("businessID is required")
@@ -234,80 +221,19 @@ func (r *Resolver) BusinessListings(ctx context.Context, businessID uuid.UUID,
 		if len(listings[i].Media) > 0 {
 			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
 		}
-		r.localizeListing(ctx, &listings[i])
+		r.propertyService.LocalizeListing(ctx, &listings[i])
 	}
 
-	return buildListingConnection(listings, total, offset, limit, ctx, viewer.FromContext(ctx)), nil
-}
-
-func (r *Resolver) localizeListing(ctx context.Context, listing *domain.Listing) {
-	if listing == nil || r.fx == nil {
-		return
-	}
-
-	target, ok := localization.PreferredCurrency(ctx)
-	if !ok {
-		return
-	}
-	target = xchange.NormalizeCurrency(target)
-
-	source := string(listing.Currency)
-	if source == "" {
-		source = xchange.NormalizeCurrency("")
-	}
-	if strings.EqualFold(source, target) {
-		return
-	}
-
-	rate, err := r.fx.GetExchangeRate(source, target)
-	if err != nil {
-		r.log.Warn("failed to convert listing currency", "listing_id", listing.ID, "source_currency", source, "target_currency", target, "error", err)
-		return
-	}
-
-	convert := func(value float64) float64 {
-		return math.Round(value*rate*100) / 100
-	}
-
-	if detail := listing.ShortletDetails; detail != nil {
-		detail.NightlyRate = convert(detail.NightlyRate)
-		// Convert fees in the Fees array
-		for i := range detail.Fees {
-			detail.Fees[i].Amount = convert(detail.Fees[i].Amount)
-		}
-	}
-
-	if detail := listing.RentalDetails; detail != nil {
-		detail.RentalPrice = convert(detail.RentalPrice)
-		// Convert fees in the Fees array
-		for i := range detail.Fees {
-			detail.Fees[i].Amount = convert(detail.Fees[i].Amount)
-		}
-	}
-
-	if detail := listing.SaleDetails; detail != nil {
-		detail.SalePrice = convert(detail.SalePrice)
-		// Convert fees in the Fees array
-		for i := range detail.Fees {
-			detail.Fees[i].Amount = convert(detail.Fees[i].Amount)
-		}
-	}
-
-	listing.Currency = domain.CurrencyCode(target)
+	return buildListingConnection(listings, total, offset, ctx, businessID), nil
 }
 
 // MyIndividualListings retrieves individual listings owned by the authenticated user.
 func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.ListingFilterInput, first *int, after *string) (*model.ListingConnection, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("Unauthenticated attempt to access myIndividualListings")
-		return nil, fmt.Errorf("unauthenticated")
-	}
 
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("invalid user ID in myIndividualListings", "user_id", v.UserID)
-		return nil, fmt.Errorf("invalid user ID")
+		r.log.Error("invalid user ID in myIndividualListings", "user_id", userID)
+		return nil, err
 	}
 
 	limit := 20
@@ -337,7 +263,7 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 
 	listings, total, err := r.propertyService.ListListings(ctx, serviceFilter, servicePage)
 	if err != nil {
-		r.log.Error("failed to get individual listings", "user_id", v.UserID, "error", err)
+		r.log.Error("failed to get individual listings", "user_id", userID, "error", err)
 		return nil, err
 	}
 
@@ -346,10 +272,10 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 		if len(listings[i].Media) > 0 {
 			listings[i].Media = helpers.BuildListingMediaURLs(listings[i].Media, r.cdnHost)
 		}
-		r.localizeListing(ctx, &listings[i])
+		r.propertyService.LocalizeListing(ctx, &listings[i])
 	}
 
-	return buildListingConnection(listings, total, offset, limit, ctx, v), nil
+	return buildListingConnection(listings, total, offset, ctx, userID), nil
 }
 
 // ===========================
@@ -358,20 +284,14 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 
 // CreateListing creates a new listing with its property in a transaction.
 func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingInput) (*domain.Listing, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("Unauthenticated attempt to create listing")
-		return nil, fmt.Errorf("unauthenticated")
-	}
-
-	userID, err := uuid.Parse(v.UserID)
+	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("invalid user ID in createListing", "user_id", v.UserID)
-		return nil, fmt.Errorf("invalid user ID")
+		r.log.Error("invalid user ID in myIndividualListings", "user_id", userID)
+		return nil, err
 	}
 
 	if input.Property == nil {
-		r.log.Warn("createListing called without property payload", "user_id", v.UserID)
+		r.log.Warn("createListing called without property payload", "user_id", userID)
 		return nil, fmt.Errorf("property payload is required")
 	}
 
@@ -380,15 +300,15 @@ func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingI
 	if input.OwnerType == domain.OwnerBusiness {
 		// For business listings, businessID must be provided
 		if input.BusinessID == nil {
-			r.log.Warn("createListing called with business ownerType but no businessID", "user_id", v.UserID)
+			r.log.Warn("createListing called with business ownerType but no businessID", "user_id", userID)
 			return nil, fmt.Errorf("businessID is required when ownerType is business")
 		}
 		ownerID = *input.BusinessID
-		r.log.Info("creating business listing", "business_id", ownerID, "user_id", v.UserID)
+		r.log.Info("creating business listing", "business_id", ownerID, "user_id", userID)
 	} else {
 		// For individual listings, use userID
 		ownerID = userID
-		r.log.Info("creating individual listing", "user_id", v.UserID)
+		r.log.Info("creating individual listing", "user_id", userID)
 	}
 
 	// Map inputs to domain models
@@ -397,26 +317,21 @@ func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingI
 
 	createdProperty, createdListing, err := r.propertyService.CreatePropertyWithListing(ctx, *property, listing)
 	if err != nil {
-		r.log.Error("failed to create property with listing", "user_id", v.UserID, "error", err)
+		r.log.Error("failed to create property with listing", "user_id", userID, "error", err)
 		return nil, err
 	}
 
-	r.log.Info("property and listing created", "property_id", createdProperty.ID, "listing_id", createdListing.ID, "user_id", v.UserID)
-	return sanitizeListingForViewer(ctx, createdListing, v), nil
+	r.log.Info("property and listing created", "property_id", createdProperty.ID, "listing_id", createdListing.ID, "user_id", userID)
+	return sanitizeListingForViewer(ctx, createdListing, userID), nil
 }
 
 // UpdateListing updates an existing listing.
 func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.UpdateListingInput) (*domain.Listing, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("unauthenticated attempt to update listing", "listing_id", id)
-		return nil, fmt.Errorf("unauthenticated")
-	}
 
-	requesterID, err := uuid.Parse(v.UserID)
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("invalid user ID in updateListing", "user_id", v.UserID)
-		return nil, fmt.Errorf("invalid user ID")
+		r.log.Error("invalid user ID in myIndividualListings", "user_id", requesterID)
+		return nil, err
 	}
 
 	propUpdates := mapUpdateListingPropertyInput(input.Property)
@@ -444,7 +359,7 @@ func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.
 		}
 	}
 
-	updated, err := r.propertyService.UpdateListingWithProperty(ctx, id, listingUpdates, propUpdates, requesterID, v.Role)
+	updated, err := r.propertyService.UpdateListingWithProperty(ctx, id, listingUpdates, propUpdates, requesterID)
 	if err != nil {
 		r.log.Error("failed to update listing", "listing_id", id, "error", err)
 		return nil, err
@@ -484,27 +399,16 @@ func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.
 		updated = refetched
 	}
 
-	r.log.Info("listing updated", "listing_id", id, "user_id", v.UserID)
-	return sanitizeListingForViewer(ctx, updated, v), nil
+	r.log.Info("listing updated", "listing_id", id, "user_id", requesterID)
+	return sanitizeListingForViewer(ctx, updated, requesterID), nil
 }
 
 // DeleteListing deletes a listing.
 func (r *Resolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("unauthenticated attempt to delete listing", "listing_id", id)
-		return false, fmt.Errorf("unauthenticated")
-	}
-
-	existing, err := r.propertyService.GetListingByID(ctx, id, false)
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("failed to get listing for deletion", "listing_id", id, "error", err)
+		r.log.Error("invalid user ID in myIndividualListings", "user_id", requesterID)
 		return false, err
-	}
-
-	if existing.OwnerType != domain.OwnerBusiness && existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
-		r.log.Warn("unauthorized delete listing attempt", "user_id", v.UserID, "listing_id", id, "owner_id", existing.OwnerID)
-		return false, fmt.Errorf("forbidden: not the owner")
 	}
 
 	isHard := false
@@ -517,30 +421,25 @@ func (r *Resolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) 
 		return false, err
 	}
 
-	r.log.Info("listing deleted", "listing_id", id, "hard_delete", isHard, "user_id", v.UserID)
+	r.log.Info("listing deleted", "listing_id", id, "hard_delete", isHard, "user_id", requesterID)
 	return true, nil
 }
 
 // PublishListing publishes a listing.
 func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("unauthenticated attempt to publish listing", "listing_id", id)
-		return nil, fmt.Errorf("unauthenticated")
+	// Requirement already checked, but extracting ID for service call
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, domain.ErrUnauthorized
 	}
 
-	existing, err := r.propertyService.GetListingByID(ctx, id, false)
+	err = viewer.RequireOwnership(ctx, id)
 	if err != nil {
 		r.log.Error("failed to get listing for publishing", "listing_id", id, "error", err)
 		return nil, err
 	}
 
-	if existing.OwnerType != domain.OwnerBusiness && existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
-		r.log.Warn("unauthorized publish listing attempt", "user_id", v.UserID, "listing_id", id, "owner_id", existing.OwnerID)
-		return nil, fmt.Errorf("forbidden: not the owner")
-	}
-
-	if err := r.propertyService.PublishListingRequest(ctx, id); err != nil {
+	if err := r.propertyService.PublishListingRequest(ctx, id, requesterID); err != nil {
 		r.log.Error("failed to publish listing", "listing_id", id, "error", err)
 		return nil, err
 	}
@@ -550,37 +449,32 @@ func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Li
 		return nil, err
 	}
 
-	r.log.Info("listing publish request successful", "listing_id", id, "user_id", v.UserID)
-	return sanitizeListingForViewer(ctx, updatedListing, v), nil
+	r.log.Info("listing publish request successful", "listing_id", id, "requester_id", requesterID)
+	return sanitizeListingForViewer(ctx, updatedListing, requesterID), nil
 }
 
 // UnpublishListing unpublishes a listing.
 func (r *Resolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.Listing, error) {
-	v := viewer.FromContext(ctx)
-	if v == nil || v.UserID == "" {
-		r.log.Warn("unauthenticated attempt to unpublish listing", "listing_id", id)
-		return nil, fmt.Errorf("unauthenticated")
+	// Requirement already checked, but extracting ID for service call
+	requesterID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, domain.ErrUnauthorized
 	}
 
-	existing, err := r.propertyService.GetListingByID(ctx, id, false)
+	err = viewer.RequireOwnership(ctx, id)
 	if err != nil {
-		r.log.Error("failed to get listing for unpublishing", "listing_id", id, "error", err)
+		r.log.Error("failed to get listing for publishing", "listing_id", id, "error", err)
 		return nil, err
 	}
 
-	if existing.OwnerType != domain.OwnerBusiness && existing.OwnerID.String() != v.UserID && !isAdminRole(v.Role) {
-		r.log.Warn("unauthorized unpublish listing attempt", "user_id", v.UserID, "listing_id", id, "owner_id", existing.OwnerID)
-		return nil, fmt.Errorf("forbidden: not the owner")
-	}
-
-	updatedListing, err := r.propertyService.UnpublishListing(ctx, id)
+	updatedListing, err := r.propertyService.UnpublishListing(ctx, id, requesterID)
 	if err != nil {
 		r.log.Error("failed to unpublish listing", "listing_id", id, "error", err)
 		return nil, err
 	}
 
-	r.log.Info("listing unpublished", "listing_id", id, "user_id", v.UserID)
-	return sanitizeListingForViewer(ctx, updatedListing, v), nil
+	r.log.Info("listing unpublished", "listing_id", id, "requester_id", requesterID)
+	return sanitizeListingForViewer(ctx, updatedListing, requesterID), nil
 }
 
 // ===========================
@@ -593,10 +487,10 @@ func (r *Resolver) propertyForListing(ctx context.Context, listing *domain.Listi
 		return nil, domain.ErrPropertyNotFound
 	}
 
-	v := viewer.FromContext(ctx)
+	userID, _ := viewer.GetOptionalUserIDFromContext(ctx)
 	if l := loaders.For(ctx); l != nil && l.Property != nil {
 		if p, err := l.Property.Load(ctx, listing.PropertyID); err == nil {
-			return sanitizePropertyForViewer(p, v), nil
+			return sanitizePropertyForViewer(ctx, p, userID), nil
 		}
 	}
 
@@ -605,7 +499,7 @@ func (r *Resolver) propertyForListing(ctx context.Context, listing *domain.Listi
 		r.log.Error("failed to get property", "property_id", listing.PropertyID, "error", err)
 		return nil, err
 	}
-	return sanitizePropertyForViewer(property, v), nil
+	return sanitizePropertyForViewer(ctx, property, userID), nil
 }
 
 // Address resolves property.address via the listing relationship.

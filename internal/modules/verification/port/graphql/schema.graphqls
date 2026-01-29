@@ -5,6 +5,7 @@ enum VerificationType {
   phone
   address
   business
+  listing
 }
 
 enum SessionStatus {
@@ -55,6 +56,8 @@ type VerificationSession {
   type: VerificationType!
   tier: VerificationTier!
   status: SessionStatus!
+  targetId: UUID
+  targetType: String
   country: String!
   attemptsUsed: Int!
   maxAttempts: Int!
@@ -155,6 +158,18 @@ input SubmitBusinessVerificationInput {
   businessLicenseDocument: String # Base64
 }
 
+input CreateListingVerificationInput {
+  listingId: UUID!
+  tier: VerificationTier!
+  country: String!
+}
+
+input SubmitListingVerificationInput {
+  sessionId: UUID!
+  proofDocument: String! # Base64
+  documentType: String! # title_deed, property_tax, geo_tagged_photo
+}
+
 extend type Query {
   # Get my verification session by type
   myVerificationSession(type: VerificationType!): VerificationSession
@@ -183,4 +198,8 @@ extend type Mutation {
   # Business Verification Flow
   createBusinessVerification(input: CreateBusinessVerificationInput!): VerificationSession!
   submitBusinessVerification(input: SubmitBusinessVerificationInput!): VerificationSubmitResponse!
+
+  # Listing Verification Flow
+  createListingVerification(input: CreateListingVerificationInput!): VerificationSession!
+  submitListingVerification(input: SubmitListingVerificationInput!): VerificationSubmitResponse!
 }

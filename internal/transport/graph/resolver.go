@@ -96,7 +96,7 @@ func NewResolver(
 		eventSubscriber:      eventSubscriber,
 		AuthResolver:         authgraphql.NewResolver(authSvc),
 		ProfileResolver:      profilegraphql.NewResolver(profileSvc, &appCfg.Storage, log),
-		PropertyResolver:     propertygraphql.NewResolver(propertySvc, &appCfg.Storage, fxClient, log),
+		PropertyResolver:     propertygraphql.NewResolver(propertySvc, &appCfg.Storage, log),
 		BusinessResolver:     businessgraphql.NewResolver(businessSvc, log),
 		PaymentsResolver:     paymentsgraphql.NewResolver(paymentsSvc, log),
 		PricingResolver:      pricinggraphql.NewResolver(pricingSvc, log),
@@ -109,7 +109,7 @@ func NewResolver(
 		LeadResolver:         leadsgraphql.NewResolver(leadSvc, log),
 		InteractionsResolver: interactionsgraphql.NewResolver(interactionsTracker, interactionsReader, log),
 		DiscoveryResolver:    discoverygraphql.NewResolver(discoverySvc, log),
-		VerificationResolver: verificationgraphql.NewResolver(verificationSvc, log),
+		VerificationResolver: verificationgraphql.NewResolver(verificationSvc, propertySvc, log),
 		MessagingResolver:    messaginggraphql.NewResolver(messagingSvc, eventSubscriber, log),
 	}
 }

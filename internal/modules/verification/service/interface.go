@@ -26,7 +26,11 @@ type VerificationService interface {
 	SubmitAddressVerification(ctx context.Context, req SubmitAddressVerificationRequest) (*SubmitVerificationResponse, error)
 
 	// Business Verification
+	// Business Verification
 	SubmitBusinessVerification(ctx context.Context, req SubmitBusinessVerificationRequest) (*SubmitVerificationResponse, error)
+
+	// Listing Verification
+	SubmitListingVerification(ctx context.Context, req SubmitListingVerificationRequest) (*SubmitVerificationResponse, error)
 
 	// Evidence Management
 	UploadEvidence(ctx context.Context, req UploadEvidenceRequest) (*domain.Evidence, error)
@@ -42,4 +46,5 @@ type VerificationService interface {
 
 	// Admin Operations
 	ExpireOldSessions(ctx context.Context) (int, error)
+	ApproveVerificationSession(ctx context.Context, sessionID uuid.UUID) error
 }

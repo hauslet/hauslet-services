@@ -35,6 +35,11 @@ type Listing struct {
 	// Moderation
 	LatestReviewStatus ReviewStatus `gorm:"default:'pending'"`
 
+	// Verification
+	IsVerified        bool              `gorm:"default:false;index"`
+	VerificationLevel VerificationLevel `gorm:"size:50;default:'none'"`
+	VerifiedAt        *time.Time
+
 	// Audit
 	CreatedBy       *uuid.UUID `gorm:"type:uuid"`
 	UpdatedBy       *uuid.UUID `gorm:"type:uuid"`

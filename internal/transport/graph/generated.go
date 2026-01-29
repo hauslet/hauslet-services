@@ -106,6 +106,7 @@ type ResolverRoot interface {
 	TravelCompanion() TravelCompanionResolver
 	UsageTracking() UsageTrackingResolver
 	VerificationAttempt() VerificationAttemptResolver
+	VerificationSession() VerificationSessionResolver
 	Wallet() WalletResolver
 	Wishlist() WishlistResolver
 	WishlistItem() WishlistItemResolver
@@ -591,6 +592,7 @@ type ComplexityRoot struct {
 		ExtraDescription   func(childComplexity int) int
 		HasCalendar        func(childComplexity int) int
 		ID                 func(childComplexity int) int
+		IsVerified         func(childComplexity int) int
 		LatestReviewStatus func(childComplexity int) int
 		ListingType        func(childComplexity int) int
 		Media              func(childComplexity int, first *int) int
@@ -610,6 +612,8 @@ type ComplexityRoot struct {
 		Title              func(childComplexity int) int
 		UpdatedAt          func(childComplexity int) int
 		UpdatedBy          func(childComplexity int) int
+		VerificationLevel  func(childComplexity int) int
+		VerifiedAt         func(childComplexity int) int
 	}
 
 	ListingAnalytics struct {
@@ -792,6 +796,7 @@ type ComplexityRoot struct {
 		CreateIncludedPromotion      func(childComplexity int, input graphql7.CreateIncludedPromotionInput) int
 		CreateLead                   func(childComplexity int, input graphql8.CreateLeadInput) int
 		CreateListing                func(childComplexity int, input model.CreateListingInput) int
+		CreateListingVerification    func(childComplexity int, input model.CreateListingVerificationInput) int
 		CreateMultiPropertyDiscount  func(childComplexity int, input graphql9.CreateMultiPropertyDiscountInput) int
 		CreateOpenHouse              func(childComplexity int, input graphql5.CreateOpenHouseInput) int
 		CreatePayout                 func(childComplexity int, input graphql10.CreatePayoutInput) int
@@ -847,6 +852,7 @@ type ComplexityRoot struct {
 		SubmitAddressVerification    func(childComplexity int, input graphql6.SubmitAddressVerificationInput) int
 		SubmitBusinessVerification   func(childComplexity int, input graphql6.SubmitBusinessVerificationInput) int
 		SubmitIdentityVerification   func(childComplexity int, input graphql6.SubmitIdentityVerificationInput) int
+		SubmitListingVerification    func(childComplexity int, input model.SubmitListingVerificationInput) int
 		TrackInteraction             func(childComplexity int, input graphql13.TrackInteractionInput) int
 		UnpublishListing             func(childComplexity int, id uuid.UUID) int
 		UpdateBusiness               func(childComplexity int, id uuid.UUID, input graphql1.UpdateBusinessInput) int
@@ -1571,6 +1577,8 @@ type ComplexityRoot struct {
 		RejectionNotes  func(childComplexity int) int
 		RejectionReason func(childComplexity int) int
 		Status          func(childComplexity int) int
+		TargetID        func(childComplexity int) int
+		TargetType      func(childComplexity int) int
 		Tier            func(childComplexity int) int
 		Type            func(childComplexity int) int
 		UpdatedAt       func(childComplexity int) int
@@ -1812,6 +1820,8 @@ type MutationResolver interface {
 	SubmitAddressVerification(ctx context.Context, input graphql6.SubmitAddressVerificationInput) (*graphql6.VerificationSubmitResponse, error)
 	CreateBusinessVerification(ctx context.Context, input graphql6.CreateBusinessVerificationInput) (*domain10.VerificationSession, error)
 	SubmitBusinessVerification(ctx context.Context, input graphql6.SubmitBusinessVerificationInput) (*graphql6.VerificationSubmitResponse, error)
+	CreateListingVerification(ctx context.Context, input model.CreateListingVerificationInput) (*domain10.VerificationSession, error)
+	SubmitListingVerification(ctx context.Context, input model.SubmitListingVerificationInput) (*graphql6.VerificationSubmitResponse, error)
 }
 type PaymentResolver interface {
 	Currency(ctx context.Context, obj *domain9.Payment) (string, error)
@@ -2012,6 +2022,9 @@ type VerificationAttemptResolver interface {
 	Status(ctx context.Context, obj *domain10.VerificationAttempt) (string, error)
 
 	ProcessingTimeMs(ctx context.Context, obj *domain10.VerificationAttempt) (*int, error)
+}
+type VerificationSessionResolver interface {
+	TargetType(ctx context.Context, obj *domain10.VerificationSession) (*string, error)
 }
 type WalletResolver interface {
 	OwnerType(ctx context.Context, obj *domain6.Wallet) (string, error)
@@ -4211,6 +4224,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Listing.ID(childComplexity), true
+	case "Listing.isVerified":
+		if e.complexity.Listing.IsVerified == nil {
+			break
+		}
+
+		return e.complexity.Listing.IsVerified(childComplexity), true
 	case "Listing.latestReviewStatus":
 		if e.complexity.Listing.LatestReviewStatus == nil {
 			break
@@ -4330,6 +4349,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Listing.UpdatedBy(childComplexity), true
+	case "Listing.verificationLevel":
+		if e.complexity.Listing.VerificationLevel == nil {
+			break
+		}
+
+		return e.complexity.Listing.VerificationLevel(childComplexity), true
+	case "Listing.verifiedAt":
+		if e.complexity.Listing.VerifiedAt == nil {
+			break
+		}
+
+		return e.complexity.Listing.VerifiedAt(childComplexity), true
 
 	case "ListingAnalytics.avgTimeOnPage":
 		if e.complexity.ListingAnalytics.AvgTimeOnPage == nil {
@@ -5294,6 +5325,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateListing(childComplexity, args["input"].(model.CreateListingInput)), true
+	case "Mutation.createListingVerification":
+		if e.complexity.Mutation.CreateListingVerification == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createListingVerification_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateListingVerification(childComplexity, args["input"].(model.CreateListingVerificationInput)), true
 	case "Mutation.createMultiPropertyDiscount":
 		if e.complexity.Mutation.CreateMultiPropertyDiscount == nil {
 			break
@@ -5894,6 +5936,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SubmitIdentityVerification(childComplexity, args["input"].(graphql6.SubmitIdentityVerificationInput)), true
+	case "Mutation.submitListingVerification":
+		if e.complexity.Mutation.SubmitListingVerification == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_submitListingVerification_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SubmitListingVerification(childComplexity, args["input"].(model.SubmitListingVerificationInput)), true
 	case "Mutation.trackInteraction":
 		if e.complexity.Mutation.TrackInteraction == nil {
 			break
@@ -9983,6 +10036,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.VerificationSession.Status(childComplexity), true
+	case "VerificationSession.targetId":
+		if e.complexity.VerificationSession.TargetID == nil {
+			break
+		}
+
+		return e.complexity.VerificationSession.TargetID(childComplexity), true
+	case "VerificationSession.targetType":
+		if e.complexity.VerificationSession.TargetType == nil {
+			break
+		}
+
+		return e.complexity.VerificationSession.TargetType(childComplexity), true
 	case "VerificationSession.tier":
 		if e.complexity.VerificationSession.Tier == nil {
 			break
@@ -10216,6 +10281,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateLeadInput,
 		ec.unmarshalInputCreateListingInput,
 		ec.unmarshalInputCreateListingPropertyInput,
+		ec.unmarshalInputCreateListingVerificationInput,
 		ec.unmarshalInputCreateMultiPropertyDiscountInput,
 		ec.unmarshalInputCreateOpenHouseInput,
 		ec.unmarshalInputCreatePaymentMethodInput,
@@ -10267,6 +10333,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputSubmitAddressVerificationInput,
 		ec.unmarshalInputSubmitBusinessVerificationInput,
 		ec.unmarshalInputSubmitIdentityVerificationInput,
+		ec.unmarshalInputSubmitListingVerificationInput,
 		ec.unmarshalInputTrackInteractionInput,
 		ec.unmarshalInputTravelCompanionInput,
 		ec.unmarshalInputUpdateBusinessInput,
@@ -10694,7 +10761,15 @@ enum ReviewStatus {
   pending
   approved
   rejected
+
   inconclusive
+}
+
+enum VerificationLevel {
+  none
+  basic
+  plus
+  premium
 }
 
 enum PaymentPeriod {
@@ -10817,6 +10892,10 @@ type Listing {
   publishedAt: Time
 
   latestReviewStatus: ReviewStatus!
+  
+  isVerified: Boolean!
+  verificationLevel: VerificationLevel!
+  verifiedAt: Time
 
   createdBy: UUID
   updatedBy: UUID
@@ -13916,6 +13995,7 @@ enum VerificationType {
   phone
   address
   business
+  listing
 }
 
 enum SessionStatus {
@@ -13966,6 +14046,8 @@ type VerificationSession {
   type: VerificationType!
   tier: VerificationTier!
   status: SessionStatus!
+  targetId: UUID
+  targetType: String
   country: String!
   attemptsUsed: Int!
   maxAttempts: Int!
@@ -14066,6 +14148,18 @@ input SubmitBusinessVerificationInput {
   businessLicenseDocument: String # Base64
 }
 
+input CreateListingVerificationInput {
+  listingId: UUID!
+  tier: VerificationTier!
+  country: String!
+}
+
+input SubmitListingVerificationInput {
+  sessionId: UUID!
+  proofDocument: String! # Base64
+  documentType: String! # title_deed, property_tax, geo_tagged_photo
+}
+
 extend type Query {
   # Get my verification session by type
   myVerificationSession(type: VerificationType!): VerificationSession
@@ -14094,6 +14188,10 @@ extend type Mutation {
   # Business Verification Flow
   createBusinessVerification(input: CreateBusinessVerificationInput!): VerificationSession!
   submitBusinessVerification(input: SubmitBusinessVerificationInput!): VerificationSubmitResponse!
+
+  # Listing Verification Flow
+  createListingVerification(input: CreateListingVerificationInput!): VerificationSession!
+  submitListingVerification(input: SubmitListingVerificationInput!): VerificationSubmitResponse!
 }
 `, BuiltIn: false},
 }
@@ -14394,6 +14492,17 @@ func (ec *executionContext) field_Mutation_createLead_args(ctx context.Context, 
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateLeadInput2hausletᚋinternalᚋmodulesᚋleadsᚋportᚋgraphqlᚐCreateLeadInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createListingVerification_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateListingVerificationInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateListingVerificationInput)
 	if err != nil {
 		return nil, err
 	}
@@ -15059,6 +15168,17 @@ func (ec *executionContext) field_Mutation_submitIdentityVerification_args(ctx c
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNSubmitIdentityVerificationInput2hausletᚋinternalᚋmodulesᚋverificationᚋportᚋgraphqlᚐSubmitIdentityVerificationInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_submitListingVerification_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNSubmitListingVerificationInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐSubmitListingVerificationInput)
 	if err != nil {
 		return nil, err
 	}
@@ -18167,6 +18287,12 @@ func (ec *executionContext) fieldContext_Booking_listing(_ context.Context, fiel
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -27989,6 +28115,93 @@ func (ec *executionContext) fieldContext_Listing_latestReviewStatus(_ context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _Listing_isVerified(ctx context.Context, field graphql.CollectedField, obj *domain12.Listing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Listing_isVerified,
+		func(ctx context.Context) (any, error) {
+			return obj.IsVerified, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Listing_isVerified(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Listing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Listing_verificationLevel(ctx context.Context, field graphql.CollectedField, obj *domain12.Listing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Listing_verificationLevel,
+		func(ctx context.Context) (any, error) {
+			return obj.VerificationLevel, nil
+		},
+		nil,
+		ec.marshalNVerificationLevel2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐVerificationLevel,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Listing_verificationLevel(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Listing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type VerificationLevel does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Listing_verifiedAt(ctx context.Context, field graphql.CollectedField, obj *domain12.Listing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Listing_verifiedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.VerifiedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Listing_verifiedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Listing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Listing_createdBy(ctx context.Context, field graphql.CollectedField, obj *domain12.Listing) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -29516,6 +29729,12 @@ func (ec *executionContext) fieldContext_ListingEdge_node(_ context.Context, fie
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -30849,6 +31068,12 @@ func (ec *executionContext) fieldContext_ListingWithDistance_listing(_ context.C
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -32639,6 +32864,12 @@ func (ec *executionContext) fieldContext_Mutation_createListing(ctx context.Cont
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -32738,6 +32969,12 @@ func (ec *executionContext) fieldContext_Mutation_updateListing(ctx context.Cont
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -32878,6 +33115,12 @@ func (ec *executionContext) fieldContext_Mutation_publishListing(ctx context.Con
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -32977,6 +33220,12 @@ func (ec *executionContext) fieldContext_Mutation_unpublishListing(ctx context.C
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -37881,6 +38130,10 @@ func (ec *executionContext) fieldContext_Mutation_createPhoneVerification(ctx co
 				return ec.fieldContext_VerificationSession_tier(ctx, field)
 			case "status":
 				return ec.fieldContext_VerificationSession_status(ctx, field)
+			case "targetId":
+				return ec.fieldContext_VerificationSession_targetId(ctx, field)
+			case "targetType":
+				return ec.fieldContext_VerificationSession_targetType(ctx, field)
 			case "country":
 				return ec.fieldContext_VerificationSession_country(ctx, field)
 			case "attemptsUsed":
@@ -38064,6 +38317,10 @@ func (ec *executionContext) fieldContext_Mutation_createIdentityVerification(ctx
 				return ec.fieldContext_VerificationSession_tier(ctx, field)
 			case "status":
 				return ec.fieldContext_VerificationSession_status(ctx, field)
+			case "targetId":
+				return ec.fieldContext_VerificationSession_targetId(ctx, field)
+			case "targetType":
+				return ec.fieldContext_VerificationSession_targetType(ctx, field)
 			case "country":
 				return ec.fieldContext_VerificationSession_country(ctx, field)
 			case "attemptsUsed":
@@ -38194,6 +38451,10 @@ func (ec *executionContext) fieldContext_Mutation_createAddressVerification(ctx 
 				return ec.fieldContext_VerificationSession_tier(ctx, field)
 			case "status":
 				return ec.fieldContext_VerificationSession_status(ctx, field)
+			case "targetId":
+				return ec.fieldContext_VerificationSession_targetId(ctx, field)
+			case "targetType":
+				return ec.fieldContext_VerificationSession_targetType(ctx, field)
 			case "country":
 				return ec.fieldContext_VerificationSession_country(ctx, field)
 			case "attemptsUsed":
@@ -38324,6 +38585,10 @@ func (ec *executionContext) fieldContext_Mutation_createBusinessVerification(ctx
 				return ec.fieldContext_VerificationSession_tier(ctx, field)
 			case "status":
 				return ec.fieldContext_VerificationSession_status(ctx, field)
+			case "targetId":
+				return ec.fieldContext_VerificationSession_targetId(ctx, field)
+			case "targetType":
+				return ec.fieldContext_VerificationSession_targetType(ctx, field)
 			case "country":
 				return ec.fieldContext_VerificationSession_country(ctx, field)
 			case "attemptsUsed":
@@ -38413,6 +38678,140 @@ func (ec *executionContext) fieldContext_Mutation_submitBusinessVerification(ctx
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_submitBusinessVerification_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createListingVerification(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createListingVerification,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateListingVerification(ctx, fc.Args["input"].(model.CreateListingVerificationInput))
+		},
+		nil,
+		ec.marshalNVerificationSession2ᚖhausletᚋinternalᚋmodulesᚋverificationᚋdomainᚐVerificationSession,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createListingVerification(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_VerificationSession_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_VerificationSession_userId(ctx, field)
+			case "type":
+				return ec.fieldContext_VerificationSession_type(ctx, field)
+			case "tier":
+				return ec.fieldContext_VerificationSession_tier(ctx, field)
+			case "status":
+				return ec.fieldContext_VerificationSession_status(ctx, field)
+			case "targetId":
+				return ec.fieldContext_VerificationSession_targetId(ctx, field)
+			case "targetType":
+				return ec.fieldContext_VerificationSession_targetType(ctx, field)
+			case "country":
+				return ec.fieldContext_VerificationSession_country(ctx, field)
+			case "attemptsUsed":
+				return ec.fieldContext_VerificationSession_attemptsUsed(ctx, field)
+			case "maxAttempts":
+				return ec.fieldContext_VerificationSession_maxAttempts(ctx, field)
+			case "lastAttemptAt":
+				return ec.fieldContext_VerificationSession_lastAttemptAt(ctx, field)
+			case "approvedAt":
+				return ec.fieldContext_VerificationSession_approvedAt(ctx, field)
+			case "rejectedAt":
+				return ec.fieldContext_VerificationSession_rejectedAt(ctx, field)
+			case "rejectionReason":
+				return ec.fieldContext_VerificationSession_rejectionReason(ctx, field)
+			case "rejectionNotes":
+				return ec.fieldContext_VerificationSession_rejectionNotes(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_VerificationSession_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_VerificationSession_updatedAt(ctx, field)
+			case "expiresAt":
+				return ec.fieldContext_VerificationSession_expiresAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_VerificationSession_completedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type VerificationSession", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createListingVerification_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_submitListingVerification(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_submitListingVerification,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SubmitListingVerification(ctx, fc.Args["input"].(model.SubmitListingVerificationInput))
+		},
+		nil,
+		ec.marshalNVerificationSubmitResponse2ᚖhausletᚋinternalᚋmodulesᚋverificationᚋportᚋgraphqlᚐVerificationSubmitResponse,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_submitListingVerification(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "sessionId":
+				return ec.fieldContext_VerificationSubmitResponse_sessionId(ctx, field)
+			case "attemptId":
+				return ec.fieldContext_VerificationSubmitResponse_attemptId(ctx, field)
+			case "status":
+				return ec.fieldContext_VerificationSubmitResponse_status(ctx, field)
+			case "providerName":
+				return ec.fieldContext_VerificationSubmitResponse_providerName(ctx, field)
+			case "message":
+				return ec.fieldContext_VerificationSubmitResponse_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type VerificationSubmitResponse", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_submitListingVerification_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -38714,6 +39113,10 @@ func (ec *executionContext) fieldContext_OTPVerificationResponse_session(_ conte
 				return ec.fieldContext_VerificationSession_tier(ctx, field)
 			case "status":
 				return ec.fieldContext_VerificationSession_status(ctx, field)
+			case "targetId":
+				return ec.fieldContext_VerificationSession_targetId(ctx, field)
+			case "targetType":
+				return ec.fieldContext_VerificationSession_targetType(ctx, field)
 			case "country":
 				return ec.fieldContext_VerificationSession_country(ctx, field)
 			case "attemptsUsed":
@@ -45799,6 +46202,12 @@ func (ec *executionContext) fieldContext_Query_listing(ctx context.Context, fiel
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -45898,6 +46307,12 @@ func (ec *executionContext) fieldContext_Query_listingByPublicId(ctx context.Con
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -45997,6 +46412,12 @@ func (ec *executionContext) fieldContext_Query_listingBySlug(ctx context.Context
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -52548,6 +52969,10 @@ func (ec *executionContext) fieldContext_Query_myVerificationSession(ctx context
 				return ec.fieldContext_VerificationSession_tier(ctx, field)
 			case "status":
 				return ec.fieldContext_VerificationSession_status(ctx, field)
+			case "targetId":
+				return ec.fieldContext_VerificationSession_targetId(ctx, field)
+			case "targetType":
+				return ec.fieldContext_VerificationSession_targetType(ctx, field)
 			case "country":
 				return ec.fieldContext_VerificationSession_country(ctx, field)
 			case "attemptsUsed":
@@ -52625,6 +53050,10 @@ func (ec *executionContext) fieldContext_Query_verificationSession(ctx context.C
 				return ec.fieldContext_VerificationSession_tier(ctx, field)
 			case "status":
 				return ec.fieldContext_VerificationSession_status(ctx, field)
+			case "targetId":
+				return ec.fieldContext_VerificationSession_targetId(ctx, field)
+			case "targetType":
+				return ec.fieldContext_VerificationSession_targetType(ctx, field)
 			case "country":
 				return ec.fieldContext_VerificationSession_country(ctx, field)
 			case "attemptsUsed":
@@ -52890,6 +53319,12 @@ func (ec *executionContext) fieldContext_RankedListing_listing(_ context.Context
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -55431,6 +55866,12 @@ func (ec *executionContext) fieldContext_ScoredListing_listing(_ context.Context
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -59672,6 +60113,64 @@ func (ec *executionContext) fieldContext_VerificationSession_status(_ context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _VerificationSession_targetId(ctx context.Context, field graphql.CollectedField, obj *domain10.VerificationSession) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VerificationSession_targetId,
+		func(ctx context.Context) (any, error) {
+			return obj.TargetID, nil
+		},
+		nil,
+		ec.marshalOUUID2ᚖgithubᚗcomᚋgoogleᚋuuidᚐUUID,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VerificationSession_targetId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VerificationSession",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VerificationSession_targetType(ctx context.Context, field graphql.CollectedField, obj *domain10.VerificationSession) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_VerificationSession_targetType,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.VerificationSession().TargetType(ctx, obj)
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_VerificationSession_targetType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VerificationSession",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _VerificationSession_country(ctx context.Context, field graphql.CollectedField, obj *domain10.VerificationSession) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -60854,6 +61353,12 @@ func (ec *executionContext) fieldContext_WishlistItem_listing(_ context.Context,
 				return ec.fieldContext_Listing_publishedAt(ctx, field)
 			case "latestReviewStatus":
 				return ec.fieldContext_Listing_latestReviewStatus(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_Listing_isVerified(ctx, field)
+			case "verificationLevel":
+				return ec.fieldContext_Listing_verificationLevel(ctx, field)
+			case "verifiedAt":
+				return ec.fieldContext_Listing_verifiedAt(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_Listing_createdBy(ctx, field)
 			case "updatedBy":
@@ -63485,6 +63990,47 @@ func (ec *executionContext) unmarshalInputCreateListingPropertyInput(ctx context
 				return it, err
 			}
 			it.FeaturesCommercial = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCreateListingVerificationInput(ctx context.Context, obj any) (model.CreateListingVerificationInput, error) {
+	var it model.CreateListingVerificationInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"listingId", "tier", "country"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "listingId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("listingId"))
+			data, err := ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ListingID = data
+		case "tier":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tier"))
+			data, err := ec.unmarshalNVerificationTier2hausletᚋinternalᚋmodulesᚋverificationᚋdomainᚐVerificationTier(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Tier = data
+		case "country":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("country"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Country = data
 		}
 	}
 
@@ -66466,6 +67012,47 @@ func (ec *executionContext) unmarshalInputSubmitIdentityVerificationInput(ctx co
 				return it, err
 			}
 			it.DocumentNumber = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputSubmitListingVerificationInput(ctx context.Context, obj any) (model.SubmitListingVerificationInput, error) {
+	var it model.SubmitListingVerificationInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"sessionId", "proofDocument", "documentType"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "sessionId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sessionId"))
+			data, err := ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.SessionID = data
+		case "proofDocument":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("proofDocument"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ProofDocument = data
+		case "documentType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("documentType"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DocumentType = data
 		}
 	}
 
@@ -71601,6 +72188,18 @@ func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "isVerified":
+			out.Values[i] = ec._Listing_isVerified(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "verificationLevel":
+			out.Values[i] = ec._Listing_verificationLevel(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "verifiedAt":
+			out.Values[i] = ec._Listing_verifiedAt(ctx, field, obj)
 		case "createdBy":
 			out.Values[i] = ec._Listing_createdBy(ctx, field, obj)
 		case "updatedBy":
@@ -73839,6 +74438,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "submitBusinessVerification":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_submitBusinessVerification(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createListingVerification":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createListingVerification(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "submitListingVerification":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_submitListingVerification(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -80863,42 +81476,77 @@ func (ec *executionContext) _VerificationSession(ctx context.Context, sel ast.Se
 		case "id":
 			out.Values[i] = ec._VerificationSession_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "userId":
 			out.Values[i] = ec._VerificationSession_userId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "type":
 			out.Values[i] = ec._VerificationSession_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "tier":
 			out.Values[i] = ec._VerificationSession_tier(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "status":
 			out.Values[i] = ec._VerificationSession_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
+		case "targetId":
+			out.Values[i] = ec._VerificationSession_targetId(ctx, field, obj)
+		case "targetType":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._VerificationSession_targetType(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "country":
 			out.Values[i] = ec._VerificationSession_country(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "attemptsUsed":
 			out.Values[i] = ec._VerificationSession_attemptsUsed(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "maxAttempts":
 			out.Values[i] = ec._VerificationSession_maxAttempts(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "lastAttemptAt":
 			out.Values[i] = ec._VerificationSession_lastAttemptAt(ctx, field, obj)
@@ -80913,17 +81561,17 @@ func (ec *executionContext) _VerificationSession(ctx context.Context, sel ast.Se
 		case "createdAt":
 			out.Values[i] = ec._VerificationSession_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "updatedAt":
 			out.Values[i] = ec._VerificationSession_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "expiresAt":
 			out.Values[i] = ec._VerificationSession_expiresAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "completedAt":
 			out.Values[i] = ec._VerificationSession_completedAt(ctx, field, obj)
@@ -82665,6 +83313,11 @@ func (ec *executionContext) unmarshalNCreateListingInput2hausletᚋinternalᚋtr
 func (ec *executionContext) unmarshalNCreateListingPropertyInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateListingPropertyInput(ctx context.Context, v any) (*model.CreateListingPropertyInput, error) {
 	res, err := ec.unmarshalInputCreateListingPropertyInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNCreateListingVerificationInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCreateListingVerificationInput(ctx context.Context, v any) (model.CreateListingVerificationInput, error) {
+	res, err := ec.unmarshalInputCreateListingVerificationInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNCreateMultiPropertyDiscountInput2hausletᚋinternalᚋmodulesᚋpricingᚋportᚋgraphqlᚐCreateMultiPropertyDiscountInput(ctx context.Context, v any) (graphql9.CreateMultiPropertyDiscountInput, error) {
@@ -85811,6 +86464,11 @@ func (ec *executionContext) unmarshalNSubmitIdentityVerificationInput2hausletᚋ
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNSubmitListingVerificationInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐSubmitListingVerificationInput(ctx context.Context, v any) (model.SubmitListingVerificationInput, error) {
+	res, err := ec.unmarshalInputSubmitListingVerificationInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNSubscriptionStatus2hausletᚋinternalᚋmodulesᚋpromotionsᚋdomainᚐSubscriptionStatus(ctx context.Context, v any) (domain3.SubscriptionStatus, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain3.SubscriptionStatus(tmp)
@@ -86304,6 +86962,23 @@ func (ec *executionContext) marshalNVerificationAttempt2ᚖhausletᚋinternalᚋ
 		return graphql.Null
 	}
 	return ec._VerificationAttempt(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNVerificationLevel2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐVerificationLevel(ctx context.Context, v any) (domain12.VerificationLevel, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain12.VerificationLevel(tmp)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNVerificationLevel2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐVerificationLevel(ctx context.Context, sel ast.SelectionSet, v domain12.VerificationLevel) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(string(v))
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) marshalNVerificationSession2hausletᚋinternalᚋmodulesᚋverificationᚋdomainᚐVerificationSession(ctx context.Context, sel ast.SelectionSet, v domain10.VerificationSession) graphql.Marshaler {

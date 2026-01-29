@@ -117,6 +117,15 @@ const (
 	ReviewInconclusive ReviewStatus = "inconclusive"
 )
 
+type VerificationLevel string
+
+const (
+	VerificationLevelNone    VerificationLevel = "none"
+	VerificationLevelBasic   VerificationLevel = "basic"   // Digital check
+	VerificationLevelPlus    VerificationLevel = "plus"    // Video/Live check
+	VerificationLevelPremium VerificationLevel = "premium" // On-site inspection
+)
+
 // --- 4. DETAILS ---
 
 type PaymentPeriod string

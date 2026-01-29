@@ -11,9 +11,11 @@ import (
 	"hauslet/internal/modules/property/notification"
 	"hauslet/internal/modules/property/repository"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
+	"hauslet/internal/platform/events"
 	platformQueue "hauslet/internal/platform/queue"
 	"hauslet/internal/platform/redis"
 	"hauslet/internal/platform/storage"
+	"hauslet/internal/platform/xchange"
 
 	"github.com/google/uuid"
 	"golang.org/x/sync/singleflight"
@@ -46,8 +48,9 @@ type PropertyService interface {
 	ListListings(ctx context.Context, filter ListingFilter, page Pagination) ([]domain.Listing, int64, error)
 	DeleteListing(ctx context.Context, id uuid.UUID, hard bool) error
 	GetListingCompleteness(ctx context.Context, listingID uuid.UUID, requesterID uuid.UUID) (*domain.ListingCompleteness, error)
-	PublishListingRequest(ctx context.Context, listingID uuid.UUID) error
-	UnpublishListing(ctx context.Context, listingID uuid.UUID) (*domain.Listing, error)
+	PublishListingRequest(ctx context.Context, listingID uuid.UUID, requesterID uuid.UUID) error
+	UnpublishListing(ctx context.Context, listingID uuid.UUID, requesterID uuid.UUID) (*domain.Listing, error)
+	LocalizeListing(ctx context.Context, listing *domain.Listing)
 
 	// Listing media
 	UploadListingMedia(ctx context.Context, listingID uuid.UUID, media []domain.ListingMediaInput) ([]domain.ListingMediaResult, error)
@@ -61,7 +64,10 @@ type PropertyService interface {
 
 	// Composite operations
 	CreatePropertyWithListing(ctx context.Context, p domain.Property, l domain.Listing) (*domain.Property, *domain.Listing, error)
-	UpdateListingWithProperty(ctx context.Context, id uuid.UUID, listingUpdates map[string]any, propertyUpdates map[string]any, requesterID uuid.UUID, requesterRole string) (*domain.Listing, error)
+	UpdateListingWithProperty(ctx context.Context, id uuid.UUID, listingUpdates map[string]any, propertyUpdates map[string]any, requesterID uuid.UUID) (*domain.Listing, error)
+
+	// Event Handling
+	SubscribeToVerificationEvents(ctx context.Context, subscriber *events.Subscriber) error
 }
 
 // BusinessAuthorizer defines permission checks for business-owned listings.
@@ -98,6 +104,7 @@ type ServiceImpl struct {
 	businessService     businessservice.BusinessService
 	subscriptionService promotionservice.SubscriptionService
 	supplyGate          authorization.SupplyGate
+	fx                  xchange.XChange
 }
 
 // NewPropertyService creates a new property service.
@@ -111,6 +118,7 @@ func NewPropertyService(repo repository.Repository,
 	cache redis.RedisClient,
 	embedding *aiembeddings.Client,
 	log *slog.Logger,
+	fx xchange.XChange,
 	businessAuthorizer BusinessAuthorizer,
 	businessService businessservice.BusinessService,
 	subscriptionService promotionservice.SubscriptionService,
@@ -131,5 +139,6 @@ func NewPropertyService(repo repository.Repository,
 		businessService:     businessService,
 		subscriptionService: subscriptionService,
 		supplyGate:          supplyGate,
+		fx:                  fx,
 	}
 }

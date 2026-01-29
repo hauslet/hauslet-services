@@ -27,6 +27,7 @@ func (s *verificationService) CreateSession(ctx context.Context, req CreateSessi
 		req.Tier,
 		req.Data,
 		req.Country,
+		req.TargetID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create session: %w", err)

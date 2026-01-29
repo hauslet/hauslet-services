@@ -87,6 +87,21 @@ func GetUserIDFromContext(ctx context.Context) (uuid.UUID, error) {
 	return userID, nil
 }
 
+// GetOptionalUserIDFromContext extracts user ID from context without error
+func GetOptionalUserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
+	v := FromContext(ctx)
+	if v == nil || v.UserID == "" {
+		return uuid.Nil, false
+	}
+
+	userID, err := uuid.Parse(v.UserID)
+	if err != nil {
+		return uuid.Nil, false
+	}
+
+	return userID, true
+}
+
 // RequireOwnership ensures user owns the resource
 func RequireOwnership(ctx context.Context, resourceOwnerID uuid.UUID) error {
 	v := FromContext(ctx)

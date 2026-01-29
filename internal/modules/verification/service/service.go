@@ -7,6 +7,7 @@ import (
 	"hauslet/internal/modules/verification/port"
 	"hauslet/internal/modules/verification/repository"
 	"hauslet/internal/platform/breaker"
+	"hauslet/internal/platform/events"
 	"hauslet/internal/platform/evidence"
 	"hauslet/internal/platform/kyc"
 	"hauslet/internal/platform/queue"
@@ -28,7 +29,8 @@ type verificationService struct {
 	redisClient     redis.RedisClient
 	profileAdapter  port.ProfileAdapter
 	businessAdapter port.BusinessAdapter
-	queueClient     *queue.Client // Still needed for other jobs?
+	queueClient     *queue.Client
+	eventPublisher  *events.Publisher
 	config          *config.GlobalConfig
 	logger          *slog.Logger
 }
@@ -45,6 +47,7 @@ func NewVerificationService(
 	profileAdapter port.ProfileAdapter,
 	businessAdapter port.BusinessAdapter,
 	queueClient *queue.Client,
+	eventPublisher *events.Publisher,
 	cfg *config.GlobalConfig,
 	logger *slog.Logger,
 ) VerificationService {
@@ -67,6 +70,7 @@ func NewVerificationService(
 		profileAdapter:  profileAdapter,
 		businessAdapter: businessAdapter,
 		queueClient:     queueClient,
+		eventPublisher:  eventPublisher,
 		config:          cfg,
 		logger:          logger,
 	}
@@ -75,6 +79,7 @@ func NewVerificationService(
 // CreateSessionRequest contains data for creating a verification session
 type CreateSessionRequest struct {
 	UserID    uuid.UUID
+	TargetID  *uuid.UUID
 	Type      domain.VerificationType
 	Tier      domain.VerificationTier
 	Data      domain.VerificationData
@@ -111,6 +116,15 @@ type SubmitBusinessVerificationRequest struct {
 	TaxIDDocument           *[]byte
 	BusinessLicenseDocument *[]byte
 	IPAddress               *string
+}
+
+// SubmitListingVerificationRequest contains data for submitting listing verification
+type SubmitListingVerificationRequest struct {
+	SessionID     uuid.UUID
+	UserID        uuid.UUID
+	ProofDocument []byte
+	DocumentType  string // title_deed, property_tax, geo_tagged_photo
+	IPAddress     *string
 }
 
 // GeneratePhoneOTPRequest contains data for generating OTP

@@ -8,6 +8,7 @@ const (
 	VerificationPhone    VerificationType = "phone"    // Phone number + OTP verification
 	VerificationAddress  VerificationType = "address"  // Physical address verification
 	VerificationBusiness VerificationType = "business" // Business/entity verification
+	VerificationListing  VerificationType = "listing"  // Listing verification
 )
 
 func (v VerificationType) String() string {
@@ -16,7 +17,7 @@ func (v VerificationType) String() string {
 
 func (v VerificationType) IsValid() bool {
 	switch v {
-	case VerificationIdentity, VerificationPhone, VerificationAddress, VerificationBusiness:
+	case VerificationIdentity, VerificationPhone, VerificationAddress, VerificationBusiness, VerificationListing:
 		return true
 	}
 	return false
@@ -165,7 +166,7 @@ const (
 	EvidenceLiveness      EvidenceType = "liveness_video"
 
 	// Address verification evidence
-	EvidenceAddressUtilityBill  EvidenceType = "address_utility_bill"
+	EvidenceAddressUtilityBill   EvidenceType = "address_utility_bill"
 	EvidenceAddressBankStatement EvidenceType = "address_bank_statement"
 	EvidenceAddressLease         EvidenceType = "address_lease"
 	EvidenceAddressOther         EvidenceType = "address_other"
@@ -178,6 +179,11 @@ const (
 
 	// Phone verification evidence (metadata/logs)
 	EvidencePhoneOTP EvidenceType = "phone_otp"
+
+	// Listing verification evidence
+	EvidenceTitleDeed      EvidenceType = "title_deed"
+	EvidencePropertyTax    EvidenceType = "property_tax_receipt"
+	EvidenceGeoTaggedPhoto EvidenceType = "geo_tagged_photo"
 )
 
 func (e EvidenceType) String() string {
@@ -189,7 +195,28 @@ func (e EvidenceType) IsValid() bool {
 	case EvidenceDocumentFront, EvidenceDocumentBack, EvidenceSelfie, EvidenceLiveness,
 		EvidenceAddressUtilityBill, EvidenceAddressBankStatement, EvidenceAddressLease, EvidenceAddressOther,
 		EvidenceBusinessRegistration, EvidenceBusinessTaxID, EvidenceBusinessLicense, EvidenceBusinessAddress,
-		EvidencePhoneOTP:
+		EvidencePhoneOTP,
+		EvidenceTitleDeed, EvidencePropertyTax, EvidenceGeoTaggedPhoto:
+		return true
+	}
+	return false
+}
+
+// TargetType defines what entity is being verified
+type TargetType string
+
+const (
+	TargetUser    TargetType = "user"
+	TargetListing TargetType = "listing"
+)
+
+func (t TargetType) String() string {
+	return string(t)
+}
+
+func (t TargetType) IsValid() bool {
+	switch t {
+	case TargetUser, TargetListing:
 		return true
 	}
 	return false

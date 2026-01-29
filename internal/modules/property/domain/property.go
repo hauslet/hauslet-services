@@ -109,6 +109,11 @@ type Listing struct {
 	// Moderation
 	LatestReviewStatus ReviewStatus `json:"latest_review_status"`
 
+	// Verification
+	IsVerified        bool              `json:"is_verified"`
+	VerificationLevel VerificationLevel `json:"verification_level"`
+	VerifiedAt        *time.Time        `json:"verified_at,omitempty"`
+
 	// Embedding metadata
 	EmbeddingModel        *string    `json:"embedding_model,omitempty"`
 	EmbeddingVersion      *string    `json:"embedding_version,omitempty"`

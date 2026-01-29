@@ -46,3 +46,37 @@ func (s *verificationService) ExpireOldSessions(ctx context.Context) (int, error
 	s.logger.Info("expired old sessions", "count", count)
 	return count, nil
 }
+
+// ApproveVerificationSession manually approves a verification session (Admin only)
+func (s *verificationService) ApproveVerificationSession(ctx context.Context, sessionID uuid.UUID) error {
+	// 1. Get Session
+	// Note: Authentication/Authorization for 'Admin' role should be handled at the handler/resolver layer.
+	// We use direct repo access here assuming caller has authorized this action.
+	session, err := s.repo.GetSessionByID(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+	if session == nil {
+		return domain.ErrSessionNotFound
+	}
+
+	// 2. Approve
+	if err := session.Approve(); err != nil {
+		return err
+	}
+
+	// 3. Update DB
+	if err := s.repo.UpdateSession(ctx, session); err != nil {
+		return err
+	}
+
+	// 4. Notify/Publish Event
+	s.notifyVerificationSuccess(ctx, session)
+
+	s.logger.Info("verification session manually approved",
+		"session_id", session.ID,
+		"type", session.Type,
+	)
+
+	return nil
+}

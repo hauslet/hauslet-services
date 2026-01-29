@@ -137,6 +137,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			nil, // cache (not needed)
 			infra.embedding,
 			log,
+			nil, // fx (not needed)
 			nil, // business auth (not needed)
 			nil, // business svc (not needed)
 			nil, // subscription svc (not needed)
@@ -912,6 +913,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				nil, // profile adapter not needed for worker
 				nil, // business adapter not needed for worker
 				nil, // queue client not needed in worker (handlers use queue directly)
+				nil, // eventPublisher not needed in worker (or not initialized)
 				cfg,
 				log,
 			)

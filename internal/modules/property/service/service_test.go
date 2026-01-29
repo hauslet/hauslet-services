@@ -51,7 +51,23 @@ func newMockService(t *testing.T) (service.PropertyService, sqlmock.Sqlmock, fun
 	repo := repository.NewPropertyRepository(gdb)
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc := service.NewPropertyService(repo, nil, nil, nil, nil, "", nil, nil, nil, logger, nil, nil, &mockSubscriptionService{}, nil)
+	svc := service.NewPropertyService(
+		repo,
+		nil,
+		nil,
+		nil,
+		nil,
+		"",
+		nil,
+		nil,
+		nil,
+		logger,
+		nil, // fx (not needed)
+		nil,
+		nil,
+		&mockSubscriptionService{},
+		nil,
+	)
 
 	cleanup := func() { sqlDB.Close() }
 	return svc, mock, cleanup
@@ -337,8 +353,41 @@ func TestServiceUpdateListingPreservesSlug(t *testing.T) {
 		))
 
 	mock.ExpectExec(`UPDATE "listings"`).
-		WithArgs(anyArgs(30)...).
+		WithArgs(anyArgs(33)...).
 		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	mock.ExpectQuery(`SELECT .* FROM "properties" WHERE id = \$1`).
+		WithArgs(propertyID, 1).
+		WillReturnRows(sqlmock.NewRows([]string{
+			"id", "public_id", "unit_number", "address", "city", "state", "postal_code", "country", "location", "property_class", "property_type", "furnishing_type", "property_condition", "bedrooms", "bathrooms", "toilets", "half_bathrooms", "floors", "units", "owner_id", "square_meters", "floor_area", "amenities", "features_commercial", "created_at", "updated_at",
+		}).AddRow(
+			propertyID,
+			"PUB12345",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"NG",
+			nil,
+			"residential",
+			"apartment",
+			"furnished",
+			"used",
+			nil,
+			nil,
+			nil,
+			nil,
+			0,
+			1,
+			ownerID,
+			0.0,
+			nil,
+			[]byte("[]"),
+			[]byte("[]"),
+			now,
+			now,
+		))
 
 	updated, err := svc.UpdateListing(ctx, domain.Listing{
 		ID:          listingID,

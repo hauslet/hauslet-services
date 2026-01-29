@@ -555,11 +555,19 @@ func (c *Container) initProperty() error {
 		*c.Redis,
 		c.EmbeddingAI,
 		c.Logger,
+		c.FXClient,
 		businessmiddleware.NewPropertyAuthHelper(c.BusinessSvc),
 		c.BusinessSvc,
 		c.SubscriptionSvc,
 		c.SupplyGate,
 	)
+
+	// Subscribe to verification events
+	if c.EventSubscriber != nil {
+		if err := c.PropertySvc.SubscribeToVerificationEvents(context.Background(), c.EventSubscriber); err != nil {
+			c.Logger.Error("failed to subscribe to verification events", "error", err)
+		}
+	}
 
 	return nil
 }
@@ -1038,6 +1046,7 @@ func (c *Container) initVerification() error {
 		profileVerificationAdapter,
 		businessVerificationAdapter,
 		c.Queue,
+		c.EventPublisher,
 		c.Config,
 		c.Logger,
 	)

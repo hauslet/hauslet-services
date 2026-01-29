@@ -14,6 +14,7 @@ type VerificationData struct {
 	Phone    *PhoneData    `json:"phone,omitempty"`
 	Address  *AddressData  `json:"address,omitempty"`
 	Business *BusinessData `json:"business,omitempty"`
+	Listing  *ListingData  `json:"listing,omitempty"`
 }
 
 // ValidateForType ensures data matches the verification type
@@ -39,6 +40,11 @@ func (v *VerificationData) ValidateForType(vType VerificationType) error {
 			return fmt.Errorf("business data required for business verification")
 		}
 		return v.Business.Validate()
+	case VerificationListing:
+		if v.Listing == nil {
+			return fmt.Errorf("listing data required for listing verification")
+		}
+		return v.Listing.Validate()
 	default:
 		return fmt.Errorf("unknown verification type: %s", vType)
 	}
@@ -63,14 +69,14 @@ func (i *IdentityData) Validate() error {
 // PhoneData contains phone verification specific information
 // Note: OTP code is stored in Redis with TTL, not in this struct
 type PhoneData struct {
-	PhoneNumber     string     `json:"phone_number"`      // E.164 format
-	CountryCode     string     `json:"country_code"`      // ISO 3166-1 alpha-2
-	OTPGeneratedAt  *time.Time `json:"otp_generated_at,omitempty"`
-	OTPExpiresAt    *time.Time `json:"otp_expires_at,omitempty"`
-	OTPAttempts     int        `json:"otp_attempts"`       // Number of failed OTP verification attempts
-	MaxOTPAttempts  int        `json:"max_otp_attempts"`   // Maximum allowed attempts
-	VerifiedAt      *time.Time `json:"verified_at,omitempty"`
-	SMSProvider     *string    `json:"sms_provider,omitempty"` // Which SMS provider was used
+	PhoneNumber    string     `json:"phone_number"` // E.164 format
+	CountryCode    string     `json:"country_code"` // ISO 3166-1 alpha-2
+	OTPGeneratedAt *time.Time `json:"otp_generated_at,omitempty"`
+	OTPExpiresAt   *time.Time `json:"otp_expires_at,omitempty"`
+	OTPAttempts    int        `json:"otp_attempts"`     // Number of failed OTP verification attempts
+	MaxOTPAttempts int        `json:"max_otp_attempts"` // Maximum allowed attempts
+	VerifiedAt     *time.Time `json:"verified_at,omitempty"`
+	SMSProvider    *string    `json:"sms_provider,omitempty"` // Which SMS provider was used
 }
 
 func (p *PhoneData) Validate() error {
@@ -104,16 +110,16 @@ func (p *PhoneData) IsOTPExpired() bool {
 
 // AddressData contains address verification specific information
 type AddressData struct {
-	FullAddress    string     `json:"full_address"`
-	Street         string     `json:"street"`
-	City           string     `json:"city"`
-	State          string     `json:"state"`
-	PostalCode     string     `json:"postal_code"`
-	Country        string     `json:"country"`         // ISO 3166-1 alpha-2
-	DocumentType   string     `json:"document_type"`   // utility_bill, bank_statement, lease, etc.
-	IssueDate      *time.Time `json:"issue_date,omitempty"`
-	VerifiedAt     *time.Time `json:"verified_at,omitempty"`
-	MatchScore     *float64   `json:"match_score,omitempty"` // Confidence score from verification service
+	FullAddress  string     `json:"full_address"`
+	Street       string     `json:"street"`
+	City         string     `json:"city"`
+	State        string     `json:"state"`
+	PostalCode   string     `json:"postal_code"`
+	Country      string     `json:"country"`       // ISO 3166-1 alpha-2
+	DocumentType string     `json:"document_type"` // utility_bill, bank_statement, lease, etc.
+	IssueDate    *time.Time `json:"issue_date,omitempty"`
+	VerifiedAt   *time.Time `json:"verified_at,omitempty"`
+	MatchScore   *float64   `json:"match_score,omitempty"` // Confidence score from verification service
 }
 
 func (a *AddressData) Validate() error {
@@ -134,21 +140,21 @@ func (a *AddressData) Validate() error {
 
 // BusinessData contains business verification specific information
 type BusinessData struct {
-	BusinessName        string     `json:"business_name"`
-	RegistrationNumber  string     `json:"registration_number"`
-	TaxID               *string    `json:"tax_id,omitempty"`
-	BusinessType        string     `json:"business_type"` // llc, corporation, sole_proprietorship, etc.
-	IncorporationDate   *time.Time `json:"incorporation_date,omitempty"`
-	Country             string     `json:"country"` // ISO 3166-1 alpha-2
-	BusinessAddress     Address    `json:"business_address"`
+	BusinessName       string     `json:"business_name"`
+	RegistrationNumber string     `json:"registration_number"`
+	TaxID              *string    `json:"tax_id,omitempty"`
+	BusinessType       string     `json:"business_type"` // llc, corporation, sole_proprietorship, etc.
+	IncorporationDate  *time.Time `json:"incorporation_date,omitempty"`
+	Country            string     `json:"country"` // ISO 3166-1 alpha-2
+	BusinessAddress    Address    `json:"business_address"`
 
 	// Ownership/Directors
-	OwnerUserID         *uuid.UUID `json:"owner_user_id,omitempty"`
-	BeneficialOwners    []string   `json:"beneficial_owners,omitempty"` // Names
-	Directors           []string   `json:"directors,omitempty"`         // Names
+	OwnerUserID      *uuid.UUID `json:"owner_user_id,omitempty"`
+	BeneficialOwners []string   `json:"beneficial_owners,omitempty"` // Names
+	Directors        []string   `json:"directors,omitempty"`         // Names
 
-	VerifiedAt          *time.Time `json:"verified_at,omitempty"`
-	VerificationProvider *string   `json:"verification_provider,omitempty"`
+	VerifiedAt           *time.Time `json:"verified_at,omitempty"`
+	VerificationProvider *string    `json:"verification_provider,omitempty"`
 }
 
 func (b *BusinessData) Validate() error {
@@ -169,6 +175,27 @@ func (b *BusinessData) Validate() error {
 	}
 	if err := b.BusinessAddress.Validate(); err != nil {
 		return fmt.Errorf("invalid business address: %w", err)
+	}
+	return nil
+}
+
+// ListingData contains listing verification specific information
+type ListingData struct {
+	ListingID  uuid.UUID  `json:"listing_id"`
+	PropertyID uuid.UUID  `json:"property_id"`
+	ProofType  string     `json:"proof_type"` // title_deed, utility_bill, geo_tag, etc.
+	VerifiedAt *time.Time `json:"verified_at,omitempty"`
+}
+
+func (l *ListingData) Validate() error {
+	if l.ListingID == uuid.Nil {
+		return fmt.Errorf("listing ID is required")
+	}
+	if l.PropertyID == uuid.Nil {
+		return fmt.Errorf("property ID is required")
+	}
+	if l.ProofType == "" {
+		return fmt.Errorf("proof type is required")
 	}
 	return nil
 }

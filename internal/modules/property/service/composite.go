@@ -74,7 +74,7 @@ func (s *ServiceImpl) CreatePropertyWithListing(ctx context.Context, p domain.Pr
 }
 
 // UpdateListingWithProperty updates a listing and optionally its property with ownership and admin checks.
-func (s *ServiceImpl) UpdateListingWithProperty(ctx context.Context, id uuid.UUID, listingUpdates map[string]any, propertyUpdates map[string]any, requesterID uuid.UUID, requesterRole string) (*domain.Listing, error) {
+func (s *ServiceImpl) UpdateListingWithProperty(ctx context.Context, id uuid.UUID, listingUpdates map[string]any, propertyUpdates map[string]any, requesterID uuid.UUID) (*domain.Listing, error) {
 	if id == uuid.Nil {
 		return nil, domain.ErrInvalidListingID
 	}
@@ -88,7 +88,7 @@ func (s *ServiceImpl) UpdateListingWithProperty(ctx context.Context, id uuid.UUI
 		return nil, err
 	}
 
-	if !isAdminRole(requesterRole) && existing.OwnerID != requesterID {
+	if existing.OwnerID != requesterID {
 		// Allow business members (via authorizer) to update business-owned listings when they have edit permission.
 		if existing.OwnerType == domain.OwnerBusiness {
 			if s.businessAuthorizer == nil {
@@ -125,8 +125,4 @@ func (s *ServiceImpl) UpdateListingWithProperty(ctx context.Context, id uuid.UUI
 	}
 
 	return listing, nil
-}
-
-func isAdminRole(role string) bool {
-	return role == "admin" || role == "root"
 }

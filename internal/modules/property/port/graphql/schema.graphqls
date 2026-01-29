@@ -89,7 +89,15 @@ enum ReviewStatus {
   pending
   approved
   rejected
+
   inconclusive
+}
+
+enum VerificationLevel {
+  none
+  basic
+  plus
+  premium
 }
 
 enum PaymentPeriod {
@@ -212,6 +220,10 @@ type Listing {
   publishedAt: Time
 
   latestReviewStatus: ReviewStatus!
+  
+  isVerified: Boolean!
+  verificationLevel: VerificationLevel!
+  verifiedAt: Time
 
   createdBy: UUID
   updatedBy: UUID

@@ -164,3 +164,68 @@ func (s *NotificationService) SendListingRejectedNotification(ctx context.Contex
 	})
 	return nil
 }
+
+// SendListingVerificationAcceptedNotification notifies the listing owner that their listing has been verified.
+func (s *NotificationService) SendListingVerificationAcceptedNotification(ctx context.Context, listingTitle, receipientName, recipientEmail string) error {
+	subject := "Your listing has been verified on Hauslet"
+	preview := "Great news! Your listing is now verified and has the trusted badge."
+
+	emailData := map[string]any{
+		"OwnerName":    receipientName,
+		"ListingTitle": listingTitle,
+		"ListingURL":   s.baseURL + "/listings", // TODO: Deep link to specific listing
+
+		// Required for the Layout
+		"Subject": subject,
+		"Preview": preview,
+		"Year":    time.Now().Year(),
+	}
+	htmlBody, err := s.mailClient.RenderTemplate(
+		propertytemplates.FS,
+		"listing_verification_approved.html",
+		emailData,
+	)
+	if err != nil {
+		return err
+	}
+	s.sendEmailAsync("send listing verification accepted notification email", func() error {
+		// Send directly no queuing as this will be called by a worker/event handler
+		return s.mailClient.SendHTML(ctx, recipientEmail, subject, htmlBody)
+	})
+	return nil
+}
+
+// SendListingVerificationRejectedNotification notifies the listing owner that their verification failed.
+func (s *NotificationService) SendListingVerificationRejectedNotification(ctx context.Context, listingTitle, toName, toEmail string, reason string) error {
+	subject := "Listing verification failed"
+	preview := "We were unable to verify your listing based on the documents provided."
+
+	// Wrap single reason in slice for consistency with template if needed,
+	// or update template to handle single string.
+	// The rejected template uses Range, so let's pass a slice.
+	reasons := []string{reason}
+
+	emailData := map[string]any{
+		"OwnerName":        toName,
+		"ListingTitle":     listingTitle,
+		"RejectionReasons": reasons,
+		"ListingURL":       s.baseURL + "/listings", // TODO: Deep link to verification tab
+
+		// Required for the Layout
+		"Subject": subject,
+		"Preview": preview,
+		"Year":    time.Now().Year(),
+	}
+	htmlBody, err := s.mailClient.RenderTemplate(
+		propertytemplates.FS,
+		"listing_verification_rejected.html",
+		emailData,
+	)
+	if err != nil {
+		return err
+	}
+	s.sendEmailAsync("send listing verification rejected notification email", func() error {
+		return s.mailClient.SendHTML(ctx, toEmail, subject, htmlBody)
+	})
+	return nil
+}
