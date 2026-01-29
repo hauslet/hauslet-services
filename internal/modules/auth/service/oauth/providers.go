@@ -69,7 +69,7 @@ func setupEmailProvider(service *auth.Service, deps Dependencies) {
 	sender := NewPasswordlessSender(
 		deps.SendPasswordlessEmail,
 		deps.GenerateAndStoreOTP,
-		deps.Config.RedirectURL, // base URL for magic links
+		deps.Config.ClientRedirectURL, // base URL for magic links
 		passwordlessTokenTTLMinutes,
 	)
 

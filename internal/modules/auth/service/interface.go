@@ -121,20 +121,14 @@ func NewAuthService(cfg *config.AuthConfig,
 	repository repository.AuthRepository,
 	log *slog.Logger,
 	notifier *notification.NotificationService,
-	// emailClient *email.Client,
 	redisClient redis.RedisClient,
-	// queueClient *queue.Client,
-	// queueSubject string,
 	profileHooks ProfileHooks) AuthService {
 	return &AuthServiceImpl{
 		cfg:        cfg,
 		repository: repository,
 		log:        log,
 		notifier:   notifier,
-		// mailClient:       emailClient,
 		redisClient: redisClient,
-		// queueClient:      queueClient,
-		// queueSubject:     queueSubject,
 		requestMetadata:  NewRequestMetadataStore(),
 		linkStateManager: NewLinkStateManager(cfg.EncryptAuthCodeKey, redisClient),
 		profileHooks:     profileHooks,
@@ -143,7 +137,7 @@ func NewAuthService(cfg *config.AuthConfig,
 
 // GetSiteURL returns the configured site URL (used as JWT audience).
 func (s *AuthServiceImpl) GetSiteURL() string {
-	return s.cfg.RedirectURL
+	return s.cfg.ServerURL
 }
 func (s *AuthServiceImpl) StoreRequestMetadata(email, ip, userAgent string) {
 	s.requestMetadata.Set(email, ip, userAgent)

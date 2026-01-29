@@ -131,7 +131,7 @@ func NewService(deps Dependencies) *auth.Service {
 		TokenDuration:     deps.Config.TokenDuration,
 		CookieDuration:    deps.Config.CookieDuration,
 		Issuer:            "Hauslet",
-		URL:               deps.Config.RedirectURL,
+		URL:               deps.Config.ServerURL,
 		AvatarStore:       avatar.NewLocalFS(deps.Config.AvatarStorePath),
 		SendJWTHeader:     false,
 		DisableXSRF:       deps.Config.DisableXSRF,

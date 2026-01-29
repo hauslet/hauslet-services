@@ -30,15 +30,16 @@ func Load() *GlobalConfig {
 			App: AppConfig{
 				Env:    must("APP_ENV"),
 				Port:   def("PORT", "8080"),
-				Client: def("CLIENT", "http://localhost:3000"),
-				Server: def("SERVER", "http://localhost:3000/v1"),
+				Client: def("CLIENT_URL", "http://localhost:8080"),
+				Server: def("SERVER_URL", "http://localhost:3000"),
 			},
 			Auth: AuthConfig{
 				JWTSecret:          must("JWT_SECRET"),
 				EncryptAuthCodeKey: mustKey("ENCRYPTION_KEY"),
 				GoogleClientID:     must("GOOGLE_CLIENT_ID"),
 				GoogleCLSecret:     must("GOOGLE_CLIENT_SECRET"),
-				RedirectURL:        must("REDIRECT_URL"),
+				ClientRedirectURL:  must("CLIENT_URL"),
+				ServerURL:          def("SERVER_URL", "http://localhost:3000"),
 				SessionDuration:    getDuration("SESSION_DURATION", "24h"),
 
 				// Security settings (configurable)

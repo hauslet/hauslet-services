@@ -55,7 +55,7 @@ func (s *AuthServiceImpl) InitiateIdentityLinking(userID, provider, redirectURI 
 	// Build OAuth URL using go-pkgz/auth's login endpoint (for proper handshake token handling)
 	oauthURL := fmt.Sprintf(
 		"%s/auth/google/login?from=%s",
-		s.cfg.RedirectURL,
+		s.cfg.ServerURL,
 		url.QueryEscape(fromURL),
 	)
 

@@ -29,7 +29,8 @@ type AuthConfig struct {
 	EncryptAuthCodeKey []byte
 	GoogleClientID     string
 	GoogleCLSecret     string
-	RedirectURL        string
+	ClientRedirectURL  string
+	ServerURL          string
 	SessionDuration    time.Duration
 
 	// Security settings (configurable via env vars)
