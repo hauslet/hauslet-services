@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"hauslet/internal/modules/leads/domain"
 	"hauslet/internal/modules/leads/repository"
+	aiassist "hauslet/internal/platform/ai/assist"
 	"hauslet/internal/platform/events"
 	"hauslet/internal/platform/events/payoads"
+	"hauslet/internal/queue/jobs/leads"
 	"time"
 
 	"github.com/google/uuid"
@@ -236,7 +238,95 @@ func (s *ServiceImpl) CreateLead(ctx context.Context, input CreateLeadInput) (*d
 		s.log.Info("lead created event published", "lead_id", lead.ID)
 	}
 
+	// 11. Enqueue AI Qualification if not spam
+	// We only qualify leads that pass the initial spam filter and aren't obviously spam
+	if !lead.IsSpam && lead.SpamScore < 0.7 && s.queue != nil {
+		jobPayload := leads.QualificationJobPayload{LeadID: lead.ID}
+		if err := s.queue.Publish(ctx, leads.QualificationJobType, jobPayload); err != nil {
+			s.log.Error("failed to pass lead qualification job", "lead_id", lead.ID, "error", err)
+			// Proceed without failing request
+		} else {
+			s.log.Info("enqueued lead qualification job", "lead_id", lead.ID)
+		}
+	}
+
 	return lead, nil
+}
+
+// QualifyLead analyzes a lead using AI to determine quality and intent
+func (s *ServiceImpl) QualifyLead(ctx context.Context, leadID uuid.UUID) error {
+	// 1. Get lead
+	leadSchema, err := s.leadRepo.GetLeadByID(ctx, leadID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return domain.ErrLeadNotFound
+		}
+		return fmt.Errorf("failed to get lead: %w", err)
+	}
+	lead := domain.MapLeadFromSchema(leadSchema)
+
+	// 2. Skip if already processed or invalid state
+	if lead.IsSpam || lead.Status == domain.StatusSpam {
+		s.log.Info("skipping qualification for spam lead", "lead_id", leadID)
+		return nil
+	}
+
+	// 3. Call AI Assist
+	if s.aiAssist == nil {
+		s.log.Warn("ai assist client not configured, skipping qualification", "lead_id", leadID)
+		return nil
+	}
+
+	input := aiassist.LeadQualificationInput{
+		Name:    lead.Name,
+		Email:   lead.Email,
+		Message: lead.Message,
+		Source:  string(lead.Source),
+	}
+
+	result, err := s.aiAssist.QualifyLead(ctx, input)
+	if err != nil {
+		return fmt.Errorf("ai qualification failed: %w", err)
+	}
+
+	// 4. Update Lead with qualification results
+	// Store in CustomMetadata
+	if lead.CustomMetadata == nil {
+		lead.CustomMetadata = make(map[string]any)
+	}
+
+	lead.CustomMetadata["ai_qualification"] = map[string]any{
+		"score":        result.Score,
+		"reason":       result.Reason,
+		"intent":       result.Intent,
+		"urgency":      result.Urgency,
+		"qualified_at": time.Now().Format(time.RFC3339),
+	}
+
+	// If score is very low, mark as spam? Or just low quality?
+	// User said: "If a lead passes all above layers do we send it to a specialized prompt... to extract intent, budget, and sentiment."
+	// We are just storing it for now.
+
+	// 5. Save updates
+	err = s.leadRepo.Transaction(ctx, func(tx *gorm.DB) error {
+		updatedSchema, err := domain.MapLeadToSchema(lead)
+		if err != nil {
+			return err
+		}
+		return s.leadRepo.UpdateLead(ctx, updatedSchema)
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to save qualification results: %w", err)
+	}
+
+	s.log.Info("lead qualified successfully",
+		"lead_id", leadID,
+		"ai_score", result.Score,
+		"intent", result.Intent,
+	)
+
+	return nil
 }
 
 // GetLead retrieves a lead by ID with authorization check

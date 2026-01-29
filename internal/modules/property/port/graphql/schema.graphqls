@@ -801,6 +801,17 @@ input PropertyFilterExtension {
   amenities: [String!] # Must have ALL these amenities (AND logic)
 }
 
+input GenerateListingDescriptionInput {
+  propertyType: String!
+  city: String!
+  state: String!
+  bedrooms: Int!
+  bathrooms: Int!
+  amenities: [String!]
+  highlights: [String!]
+  tone: String
+}
+
 input ListingFilterInput {
   query: String
   ownerId: UUID
@@ -870,4 +881,7 @@ extend type Mutation {
   # Publishing
   publishListing(id: UUID!): Listing!
   unpublishListing(id: UUID!): Listing!
+
+  # AI Features
+  generateListingDescription(input: GenerateListingDescriptionInput!): String!
 }

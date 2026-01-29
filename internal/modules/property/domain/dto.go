@@ -280,3 +280,15 @@ func NewValidationError(field, message string) *ValidationError {
 		Message: message,
 	}
 }
+
+// GenerateListingDescriptionInput DTO for description generation
+type GenerateListingDescriptionInput struct {
+	PropertyType string   `json:"property_type"`
+	City         string   `json:"city"`
+	State        string   `json:"state"`
+	Bedrooms     int      `json:"bedrooms"`
+	Bathrooms    int      `json:"bathrooms"`
+	Amenities    []string `json:"amenities"`
+	Highlights   []string `json:"highlights"`
+	Tone         string   `json:"tone"`
+}

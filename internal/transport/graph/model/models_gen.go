@@ -107,6 +107,17 @@ type FeedOptionsInput struct {
 	SectionsToInclude []domain2.FeedSectionType `json:"sectionsToInclude,omitempty"`
 }
 
+type GenerateListingDescriptionInput struct {
+	PropertyType string   `json:"propertyType"`
+	City         string   `json:"city"`
+	State        string   `json:"state"`
+	Bedrooms     int      `json:"bedrooms"`
+	Bathrooms    int      `json:"bathrooms"`
+	Amenities    []string `json:"amenities,omitempty"`
+	Highlights   []string `json:"highlights,omitempty"`
+	Tone         *string  `json:"tone,omitempty"`
+}
+
 type GuestRequirementsInput struct {
 	VerifiedID           bool `json:"verifiedID"`
 	PositiveReviewsOnly  bool `json:"positiveReviewsOnly"`

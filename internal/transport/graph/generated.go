@@ -823,6 +823,7 @@ type ComplexityRoot struct {
 		DeleteWishlist               func(childComplexity int, id uuid.UUID) int
 		DowngradeSubscription        func(childComplexity int, subscriptionID uuid.UUID, newPlan domain3.PlanType) int
 		FileDispute                  func(childComplexity int, input graphql2.FileDisputeInput) int
+		GenerateListingDescription   func(childComplexity int, input model.GenerateListingDescriptionInput) int
 		GeneratePhoneOtp             func(childComplexity int, sessionID uuid.UUID) int
 		ImportWishlist               func(childComplexity int, sourceWishlistID uuid.UUID, newName *string) int
 		InviteMember                 func(childComplexity int, businessID uuid.UUID, input graphql1.InviteMemberInput) int
@@ -1736,6 +1737,7 @@ type MutationResolver interface {
 	DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error)
 	PublishListing(ctx context.Context, id uuid.UUID) (*domain12.Listing, error)
 	UnpublishListing(ctx context.Context, id uuid.UUID) (*domain12.Listing, error)
+	GenerateListingDescription(ctx context.Context, input model.GenerateListingDescriptionInput) (string, error)
 	StartInquiryConversation(ctx context.Context, leadID uuid.UUID) (*domain5.Conversation, error)
 	StartTransactionConversation(ctx context.Context, contextType domain5.ConversationContextType, contextID uuid.UUID) (*domain5.Conversation, error)
 	SendMessage(ctx context.Context, input model.SendMessageInput) (*domain5.Message, error)
@@ -5622,6 +5624,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.FileDispute(childComplexity, args["input"].(graphql2.FileDisputeInput)), true
+	case "Mutation.generateListingDescription":
+		if e.complexity.Mutation.GenerateListingDescription == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_generateListingDescription_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GenerateListingDescription(childComplexity, args["input"].(model.GenerateListingDescriptionInput)), true
 	case "Mutation.generatePhoneOTP":
 		if e.complexity.Mutation.GeneratePhoneOtp == nil {
 			break
@@ -10296,6 +10309,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputDiscoverySearchFilterInput,
 		ec.unmarshalInputFeedOptionsInput,
 		ec.unmarshalInputFileDisputeInput,
+		ec.unmarshalInputGenerateListingDescriptionInput,
 		ec.unmarshalInputGuestRequirementsInput,
 		ec.unmarshalInputIntRangeFilterInput,
 		ec.unmarshalInputInviteMemberInput,
@@ -11473,6 +11487,17 @@ input PropertyFilterExtension {
   amenities: [String!] # Must have ALL these amenities (AND logic)
 }
 
+input GenerateListingDescriptionInput {
+  propertyType: String!
+  city: String!
+  state: String!
+  bedrooms: Int!
+  bathrooms: Int!
+  amenities: [String!]
+  highlights: [String!]
+  tone: String
+}
+
 input ListingFilterInput {
   query: String
   ownerId: UUID
@@ -11542,6 +11567,9 @@ extend type Mutation {
   # Publishing
   publishListing(id: UUID!): Listing!
   unpublishListing(id: UUID!): Listing!
+
+  # AI Features
+  generateListingDescription(input: GenerateListingDescriptionInput!): String!
 }
 `, BuiltIn: false},
 	{Name: "../../modules/messaging/port/graphql/schema.graphqls", Input: `# internal/modules/messaging/port/graphql/schema.graphqls
@@ -14820,6 +14848,17 @@ func (ec *executionContext) field_Mutation_fileDispute_args(ctx context.Context,
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNFileDisputeInput2hausletᚋinternalᚋmodulesᚋfinanceᚋportᚋgraphqlᚐFileDisputeInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_generateListingDescription_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNGenerateListingDescriptionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐGenerateListingDescriptionInput)
 	if err != nil {
 		return nil, err
 	}
@@ -33264,6 +33303,47 @@ func (ec *executionContext) fieldContext_Mutation_unpublishListing(ctx context.C
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_unpublishListing_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_generateListingDescription(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_generateListingDescription,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().GenerateListingDescription(ctx, fc.Args["input"].(model.GenerateListingDescriptionInput))
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_generateListingDescription(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_generateListingDescription_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -64948,6 +65028,82 @@ func (ec *executionContext) unmarshalInputFileDisputeInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputGenerateListingDescriptionInput(ctx context.Context, obj any) (model.GenerateListingDescriptionInput, error) {
+	var it model.GenerateListingDescriptionInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"propertyType", "city", "state", "bedrooms", "bathrooms", "amenities", "highlights", "tone"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "propertyType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("propertyType"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PropertyType = data
+		case "city":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("city"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.City = data
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
+		case "bedrooms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bedrooms"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Bedrooms = data
+		case "bathrooms":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bathrooms"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Bathrooms = data
+		case "amenities":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amenities"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Amenities = data
+		case "highlights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("highlights"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Highlights = data
+		case "tone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tone"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Tone = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputGuestRequirementsInput(ctx context.Context, obj any) (model.GuestRequirementsInput, error) {
 	var it model.GuestRequirementsInput
 	asMap := map[string]any{}
@@ -73850,6 +74006,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "unpublishListing":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_unpublishListing(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "generateListingDescription":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_generateListingDescription(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -84152,6 +84315,11 @@ func (ec *executionContext) marshalNFurnishingType2hausletᚋinternalᚋmodules�
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNGenerateListingDescriptionInput2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐGenerateListingDescriptionInput(ctx context.Context, v any) (model.GenerateListingDescriptionInput, error) {
+	res, err := ec.unmarshalInputGenerateListingDescriptionInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNGuestRequirements2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐGuestRequirements(ctx context.Context, sel ast.SelectionSet, v domain12.GuestRequirements) graphql.Marshaler {

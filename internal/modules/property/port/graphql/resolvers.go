@@ -477,6 +477,29 @@ func (r *Resolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.
 	return sanitizeListingForViewer(ctx, updatedListing, requesterID), nil
 }
 
+// GenerateListingDescription generates a listing description using AI.
+func (r *Resolver) GenerateListingDescription(ctx context.Context, input model.GenerateListingDescriptionInput) (string, error) {
+	_, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return "", err
+	}
+	domainInput := domain.GenerateListingDescriptionInput{
+		PropertyType: input.PropertyType,
+		City:         input.City,
+		State:        input.State,
+		Bedrooms:     input.Bedrooms,
+		Bathrooms:    input.Bathrooms,
+		Amenities:    input.Amenities,
+		Highlights:   input.Highlights,
+	}
+
+	if input.Tone != nil {
+		domainInput.Tone = *input.Tone
+	}
+
+	return r.propertyService.GenerateListingDescription(ctx, domainInput)
+}
+
 // ===========================
 // FIELD RESOLVERS
 // ===========================

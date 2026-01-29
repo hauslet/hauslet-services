@@ -76,6 +76,7 @@ import (
 	verificationservice "hauslet/internal/modules/verification/service"
 	wishlistrepository "hauslet/internal/modules/wishlist/repository"
 	wishlistservice "hauslet/internal/modules/wishlist/service"
+	aiassist "hauslet/internal/platform/ai/assist"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	"hauslet/internal/platform/breaker"
 	"hauslet/internal/platform/email"
@@ -130,6 +131,7 @@ type Container struct {
 	PaymentClient   *payment.Client
 	FXClient        *xchange.Client
 	EmbeddingAI     *aiembeddings.Client
+	AIAssist        *aiassist.GeminiAssistClient
 	KYCClient       *kyc.Client
 	SMSClient       *sms.Client
 	EvidenceStore   evidence.Store
@@ -310,6 +312,15 @@ func (c *Container) initPlatformServices(ctx context.Context) error {
 		c.EmbeddingAI = nil
 	} else {
 		c.EmbeddingAI = aiembeddings.New(provider)
+		c.EmbeddingAI = aiembeddings.New(provider)
+	}
+
+	// Initialize AI Assist client
+	if assistClient, err := aiassist.NewGeminiAssistClient(ctx, c.Config.Services.Gemini); err != nil {
+		c.Logger.Warn("failed to initialize ai assist client", "error", err)
+		c.AIAssist = nil
+	} else {
+		c.AIAssist = assistClient
 	}
 
 	// Initialize event infrastructure (Redis pub/sub for GraphQL subscriptions)
@@ -554,6 +565,7 @@ func (c *Container) initProperty() error {
 		moderationAdapter,
 		*c.Redis,
 		c.EmbeddingAI,
+		c.AIAssist,
 		c.Logger,
 		c.FXClient,
 		businessmiddleware.NewPropertyAuthHelper(c.BusinessSvc),
@@ -633,6 +645,8 @@ func (c *Container) initLeads() error {
 		c.RateLimiter,
 		rateLimitConfig,
 		c.EventPublisher,
+		c.Queue,
+		c.AIAssist,
 		c.Logger,
 	)
 

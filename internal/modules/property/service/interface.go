@@ -10,6 +10,7 @@ import (
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/notification"
 	"hauslet/internal/modules/property/repository"
+	aiassist "hauslet/internal/platform/ai/assist"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	"hauslet/internal/platform/events"
 	platformQueue "hauslet/internal/platform/queue"
@@ -68,6 +69,9 @@ type PropertyService interface {
 
 	// Event Handling
 	SubscribeToVerificationEvents(ctx context.Context, subscriber *events.Subscriber) error
+
+	// AI Features
+	GenerateListingDescription(ctx context.Context, input domain.GenerateListingDescriptionInput) (string, error)
 }
 
 // BusinessAuthorizer defines permission checks for business-owned listings.
@@ -98,6 +102,7 @@ type ServiceImpl struct {
 	profiles            ProfileProvider
 	cache               redis.RedisClient
 	embedding           *aiembeddings.Client
+	aiAssist            aiassist.AssistClient
 	log                 *slog.Logger
 	embeddingGroup      singleflight.Group
 	businessAuthorizer  BusinessAuthorizer
@@ -117,6 +122,7 @@ func NewPropertyService(repo repository.Repository,
 	moderationHooks ModerationHooks,
 	cache redis.RedisClient,
 	embedding *aiembeddings.Client,
+	aiAssist aiassist.AssistClient,
 	log *slog.Logger,
 	fx xchange.XChange,
 	businessAuthorizer BusinessAuthorizer,
@@ -134,6 +140,7 @@ func NewPropertyService(repo repository.Repository,
 		notificationService: notificationService,
 		cache:               cache,
 		embedding:           embedding,
+		aiAssist:            aiAssist,
 		log:                 log,
 		businessAuthorizer:  businessAuthorizer,
 		businessService:     businessService,

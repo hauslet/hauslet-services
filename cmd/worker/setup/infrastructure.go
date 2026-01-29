@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"hauslet/config"
+	aiassist "hauslet/internal/platform/ai/assist"
 	aiembeddings "hauslet/internal/platform/ai/embeddings"
 	aimoderation "hauslet/internal/platform/ai/moderation"
 	"hauslet/internal/platform/breaker"
@@ -26,6 +27,7 @@ type Infrastructure struct {
 	DB             *gorm.DB
 	Storage        *storage.R2Storage
 	AI             *aimoderation.Client
+	Assist         aiassist.AssistClient
 	Email          *email.Client
 	Queue          *queue.Client
 	Cache          redis.RedisClient
@@ -97,6 +99,12 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *slog
 
 	aiClient := aimoderation.New(fallbackProvider)
 
+	// AI Assist
+	assistClient, err := aiassist.NewGeminiAssistClient(ctx, cfg.Services.Gemini)
+	if err != nil {
+		log.Warn("failed to initialize AI assist client", "error", err)
+	}
+
 	// AI Embeddings
 	geminiEmbeddingProvider, err := aiembeddings.NewGeminiProvider(ctx, cfg.Services.Gemini)
 	if err != nil {
@@ -147,6 +155,7 @@ func InitInfrastructure(ctx context.Context, cfg *config.GlobalConfig, log *slog
 		DB:             db,
 		Storage:        r2Storage,
 		AI:             aiClient,
+		Assist:         assistClient,
 		Email:          emailClient,
 		Cache:          redisClient,
 		embedding:      embeddingClient,

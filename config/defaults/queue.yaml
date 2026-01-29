@@ -32,5 +32,6 @@ queue:
     interactions_batch: "interactions-batch-queue"
     interactions_aggregator: "interactions-aggregator-queue"
     conversation_cleanup: "conversation-cleanup-queue"
+    lead_qualification: "lead-qualification-queue"
 
 

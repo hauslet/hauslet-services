@@ -28,6 +28,8 @@ import (
 	financeservice "hauslet/internal/modules/finance/service"
 	interactionrepository "hauslet/internal/modules/interactions/repository"
 	interactionservice "hauslet/internal/modules/interactions/service"
+	leadsrepository "hauslet/internal/modules/leads/repository"
+	leadsservice "hauslet/internal/modules/leads/service"
 	messagingrepository "hauslet/internal/modules/messaging/repository"
 	messagingservice "hauslet/internal/modules/messaging/service"
 	moderationrepository "hauslet/internal/modules/moderation/repository"
@@ -64,6 +66,7 @@ import (
 	emailHandler "hauslet/internal/transport/worker/handlers/emails"
 	financeHandler "hauslet/internal/transport/worker/handlers/finance"
 	interactionHandler "hauslet/internal/transport/worker/handlers/interactions"
+	leadsHandler "hauslet/internal/transport/worker/handlers/leads"
 	listingHandler "hauslet/internal/transport/worker/handlers/listing"
 	messagingHandler "hauslet/internal/transport/worker/handlers/messaging"
 	moderationHandler "hauslet/internal/transport/worker/handlers/moderation"
@@ -136,6 +139,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			nil, // moderation hooks (not needed)
 			nil, // cache (not needed)
 			infra.embedding,
+			nil, // aiAssist (not needed)
 			log,
 			nil, // fx (not needed)
 			nil, // business auth (not needed)
@@ -1005,6 +1009,32 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		)
 
 		h := messagingHandler.NewConversationCleanupHandler(messagingSvc, log, qCfg["conversation_cleanup"])
+		registry.Register(h)
+	}
+
+	// Lead Qualification handler
+	if qCfg["lead_qualification"] != "" {
+		leadRepo := leadsrepository.NewLeadRepository(infra.DB)
+		leadEventRepo := leadsrepository.NewLeadEventRepository(infra.DB)
+		leadAssignmentRepo := leadsrepository.NewLeadAssignmentRepository(infra.DB)
+
+		// Initialize minimal Lead Service
+		leadSvc := leadsservice.NewLeadService(
+			leadRepo,
+			leadEventRepo,
+			leadAssignmentRepo,
+			nil,                            // propertyHooks
+			nil,                            // businessHooks
+			nil,                            // profileHooks
+			nil,                            // limiter
+			leadsservice.RateLimitConfig{}, // rateLimitConfig
+			nil,                            // eventPublisher
+			nil,                            // queue (not used by worker)
+			infra.Assist,
+			log,
+		)
+
+		h := leadsHandler.NewQualificationHandler(leadSvc, log, qCfg["lead_qualification"])
 		registry.Register(h)
 	}
 

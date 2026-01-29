@@ -494,6 +494,11 @@ func (r *mutationResolver) UnpublishListing(ctx context.Context, id uuid.UUID) (
 	return r.PropertyResolver.UnpublishListing(ctx, id)
 }
 
+// GenerateListingDescription is the resolver for the generateListingDescription field.
+func (r *mutationResolver) GenerateListingDescription(ctx context.Context, input model.GenerateListingDescriptionInput) (string, error) {
+	return r.PropertyResolver.GenerateListingDescription(ctx, input)
+}
+
 // StartInquiryConversation is the resolver for the startInquiryConversation field.
 func (r *mutationResolver) StartInquiryConversation(ctx context.Context, leadID uuid.UUID) (*domain14.Conversation, error) {
 	return r.MessagingResolver.StartInquiryConversation(ctx, leadID)

@@ -51,22 +51,24 @@ func newMockService(t *testing.T) (service.PropertyService, sqlmock.Sqlmock, fun
 	repo := repository.NewPropertyRepository(gdb)
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	subscriptionSvc := &mockSubscriptionService{}
 	svc := service.NewPropertyService(
 		repo,
 		nil,
 		nil,
 		nil,
 		nil,
-		"",
+		"subject",
 		nil,
-		nil,
-		nil,
+		nil, // cache
+		nil, // embedding
+		nil, // aiAssist
 		logger,
-		nil, // fx (not needed)
-		nil,
-		nil,
-		&mockSubscriptionService{},
-		nil,
+		nil, // fx
+		nil, // businessAuth
+		nil, // businessSvc
+		subscriptionSvc,
+		nil, // supplyGate
 	)
 
 	cleanup := func() { sqlDB.Close() }

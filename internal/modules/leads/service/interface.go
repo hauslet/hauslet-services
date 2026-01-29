@@ -40,6 +40,10 @@ type LeadService interface {
 
 	// GetLeadHistory retrieves the event history for a lead (requires authorization)
 	GetLeadHistory(ctx context.Context, leadID uuid.UUID, requesterID uuid.UUID) ([]*domain.LeadEvent, error)
+
+	// QualifyLead analyzes a lead using AI to determine quality and intent
+	// This is typically called by a background job
+	QualifyLead(ctx context.Context, leadID uuid.UUID) error
 }
 
 // CreateLeadInput represents the input for creating a new lead

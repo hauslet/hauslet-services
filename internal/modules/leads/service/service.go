@@ -4,7 +4,9 @@ import (
 	"log/slog"
 
 	"hauslet/internal/modules/leads/repository"
+	aiassist "hauslet/internal/platform/ai/assist"
 	"hauslet/internal/platform/events"
+	"hauslet/internal/platform/queue"
 	"hauslet/internal/platform/ratelimit"
 )
 
@@ -25,6 +27,8 @@ type ServiceImpl struct {
 
 	log            *slog.Logger
 	eventPublisher *events.Publisher // For domain events
+	queue          *queue.Client     // For background jobs (AI qualification)
+	aiAssist       aiassist.AssistClient
 }
 
 // NewLeadService creates a new instance of LeadService
@@ -38,6 +42,8 @@ func NewLeadService(
 	limiter ratelimit.Limiter,
 	rateLimitConfig RateLimitConfig,
 	eventPublisher *events.Publisher, // For domain events
+	queue *queue.Client,
+	aiAssist aiassist.AssistClient,
 	log *slog.Logger,
 ) LeadService {
 	return &ServiceImpl{
@@ -53,5 +59,7 @@ func NewLeadService(
 		analyticsHooks: &NullAnalyticsHooks{}, // No-op for Phase 1
 		log:            log,
 		eventPublisher: eventPublisher,
+		queue:          queue,
+		aiAssist:       aiAssist,
 	}
 }

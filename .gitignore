@@ -28,7 +28,7 @@ GEMINI.md
 # Output of the go coverage tool
 *.out
 coverage.txt
-
+.agent
 # Dependency directories (vendor is optional, depends on your strategy)
 vendor/
 
