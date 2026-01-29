@@ -228,3 +228,48 @@ func TestCreateListingValidationAndSuccess(t *testing.T) {
 		t.Fatalf("unmet expectations: %v", err)
 	}
 }
+
+func TestSearchListingsWithQuery(t *testing.T) {
+	t.Parallel()
+
+	repo, mock, cleanup := newMockRepo(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	queryStr := "test"
+	embedding := schema.NewVectorEmbedding([]float32{0.1, 0.2, 0.3})
+
+	// Expected SQL regex should match the complex ORDER BY clause with repeated expressions
+	expectQuery := `SELECT listings\.\*, .* FROM "listings" JOIN properties ON .* WHERE .*ORDER BY .*listings\.text_embedding <=> .* \+ ts_rank\(.*\) DESC LIMIT \$7`
+
+	listingID := uuid.New()
+
+	mock.ExpectQuery(expectQuery).
+		WithArgs(
+			sqlmock.AnyArg(), // Select embedding
+			queryStr,         // Select query
+			sqlmock.AnyArg(), // Where embedding
+			queryStr,         // Where query
+			sqlmock.AnyArg(), // Order embedding
+			queryStr,         // Order query
+			10,               // Limit
+		).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "vector_dist", "text_score"}).AddRow(listingID, "Test Listing", 0.5, 0.8))
+
+	// Preload Media expectation
+	mock.ExpectQuery(`SELECT .* FROM "listing_media" WHERE "listing_media"."listing_id" = \$1`).
+		WithArgs(listingID).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "listing_id"}))
+
+	results, err := repo.SearchListings(ctx, embedding, repository.ListingFilter{Query: &queryStr}, 10)
+	if err != nil {
+		t.Fatalf("SearchListings returned error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatalf("unmet expectations: %v", err)
+	}
+}

@@ -2,12 +2,14 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hauslet/internal/modules/property/repository/schema"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // CreateListing inserts a new listing record.
@@ -431,12 +433,17 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 			embedding, filter.Query,
 		)
 
-		// Use column aliases from SELECT for ordering
-		// This avoids re-calculating and limits parameter binding issues
-		query = query.Order("((1 - vector_dist/2) + text_score) DESC")
+		// Postgres doesn't allow aliases in ORDER BY expressions, so we must repeat the calculation.
+		query = query.Clauses(clause.OrderBy{
+			Expression: clause.Expr{
+				SQL:  "((1 - (listings.text_embedding <=> ?) / 2) + ts_rank(listings.search_vector, websearch_to_tsquery('english', ?))) DESC",
+				Vars: []interface{}{embedding, filter.Query},
+			},
+		})
 	} else {
-		// Fallback for no-query search (e.g. "similar listings") - rely purely on vector distance
-		query = query.Order("vector_dist ASC")
+		// Fallback for no-query search (e.g. "similar listings") - rely purely on vector distance.
+		// Use manual expression to avoid alias issues in some Postgres versions/drivers.
+		query = query.Order(gorm.Expr("listings.text_embedding <=> ? ASC", embedding))
 	}
 
 	// Limit results
@@ -648,4 +655,97 @@ func applyPropertyExtensionFilter(db *gorm.DB, filter *PropertyFilterExtension) 
 	}
 
 	return db
+}
+
+// PatchShortletDetails merges partial updates into the existing ShortletDetails JSON.
+// It implements "Read-Patch-Write" to ensure safety.
+func (r *GormRepository) PatchShortletDetails(ctx context.Context, id uuid.UUID, patch map[string]any) error {
+	return r.Transaction(ctx, func(tx *gorm.DB) error {
+		var listing schema.Listing
+		if err := tx.First(&listing, "id = ?", id).Error; err != nil {
+			return fmt.Errorf("listing not found: %w", err)
+		}
+
+		if listing.ShortletDetails == nil {
+			// If nil, initialize empty
+			listing.ShortletDetails = &schema.ShortletDetail{}
+		}
+
+		// Merge Logic:
+		// 1. Convert PATCH map to JSON bytes
+		patchBytes, err := json.Marshal(patch)
+		if err != nil {
+			return fmt.Errorf("failed to marshal patch: %w", err)
+		}
+
+		// 2. Unmarshal PATCH bytes INTO the existing struct
+		// This respects the existing values while overwriting only what's in the patch
+		if err := json.Unmarshal(patchBytes, listing.ShortletDetails); err != nil {
+			return fmt.Errorf("failed to apply patch to details: %w", err)
+		}
+
+		// 3. Save specific column back to DB to avoid side effects
+		// Use Select().Updates() to respect GORM serializer tags
+		if err := tx.Model(&listing).Select("ShortletDetails").Updates(&listing).Error; err != nil {
+			return fmt.Errorf("failed to save patched listing: %w", err)
+		}
+
+		return nil
+	})
+}
+
+// PatchRentalDetails merges partial updates into the existing RentalDetails JSON.
+func (r *GormRepository) PatchRentalDetails(ctx context.Context, id uuid.UUID, patch map[string]any) error {
+	return r.Transaction(ctx, func(tx *gorm.DB) error {
+		var listing schema.Listing
+		if err := tx.First(&listing, "id = ?", id).Error; err != nil {
+			return fmt.Errorf("listing not found: %w", err)
+		}
+
+		if listing.RentalDetails == nil {
+			listing.RentalDetails = &schema.RentalDetail{}
+		}
+
+		patchBytes, err := json.Marshal(patch)
+		if err != nil {
+			return fmt.Errorf("failed to marshal patch: %w", err)
+		}
+
+		if err := json.Unmarshal(patchBytes, listing.RentalDetails); err != nil {
+			return fmt.Errorf("failed to apply patch: %w", err)
+		}
+
+		if err := tx.Model(&listing).Select("RentalDetails").Updates(&listing).Error; err != nil {
+			return fmt.Errorf("failed to save patched listing: %w", err)
+		}
+		return nil
+	})
+}
+
+// PatchSaleDetails merges partial updates into the existing SaleDetails JSON.
+func (r *GormRepository) PatchSaleDetails(ctx context.Context, id uuid.UUID, patch map[string]any) error {
+	return r.Transaction(ctx, func(tx *gorm.DB) error {
+		var listing schema.Listing
+		if err := tx.First(&listing, "id = ?", id).Error; err != nil {
+			return fmt.Errorf("listing not found: %w", err)
+		}
+
+		if listing.SaleDetails == nil {
+			listing.SaleDetails = &schema.SaleDetail{}
+		}
+
+		patchBytes, err := json.Marshal(patch)
+		if err != nil {
+			return fmt.Errorf("failed to marshal patch: %w", err)
+		}
+
+		if err := json.Unmarshal(patchBytes, listing.SaleDetails); err != nil {
+			return fmt.Errorf("failed to apply patch: %w", err)
+		}
+
+		if err := tx.Model(&listing).Select("SaleDetails").Updates(&listing).Error; err != nil {
+			return fmt.Errorf("failed to save patched listing: %w", err)
+		}
+		return nil
+	})
 }

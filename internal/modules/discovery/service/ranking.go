@@ -47,6 +47,7 @@ func (s *ServiceImpl) rankListings(
 			PromotionBoost: 1.0, // Default: no boost
 			RecencyScore:   domain.CalculateRecencyScore(pr.Listing.CreatedAt),
 			LocationScore:  locationScore,
+			TextMatchScore: pr.TextMatchScore,
 		}
 
 		var promoInfo *domain.PromotionBoostInfo

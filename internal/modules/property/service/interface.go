@@ -35,6 +35,9 @@ type PropertyService interface {
 	CreateListing(ctx context.Context, l domain.Listing) (*domain.Listing, error)
 	UpdateListing(ctx context.Context, l domain.Listing) (*domain.Listing, error)
 	PatchListing(ctx context.Context, id uuid.UUID, updates map[string]any) (*domain.Listing, error)
+	PatchShortletDetails(ctx context.Context, id uuid.UUID, updates map[string]any) error
+	PatchRentalDetails(ctx context.Context, id uuid.UUID, updates map[string]any) error
+	PatchSaleDetails(ctx context.Context, id uuid.UUID, updates map[string]any) error
 	GetListingByID(ctx context.Context, id uuid.UUID, preloadMedia bool) (*domain.Listing, error)
 	GetListingByPublicID(ctx context.Context, publicID string, preloadMedia bool) (*domain.Listing, error)
 	GetListingBySlug(ctx context.Context, slug string, preloadMedia bool) (*domain.Listing, error)

@@ -421,10 +421,67 @@ func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.
 
 	propUpdates := mapUpdateListingPropertyInput(input.Property)
 	listingUpdates := mapListingUpdateInput(&input)
+
+	// Extract and remove JSON patches to avoid overwrites by the main update
+	var shortletPatch, rentalPatch, salePatch map[string]any
+
+	if patch, ok := listingUpdates["shortlet_details"]; ok {
+		if patchMap, ok := patch.(map[string]any); ok {
+			shortletPatch = patchMap
+			delete(listingUpdates, "shortlet_details")
+		}
+	}
+	if patch, ok := listingUpdates["rental_details"]; ok {
+		if patchMap, ok := patch.(map[string]any); ok {
+			rentalPatch = patchMap
+			delete(listingUpdates, "rental_details")
+		}
+	}
+	if patch, ok := listingUpdates["sale_details"]; ok {
+		if patchMap, ok := patch.(map[string]any); ok {
+			salePatch = patchMap
+			delete(listingUpdates, "sale_details")
+		}
+	}
+
 	updated, err := r.propertyService.UpdateListingWithProperty(ctx, id, listingUpdates, propUpdates, requesterID, v.Role)
 	if err != nil {
 		r.log.Error("failed to update listing", "listing_id", id, "error", err)
 		return nil, err
+	}
+
+	// Apply patches safely
+	patched := false
+	if shortletPatch != nil {
+		if err := r.propertyService.PatchShortletDetails(ctx, id, shortletPatch); err != nil {
+			r.log.Error("failed to patch shortlet details", "listing_id", id, "error", err)
+			return nil, err
+		}
+		patched = true
+	}
+	if rentalPatch != nil {
+		if err := r.propertyService.PatchRentalDetails(ctx, id, rentalPatch); err != nil {
+			r.log.Error("failed to patch rental details", "listing_id", id, "error", err)
+			return nil, err
+		}
+		patched = true
+	}
+	if salePatch != nil {
+		if err := r.propertyService.PatchSaleDetails(ctx, id, salePatch); err != nil {
+			r.log.Error("failed to patch sale details", "listing_id", id, "error", err)
+			return nil, err
+		}
+		patched = true
+	}
+
+	if patched {
+		// Refetch to get the fully merged state
+		refetched, err := r.propertyService.GetListingByID(ctx, id, true)
+		if err != nil {
+			r.log.Error("failed to refetch patched listing", "listing_id", id, "error", err)
+			return nil, err
+		}
+		updated = refetched
 	}
 
 	r.log.Info("listing updated", "listing_id", id, "user_id", v.UserID)

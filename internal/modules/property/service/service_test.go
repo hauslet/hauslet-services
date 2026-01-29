@@ -3,9 +3,13 @@ package service_test
 import (
 	"context"
 	"database/sql/driver"
+	"io"
+	"log/slog"
 	"testing"
 	"time"
 
+	promotionsDomain "hauslet/internal/modules/promotions/domain"
+	promotionsService "hauslet/internal/modules/promotions/service"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/repository"
 	"hauslet/internal/modules/property/service"
@@ -45,10 +49,75 @@ func newMockService(t *testing.T) (service.PropertyService, sqlmock.Sqlmock, fun
 	}
 
 	repo := repository.NewPropertyRepository(gdb)
-	svc := service.NewPropertyService(repo, nil, nil, nil, nil, "", nil, nil, nil, nil, nil, nil, nil, nil)
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	svc := service.NewPropertyService(repo, nil, nil, nil, nil, "", nil, nil, nil, logger, nil, nil, &mockSubscriptionService{}, nil)
 
 	cleanup := func() { sqlDB.Close() }
 	return svc, mock, cleanup
+}
+
+type mockSubscriptionService struct{}
+
+func (m *mockSubscriptionService) CanAddListing(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return true, nil
+}
+func (m *mockSubscriptionService) CanPromoteListing(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return true, nil
+}
+func (m *mockSubscriptionService) GetSubscription(ctx context.Context, userID uuid.UUID) (*promotionsDomain.AgentSubscription, error) {
+	return nil, nil
+}
+func (m *mockSubscriptionService) CanAddPhotos(ctx context.Context, ownerID uuid.UUID, listingID uuid.UUID, photoCount int) (bool, error) {
+	return true, nil
+}
+func (m *mockSubscriptionService) CanCreateOpenHouse(ctx context.Context, userID uuid.UUID) (bool, int, error) {
+	return true, 1, nil
+}
+func (m *mockSubscriptionService) CanCreatePrivateShowing(ctx context.Context, userID uuid.UUID) (bool, int, error) {
+	return true, 1, nil
+}
+func (m *mockSubscriptionService) CanUseFeature(ctx context.Context, userID uuid.UUID, featureKey string) (bool, error) {
+	return true, nil
+}
+func (m *mockSubscriptionService) CanUseIncludedPromotion(ctx context.Context, userID uuid.UUID, promoType promotionsDomain.PromotionType) (bool, error) {
+	return true, nil
+}
+func (m *mockSubscriptionService) CancelSubscription(ctx context.Context, userID uuid.UUID) error {
+	return nil
+}
+func (m *mockSubscriptionService) CreateSubscription(ctx context.Context, input promotionsService.CreateSubscriptionInput) (*promotionsService.CreateSubscriptionResult, error) {
+	return nil, nil
+}
+func (m *mockSubscriptionService) DowngradeSubscription(ctx context.Context, userID uuid.UUID, planType promotionsDomain.PlanType) error {
+	return nil
+}
+func (m *mockSubscriptionService) GetFeatureLimit(ctx context.Context, userID uuid.UUID, featureKey string) (int, error) {
+	return 100, nil
+}
+func (m *mockSubscriptionService) GetUserSubscription(ctx context.Context, userID uuid.UUID) (*promotionsDomain.AgentSubscription, error) {
+	return nil, nil
+}
+func (m *mockSubscriptionService) HandlePaymentSuccess(ctx context.Context, userID uuid.UUID) error {
+	return nil
+}
+func (m *mockSubscriptionService) ProcessBilling(ctx context.Context) error {
+	return nil
+}
+func (m *mockSubscriptionService) RenewSubscription(ctx context.Context, userID uuid.UUID, subscriptionID uuid.UUID) error {
+	return nil
+}
+func (m *mockSubscriptionService) UpgradeSubscription(ctx context.Context, userID uuid.UUID, planType promotionsDomain.PlanType) error {
+	return nil
+}
+func (m *mockSubscriptionService) UseIncludedPromotion(ctx context.Context, userID uuid.UUID, promoType promotionsDomain.PromotionType) error {
+	return nil
+}
+func (m *mockSubscriptionService) UseOpenHouse(ctx context.Context, userID uuid.UUID) error {
+	return nil
+}
+func (m *mockSubscriptionService) UsePrivateShowing(ctx context.Context, userID uuid.UUID) error {
+	return nil
 }
 
 func TestServiceCreatePropertyValidation(t *testing.T) {
@@ -268,7 +337,7 @@ func TestServiceUpdateListingPreservesSlug(t *testing.T) {
 		))
 
 	mock.ExpectExec(`UPDATE "listings"`).
-		WithArgs(anyArgs(32)...).
+		WithArgs(anyArgs(30)...).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	updated, err := svc.UpdateListing(ctx, domain.Listing{

@@ -163,6 +163,7 @@ func (s *ServiceImpl) PatchListing(ctx context.Context, id uuid.UUID, updates ma
 		s.invalidateListingCache(ctx, id, newSlug, publicID)
 	}
 
+	// ... existing PatchListing implementation ...
 	s.log.Info("patched listing", "listing_id", id, "fields", len(updates))
 	updated, err := s.ensureListing(ctx, id, false)
 	if err != nil {
@@ -170,6 +171,70 @@ func (s *ServiceImpl) PatchListing(ctx context.Context, id uuid.UUID, updates ma
 	}
 	s.cacheListing(ctx, updated, false, updated.Slug, publicID)
 	return updated, nil
+}
+
+// PatchShortletDetails updates specific fields in the ShortletDetails JSON.
+func (s *ServiceImpl) PatchShortletDetails(ctx context.Context, id uuid.UUID, updates map[string]any) error {
+	if id == uuid.Nil {
+		return domain.ErrInvalidListingID
+	}
+
+	if err := s.repo.PatchShortletDetails(ctx, id, updates); err != nil {
+		s.log.Error("failed to patch shortlet details", "listing_id", id, "error", err)
+		return err
+	}
+
+	// Invalidate cache
+	// We need the slug/publicID to invalidate correctly, so we fetch standard listing info first
+	// (Or we could optimize by assuming cache invalidation by ID is enough if we had a pure ID-based invalidator)
+	// For now, let's just do a quick fetch to get cache keys
+	existing, err := s.ensureListing(ctx, id, false)
+	if err == nil {
+		s.invalidateListingCache(ctx, id, existing.Slug, s.getPropertyPublicID(ctx, existing.PropertyID))
+	}
+
+	s.log.Info("patched shortlet details", "listing_id", id)
+	return nil
+}
+
+// PatchRentalDetails updates specific fields in the RentalDetails JSON.
+func (s *ServiceImpl) PatchRentalDetails(ctx context.Context, id uuid.UUID, updates map[string]any) error {
+	if id == uuid.Nil {
+		return domain.ErrInvalidListingID
+	}
+
+	if err := s.repo.PatchRentalDetails(ctx, id, updates); err != nil {
+		s.log.Error("failed to patch rental details", "listing_id", id, "error", err)
+		return err
+	}
+
+	existing, err := s.ensureListing(ctx, id, false)
+	if err == nil {
+		s.invalidateListingCache(ctx, id, existing.Slug, s.getPropertyPublicID(ctx, existing.PropertyID))
+	}
+
+	s.log.Info("patched rental details", "listing_id", id)
+	return nil
+}
+
+// PatchSaleDetails updates specific fields in the SaleDetails JSON.
+func (s *ServiceImpl) PatchSaleDetails(ctx context.Context, id uuid.UUID, updates map[string]any) error {
+	if id == uuid.Nil {
+		return domain.ErrInvalidListingID
+	}
+
+	if err := s.repo.PatchSaleDetails(ctx, id, updates); err != nil {
+		s.log.Error("failed to patch sale details", "listing_id", id, "error", err)
+		return err
+	}
+
+	existing, err := s.ensureListing(ctx, id, false)
+	if err == nil {
+		s.invalidateListingCache(ctx, id, existing.Slug, s.getPropertyPublicID(ctx, existing.PropertyID))
+	}
+
+	s.log.Info("patched sale details", "listing_id", id)
+	return nil
 }
 
 // GetListingByID retrieves a listing by its ID.

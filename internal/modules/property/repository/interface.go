@@ -50,6 +50,11 @@ type ListingRepository interface {
 	SearchListings(ctx context.Context, embedding *schema.VectorEmbedding, filter ListingFilter, limit int) ([]ScoredListing, error)
 	SoftDeleteListing(ctx context.Context, id uuid.UUID) error
 	HardDeleteListing(ctx context.Context, id uuid.UUID) error
+
+	// Partial Update Patchers
+	PatchShortletDetails(ctx context.Context, id uuid.UUID, patch map[string]any) error
+	PatchRentalDetails(ctx context.Context, id uuid.UUID, patch map[string]any) error
+	PatchSaleDetails(ctx context.Context, id uuid.UUID, patch map[string]any) error
 }
 
 // Repository aggregates property and listing persistence.
