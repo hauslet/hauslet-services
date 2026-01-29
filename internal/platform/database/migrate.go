@@ -35,5 +35,27 @@ func setupExtensions(db *gorm.DB) error {
 		return fmt.Errorf("failed to create postgis extension: %w", err)
 	}
 
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`).Error; err != nil {
+		return fmt.Errorf("failed to create uuid-ossp extension: %w", err)
+	}
+
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "vector"`).Error; err != nil {
+		return fmt.Errorf("failed to create vector extension: %w", err)
+	}
+
+	// Add search_vector column for Full Text Search
+	if err := db.Exec(`
+		ALTER TABLE listings
+		ADD COLUMN IF NOT EXISTS search_vector tsvector
+		GENERATED ALWAYS AS (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(extra_description, ''))) STORED;
+	`).Error; err != nil {
+		return fmt.Errorf("failed to add search_vector column: %w", err)
+	}
+
+	// Add GIN index for search_vector
+	if err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_listings_search_vector ON listings USING GIN(search_vector)`).Error; err != nil {
+		return fmt.Errorf("failed to create search_vector index: %w", err)
+	}
+
 	return nil
 }

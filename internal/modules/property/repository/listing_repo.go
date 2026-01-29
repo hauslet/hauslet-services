@@ -335,10 +335,10 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 
 	var results []ScoredListing
 
-	// Updated query for Hybrid Search (Vector + Fuzzy Text)
+	// Updated query for Hybrid Search (Vector + Native FTS)
 	// We calculate two scores:
 	// 1. Vector Score: (listings.text_embedding <=> ?) -> Cosine Distance (0=best, 2=worst)
-	// 2. Text Score: similarity(title, ?) -> Trigam Similarity (1=best, 0=worst)
+	// 2. Text Score: ts_rank(search_vector, q) -> TF-IDF Score (Higher is better)
 	//
 	// We order by a combined rank to surface the best results from either method.
 	query := r.db.WithContext(ctx).
@@ -346,7 +346,7 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 		Select(`
 			listings.*, 
 			(listings.text_embedding <=> ?) AS vector_dist, 
-			similarity(listings.title, ?) AS text_score,
+			ts_rank(listings.search_vector, websearch_to_tsquery('english', ?)) AS text_score,
 			ST_Y(properties.location::geometry) as lat, 
 			ST_X(properties.location::geometry) as lng
 		`, embedding, filter.Query).
@@ -420,18 +420,20 @@ func (r *GormRepository) SearchListings(ctx context.Context, embedding *schema.V
 	// Hybrid Search Logic:
 	// We want to find listings that match EITHER vector similarity OR text similarity.
 	// 1. Vector Match: Distance < 0.6 (fairly loose to capture concepts)
-	// 2. Text Match: Similarity > 0.2 (loose fuzzy match for typos)
+	// 2. Text Match: Matches websearch query in Title, Description, or ExtraDescription
 	//
 	// Then sort by refined hybrid score:
 	// - Convert vector distance to similarity: (1 - dist/2)
-	// - Combine with text score
+	// - Combine with ts_rank
 	if filter.Query != nil && *filter.Query != "" {
-		// Only apply hybrid logic if there is a query text
-		// Note using raw SQL because GORM conditions on computed columns can be tricky
-		// 0.6 distance roughly equates to 0.7 similarity
-		query = query.Where("(listings.text_embedding <=> ?) < 0.6 OR similarity(listings.title, ?) > 0.2", embedding, filter.Query)
-		// Use gorm.Expr for complex ordering with arguments
-		query = query.Order(gorm.Expr("((1 - (listings.text_embedding <=> ?)/2) + similarity(listings.title, ?)) DESC", embedding, filter.Query))
+		query = query.Where(
+			"(listings.text_embedding <=> ?) < 0.6 OR (listings.search_vector @@ websearch_to_tsquery('english', ?))",
+			embedding, filter.Query,
+		)
+
+		// Use column aliases from SELECT for ordering
+		// This avoids re-calculating and limits parameter binding issues
+		query = query.Order("((1 - vector_dist/2) + text_score) DESC")
 	} else {
 		// Fallback for no-query search (e.g. "similar listings") - rely purely on vector distance
 		query = query.Order("vector_dist ASC")
