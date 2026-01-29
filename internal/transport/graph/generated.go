@@ -97,10 +97,8 @@ type ResolverRoot interface {
 	Property() PropertyResolver
 	Query() QueryResolver
 	RatingDistribution() RatingDistributionResolver
-	RentalDetail() RentalDetailResolver
 	Review() ReviewResolver
 	RuleGroup() RuleGroupResolver
-	SaleDetail() SaleDetailResolver
 	ShowingAvailability() ShowingAvailabilityResolver
 	SubRatings() SubRatingsResolver
 	Subscription() SubscriptionResolver
@@ -1298,21 +1296,15 @@ type ComplexityRoot struct {
 	}
 
 	RentalDetail struct {
-		AgencyFee              func(childComplexity int) int
-		CautionFee             func(childComplexity int) int
 		Discounts              func(childComplexity int) int
 		Fees                   func(childComplexity int) int
-		LegalFee               func(childComplexity int) int
 		MaxRentalPeriod        func(childComplexity int) int
 		MinRentalPeriod        func(childComplexity int) int
-		RegistrationFee        func(childComplexity int) int
 		RentalAvailabilityFrom func(childComplexity int) int
 		RentalPrice            func(childComplexity int) int
 		RentalPricePeriod      func(childComplexity int) int
 		RentalRules            func(childComplexity int) int
 		RentalTerms            func(childComplexity int) int
-		ServiceCharge          func(childComplexity int) int
-		ServiceCharges         func(childComplexity int) int
 		ShowingAvailability    func(childComplexity int) int
 	}
 
@@ -1359,22 +1351,14 @@ type ComplexityRoot struct {
 	}
 
 	SaleDetail struct {
-		AgencyFee            func(childComplexity int) int
-		DevelopmentFee       func(childComplexity int) int
 		Discounts            func(childComplexity int) int
 		Fees                 func(childComplexity int) int
-		LegalFee             func(childComplexity int) int
-		OtherFees            func(childComplexity int) int
 		OwnershipTitle       func(childComplexity int) int
 		PaymentPlan          func(childComplexity int) int
 		SaleAvailabilityFrom func(childComplexity int) int
 		SalePrice            func(childComplexity int) int
 		SaleTerms            func(childComplexity int) int
-		ServiceCharge        func(childComplexity int) int
-		ServiceCharges       func(childComplexity int) int
 		ShowingAvailability  func(childComplexity int) int
-		SurveyFee            func(childComplexity int) int
-		TitleProcessingFee   func(childComplexity int) int
 		YearBuilt            func(childComplexity int) int
 		YearRenovated        func(childComplexity int) int
 	}
@@ -1977,15 +1961,6 @@ type RatingDistributionResolver interface {
 	FourStar(ctx context.Context, obj *domain11.RatingDistribution) (int, error)
 	FiveStar(ctx context.Context, obj *domain11.RatingDistribution) (int, error)
 }
-type RentalDetailResolver interface {
-	AgencyFee(ctx context.Context, obj *domain12.RentalDetail) (*float64, error)
-	LegalFee(ctx context.Context, obj *domain12.RentalDetail) (*float64, error)
-	RegistrationFee(ctx context.Context, obj *domain12.RentalDetail) (*float64, error)
-	CautionFee(ctx context.Context, obj *domain12.RentalDetail) (*float64, error)
-	ServiceCharge(ctx context.Context, obj *domain12.RentalDetail) (*float64, error)
-
-	ServiceCharges(ctx context.Context, obj *domain12.RentalDetail) ([]*domain12.ServiceCharge, error)
-}
 type ReviewResolver interface {
 	ReviewerProfile(ctx context.Context, obj *domain11.Review) (*domain4.Profile, error)
 
@@ -1997,17 +1972,6 @@ type ReviewResolver interface {
 }
 type RuleGroupResolver interface {
 	Rules(ctx context.Context, obj *domain12.RuleGroup) ([]*domain12.RuleItem, error)
-}
-type SaleDetailResolver interface {
-	AgencyFee(ctx context.Context, obj *domain12.SaleDetail) (*float64, error)
-	LegalFee(ctx context.Context, obj *domain12.SaleDetail) (*float64, error)
-	SurveyFee(ctx context.Context, obj *domain12.SaleDetail) (*float64, error)
-	TitleProcessingFee(ctx context.Context, obj *domain12.SaleDetail) (*float64, error)
-	DevelopmentFee(ctx context.Context, obj *domain12.SaleDetail) (*float64, error)
-	OtherFees(ctx context.Context, obj *domain12.SaleDetail) (*float64, error)
-	ServiceCharge(ctx context.Context, obj *domain12.SaleDetail) (*float64, error)
-
-	ServiceCharges(ctx context.Context, obj *domain12.SaleDetail) ([]*domain12.ServiceCharge, error)
 }
 type ShowingAvailabilityResolver interface {
 	DayOfWeek(ctx context.Context, obj *domain12.ShowingAvailability) (model.DayOfWeek, error)
@@ -8796,18 +8760,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ReconciliationReport.UpdatedAt(childComplexity), true
 
-	case "RentalDetail.agencyFee":
-		if e.complexity.RentalDetail.AgencyFee == nil {
-			break
-		}
-
-		return e.complexity.RentalDetail.AgencyFee(childComplexity), true
-	case "RentalDetail.cautionFee":
-		if e.complexity.RentalDetail.CautionFee == nil {
-			break
-		}
-
-		return e.complexity.RentalDetail.CautionFee(childComplexity), true
 	case "RentalDetail.discounts":
 		if e.complexity.RentalDetail.Discounts == nil {
 			break
@@ -8820,12 +8772,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RentalDetail.Fees(childComplexity), true
-	case "RentalDetail.legalFee":
-		if e.complexity.RentalDetail.LegalFee == nil {
-			break
-		}
-
-		return e.complexity.RentalDetail.LegalFee(childComplexity), true
 	case "RentalDetail.maxRentalPeriod":
 		if e.complexity.RentalDetail.MaxRentalPeriod == nil {
 			break
@@ -8838,12 +8784,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RentalDetail.MinRentalPeriod(childComplexity), true
-	case "RentalDetail.registrationFee":
-		if e.complexity.RentalDetail.RegistrationFee == nil {
-			break
-		}
-
-		return e.complexity.RentalDetail.RegistrationFee(childComplexity), true
 	case "RentalDetail.rentalAvailabilityFrom":
 		if e.complexity.RentalDetail.RentalAvailabilityFrom == nil {
 			break
@@ -8874,18 +8814,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RentalDetail.RentalTerms(childComplexity), true
-	case "RentalDetail.serviceCharge":
-		if e.complexity.RentalDetail.ServiceCharge == nil {
-			break
-		}
-
-		return e.complexity.RentalDetail.ServiceCharge(childComplexity), true
-	case "RentalDetail.serviceCharges":
-		if e.complexity.RentalDetail.ServiceCharges == nil {
-			break
-		}
-
-		return e.complexity.RentalDetail.ServiceCharges(childComplexity), true
 	case "RentalDetail.showingAvailability":
 		if e.complexity.RentalDetail.ShowingAvailability == nil {
 			break
@@ -9077,18 +9005,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.RuleItem.Name(childComplexity), true
 
-	case "SaleDetail.agencyFee":
-		if e.complexity.SaleDetail.AgencyFee == nil {
-			break
-		}
-
-		return e.complexity.SaleDetail.AgencyFee(childComplexity), true
-	case "SaleDetail.developmentFee":
-		if e.complexity.SaleDetail.DevelopmentFee == nil {
-			break
-		}
-
-		return e.complexity.SaleDetail.DevelopmentFee(childComplexity), true
 	case "SaleDetail.discounts":
 		if e.complexity.SaleDetail.Discounts == nil {
 			break
@@ -9101,18 +9017,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.SaleDetail.Fees(childComplexity), true
-	case "SaleDetail.legalFee":
-		if e.complexity.SaleDetail.LegalFee == nil {
-			break
-		}
-
-		return e.complexity.SaleDetail.LegalFee(childComplexity), true
-	case "SaleDetail.otherFees":
-		if e.complexity.SaleDetail.OtherFees == nil {
-			break
-		}
-
-		return e.complexity.SaleDetail.OtherFees(childComplexity), true
 	case "SaleDetail.ownershipTitle":
 		if e.complexity.SaleDetail.OwnershipTitle == nil {
 			break
@@ -9143,36 +9047,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.SaleDetail.SaleTerms(childComplexity), true
-	case "SaleDetail.serviceCharge":
-		if e.complexity.SaleDetail.ServiceCharge == nil {
-			break
-		}
-
-		return e.complexity.SaleDetail.ServiceCharge(childComplexity), true
-	case "SaleDetail.serviceCharges":
-		if e.complexity.SaleDetail.ServiceCharges == nil {
-			break
-		}
-
-		return e.complexity.SaleDetail.ServiceCharges(childComplexity), true
 	case "SaleDetail.showingAvailability":
 		if e.complexity.SaleDetail.ShowingAvailability == nil {
 			break
 		}
 
 		return e.complexity.SaleDetail.ShowingAvailability(childComplexity), true
-	case "SaleDetail.surveyFee":
-		if e.complexity.SaleDetail.SurveyFee == nil {
-			break
-		}
-
-		return e.complexity.SaleDetail.SurveyFee(childComplexity), true
-	case "SaleDetail.titleProcessingFee":
-		if e.complexity.SaleDetail.TitleProcessingFee == nil {
-			break
-		}
-
-		return e.complexity.SaleDetail.TitleProcessingFee(childComplexity), true
 	case "SaleDetail.yearBuilt":
 		if e.complexity.SaleDetail.YearBuilt == nil {
 			break
@@ -10321,8 +10201,10 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputAddDisputeEvidenceInput,
 		ec.unmarshalInputAddPayoutDetailInput,
+		ec.unmarshalInputAdvanceBookingInput,
 		ec.unmarshalInputAmenityGroupInput,
 		ec.unmarshalInputAmenityHighlightInput,
+		ec.unmarshalInputBookingSettingsInput,
 		ec.unmarshalInputBusinessAddressInput,
 		ec.unmarshalInputCancelBookingInput,
 		ec.unmarshalInputCancelShowingInput,
@@ -10344,9 +10226,11 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateReviewInput,
 		ec.unmarshalInputCreateSubscriptionInput,
 		ec.unmarshalInputCreateWishlistInput,
+		ec.unmarshalInputCustomFeeInput,
 		ec.unmarshalInputDiscoverySearchFilterInput,
 		ec.unmarshalInputFeedOptionsInput,
 		ec.unmarshalInputFileDisputeInput,
+		ec.unmarshalInputGuestRequirementsInput,
 		ec.unmarshalInputIntRangeFilterInput,
 		ec.unmarshalInputInviteMemberInput,
 		ec.unmarshalInputLeadFilterInput,
@@ -10379,6 +10263,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputServiceChargeInput,
 		ec.unmarshalInputShortletDetailInput,
 		ec.unmarshalInputShortletFilterInput,
+		ec.unmarshalInputStayLimitsInput,
 		ec.unmarshalInputSubmitAddressVerificationInput,
 		ec.unmarshalInputSubmitBusinessVerificationInput,
 		ec.unmarshalInputSubmitIdentityVerificationInput,
@@ -11082,15 +10967,9 @@ type RentalDetail {
   rentalPrice: Float!
   rentalPricePeriod: PaymentPeriod!
 
-  agencyFee: Float
-  legalFee: Float
-  registrationFee: Float
-  cautionFee: Float
-  serviceCharge: Float
   discounts: [Discount!]!
   fees: [CustomFee!]!
   showingAvailability: [ShowingAvailability!]
-  serviceCharges: [ServiceCharge!]
 
   minRentalPeriod: Int!
   maxRentalPeriod: Int
@@ -11108,17 +10987,9 @@ type SaleDetail {
   yearBuilt: Int
   yearRenovated: Int
 
-  agencyFee: Float
-  legalFee: Float
-  surveyFee: Float
-  titleProcessingFee: Float
-  developmentFee: Float
-  otherFees: Float
-  serviceCharge: Float
   discounts: [Discount!]!
   fees: [CustomFee!]!
   showingAvailability: [ShowingAvailability!]
-  serviceCharges: [ServiceCharge!]
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -11246,13 +11117,12 @@ input UpdateListingInput {
 
 input ShortletDetailInput {
   nightlyRate: Float!
-  cautionFee: Float
-  cleaningFee: Float
-  serviceFee: Float
-  extraGuestFee: Float
-
-  minNights: Int!
-  maxNights: Int
+  fees: [CustomFeeInput!]!
+  
+  stayLimits: StayLimitsInput!
+  bookingSettings: BookingSettingsInput!
+  advanceBooking: AdvanceBookingInput
+  
   maxGuests: Int!
   baseGuestCount: Int
 
@@ -11260,9 +11130,7 @@ input ShortletDetailInput {
   checkOutTime: String
 
   accommodationType: AccommodationType!
-  autoAcceptBookings: Boolean
-
-  calendarMonthsAhead: Int
+  
   autoGenerateCalendar: Boolean
 
   rules: [RuleGroupInput!]
@@ -11272,13 +11140,8 @@ input ShortletDetailInput {
 input RentalDetailInput {
   rentalPrice: Float!
   rentalPricePeriod: PaymentPeriod!
-
-  agencyFee: Float
-  legalFee: Float
-  registrationFee: Float
-  cautionFee: Float
-  serviceCharge: Float
-  serviceCharges: [ServiceChargeInput!]
+  
+  fees: [CustomFeeInput!]!
 
   minRentalPeriod: Int!
   maxRentalPeriod: Int
@@ -11296,14 +11159,7 @@ input SaleDetailInput {
   yearBuilt: Int
   yearRenovated: Int
 
-  agencyFee: Float
-  legalFee: Float
-  surveyFee: Float
-  titleProcessingFee: Float
-  developmentFee: Float
-  otherFees: Float
-  serviceCharge: Float
-  serviceCharges: [ServiceChargeInput!]
+  fees: [CustomFeeInput!]!
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -11312,13 +11168,12 @@ input SaleDetailInput {
 # Update input types - all fields optional for partial updates
 input UpdateShortletDetailInput {
   nightlyRate: Float
-  cautionFee: Float
-  cleaningFee: Float
-  serviceFee: Float
-  extraGuestFee: Float
+  fees: [CustomFeeInput!]
 
-  minNights: Int
-  maxNights: Int
+  stayLimits: StayLimitsInput
+  bookingSettings: BookingSettingsInput
+  advanceBooking: AdvanceBookingInput
+
   maxGuests: Int
   baseGuestCount: Int
 
@@ -11326,9 +11181,7 @@ input UpdateShortletDetailInput {
   checkOutTime: String
 
   accommodationType: AccommodationType
-  autoAcceptBookings: Boolean
-
-  calendarMonthsAhead: Int
+  
   autoGenerateCalendar: Boolean
 
   rules: [RuleGroupInput!]
@@ -11339,12 +11192,7 @@ input UpdateRentalDetailInput {
   rentalPrice: Float
   rentalPricePeriod: PaymentPeriod
 
-  agencyFee: Float
-  legalFee: Float
-  registrationFee: Float
-  cautionFee: Float
-  serviceCharge: Float
-  serviceCharges: [ServiceChargeInput!]
+  fees: [CustomFeeInput!]
 
   minRentalPeriod: Int
   maxRentalPeriod: Int
@@ -11362,14 +11210,7 @@ input UpdateSaleDetailInput {
   yearBuilt: Int
   yearRenovated: Int
 
-  agencyFee: Float
-  legalFee: Float
-  surveyFee: Float
-  titleProcessingFee: Float
-  developmentFee: Float
-  otherFees: Float
-  serviceCharge: Float
-  serviceCharges: [ServiceChargeInput!]
+  fees: [CustomFeeInput!]
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -11395,6 +11236,37 @@ input ServiceChargeInput {
   name: String!
   period: PaymentPeriod!
   amount: Float!
+}
+
+input CustomFeeInput {
+  name: String!
+  amount: Float!
+  frequency: FeeFrequency!
+  category: FeeCategory!
+  isRefundable: Boolean
+  isOptional: Boolean
+}
+
+input StayLimitsInput {
+  minNights: Int!
+  maxNights: Int
+}
+
+input GuestRequirementsInput {
+  verifiedID: Boolean!
+  positiveReviewsOnly: Boolean!
+  profilePhotoRequired: Boolean!
+}
+
+input BookingSettingsInput {
+  approvalMethod: ApprovalMethod!
+  guestRequirements: GuestRequirementsInput
+  preBookingMessage: String
+}
+
+input AdvanceBookingInput {
+  monthsAhead: Int!
+  minNoticeHours: Int!
 }
 
 input MediaInput {
@@ -28349,24 +28221,12 @@ func (ec *executionContext) fieldContext_Listing_rentalDetails(_ context.Context
 				return ec.fieldContext_RentalDetail_rentalPrice(ctx, field)
 			case "rentalPricePeriod":
 				return ec.fieldContext_RentalDetail_rentalPricePeriod(ctx, field)
-			case "agencyFee":
-				return ec.fieldContext_RentalDetail_agencyFee(ctx, field)
-			case "legalFee":
-				return ec.fieldContext_RentalDetail_legalFee(ctx, field)
-			case "registrationFee":
-				return ec.fieldContext_RentalDetail_registrationFee(ctx, field)
-			case "cautionFee":
-				return ec.fieldContext_RentalDetail_cautionFee(ctx, field)
-			case "serviceCharge":
-				return ec.fieldContext_RentalDetail_serviceCharge(ctx, field)
 			case "discounts":
 				return ec.fieldContext_RentalDetail_discounts(ctx, field)
 			case "fees":
 				return ec.fieldContext_RentalDetail_fees(ctx, field)
 			case "showingAvailability":
 				return ec.fieldContext_RentalDetail_showingAvailability(ctx, field)
-			case "serviceCharges":
-				return ec.fieldContext_RentalDetail_serviceCharges(ctx, field)
 			case "minRentalPeriod":
 				return ec.fieldContext_RentalDetail_minRentalPeriod(ctx, field)
 			case "maxRentalPeriod":
@@ -28418,28 +28278,12 @@ func (ec *executionContext) fieldContext_Listing_saleDetails(_ context.Context, 
 				return ec.fieldContext_SaleDetail_yearBuilt(ctx, field)
 			case "yearRenovated":
 				return ec.fieldContext_SaleDetail_yearRenovated(ctx, field)
-			case "agencyFee":
-				return ec.fieldContext_SaleDetail_agencyFee(ctx, field)
-			case "legalFee":
-				return ec.fieldContext_SaleDetail_legalFee(ctx, field)
-			case "surveyFee":
-				return ec.fieldContext_SaleDetail_surveyFee(ctx, field)
-			case "titleProcessingFee":
-				return ec.fieldContext_SaleDetail_titleProcessingFee(ctx, field)
-			case "developmentFee":
-				return ec.fieldContext_SaleDetail_developmentFee(ctx, field)
-			case "otherFees":
-				return ec.fieldContext_SaleDetail_otherFees(ctx, field)
-			case "serviceCharge":
-				return ec.fieldContext_SaleDetail_serviceCharge(ctx, field)
 			case "discounts":
 				return ec.fieldContext_SaleDetail_discounts(ctx, field)
 			case "fees":
 				return ec.fieldContext_SaleDetail_fees(ctx, field)
 			case "showingAvailability":
 				return ec.fieldContext_SaleDetail_showingAvailability(ctx, field)
-			case "serviceCharges":
-				return ec.fieldContext_SaleDetail_serviceCharges(ctx, field)
 			case "saleTerms":
 				return ec.fieldContext_SaleDetail_saleTerms(ctx, field)
 			case "saleAvailabilityFrom":
@@ -53939,151 +53783,6 @@ func (ec *executionContext) fieldContext_RentalDetail_rentalPricePeriod(_ contex
 	return fc, nil
 }
 
-func (ec *executionContext) _RentalDetail_agencyFee(ctx context.Context, field graphql.CollectedField, obj *domain12.RentalDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_RentalDetail_agencyFee,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.RentalDetail().AgencyFee(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_RentalDetail_agencyFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RentalDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _RentalDetail_legalFee(ctx context.Context, field graphql.CollectedField, obj *domain12.RentalDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_RentalDetail_legalFee,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.RentalDetail().LegalFee(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_RentalDetail_legalFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RentalDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _RentalDetail_registrationFee(ctx context.Context, field graphql.CollectedField, obj *domain12.RentalDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_RentalDetail_registrationFee,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.RentalDetail().RegistrationFee(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_RentalDetail_registrationFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RentalDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _RentalDetail_cautionFee(ctx context.Context, field graphql.CollectedField, obj *domain12.RentalDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_RentalDetail_cautionFee,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.RentalDetail().CautionFee(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_RentalDetail_cautionFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RentalDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _RentalDetail_serviceCharge(ctx context.Context, field graphql.CollectedField, obj *domain12.RentalDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_RentalDetail_serviceCharge,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.RentalDetail().ServiceCharge(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_RentalDetail_serviceCharge(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RentalDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _RentalDetail_discounts(ctx context.Context, field graphql.CollectedField, obj *domain12.RentalDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -54202,43 +53901,6 @@ func (ec *executionContext) fieldContext_RentalDetail_showingAvailability(_ cont
 				return ec.fieldContext_ShowingAvailability_timezone(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ShowingAvailability", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _RentalDetail_serviceCharges(ctx context.Context, field graphql.CollectedField, obj *domain12.RentalDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_RentalDetail_serviceCharges,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.RentalDetail().ServiceCharges(ctx, obj)
-		},
-		nil,
-		ec.marshalOServiceCharge2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_RentalDetail_serviceCharges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RentalDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext_ServiceCharge_name(ctx, field)
-			case "period":
-				return ec.fieldContext_ServiceCharge_period(ctx, field)
-			case "amount":
-				return ec.fieldContext_ServiceCharge_amount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ServiceCharge", field.Name)
 		},
 	}
 	return fc, nil
@@ -55534,209 +55196,6 @@ func (ec *executionContext) fieldContext_SaleDetail_yearRenovated(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _SaleDetail_agencyFee(ctx context.Context, field graphql.CollectedField, obj *domain12.SaleDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_SaleDetail_agencyFee,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.SaleDetail().AgencyFee(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_SaleDetail_agencyFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SaleDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SaleDetail_legalFee(ctx context.Context, field graphql.CollectedField, obj *domain12.SaleDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_SaleDetail_legalFee,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.SaleDetail().LegalFee(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_SaleDetail_legalFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SaleDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SaleDetail_surveyFee(ctx context.Context, field graphql.CollectedField, obj *domain12.SaleDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_SaleDetail_surveyFee,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.SaleDetail().SurveyFee(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_SaleDetail_surveyFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SaleDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SaleDetail_titleProcessingFee(ctx context.Context, field graphql.CollectedField, obj *domain12.SaleDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_SaleDetail_titleProcessingFee,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.SaleDetail().TitleProcessingFee(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_SaleDetail_titleProcessingFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SaleDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SaleDetail_developmentFee(ctx context.Context, field graphql.CollectedField, obj *domain12.SaleDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_SaleDetail_developmentFee,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.SaleDetail().DevelopmentFee(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_SaleDetail_developmentFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SaleDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SaleDetail_otherFees(ctx context.Context, field graphql.CollectedField, obj *domain12.SaleDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_SaleDetail_otherFees,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.SaleDetail().OtherFees(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_SaleDetail_otherFees(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SaleDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SaleDetail_serviceCharge(ctx context.Context, field graphql.CollectedField, obj *domain12.SaleDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_SaleDetail_serviceCharge,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.SaleDetail().ServiceCharge(ctx, obj)
-		},
-		nil,
-		ec.marshalOFloat2ᚖfloat64,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_SaleDetail_serviceCharge(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SaleDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Float does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _SaleDetail_discounts(ctx context.Context, field graphql.CollectedField, obj *domain12.SaleDetail) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -55855,43 +55314,6 @@ func (ec *executionContext) fieldContext_SaleDetail_showingAvailability(_ contex
 				return ec.fieldContext_ShowingAvailability_timezone(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ShowingAvailability", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SaleDetail_serviceCharges(ctx context.Context, field graphql.CollectedField, obj *domain12.SaleDetail) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_SaleDetail_serviceCharges,
-		func(ctx context.Context) (any, error) {
-			return ec.resolvers.SaleDetail().ServiceCharges(ctx, obj)
-		},
-		nil,
-		ec.marshalOServiceCharge2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_SaleDetail_serviceCharges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SaleDetail",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext_ServiceCharge_name(ctx, field)
-			case "period":
-				return ec.fieldContext_ServiceCharge_period(ctx, field)
-			case "amount":
-				return ec.fieldContext_ServiceCharge_amount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ServiceCharge", field.Name)
 		},
 	}
 	return fc, nil
@@ -63090,6 +62512,40 @@ func (ec *executionContext) unmarshalInputAddPayoutDetailInput(ctx context.Conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputAdvanceBookingInput(ctx context.Context, obj any) (model.AdvanceBookingInput, error) {
+	var it model.AdvanceBookingInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"monthsAhead", "minNoticeHours"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "monthsAhead":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("monthsAhead"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MonthsAhead = data
+		case "minNoticeHours":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNoticeHours"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinNoticeHours = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputAmenityGroupInput(ctx context.Context, obj any) (domain12.AmenityGroup, error) {
 	var it domain12.AmenityGroup
 	asMap := map[string]any{}
@@ -63159,6 +62615,47 @@ func (ec *executionContext) unmarshalInputAmenityHighlightInput(ctx context.Cont
 				return it, err
 			}
 			it.Icon = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputBookingSettingsInput(ctx context.Context, obj any) (model.BookingSettingsInput, error) {
+	var it model.BookingSettingsInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"approvalMethod", "guestRequirements", "preBookingMessage"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "approvalMethod":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("approvalMethod"))
+			data, err := ec.unmarshalNApprovalMethod2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐApprovalMethod(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ApprovalMethod = data
+		case "guestRequirements":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("guestRequirements"))
+			data, err := ec.unmarshalOGuestRequirementsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐGuestRequirementsInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.GuestRequirements = data
+		case "preBookingMessage":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("preBookingMessage"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PreBookingMessage = data
 		}
 	}
 
@@ -64650,6 +64147,68 @@ func (ec *executionContext) unmarshalInputCreateWishlistInput(ctx context.Contex
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCustomFeeInput(ctx context.Context, obj any) (model.CustomFeeInput, error) {
+	var it model.CustomFeeInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "amount", "frequency", "category", "isRefundable", "isOptional"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "amount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amount"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Amount = data
+		case "frequency":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("frequency"))
+			data, err := ec.unmarshalNFeeFrequency2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFeeFrequency(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Frequency = data
+		case "category":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("category"))
+			data, err := ec.unmarshalNFeeCategory2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFeeCategory(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Category = data
+		case "isRefundable":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isRefundable"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsRefundable = data
+		case "isOptional":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isOptional"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsOptional = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDiscoverySearchFilterInput(ctx context.Context, obj any) (model.DiscoverySearchFilterInput, error) {
 	var it model.DiscoverySearchFilterInput
 	asMap := map[string]any{}
@@ -64837,6 +64396,47 @@ func (ec *executionContext) unmarshalInputFileDisputeInput(ctx context.Context, 
 				return it, err
 			}
 			it.Currency = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputGuestRequirementsInput(ctx context.Context, obj any) (model.GuestRequirementsInput, error) {
+	var it model.GuestRequirementsInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"verifiedID", "positiveReviewsOnly", "profilePhotoRequired"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "verifiedID":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("verifiedID"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.VerifiedID = data
+		case "positiveReviewsOnly":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("positiveReviewsOnly"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PositiveReviewsOnly = data
+		case "profilePhotoRequired":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("profilePhotoRequired"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ProfilePhotoRequired = data
 		}
 	}
 
@@ -65689,7 +65289,7 @@ func (ec *executionContext) unmarshalInputRentalDetailInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"rentalPrice", "rentalPricePeriod", "agencyFee", "legalFee", "registrationFee", "cautionFee", "serviceCharge", "serviceCharges", "minRentalPeriod", "maxRentalPeriod", "rentalAvailabilityFrom", "rentalTerms", "rentalRules"}
+	fieldsInOrder := [...]string{"rentalPrice", "rentalPricePeriod", "fees", "minRentalPeriod", "maxRentalPeriod", "rentalAvailabilityFrom", "rentalTerms", "rentalRules"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -65710,48 +65310,13 @@ func (ec *executionContext) unmarshalInputRentalDetailInput(ctx context.Context,
 				return it, err
 			}
 			it.RentalPricePeriod = data
-		case "agencyFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("agencyFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+		case "fees":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fees"))
+			data, err := ec.unmarshalNCustomFeeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.AgencyFee = data
-		case "legalFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("legalFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.LegalFee = data
-		case "registrationFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("registrationFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.RegistrationFee = data
-		case "cautionFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cautionFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CautionFee = data
-		case "serviceCharge":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharge"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ServiceCharge = data
-		case "serviceCharges":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
-			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ServiceCharges = data
+			it.Fees = data
 		case "minRentalPeriod":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minRentalPeriod"))
 			data, err := ec.unmarshalNInt2int(ctx, v)
@@ -66212,7 +65777,7 @@ func (ec *executionContext) unmarshalInputSaleDetailInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"salePrice", "ownershipTitle", "paymentPlan", "yearBuilt", "yearRenovated", "agencyFee", "legalFee", "surveyFee", "titleProcessingFee", "developmentFee", "otherFees", "serviceCharge", "serviceCharges", "saleTerms", "saleAvailabilityFrom"}
+	fieldsInOrder := [...]string{"salePrice", "ownershipTitle", "paymentPlan", "yearBuilt", "yearRenovated", "fees", "saleTerms", "saleAvailabilityFrom"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -66254,62 +65819,13 @@ func (ec *executionContext) unmarshalInputSaleDetailInput(ctx context.Context, o
 				return it, err
 			}
 			it.YearRenovated = data
-		case "agencyFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("agencyFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+		case "fees":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fees"))
+			data, err := ec.unmarshalNCustomFeeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.AgencyFee = data
-		case "legalFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("legalFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.LegalFee = data
-		case "surveyFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("surveyFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.SurveyFee = data
-		case "titleProcessingFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("titleProcessingFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.TitleProcessingFee = data
-		case "developmentFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("developmentFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.DevelopmentFee = data
-		case "otherFees":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otherFees"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.OtherFees = data
-		case "serviceCharge":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharge"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ServiceCharge = data
-		case "serviceCharges":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
-			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ServiceCharges = data
+			it.Fees = data
 		case "saleTerms":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("saleTerms"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -66563,7 +66079,7 @@ func (ec *executionContext) unmarshalInputShortletDetailInput(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"nightlyRate", "cautionFee", "cleaningFee", "serviceFee", "extraGuestFee", "minNights", "maxNights", "maxGuests", "baseGuestCount", "checkInTime", "checkOutTime", "accommodationType", "autoAcceptBookings", "calendarMonthsAhead", "autoGenerateCalendar", "rules", "amenitiesHighlights"}
+	fieldsInOrder := [...]string{"nightlyRate", "fees", "stayLimits", "bookingSettings", "advanceBooking", "maxGuests", "baseGuestCount", "checkInTime", "checkOutTime", "accommodationType", "autoGenerateCalendar", "rules", "amenitiesHighlights"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -66577,48 +66093,34 @@ func (ec *executionContext) unmarshalInputShortletDetailInput(ctx context.Contex
 				return it, err
 			}
 			it.NightlyRate = data
-		case "cautionFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cautionFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+		case "fees":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fees"))
+			data, err := ec.unmarshalNCustomFeeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.CautionFee = data
-		case "cleaningFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cleaningFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			it.Fees = data
+		case "stayLimits":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("stayLimits"))
+			data, err := ec.unmarshalNStayLimitsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐStayLimitsInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.CleaningFee = data
-		case "serviceFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			it.StayLimits = data
+		case "bookingSettings":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bookingSettings"))
+			data, err := ec.unmarshalNBookingSettingsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBookingSettingsInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ServiceFee = data
-		case "extraGuestFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("extraGuestFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			it.BookingSettings = data
+		case "advanceBooking":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("advanceBooking"))
+			data, err := ec.unmarshalOAdvanceBookingInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAdvanceBookingInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ExtraGuestFee = data
-		case "minNights":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNights"))
-			data, err := ec.unmarshalNInt2int(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.MinNights = data
-		case "maxNights":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxNights"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.MaxNights = data
+			it.AdvanceBooking = data
 		case "maxGuests":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxGuests"))
 			data, err := ec.unmarshalNInt2int(ctx, v)
@@ -66654,20 +66156,6 @@ func (ec *executionContext) unmarshalInputShortletDetailInput(ctx context.Contex
 				return it, err
 			}
 			it.AccommodationType = data
-		case "autoAcceptBookings":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoAcceptBookings"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.AutoAcceptBookings = data
-		case "calendarMonthsAhead":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("calendarMonthsAhead"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CalendarMonthsAhead = data
 		case "autoGenerateCalendar":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoGenerateCalendar"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -66800,6 +66288,40 @@ func (ec *executionContext) unmarshalInputShortletFilterInput(ctx context.Contex
 				return it, err
 			}
 			it.AccommodationTypes = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputStayLimitsInput(ctx context.Context, obj any) (model.StayLimitsInput, error) {
+	var it model.StayLimitsInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"minNights", "maxNights"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "minNights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNights"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinNights = data
+		case "maxNights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxNights"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MaxNights = data
 		}
 	}
 
@@ -67873,7 +67395,7 @@ func (ec *executionContext) unmarshalInputUpdateRentalDetailInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"rentalPrice", "rentalPricePeriod", "agencyFee", "legalFee", "registrationFee", "cautionFee", "serviceCharge", "serviceCharges", "minRentalPeriod", "maxRentalPeriod", "rentalAvailabilityFrom", "rentalTerms", "rentalRules"}
+	fieldsInOrder := [...]string{"rentalPrice", "rentalPricePeriod", "fees", "minRentalPeriod", "maxRentalPeriod", "rentalAvailabilityFrom", "rentalTerms", "rentalRules"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -67894,48 +67416,13 @@ func (ec *executionContext) unmarshalInputUpdateRentalDetailInput(ctx context.Co
 				return it, err
 			}
 			it.RentalPricePeriod = data
-		case "agencyFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("agencyFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+		case "fees":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fees"))
+			data, err := ec.unmarshalOCustomFeeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.AgencyFee = data
-		case "legalFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("legalFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.LegalFee = data
-		case "registrationFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("registrationFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.RegistrationFee = data
-		case "cautionFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cautionFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CautionFee = data
-		case "serviceCharge":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharge"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ServiceCharge = data
-		case "serviceCharges":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
-			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ServiceCharges = data
+			it.Fees = data
 		case "minRentalPeriod":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minRentalPeriod"))
 			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
@@ -68067,7 +67554,7 @@ func (ec *executionContext) unmarshalInputUpdateSaleDetailInput(ctx context.Cont
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"salePrice", "ownershipTitle", "paymentPlan", "yearBuilt", "yearRenovated", "agencyFee", "legalFee", "surveyFee", "titleProcessingFee", "developmentFee", "otherFees", "serviceCharge", "serviceCharges", "saleTerms", "saleAvailabilityFrom"}
+	fieldsInOrder := [...]string{"salePrice", "ownershipTitle", "paymentPlan", "yearBuilt", "yearRenovated", "fees", "saleTerms", "saleAvailabilityFrom"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -68109,62 +67596,13 @@ func (ec *executionContext) unmarshalInputUpdateSaleDetailInput(ctx context.Cont
 				return it, err
 			}
 			it.YearRenovated = data
-		case "agencyFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("agencyFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+		case "fees":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fees"))
+			data, err := ec.unmarshalOCustomFeeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.AgencyFee = data
-		case "legalFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("legalFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.LegalFee = data
-		case "surveyFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("surveyFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.SurveyFee = data
-		case "titleProcessingFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("titleProcessingFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.TitleProcessingFee = data
-		case "developmentFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("developmentFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.DevelopmentFee = data
-		case "otherFees":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otherFees"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.OtherFees = data
-		case "serviceCharge":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharge"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ServiceCharge = data
-		case "serviceCharges":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceCharges"))
-			data, err := ec.unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ServiceCharges = data
+			it.Fees = data
 		case "saleTerms":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("saleTerms"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -68192,7 +67630,7 @@ func (ec *executionContext) unmarshalInputUpdateShortletDetailInput(ctx context.
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"nightlyRate", "cautionFee", "cleaningFee", "serviceFee", "extraGuestFee", "minNights", "maxNights", "maxGuests", "baseGuestCount", "checkInTime", "checkOutTime", "accommodationType", "autoAcceptBookings", "calendarMonthsAhead", "autoGenerateCalendar", "rules", "amenitiesHighlights"}
+	fieldsInOrder := [...]string{"nightlyRate", "fees", "stayLimits", "bookingSettings", "advanceBooking", "maxGuests", "baseGuestCount", "checkInTime", "checkOutTime", "accommodationType", "autoGenerateCalendar", "rules", "amenitiesHighlights"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -68206,48 +67644,34 @@ func (ec *executionContext) unmarshalInputUpdateShortletDetailInput(ctx context.
 				return it, err
 			}
 			it.NightlyRate = data
-		case "cautionFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cautionFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+		case "fees":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("fees"))
+			data, err := ec.unmarshalOCustomFeeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInputᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.CautionFee = data
-		case "cleaningFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cleaningFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			it.Fees = data
+		case "stayLimits":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("stayLimits"))
+			data, err := ec.unmarshalOStayLimitsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐStayLimitsInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.CleaningFee = data
-		case "serviceFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("serviceFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			it.StayLimits = data
+		case "bookingSettings":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bookingSettings"))
+			data, err := ec.unmarshalOBookingSettingsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBookingSettingsInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ServiceFee = data
-		case "extraGuestFee":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("extraGuestFee"))
-			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			it.BookingSettings = data
+		case "advanceBooking":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("advanceBooking"))
+			data, err := ec.unmarshalOAdvanceBookingInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAdvanceBookingInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.ExtraGuestFee = data
-		case "minNights":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNights"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.MinNights = data
-		case "maxNights":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxNights"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.MaxNights = data
+			it.AdvanceBooking = data
 		case "maxGuests":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("maxGuests"))
 			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
@@ -68283,20 +67707,6 @@ func (ec *executionContext) unmarshalInputUpdateShortletDetailInput(ctx context.
 				return it, err
 			}
 			it.AccommodationType = data
-		case "autoAcceptBookings":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoAcceptBookings"))
-			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.AutoAcceptBookings = data
-		case "calendarMonthsAhead":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("calendarMonthsAhead"))
-			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.CalendarMonthsAhead = data
 		case "autoGenerateCalendar":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("autoGenerateCalendar"))
 			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
@@ -79172,227 +78582,29 @@ func (ec *executionContext) _RentalDetail(ctx context.Context, sel ast.Selection
 		case "rentalPrice":
 			out.Values[i] = ec._RentalDetail_rentalPrice(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "rentalPricePeriod":
 			out.Values[i] = ec._RentalDetail_rentalPricePeriod(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
-		case "agencyFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RentalDetail_agencyFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "legalFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RentalDetail_legalFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "registrationFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RentalDetail_registrationFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "cautionFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RentalDetail_cautionFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "serviceCharge":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RentalDetail_serviceCharge(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "discounts":
 			out.Values[i] = ec._RentalDetail_discounts(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "fees":
 			out.Values[i] = ec._RentalDetail_fees(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "showingAvailability":
 			out.Values[i] = ec._RentalDetail_showingAvailability(ctx, field, obj)
-		case "serviceCharges":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._RentalDetail_serviceCharges(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "minRentalPeriod":
 			out.Values[i] = ec._RentalDetail_minRentalPeriod(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "maxRentalPeriod":
 			out.Values[i] = ec._RentalDetail_maxRentalPeriod(ctx, field, obj)
@@ -79403,7 +78615,7 @@ func (ec *executionContext) _RentalDetail(ctx context.Context, sel ast.Selection
 		case "rentalRules":
 			out.Values[i] = ec._RentalDetail_rentalRules(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -79859,298 +79071,34 @@ func (ec *executionContext) _SaleDetail(ctx context.Context, sel ast.SelectionSe
 		case "salePrice":
 			out.Values[i] = ec._SaleDetail_salePrice(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "ownershipTitle":
 			out.Values[i] = ec._SaleDetail_ownershipTitle(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "paymentPlan":
 			out.Values[i] = ec._SaleDetail_paymentPlan(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "yearBuilt":
 			out.Values[i] = ec._SaleDetail_yearBuilt(ctx, field, obj)
 		case "yearRenovated":
 			out.Values[i] = ec._SaleDetail_yearRenovated(ctx, field, obj)
-		case "agencyFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SaleDetail_agencyFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "legalFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SaleDetail_legalFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "surveyFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SaleDetail_surveyFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "titleProcessingFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SaleDetail_titleProcessingFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "developmentFee":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SaleDetail_developmentFee(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "otherFees":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SaleDetail_otherFees(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-		case "serviceCharge":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SaleDetail_serviceCharge(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "discounts":
 			out.Values[i] = ec._SaleDetail_discounts(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "fees":
 			out.Values[i] = ec._SaleDetail_fees(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "showingAvailability":
 			out.Values[i] = ec._SaleDetail_showingAvailability(ctx, field, obj)
-		case "serviceCharges":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._SaleDetail_serviceCharges(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "saleTerms":
 			out.Values[i] = ec._SaleDetail_saleTerms(ctx, field, obj)
 		case "saleAvailabilityFrom":
@@ -83233,6 +82181,11 @@ func (ec *executionContext) marshalNBookingSettings2hausletᚋinternalᚋmodules
 	return ec._BookingSettings(ctx, sel, &v)
 }
 
+func (ec *executionContext) unmarshalNBookingSettingsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBookingSettingsInput(ctx context.Context, v any) (*model.BookingSettingsInput, error) {
+	res, err := ec.unmarshalInputBookingSettingsInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNBookingStatus2hausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBookingStatus(ctx context.Context, v any) (domain7.BookingStatus, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain7.BookingStatus(tmp)
@@ -83855,6 +82808,26 @@ func (ec *executionContext) marshalNCustomFee2ᚕhausletᚋinternalᚋmodulesᚋ
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalNCustomFeeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInputᚄ(ctx context.Context, v any) ([]*model.CustomFeeInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.CustomFeeInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNCustomFeeInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNCustomFeeInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInput(ctx context.Context, v any) (*model.CustomFeeInput, error) {
+	res, err := ec.unmarshalInputCustomFeeInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNDailyRate2hausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐDailyRate(ctx context.Context, sel ast.SelectionSet, v domain7.DailyRate) graphql.Marshaler {
@@ -86747,21 +85720,6 @@ func (ec *executionContext) unmarshalNSendMessageInput2hausletᚋinternalᚋtran
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNServiceCharge2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceCharge(ctx context.Context, sel ast.SelectionSet, v *domain12.ServiceCharge) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._ServiceCharge(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNServiceChargeInput2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceCharge(ctx context.Context, v any) (*domain12.ServiceCharge, error) {
-	res, err := ec.unmarshalInputServiceChargeInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNSessionStatus2hausletᚋinternalᚋmodulesᚋverificationᚋdomainᚐSessionStatus(ctx context.Context, v any) (domain10.SessionStatus, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain10.SessionStatus(tmp)
@@ -86785,6 +85743,11 @@ func (ec *executionContext) marshalNShowingAvailability2hausletᚋinternalᚋmod
 
 func (ec *executionContext) marshalNStayLimits2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐStayLimits(ctx context.Context, sel ast.SelectionSet, v domain12.StayLimits) graphql.Marshaler {
 	return ec._StayLimits(ctx, sel, &v)
+}
+
+func (ec *executionContext) unmarshalNStayLimitsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐStayLimitsInput(ctx context.Context, v any) (*model.StayLimitsInput, error) {
+	res, err := ec.unmarshalInputStayLimitsInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -87963,6 +86926,14 @@ func (ec *executionContext) marshalOAccommodationType2ᚖhausletᚋinternalᚋmo
 	return res
 }
 
+func (ec *executionContext) unmarshalOAdvanceBookingInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐAdvanceBookingInput(ctx context.Context, v any) (*model.AdvanceBookingInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputAdvanceBookingInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalOAgentSubscription2ᚖhausletᚋinternalᚋmodulesᚋpromotionsᚋdomainᚐAgentSubscription(ctx context.Context, sel ast.SelectionSet, v *domain3.AgentSubscription) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -88018,6 +86989,14 @@ func (ec *executionContext) marshalOBooking2ᚖhausletᚋinternalᚋmodulesᚋbo
 		return graphql.Null
 	}
 	return ec._Booking(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOBookingSettingsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐBookingSettingsInput(ctx context.Context, v any) (*model.BookingSettingsInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputBookingSettingsInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOBookingStatus2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBookingStatus(ctx context.Context, v any) (*domain7.BookingStatus, error) {
@@ -88141,6 +87120,24 @@ func (ec *executionContext) marshalOCurrencyCode2ᚖhausletᚋinternalᚋmodules
 	_ = ctx
 	res := graphql.MarshalString(string(*v))
 	return res
+}
+
+func (ec *executionContext) unmarshalOCustomFeeInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInputᚄ(ctx context.Context, v any) ([]*model.CustomFeeInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.CustomFeeInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNCustomFeeInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCustomFeeInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalODailyRate2ᚕhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐDailyRateᚄ(ctx context.Context, sel ast.SelectionSet, v []domain7.DailyRate) graphql.Marshaler {
@@ -88575,6 +87572,14 @@ func (ec *executionContext) marshalOFurnishingType2ᚖhausletᚋinternalᚋmodul
 	_ = ctx
 	res := graphql.MarshalString(string(*v))
 	return res
+}
+
+func (ec *executionContext) unmarshalOGuestRequirementsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐGuestRequirementsInput(ctx context.Context, v any) (*model.GuestRequirementsInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputGuestRequirementsInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOHostStats2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐHostStats(ctx context.Context, sel ast.SelectionSet, v *domain11.HostStats) graphql.Marshaler {
@@ -89869,71 +88874,6 @@ func (ec *executionContext) unmarshalOSendMessageAttachmentInput2ᚕᚖhauslet�
 	return res, nil
 }
 
-func (ec *executionContext) marshalOServiceCharge2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain12.ServiceCharge) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNServiceCharge2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceCharge(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) unmarshalOServiceChargeInput2ᚕᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceChargeᚄ(ctx context.Context, v any) ([]*domain12.ServiceCharge, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var vSlice []any
-	vSlice = graphql.CoerceList(v)
-	var err error
-	res := make([]*domain12.ServiceCharge, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNServiceChargeInput2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐServiceCharge(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
 func (ec *executionContext) marshalOShortletDetail2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐShortletDetail(ctx context.Context, sel ast.SelectionSet, v *domain12.ShortletDetail) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -90013,6 +88953,14 @@ func (ec *executionContext) marshalOShowingDetail2ᚖhausletᚋinternalᚋmodule
 		return graphql.Null
 	}
 	return ec._ShowingDetail(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOStayLimitsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐStayLimitsInput(ctx context.Context, v any) (*model.StayLimitsInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputStayLimitsInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v any) (string, error) {

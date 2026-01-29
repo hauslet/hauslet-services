@@ -317,64 +317,20 @@ func mapShortletInputToDomain(input *model.ShortletDetailInput) *domain.Shortlet
 		return nil
 	}
 
-	// Convert old fee fields to new CustomFee structure
-	var fees []domain.CustomFee
-	if input.CautionFee != nil && *input.CautionFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:         "Caution Fee",
-			Amount:       *input.CautionFee,
-			Frequency:    domain.FeeFreqOneTime,
-			Category:     domain.FeeCatCaution,
-			IsRefundable: true,
-		})
-	}
-	if input.CleaningFee != nil && *input.CleaningFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Cleaning Fee",
-			Amount:    *input.CleaningFee,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatService,
-		})
-	}
-	if input.ServiceFee != nil && *input.ServiceFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Service Fee",
-			Amount:    *input.ServiceFee,
-			Frequency: domain.FeeFreqPerNight,
-			Category:  domain.FeeCatService,
-		})
-	}
-	if input.ExtraGuestFee != nil && *input.ExtraGuestFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Extra Guest Fee",
-			Amount:    *input.ExtraGuestFee,
-			Frequency: domain.FeeFreqPerNight,
-			Category:  domain.FeeCatOther,
-		})
-	}
-
-	// Build BookingSettings
-	approvalMethod := domain.ApprovalMethodRequest
-	if boolOrDefault(input.AutoAcceptBookings, false) {
-		approvalMethod = domain.ApprovalMethodInstant
-	}
-
 	return &domain.ShortletDetail{
 		NightlyRate: input.NightlyRate,
-		Fees:        fees,
-		Discounts:   []domain.Discount{}, // Empty for now, will be populated from dedicated input
+		Fees:        mapCustomFeeInputs(input.Fees),
+		Discounts:   []domain.Discount{}, // Empty for now
 		BookingSettings: domain.BookingSettings{
-			ApprovalMethod:    approvalMethod,
-			GuestRequirements: domain.GuestRequirements{},
+			ApprovalMethod:    input.BookingSettings.ApprovalMethod,
+			GuestRequirements: mapGuestRequirementsInput(input.BookingSettings.GuestRequirements),
+			PreBookingMessage: stringOrDefault(input.BookingSettings.PreBookingMessage, ""),
 		},
 		StayLimits: domain.StayLimits{
-			MinNights: input.MinNights,
-			MaxNights: input.MaxNights,
+			MinNights: input.StayLimits.MinNights,
+			MaxNights: input.StayLimits.MaxNights,
 		},
-		AdvanceBooking: domain.AdvanceBooking{
-			MonthsAhead:    intOrDefault(input.CalendarMonthsAhead, 6),
-			MinNoticeHours: 24, // Default 24 hours
-		},
+		AdvanceBooking:       mapAdvanceBookingInput(input.AdvanceBooking),
 		MaxGuests:            input.MaxGuests,
 		BaseGuestCount:       input.BaseGuestCount,
 		CheckInTime:          input.CheckInTime,
@@ -391,55 +347,11 @@ func mapRentalInputToDomain(input *model.RentalDetailInput) *domain.RentalDetail
 		return nil
 	}
 
-	// Convert old fee fields to new CustomFee structure
-	var fees []domain.CustomFee
-	if input.AgencyFee != nil && *input.AgencyFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Agency Fee",
-			Amount:    *input.AgencyFee,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatAgency,
-		})
-	}
-	if input.LegalFee != nil && *input.LegalFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Legal Fee",
-			Amount:    *input.LegalFee,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatLegal,
-		})
-	}
-	if input.RegistrationFee != nil && *input.RegistrationFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Registration Fee",
-			Amount:    *input.RegistrationFee,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatOther,
-		})
-	}
-	if input.CautionFee != nil && *input.CautionFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:         "Caution Fee",
-			Amount:       *input.CautionFee,
-			Frequency:    domain.FeeFreqOneTime,
-			Category:     domain.FeeCatCaution,
-			IsRefundable: true,
-		})
-	}
-	if input.ServiceCharge != nil && *input.ServiceCharge > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Service Charge",
-			Amount:    *input.ServiceCharge,
-			Frequency: domain.FeeFreqPerMonth,
-			Category:  domain.FeeCatService,
-		})
-	}
-
 	return &domain.RentalDetail{
 		RentalPrice:            input.RentalPrice,
 		RentalPricePeriod:      domain.PaymentPeriod(input.RentalPricePeriod),
 		Discounts:              []domain.Discount{}, // Empty for now
-		Fees:                   fees,
+		Fees:                   mapCustomFeeInputs(input.Fees),
 		MinRentalPeriod:        input.MinRentalPeriod,
 		MaxRentalPeriod:        input.MaxRentalPeriod,
 		RentalAvailabilityFrom: input.RentalAvailabilityFrom,
@@ -453,65 +365,6 @@ func mapSaleInputToDomain(input *model.SaleDetailInput) *domain.SaleDetail {
 		return nil
 	}
 
-	// Convert old fee fields to new CustomFee structure
-	var fees []domain.CustomFee
-	if input.AgencyFee != nil && *input.AgencyFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Agency Fee",
-			Amount:    *input.AgencyFee,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatAgency,
-		})
-	}
-	if input.LegalFee != nil && *input.LegalFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Legal Fee",
-			Amount:    *input.LegalFee,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatLegal,
-		})
-	}
-	if input.SurveyFee != nil && *input.SurveyFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Survey Fee",
-			Amount:    *input.SurveyFee,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatOther,
-		})
-	}
-	if input.TitleProcessingFee != nil && *input.TitleProcessingFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Title Processing Fee",
-			Amount:    *input.TitleProcessingFee,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatLegal,
-		})
-	}
-	if input.DevelopmentFee != nil && *input.DevelopmentFee > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Development Fee",
-			Amount:    *input.DevelopmentFee,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatOther,
-		})
-	}
-	if input.OtherFees != nil && *input.OtherFees > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Other Fees",
-			Amount:    *input.OtherFees,
-			Frequency: domain.FeeFreqOneTime,
-			Category:  domain.FeeCatOther,
-		})
-	}
-	if input.ServiceCharge != nil && *input.ServiceCharge > 0 {
-		fees = append(fees, domain.CustomFee{
-			Name:      "Service Charge",
-			Amount:    *input.ServiceCharge,
-			Frequency: domain.FeeFreqPerYear,
-			Category:  domain.FeeCatService,
-		})
-	}
-
 	return &domain.SaleDetail{
 		SalePrice:            input.SalePrice,
 		OwnershipTitle:       input.OwnershipTitle,
@@ -519,7 +372,7 @@ func mapSaleInputToDomain(input *model.SaleDetailInput) *domain.SaleDetail {
 		Discounts:            []domain.Discount{}, // Empty for now
 		YearBuilt:            intOrDefault(input.YearBuilt, 0),
 		YearRenovated:        intOrDefault(input.YearRenovated, 0),
-		Fees:                 fees,
+		Fees:                 mapCustomFeeInputs(input.Fees),
 		SaleTerms:            stringOrDefault(input.SaleTerms, ""),
 		SaleAvailabilityFrom: input.SaleAvailabilityFrom,
 	}
@@ -534,24 +387,32 @@ func mapUpdateShortletInputToDomain(input *model.UpdateShortletDetailInput) map[
 	if input.NightlyRate != nil {
 		updates["nightly_rate"] = *input.NightlyRate
 	}
-	if input.CautionFee != nil {
-		updates["caution_fee"] = *input.CautionFee
+	if input.Fees != nil {
+		updates["fees"] = mapCustomFeeInputs(input.Fees)
 	}
-	if input.CleaningFee != nil {
-		updates["cleaning_fee"] = *input.CleaningFee
+
+	// Nest StayLimits
+	if input.StayLimits != nil {
+		updates["stay_limits"] = domain.StayLimits{
+			MinNights: input.StayLimits.MinNights,
+			MaxNights: input.StayLimits.MaxNights,
+		}
 	}
-	if input.ServiceFee != nil {
-		updates["service_fee"] = *input.ServiceFee
+
+	// Nest BookingSettings
+	if input.BookingSettings != nil {
+		updates["booking_settings"] = domain.BookingSettings{
+			ApprovalMethod:    input.BookingSettings.ApprovalMethod,
+			GuestRequirements: mapGuestRequirementsInput(input.BookingSettings.GuestRequirements),
+			PreBookingMessage: stringOrDefault(input.BookingSettings.PreBookingMessage, ""),
+		}
 	}
-	if input.ExtraGuestFee != nil {
-		updates["extra_guest_fee"] = *input.ExtraGuestFee
+
+	// Nest AdvanceBooking
+	if input.AdvanceBooking != nil {
+		updates["advance_booking"] = mapAdvanceBookingInput(input.AdvanceBooking)
 	}
-	if input.MinNights != nil {
-		updates["min_nights"] = *input.MinNights
-	}
-	if input.MaxNights != nil {
-		updates["max_nights"] = *input.MaxNights
-	}
+
 	if input.MaxGuests != nil {
 		updates["max_guests"] = *input.MaxGuests
 	}
@@ -566,12 +427,6 @@ func mapUpdateShortletInputToDomain(input *model.UpdateShortletDetailInput) map[
 	}
 	if input.AccommodationType != nil {
 		updates["accommodation_type"] = *input.AccommodationType
-	}
-	if input.AutoAcceptBookings != nil {
-		updates["auto_accept_bookings"] = *input.AutoAcceptBookings
-	}
-	if input.CalendarMonthsAhead != nil {
-		updates["calendar_months_ahead"] = *input.CalendarMonthsAhead
 	}
 	if input.AutoGenerateCalendar != nil {
 		updates["auto_generate_calendar"] = *input.AutoGenerateCalendar
@@ -596,23 +451,8 @@ func mapUpdateRentalInputToDomain(input *model.UpdateRentalDetailInput) map[stri
 	if input.RentalPricePeriod != nil {
 		updates["rental_price_period"] = *input.RentalPricePeriod
 	}
-	if input.AgencyFee != nil {
-		updates["agency_fee"] = *input.AgencyFee
-	}
-	if input.LegalFee != nil {
-		updates["legal_fee"] = *input.LegalFee
-	}
-	if input.RegistrationFee != nil {
-		updates["registration_fee"] = *input.RegistrationFee
-	}
-	if input.CautionFee != nil {
-		updates["caution_fee"] = *input.CautionFee
-	}
-	if input.ServiceCharge != nil {
-		updates["service_charge"] = *input.ServiceCharge
-	}
-	if input.ServiceCharges != nil {
-		updates["service_charge_breakdown"] = mapServiceChargeInputs(input.ServiceCharges)
+	if input.Fees != nil {
+		updates["fees"] = mapCustomFeeInputs(input.Fees)
 	}
 	if input.MinRentalPeriod != nil {
 		updates["min_rental_period"] = *input.MinRentalPeriod
@@ -652,29 +492,8 @@ func mapUpdateSaleInputToDomain(input *model.UpdateSaleDetailInput) map[string]a
 	if input.YearRenovated != nil {
 		updates["year_renovated"] = *input.YearRenovated
 	}
-	if input.AgencyFee != nil {
-		updates["agency_fee"] = *input.AgencyFee
-	}
-	if input.LegalFee != nil {
-		updates["legal_fee"] = *input.LegalFee
-	}
-	if input.SurveyFee != nil {
-		updates["survey_fee"] = *input.SurveyFee
-	}
-	if input.TitleProcessingFee != nil {
-		updates["title_processing_fee"] = *input.TitleProcessingFee
-	}
-	if input.DevelopmentFee != nil {
-		updates["development_fee"] = *input.DevelopmentFee
-	}
-	if input.OtherFees != nil {
-		updates["other_fees"] = *input.OtherFees
-	}
-	if input.ServiceCharge != nil {
-		updates["service_charge"] = *input.ServiceCharge
-	}
-	if input.ServiceCharges != nil {
-		updates["service_charge_breakdown"] = mapServiceChargeInputs(input.ServiceCharges)
+	if input.Fees != nil {
+		updates["fees"] = mapCustomFeeInputs(input.Fees)
 	}
 	if input.SaleTerms != nil {
 		updates["sale_terms"] = *input.SaleTerms
@@ -733,20 +552,6 @@ func mapAmenityHighlightInputs(inputs []*model.AmenityHighlightInput) []domain.A
 	return highlights
 }
 
-func mapServiceChargeInputs(inputs []*domain.ServiceCharge) *[]domain.ServiceCharge {
-	if len(inputs) == 0 {
-		return nil
-	}
-	charges := make([]domain.ServiceCharge, len(inputs))
-	for i, input := range inputs {
-		if input == nil {
-			continue
-		}
-		charges[i] = *input
-	}
-	return &charges
-}
-
 // mapAmenityGroupInputsToDomain converts AmenityGroupInput slice to domain AmenityGroup slice
 func mapAmenityGroupInputsToDomain(inputs []*domain.AmenityGroup) []domain.AmenityGroup {
 	if len(inputs) == 0 {
@@ -760,6 +565,50 @@ func mapAmenityGroupInputsToDomain(inputs []*domain.AmenityGroup) []domain.Ameni
 		groups[i] = *input
 	}
 	return groups
+}
+
+// Helper for Fees
+func mapCustomFeeInputs(inputs []*model.CustomFeeInput) []domain.CustomFee {
+	if len(inputs) == 0 {
+		return []domain.CustomFee{}
+	}
+	fees := make([]domain.CustomFee, len(inputs))
+	for i, input := range inputs {
+		if input == nil {
+			continue
+		}
+		fees[i] = domain.CustomFee{
+			Name:         input.Name,
+			Amount:       input.Amount,
+			Frequency:    input.Frequency,
+			Category:     input.Category,
+			IsRefundable: boolOrDefault(input.IsRefundable, false),
+			IsOptional:   boolOrDefault(input.IsOptional, false),
+		}
+	}
+	return fees
+}
+
+func mapGuestRequirementsInput(input *model.GuestRequirementsInput) domain.GuestRequirements {
+	if input == nil {
+		return domain.GuestRequirements{}
+	}
+	return domain.GuestRequirements{
+		VerifiedID:           input.VerifiedID,
+		PositiveReviewsOnly:  input.PositiveReviewsOnly,
+		ProfilePhotoRequired: input.ProfilePhotoRequired,
+	}
+}
+
+func mapAdvanceBookingInput(input *model.AdvanceBookingInput) domain.AdvanceBooking {
+	if input == nil {
+		// Provide reasonable defaults if mandatory input missing (though schema should enforce)
+		return domain.AdvanceBooking{MonthsAhead: 6, MinNoticeHours: 24}
+	}
+	return domain.AdvanceBooking{
+		MonthsAhead:    input.MonthsAhead,
+		MinNoticeHours: input.MinNoticeHours,
+	}
 }
 
 // mapCreateListingInput converts the CreateListingInput into a domain listing with sane defaults.

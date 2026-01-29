@@ -362,15 +362,9 @@ type RentalDetail {
   rentalPrice: Float!
   rentalPricePeriod: PaymentPeriod!
 
-  agencyFee: Float
-  legalFee: Float
-  registrationFee: Float
-  cautionFee: Float
-  serviceCharge: Float
   discounts: [Discount!]!
   fees: [CustomFee!]!
   showingAvailability: [ShowingAvailability!]
-  serviceCharges: [ServiceCharge!]
 
   minRentalPeriod: Int!
   maxRentalPeriod: Int
@@ -388,17 +382,9 @@ type SaleDetail {
   yearBuilt: Int
   yearRenovated: Int
 
-  agencyFee: Float
-  legalFee: Float
-  surveyFee: Float
-  titleProcessingFee: Float
-  developmentFee: Float
-  otherFees: Float
-  serviceCharge: Float
   discounts: [Discount!]!
   fees: [CustomFee!]!
   showingAvailability: [ShowingAvailability!]
-  serviceCharges: [ServiceCharge!]
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -526,13 +512,12 @@ input UpdateListingInput {
 
 input ShortletDetailInput {
   nightlyRate: Float!
-  cautionFee: Float
-  cleaningFee: Float
-  serviceFee: Float
-  extraGuestFee: Float
-
-  minNights: Int!
-  maxNights: Int
+  fees: [CustomFeeInput!]!
+  
+  stayLimits: StayLimitsInput!
+  bookingSettings: BookingSettingsInput!
+  advanceBooking: AdvanceBookingInput
+  
   maxGuests: Int!
   baseGuestCount: Int
 
@@ -540,9 +525,7 @@ input ShortletDetailInput {
   checkOutTime: String
 
   accommodationType: AccommodationType!
-  autoAcceptBookings: Boolean
-
-  calendarMonthsAhead: Int
+  
   autoGenerateCalendar: Boolean
 
   rules: [RuleGroupInput!]
@@ -552,13 +535,8 @@ input ShortletDetailInput {
 input RentalDetailInput {
   rentalPrice: Float!
   rentalPricePeriod: PaymentPeriod!
-
-  agencyFee: Float
-  legalFee: Float
-  registrationFee: Float
-  cautionFee: Float
-  serviceCharge: Float
-  serviceCharges: [ServiceChargeInput!]
+  
+  fees: [CustomFeeInput!]!
 
   minRentalPeriod: Int!
   maxRentalPeriod: Int
@@ -576,14 +554,7 @@ input SaleDetailInput {
   yearBuilt: Int
   yearRenovated: Int
 
-  agencyFee: Float
-  legalFee: Float
-  surveyFee: Float
-  titleProcessingFee: Float
-  developmentFee: Float
-  otherFees: Float
-  serviceCharge: Float
-  serviceCharges: [ServiceChargeInput!]
+  fees: [CustomFeeInput!]!
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -592,13 +563,12 @@ input SaleDetailInput {
 # Update input types - all fields optional for partial updates
 input UpdateShortletDetailInput {
   nightlyRate: Float
-  cautionFee: Float
-  cleaningFee: Float
-  serviceFee: Float
-  extraGuestFee: Float
+  fees: [CustomFeeInput!]
 
-  minNights: Int
-  maxNights: Int
+  stayLimits: StayLimitsInput
+  bookingSettings: BookingSettingsInput
+  advanceBooking: AdvanceBookingInput
+
   maxGuests: Int
   baseGuestCount: Int
 
@@ -606,9 +576,7 @@ input UpdateShortletDetailInput {
   checkOutTime: String
 
   accommodationType: AccommodationType
-  autoAcceptBookings: Boolean
-
-  calendarMonthsAhead: Int
+  
   autoGenerateCalendar: Boolean
 
   rules: [RuleGroupInput!]
@@ -619,12 +587,7 @@ input UpdateRentalDetailInput {
   rentalPrice: Float
   rentalPricePeriod: PaymentPeriod
 
-  agencyFee: Float
-  legalFee: Float
-  registrationFee: Float
-  cautionFee: Float
-  serviceCharge: Float
-  serviceCharges: [ServiceChargeInput!]
+  fees: [CustomFeeInput!]
 
   minRentalPeriod: Int
   maxRentalPeriod: Int
@@ -642,14 +605,7 @@ input UpdateSaleDetailInput {
   yearBuilt: Int
   yearRenovated: Int
 
-  agencyFee: Float
-  legalFee: Float
-  surveyFee: Float
-  titleProcessingFee: Float
-  developmentFee: Float
-  otherFees: Float
-  serviceCharge: Float
-  serviceCharges: [ServiceChargeInput!]
+  fees: [CustomFeeInput!]
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -675,6 +631,37 @@ input ServiceChargeInput {
   name: String!
   period: PaymentPeriod!
   amount: Float!
+}
+
+input CustomFeeInput {
+  name: String!
+  amount: Float!
+  frequency: FeeFrequency!
+  category: FeeCategory!
+  isRefundable: Boolean
+  isOptional: Boolean
+}
+
+input StayLimitsInput {
+  minNights: Int!
+  maxNights: Int
+}
+
+input GuestRequirementsInput {
+  verifiedID: Boolean!
+  positiveReviewsOnly: Boolean!
+  profilePhotoRequired: Boolean!
+}
+
+input BookingSettingsInput {
+  approvalMethod: ApprovalMethod!
+  guestRequirements: GuestRequirementsInput
+  preBookingMessage: String
+}
+
+input AdvanceBookingInput {
+  monthsAhead: Int!
+  minNoticeHours: Int!
 }
 
 input MediaInput {

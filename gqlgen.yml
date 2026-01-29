@@ -135,38 +135,8 @@ models:
     model: hauslet/internal/modules/property/domain.ShowingAvailability
   RentalDetail:
     model: hauslet/internal/modules/property/domain.RentalDetail
-    fields:
-      agencyFee:
-        resolver: true
-      legalFee:
-        resolver: true
-      registrationFee:
-        resolver: true
-      cautionFee:
-        resolver: true
-      serviceCharge:
-        resolver: true
-      serviceCharges:
-        resolver: true
   SaleDetail:
     model: hauslet/internal/modules/property/domain.SaleDetail
-    fields:
-      agencyFee:
-        resolver: true
-      legalFee:
-        resolver: true
-      surveyFee:
-        resolver: true
-      titleProcessingFee:
-        resolver: true
-      developmentFee:
-        resolver: true
-      otherFees:
-        resolver: true
-      serviceCharge:
-        resolver: true
-      serviceCharges:
-        resolver: true
   AmenityHighlight:
     model: hauslet/internal/modules/property/domain.AmenityHighlight
   RuleGroup:
