@@ -22,7 +22,9 @@ type CalendarService interface {
 
 	// --- Availability Checks ---
 	CheckAvailability(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time) (*domain.AvailabilityResult, error)
+
 	GetConflictingEvents(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time) ([]*domain.CalendarEvent, error)
+	GetBusyListings(ctx context.Context, startTime, endTime time.Time) ([]uuid.UUID, error)
 
 	// --- Event Queries ---
 	GetEventsForListing(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time, eventTypes []domain.EventType) ([]*domain.CalendarEvent, error)
@@ -127,7 +129,7 @@ type CustomFee struct {
 // Discount represents a price reduction
 type Discount struct {
 	Name       string
-	Type       string  // "flat" or "length_of_stay"
+	Type       string // "flat" or "length_of_stay"
 	Percentage float64
 	MinNights  *int
 	Active     bool

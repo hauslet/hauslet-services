@@ -13956,7 +13956,12 @@ input DiscoverySearchFilterInput {
   city: String
   state: String
   country: String
+  guestCount: Int
+  checkIn: Time
+  checkOut: Time
   amenities: [String!]
+  furnishing: [FurnishingType!]
+  accommodationTypes: [AccommodationType!]
 }
 
 input LocationFilterInput {
@@ -64842,7 +64847,7 @@ func (ec *executionContext) unmarshalInputDiscoverySearchFilterInput(ctx context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"query", "location", "priceRange", "propertyTypes", "bedrooms", "bathrooms", "listingTypes", "city", "state", "country", "amenities"}
+	fieldsInOrder := [...]string{"query", "location", "priceRange", "propertyTypes", "bedrooms", "bathrooms", "listingTypes", "city", "state", "country", "guestCount", "checkIn", "checkOut", "amenities", "furnishing", "accommodationTypes"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -64919,6 +64924,27 @@ func (ec *executionContext) unmarshalInputDiscoverySearchFilterInput(ctx context
 				return it, err
 			}
 			it.Country = data
+		case "guestCount":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("guestCount"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.GuestCount = data
+		case "checkIn":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkIn"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckIn = data
+		case "checkOut":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("checkOut"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CheckOut = data
 		case "amenities":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("amenities"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
@@ -64926,6 +64952,20 @@ func (ec *executionContext) unmarshalInputDiscoverySearchFilterInput(ctx context
 				return it, err
 			}
 			it.Amenities = data
+		case "furnishing":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("furnishing"))
+			data, err := ec.unmarshalOFurnishingType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐFurnishingTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Furnishing = data
+		case "accommodationTypes":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accommodationTypes"))
+			data, err := ec.unmarshalOAccommodationType2ᚕhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐAccommodationTypeᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AccommodationTypes = data
 		}
 	}
 

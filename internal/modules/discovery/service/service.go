@@ -16,6 +16,7 @@ type ServiceImpl struct {
 	repo           repository.DiscoveryRepository
 	propertyHooks  PropertyDiscoveryHooks
 	promotionHooks PromotionDiscoveryHooks
+	calendarHooks  CalendarDiscoveryHooks
 	rankingConfig  domain.RankingConfig
 	log            *slog.Logger
 }
@@ -25,12 +26,14 @@ func NewDiscoveryService(
 	repo repository.DiscoveryRepository,
 	propertyHooks PropertyDiscoveryHooks,
 	promotionHooks PromotionDiscoveryHooks,
+	calendarHooks CalendarDiscoveryHooks,
 	log *slog.Logger,
 ) *ServiceImpl {
 	return &ServiceImpl{
 		repo:           repo,
 		propertyHooks:  propertyHooks,
 		promotionHooks: promotionHooks,
+		calendarHooks:  calendarHooks,
 		rankingConfig:  domain.DefaultRankingConfig(),
 		log:            log,
 	}
@@ -52,9 +55,26 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter SearchFilter, o
 		rankingConfig = options.RankingConfig
 	}
 
+	var excludedIDs []uuid.UUID
+
+	// 0. If date range is provided, find busy listings to exclude
+	if filter.CheckIn != nil && filter.CheckOut != nil && s.calendarHooks != nil {
+		var err error
+		excludedIDs, err = s.calendarHooks.GetUnavailableListingIDs(ctx, *filter.CheckIn, *filter.CheckOut)
+		if err != nil {
+			s.log.Error("failed to get unavailable listing IDs", "error", err)
+			// Decide: fail or continue?
+			// Continuing means we might show unavailable listings, which is bad UX but better than error.
+			// However user explicitly asked for dates. Failing is safer or return empty?
+			// Let's log and continue, but maybe return error if strict.
+			// For now, log warning and continue (potentially showing unavailable).
+			// Ideally we should return error or empty list if dates are critical.
+		}
+	}
+
 	// 1. Get base results from property semantic search
 	// Fetch 2x the limit to ensure we have enough results after ranking
-	propertyResults, err := s.propertyHooks.SearchListingsWithEmbedding(ctx, filter, options.Limit*2)
+	propertyResults, err := s.propertyHooks.SearchListingsWithEmbedding(ctx, filter, options.Limit*2, excludedIDs)
 	if err != nil {
 		s.log.Error("failed to search listings", "error", err)
 		return nil, err

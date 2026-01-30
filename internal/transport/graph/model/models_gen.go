@@ -88,17 +88,22 @@ type CustomFeeInput struct {
 }
 
 type DiscoverySearchFilterInput struct {
-	Query         *string                `json:"query,omitempty"`
-	Location      *LocationFilterInput   `json:"location,omitempty"`
-	PriceRange    *PriceRangeFilterInput `json:"priceRange,omitempty"`
-	PropertyTypes []domain.PropertyType  `json:"propertyTypes,omitempty"`
-	Bedrooms      *IntRangeFilterInput   `json:"bedrooms,omitempty"`
-	Bathrooms     *IntRangeFilterInput   `json:"bathrooms,omitempty"`
-	ListingTypes  []domain.ListingType   `json:"listingTypes,omitempty"`
-	City          *string                `json:"city,omitempty"`
-	State         *string                `json:"state,omitempty"`
-	Country       *string                `json:"country,omitempty"`
-	Amenities     []string               `json:"amenities,omitempty"`
+	Query              *string                    `json:"query,omitempty"`
+	Location           *LocationFilterInput       `json:"location,omitempty"`
+	PriceRange         *PriceRangeFilterInput     `json:"priceRange,omitempty"`
+	PropertyTypes      []domain.PropertyType      `json:"propertyTypes,omitempty"`
+	Bedrooms           *IntRangeFilterInput       `json:"bedrooms,omitempty"`
+	Bathrooms          *IntRangeFilterInput       `json:"bathrooms,omitempty"`
+	ListingTypes       []domain.ListingType       `json:"listingTypes,omitempty"`
+	City               *string                    `json:"city,omitempty"`
+	State              *string                    `json:"state,omitempty"`
+	Country            *string                    `json:"country,omitempty"`
+	GuestCount         *int                       `json:"guestCount,omitempty"`
+	CheckIn            *time.Time                 `json:"checkIn,omitempty"`
+	CheckOut           *time.Time                 `json:"checkOut,omitempty"`
+	Amenities          []string                   `json:"amenities,omitempty"`
+	Furnishing         []domain.FurnishingType    `json:"furnishing,omitempty"`
+	AccommodationTypes []domain.AccommodationType `json:"accommodationTypes,omitempty"`
 }
 
 type FeedOptionsInput struct {

@@ -32,17 +32,22 @@ type DiscoveryService interface {
 
 // SearchFilter contains all search parameters
 type SearchFilter struct {
-	Query         *string         // Search query for semantic search
-	Location      *LocationFilter // Location-based filtering
-	PriceRange    *PriceRangeFilter
-	PropertyTypes []string
-	Bedrooms      *IntRangeFilter
-	Bathrooms     *IntRangeFilter
-	ListingTypes  []string
-	City          *string
-	State         *string
-	Country       *string
-	Amenities     []string
+	Query              *string         // Search query for semantic search
+	Location           *LocationFilter // Location-based filtering
+	PriceRange         *PriceRangeFilter
+	PropertyTypes      []string
+	Bedrooms           *IntRangeFilter
+	Bathrooms          *IntRangeFilter
+	ListingTypes       []string
+	City               *string
+	State              *string
+	Country            *string
+	Amenities          []string
+	GuestCount         *int
+	CheckIn            *time.Time
+	CheckOut           *time.Time
+	Furnishing         []string
+	AccommodationTypes []string
 	// Additional filters can be added as needed
 }
 
@@ -92,7 +97,7 @@ type PropertyDiscoveryHooks interface {
 	GetListingsByIDs(ctx context.Context, ids []uuid.UUID) ([]propertydomain.Listing, error)
 
 	// SearchListingsWithEmbedding performs semantic search using embeddings
-	SearchListingsWithEmbedding(ctx context.Context, filter SearchFilter, limit int) ([]propertydomain.ScoredListing, error)
+	SearchListingsWithEmbedding(ctx context.Context, filter SearchFilter, limit int, excludedIDs []uuid.UUID) ([]propertydomain.ScoredListing, error)
 
 	// GetRecentListings fetches recently published listings
 	GetRecentListings(ctx context.Context, limit int) ([]propertydomain.Listing, error)
@@ -114,6 +119,12 @@ type PromotionDiscoveryHooks interface {
 
 	// GetPremiumListings gets listing IDs for currently premium promotions
 	GetPremiumListings(ctx context.Context, limit int) ([]uuid.UUID, error)
+}
+
+// CalendarDiscoveryHooks defines what Discovery needs from Calendar
+type CalendarDiscoveryHooks interface {
+	// GetUnavailableListingIDs returns IDs of listings that are busy/booked in the given range
+	GetUnavailableListingIDs(ctx context.Context, startTime, endTime time.Time) ([]uuid.UUID, error)
 }
 
 // PromotionInfo contains promotion details needed for ranking

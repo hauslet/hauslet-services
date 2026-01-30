@@ -79,37 +79,38 @@ type PropertyFilter struct {
 
 // ListingFilter defines optional criteria for querying listings.
 type ListingFilter struct {
-	Query           *string
-	OwnerID         *uuid.UUID
-	PropertyID      *uuid.UUID
-	OwnerTypes      []domain.OwnerType
-	ListingTypes    []domain.ListingType
-	Statuses        []domain.ListingStatus
-	ReviewStatuses  []domain.ReviewStatus
-	Published       *bool
-	HasCalendar     *bool
-	MinPrice        *float64
-	MaxPrice        *float64
-	Currency        *domain.CurrencyCode
-	PublishedAfter  *time.Time
-	PublishedBefore *time.Time
-	CreatedAfter    *time.Time
-	CreatedBefore   *time.Time
-	IncludeDeleted  bool
-	SortBy          ListingSortBy
-	SortOrder       SortOrder
-	City            *string
-	State           *string
-	Country         *domain.CountryCode
-	PropertyTypes   []domain.PropertyType
-	Furnishings     []domain.FurnishingType
-	MinBedrooms     *int
-	MaxBedrooms     *int
-	MinBathrooms    *int
-	MaxBathrooms    *int
-	Latitude        *float64
-	Longitude       *float64
-	RadiusMeters    *float64
+	Query              *string
+	OwnerID            *uuid.UUID
+	PropertyID         *uuid.UUID
+	OwnerTypes         []domain.OwnerType
+	ListingTypes       []domain.ListingType
+	Statuses           []domain.ListingStatus
+	ReviewStatuses     []domain.ReviewStatus
+	Published          *bool
+	HasCalendar        *bool
+	MinPrice           *float64
+	MaxPrice           *float64
+	Currency           *domain.CurrencyCode
+	PublishedAfter     *time.Time
+	PublishedBefore    *time.Time
+	CreatedAfter       *time.Time
+	CreatedBefore      *time.Time
+	IncludeDeleted     bool
+	SortBy             ListingSortBy
+	SortOrder          SortOrder
+	City               *string
+	State              *string
+	Country            *domain.CountryCode
+	PropertyTypes      []domain.PropertyType
+	Furnishings        []domain.FurnishingType
+	MinBedrooms        *int
+	MaxBedrooms        *int
+	MinBathrooms       *int
+	MaxBathrooms       *int
+	Latitude           *float64
+	Longitude          *float64
+	RadiusMeters       *float64
+	ExcludedListingIDs []uuid.UUID
 
 	// Type-specific filters
 	ShortletFilter    *ShortletFilter
@@ -180,23 +181,24 @@ type PropertyFilterExtension struct {
 // mapListingFilterToRepo converts service filters to repository filters.
 func mapListingFilterToRepo(filter ListingFilter) repository.ListingFilter {
 	repoFilter := repository.ListingFilter{
-		Query:           filter.Query,
-		OwnerID:         filter.OwnerID,
-		PropertyID:      filter.PropertyID,
-		Published:       filter.Published,
-		HasCalendar:     filter.HasCalendar,
-		MinPrice:        filter.MinPrice,
-		MaxPrice:        filter.MaxPrice,
-		IncludeDeleted:  filter.IncludeDeleted,
-		CreatedAfter:    filter.CreatedAfter,
-		CreatedBefore:   filter.CreatedBefore,
-		PublishedAfter:  filter.PublishedAfter,
-		PublishedBefore: filter.PublishedBefore,
-		City:            filter.City,
-		State:           filter.State,
-		Latitude:        filter.Latitude,
-		Longitude:       filter.Longitude,
-		RadiusMeters:    filter.RadiusMeters,
+		Query:              filter.Query,
+		OwnerID:            filter.OwnerID,
+		PropertyID:         filter.PropertyID,
+		Published:          filter.Published,
+		HasCalendar:        filter.HasCalendar,
+		MinPrice:           filter.MinPrice,
+		MaxPrice:           filter.MaxPrice,
+		IncludeDeleted:     filter.IncludeDeleted,
+		CreatedAfter:       filter.CreatedAfter,
+		CreatedBefore:      filter.CreatedBefore,
+		PublishedAfter:     filter.PublishedAfter,
+		PublishedBefore:    filter.PublishedBefore,
+		City:               filter.City,
+		State:              filter.State,
+		Latitude:           filter.Latitude,
+		Longitude:          filter.Longitude,
+		RadiusMeters:       filter.RadiusMeters,
+		ExcludedListingIDs: filter.ExcludedListingIDs,
 	}
 
 	if len(filter.OwnerTypes) > 0 {

@@ -229,6 +229,14 @@ func (s *CalendarServiceImpl) GetConflictingEvents(ctx context.Context, listingI
 	return domain.MapEventsFromSchema(schemaEvents), nil
 }
 
+func (s *CalendarServiceImpl) GetBusyListings(ctx context.Context, startTime, endTime time.Time) ([]uuid.UUID, error) {
+	listingIDs, err := s.repo.GetBusyListings(ctx, startTime, endTime)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get busy listings: %w", err)
+	}
+	return listingIDs, nil
+}
+
 // --- Event Queries ---
 
 func (s *CalendarServiceImpl) GetEventsForListing(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time, eventTypes []domain.EventType) ([]*domain.CalendarEvent, error) {

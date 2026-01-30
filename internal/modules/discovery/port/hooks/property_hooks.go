@@ -34,9 +34,14 @@ func (a *PropertyDiscoveryAdapter) GetListingsByIDs(ctx context.Context, ids []u
 }
 
 // SearchListingsWithEmbedding performs semantic search using embeddings
-func (a *PropertyDiscoveryAdapter) SearchListingsWithEmbedding(ctx context.Context, filter discoveryservice.SearchFilter, limit int) ([]propertydomain.ScoredListing, error) {
+func (a *PropertyDiscoveryAdapter) SearchListingsWithEmbedding(ctx context.Context, filter discoveryservice.SearchFilter, limit int, excludedIDs []uuid.UUID) ([]propertydomain.ScoredListing, error) {
 	// Convert discovery filter to property filter
 	propertyFilter := a.mapToPropertyFilter(filter)
+
+	if len(excludedIDs) > 0 {
+		propertyFilter.ExcludedListingIDs = excludedIDs
+	}
+
 	return a.propertySvc.SearchListings(ctx, propertyFilter, limit)
 }
 
@@ -146,6 +151,37 @@ func (a *PropertyDiscoveryAdapter) mapToPropertyFilter(filter discoveryservice.S
 			propertyFilter.PropertyExtension = &propertyservice.PropertyFilterExtension{}
 		}
 		propertyFilter.PropertyExtension.Amenities = filter.Amenities
+	}
+
+	// Map Guest Count (mapped to Shortlet MinMaxGuests for now)
+	// Note: This assumes guest count filter is primary for shortlets.
+	// For general capacity, we might want to check bedrooms too, but MinMaxGuests is specific to shortlets.
+	if filter.GuestCount != nil {
+		if propertyFilter.ShortletFilter == nil {
+			propertyFilter.ShortletFilter = &propertyservice.ShortletFilter{}
+		}
+		// We want listings where MaxGuests >= RequestedGuestCount
+		minMax := *filter.GuestCount
+		propertyFilter.ShortletFilter.MinMaxGuests = &minMax
+	}
+
+	// Map Furnishing
+	if len(filter.Furnishing) > 0 {
+		propertyFilter.Furnishings = make([]propertydomain.FurnishingType, len(filter.Furnishing))
+		for i, v := range filter.Furnishing {
+			propertyFilter.Furnishings[i] = propertydomain.FurnishingType(v)
+		}
+	}
+
+	// Map Accommodation Types (Specific to shortlets)
+	if len(filter.AccommodationTypes) > 0 {
+		if propertyFilter.ShortletFilter == nil {
+			propertyFilter.ShortletFilter = &propertyservice.ShortletFilter{}
+		}
+		propertyFilter.ShortletFilter.AccommodationTypes = make([]propertydomain.AccommodationType, len(filter.AccommodationTypes))
+		for i, v := range filter.AccommodationTypes {
+			propertyFilter.ShortletFilter.AccommodationTypes[i] = propertydomain.AccommodationType(v)
+		}
 	}
 
 	return propertyFilter

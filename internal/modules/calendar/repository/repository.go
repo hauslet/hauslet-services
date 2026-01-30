@@ -122,6 +122,25 @@ func (r *CalendarRepositoryImpl) GetEventsStartingBetween(ctx context.Context, s
 	return events, err
 }
 
+// GetBusyListings returns IDs of listings that have events conflicting with the given time range
+func (r *CalendarRepositoryImpl) GetBusyListings(ctx context.Context, startTime, endTime time.Time) ([]uuid.UUID, error) {
+	var listingIDs []uuid.UUID
+
+	// Find listings that have any event overlapping with the range
+	// Overlap logic: (StartA < EndB) AND (EndA > StartB)
+	err := r.db.WithContext(ctx).
+		Model(&schema.CalendarEvent{}).
+		Where("status != ?", schema.EventStatusCancelled).
+		Where("start_time < ? AND end_time > ?", endTime, startTime).
+		Distinct("listing_id").
+		Pluck("listing_id", &listingIDs).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return listingIDs, nil
+}
+
 // --- Availability Checks ---
 
 func (r *CalendarRepositoryImpl) CheckAvailability(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time) (bool, error) {

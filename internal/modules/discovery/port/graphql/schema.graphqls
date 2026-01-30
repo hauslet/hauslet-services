@@ -68,7 +68,12 @@ input DiscoverySearchFilterInput {
   city: String
   state: String
   country: String
+  guestCount: Int
+  checkIn: Time
+  checkOut: Time
   amenities: [String!]
+  furnishing: [FurnishingType!]
+  accommodationTypes: [AccommodationType!]
 }
 
 input LocationFilterInput {

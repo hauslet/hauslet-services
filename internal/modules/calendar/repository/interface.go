@@ -36,6 +36,9 @@ type CalendarRepository interface {
 	// GetEventsStartingBetween retrieves events starting within a time range.
 	GetEventsStartingBetween(ctx context.Context, startTime, endTime time.Time, eventTypes []schema.EventType, statuses []schema.EventStatus) ([]*schema.CalendarEvent, error)
 
+	// GetBusyListings returns IDs of listings that have events conflicting with the given time range
+	GetBusyListings(ctx context.Context, startTime, endTime time.Time) ([]uuid.UUID, error)
+
 	// --- Availability Checks ---
 	// CheckAvailability checks if a listing is available for the given time range
 	CheckAvailability(ctx context.Context, listingID uuid.UUID, startTime, endTime time.Time) (bool, error)
