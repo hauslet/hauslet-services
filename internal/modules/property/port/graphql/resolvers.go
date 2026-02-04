@@ -433,12 +433,6 @@ func (r *Resolver) PublishListing(ctx context.Context, id uuid.UUID) (*domain.Li
 		return nil, domain.ErrUnauthorized
 	}
 
-	err = viewer.RequireOwnership(ctx, id)
-	if err != nil {
-		r.log.Error("failed to get listing for publishing", "listing_id", id, "error", err)
-		return nil, err
-	}
-
 	if err := r.propertyService.PublishListingRequest(ctx, id, requesterID); err != nil {
 		r.log.Error("failed to publish listing", "listing_id", id, "error", err)
 		return nil, err
@@ -459,12 +453,6 @@ func (r *Resolver) UnpublishListing(ctx context.Context, id uuid.UUID) (*domain.
 	requesterID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
 		return nil, domain.ErrUnauthorized
-	}
-
-	err = viewer.RequireOwnership(ctx, id)
-	if err != nil {
-		r.log.Error("failed to get listing for publishing", "listing_id", id, "error", err)
-		return nil, err
 	}
 
 	updatedListing, err := r.propertyService.UnpublishListing(ctx, id, requesterID)

@@ -28,7 +28,7 @@ var (
 	ErrUnauthorized      = fmt.Errorf("unauthorized: authentication required")
 	ErrAdminRequired     = fmt.Errorf("forbidden: admin or root access required")
 	ErrSupportRequired   = fmt.Errorf("forbidden: support, admin, or root access required")
-	ErrOwnershipRequired = fmt.Errorf("forbidden: resource ownership or admin access required")
+	ErrOwnershipRequired = fmt.Errorf("forbidden: resource ownership is required")
 )
 
 // WithContext captures token.User (if present) and exposes a lightweight viewer
