@@ -7,8 +7,8 @@ set -e
 # ==========================================
 
 # 1. Configuration
-PROJECT_ID="gen-lang-client-0265949535"
-REGION="europe-north1"
+PROJECT_ID="hauslet-486322"
+REGION="africa-south1"
 GITHUB_REPO="hauslet-services" 
 GITHUB_OWNER="${GITHUB_OWNER:-}"
 TF_DIR="./deploy/terraform"              

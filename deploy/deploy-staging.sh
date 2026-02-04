@@ -3,8 +3,8 @@ set -e
 
 # Quick Staging Deployment Script
 
-PROJECT_ID="gen-lang-client-0265949535"
-REGION="europe-north1"
+PROJECT_ID="hauslet-486322"
+REGION="africa-south1"
 
 echo "🧪 Deploying Hauslet to STAGING"
 echo "================================"

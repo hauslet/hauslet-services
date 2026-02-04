@@ -25,15 +25,15 @@ import (
 func NewHTTPServer(
 	ctx context.Context,
 	db *gorm.DB,
-	rds *redis.RedisClient,
-	log *slog.Logger,
+	redisClient *redis.RedisClient,
+	logger *slog.Logger,
 	cfg *config.GlobalConfig,
-	mC *email.Client,
-	q *queue.Client,
+	email *email.Client,
+	queue *queue.Client,
 	r2 *storage.R2Storage,
-	kycClient *kyc.Client,
-	smsClient *sms.Client,
-	evidenceStore evidence.Store,
+	kyc *kyc.Client,
+	sms *sms.Client,
+	evidence evidence.Store,
 	rateLimiter ratelimit.Limiter,
 	circuitBreaker breaker.CircuitBreaker,
 ) *http.Server {
@@ -51,25 +51,25 @@ func NewHTTPServer(
 		r.Use(securitymiddleware.SecurityHeaders)
 	}
 
-	registerHealthRoutes(r, db, rds)
+	registerHealthRoutes(r, db, redisClient)
 
 	// Initialize application container
 	container, err := NewContainer(ctx, InfrastructureDependencies{
 		DB:             db,
-		Redis:          rds,
-		Queue:          q,
+		Redis:          redisClient,
+		Queue:          queue,
 		R2:             r2,
-		Logger:         log,
+		Logger:         logger,
 		Config:         cfg,
-		EmailClient:    mC,
-		KYC:            kycClient,
-		SMS:            smsClient,
-		Evidence:       evidenceStore,
+		EmailClient:    email,
+		KYC:            kyc,
+		SMS:            sms,
+		Evidence:       evidence,
 		RateLimiter:    rateLimiter,
 		CircuitBreaker: circuitBreaker,
 	})
 	if err != nil {
-		log.Error("failed to initialize application container", "error", err)
+		logger.Error("failed to initialize application container", "error", err)
 		panic(err) // Panic is appropriate here as we can't continue without the container
 	}
 
@@ -82,6 +82,7 @@ func NewHTTPServer(
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 60 * time.Second,
 		IdleTimeout:  120 * time.Second,
+		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
 	return srv

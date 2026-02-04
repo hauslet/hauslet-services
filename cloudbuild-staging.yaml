@@ -3,7 +3,7 @@
 # Builds and deploys API and Worker services to staging environment
 
 substitutions:
-  _REGION: 'europe-north1'
+  _REGION: 'africa-south1'
   _TAG: 'manual'
   _API_SERVICE_NAME: 'hauslet-api-staging'
   _WORKER_SERVICE_NAME: 'hauslet-worker-staging'
