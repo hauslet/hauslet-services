@@ -197,6 +197,7 @@ func (r *Resolver) CreateIdentityVerification(ctx context.Context, input CreateI
 			FirstName:   input.FirstName,
 			LastName:    input.LastName,
 			DateOfBirth: dob,
+			Nationality: input.Country,
 		},
 	}
 
