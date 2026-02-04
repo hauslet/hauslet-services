@@ -110,8 +110,8 @@ func (r *VerificationResult) HasHighConfidence() bool {
 // DocumentInfo contains metadata about the submitted document
 type DocumentInfo struct {
 	Type           DocumentType
-	Number         *string    // Document number (if applicable)
-	IssuingCountry string     // ISO 3166-1 alpha-2
+	Number         *string // Document number (if applicable)
+	IssuingCountry string  // ISO 3166-1 alpha-2
 	IssueDate      *time.Time
 	ExpiryDate     *time.Time
 }
@@ -126,10 +126,14 @@ func (d *DocumentInfo) IsExpired() bool {
 
 // Validate checks document info validity
 func (d *DocumentInfo) Validate() error {
+	// If Type is not set, treat as pending selection (valid for initial session creation)
+	if d.Type == "" {
+		return nil
+	}
 	if !d.Type.IsValid() {
 		return ErrInvalidDocumentType
 	}
-	if d.IssuingCountry == "" || len(d.IssuingCountry) != 2 {
+	if d.IssuingCountry != "" && len(d.IssuingCountry) != 2 {
 		return ErrInvalidCountryCode
 	}
 	if d.IsExpired() {
