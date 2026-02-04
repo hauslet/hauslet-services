@@ -13,12 +13,14 @@ func RunMigrations(db *gorm.DB, log *slog.Logger, models ...interface{}) error {
 	// Step 1: Setup PostgreSQL extensions (if needed)
 	// Note: These may require superuser privileges
 	// In production, these should ideally be run manually by a DBA
+	log.Info("Setting up PostgreSQL extensions")
 	if err := setupExtensions(db); err != nil {
 		// Extensions are optional - just log and continue
 		log.Info(": Skipping extensions setup (may require superuser)", "error", err)
 	}
 
 	// Step 2: Auto-migrate all models
+	log.Info("Auto-migrating models")
 	if err := db.AutoMigrate(models...); err != nil {
 		return fmt.Errorf("failed to auto-migrate models: %w", err)
 	}

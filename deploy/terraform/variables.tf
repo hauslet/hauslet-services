@@ -47,11 +47,17 @@ variable "environment" {
 variable "db_tier" {
   description = "Cloud SQL instance tier"
   type        = string
-  default     = "db-custom-2-8192"  # 2 vCPU, 8GB RAM
+  default     = "db-custom-2-8192" # 2 vCPU, 8GB RAM
 }
 
 variable "redis_memory_size_gb" {
   description = "Memorystore Redis memory size in GB"
   type        = number
   default     = 5
+}
+
+variable "domain_name" {
+  description = "Domain name for the load balancer (e.g., dev-api.hauslet.com)"
+  type        = string
+  default     = "dev-api.hauslet.com"
 }
