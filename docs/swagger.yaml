@@ -1,5 +1,13 @@
 basePath: /
 definitions:
+  hauslet_internal_modules_auth_domain.BackupCodesResult:
+    properties:
+      codes:
+        description: Plain text codes (shown once)
+        items:
+          type: string
+        type: array
+    type: object
   hauslet_internal_modules_auth_domain.ChangePasswordRequest:
     properties:
       new_password:
@@ -62,6 +70,39 @@ definitions:
       user_agent:
         type: string
     type: object
+  hauslet_internal_modules_auth_domain.SetupResponse:
+    properties:
+      method:
+        $ref: '#/definitions/hauslet_internal_modules_auth_domain.TwoFactorMethod'
+      qr_code_image:
+        description: Base64 data URL for QR code image
+        type: string
+      qr_code_url:
+        description: otpauth:// URL (for authenticator)
+        type: string
+      secret:
+        description: Only for authenticator (shown once)
+        type: string
+    type: object
+  hauslet_internal_modules_auth_domain.TwoFactorMethod:
+    enum:
+    - email
+    - sms
+    - authenticator
+    type: string
+    x-enum-varnames:
+    - TwoFactorEmail
+    - TwoFactorSMS
+    - TwoFactorAuthenticator
+  hauslet_internal_modules_auth_domain.TwoFactorStatus:
+    properties:
+      backup_codes_left:
+        type: integer
+      enabled:
+        type: boolean
+      method:
+        $ref: '#/definitions/hauslet_internal_modules_auth_domain.TwoFactorMethod'
+    type: object
   hauslet_internal_modules_auth_domain.UpdateUserRequest:
     properties:
       email:
@@ -91,6 +132,13 @@ definitions:
       name:
         type: string
       role:
+        type: string
+    type: object
+  hauslet_internal_modules_auth_domain.Verify2FALoginRequest:
+    properties:
+      code:
+        type: string
+      temp_token:
         type: string
     type: object
   hauslet_internal_modules_property_domain.DeleteMediaRequest:
@@ -231,6 +279,20 @@ definitions:
       email:
         type: string
     type: object
+  internal_modules_auth_port_http.Setup2FARequest:
+    properties:
+      method:
+        description: '"email", "sms", "authenticator"'
+        type: string
+      phone_number:
+        description: Required for SMS method
+        type: string
+    type: object
+  internal_modules_auth_port_http.Verify2FARequest:
+    properties:
+      code:
+        type: string
+    type: object
   internal_modules_auth_port_http.VerifyEmailRequest:
     properties:
       code:
@@ -260,7 +322,29 @@ definitions:
       url:
         type: string
     type: object
-host: localhost:8080
+  token.User:
+    properties:
+      attrs:
+        additionalProperties: true
+        type: object
+      aud:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      ip:
+        description: set by client
+        type: string
+      name:
+        description: set by service
+        type: string
+      picture:
+        type: string
+      role:
+        type: string
+    type: object
+host: https://dev-api.hauslet.com
 info:
   contact:
     email: support@hauslet.com
@@ -274,6 +358,188 @@ info:
   title: Hauslet API
   version: "1.0"
 paths:
+  /2fa/backup-codes:
+    post:
+      consumes:
+      - application/json
+      description: Generates new backup codes after verifying current 2FA code
+      parameters:
+      - description: Current 2FA code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.Verify2FARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.BackupCodesResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Regenerate backup codes
+      tags:
+      - 2FA
+  /2fa/disable:
+    post:
+      consumes:
+      - application/json
+      description: Disables 2FA after verifying current code
+      parameters:
+      - description: Current 2FA code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.Verify2FARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Disable 2FA
+      tags:
+      - 2FA
+  /2fa/send-code:
+    post:
+      description: Sends a new verification code for Email/SMS 2FA
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Send 2FA code
+      tags:
+      - 2FA
+  /2fa/setup:
+    post:
+      consumes:
+      - application/json
+      description: Starts 2FA setup with the selected method
+      parameters:
+      - description: Setup request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.Setup2FARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.SetupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Initiate 2FA setup
+      tags:
+      - 2FA
+  /2fa/setup/complete:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the code and enables 2FA
+      parameters:
+      - description: Verification code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.Verify2FARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.BackupCodesResult'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Complete 2FA setup
+      tags:
+      - 2FA
+  /2fa/status:
+    get:
+      description: Returns whether 2FA is enabled and which method
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.TwoFactorStatus'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get 2FA status
+      tags:
+      - 2FA
+  /2fa/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the 2FA code to complete login
+      parameters:
+      - description: Verification code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.Verify2FARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Verify 2FA code
+      tags:
+      - 2FA
   /api/listings/{id}/media:
     delete:
       consumes:
@@ -474,6 +740,100 @@ paths:
       summary: Finalize listing media
       tags:
       - listings
+  /auth/{provider}/callback:
+    get:
+      description: Callback endpoint for OAuth providers. Handled automatically, but
+        documented for completeness.
+      parameters:
+      - description: Provider Name
+        in: path
+        name: provider
+        required: true
+        type: string
+      - description: Authorization Code
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: State
+        in: query
+        name: state
+        required: true
+        type: string
+      responses: {}
+      summary: OAuth Callback
+      tags:
+      - auth
+  /auth/{provider}/login:
+    get:
+      description: Initiate OAuth login flow for a specific provider.
+      parameters:
+      - description: Provider Name (e.g., google, github)
+        in: path
+        name: provider
+        required: true
+        type: string
+      responses: {}
+      summary: OAuth Login
+      tags:
+      - auth
+  /auth/2fa/resend:
+    post:
+      consumes:
+      - application/json
+      description: Resends the verification code for pending 2FA login
+      parameters:
+      - description: Temp token
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Resend 2FA code
+      tags:
+      - 2FA
+  /auth/2fa/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the 2FA code and issues a full JWT token
+      parameters:
+      - description: Temp token and verification code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_auth_domain.Verify2FALoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Complete 2FA login
+      tags:
+      - 2FA
   /auth/link/{provider}:
     get:
       description: Start OAuth flow to link a provider (google) to authenticated user
@@ -512,6 +872,70 @@ paths:
       summary: Initiate identity linking
       tags:
       - user
+  /auth/list:
+    get:
+      description: List all enabled authentication providers (e.g., google, github,
+        email).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: List Auth Providers
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      - application/json
+      description: Authenticate using email/username and password.
+      parameters:
+      - description: User Email or Username
+        in: formData
+        name: user
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: passwd
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/token.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Login with Email/Password
+      tags:
+      - auth
+  /auth/logout:
+    get:
+      description: Logout and clear the session cookie/token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Logout
+      tags:
+      - auth
   /auth/passwordless/verify:
     post:
       consumes:
@@ -617,6 +1041,23 @@ paths:
       summary: Resend OTP code
       tags:
       - auth
+  /auth/user:
+    get:
+      description: Get the currently authenticated user's details from the session/token.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/token.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Get Current User (Auth Library)
+      tags:
+      - auth
   /auth/verify-email:
     post:
       consumes:
@@ -651,6 +1092,19 @@ paths:
           schema:
             $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
       summary: Verify email address
+      tags:
+      - auth
+  /avatar/{user_hash}:
+    get:
+      description: Proxy to get user avatar from external provider (if configured)
+      parameters:
+      - description: User Hash
+        in: path
+        name: user_hash
+        required: true
+        type: string
+      responses: {}
+      summary: Get User Avatar
       tags:
       - auth
   /change-password:
@@ -705,6 +1159,11 @@ paths:
           description: Unauthorized
           schema:
             $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "403":
+          description: 2FA Required
+          schema:
+            additionalProperties: true
+            type: object
         "500":
           description: Internal Server Error
           schema:

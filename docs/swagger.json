@@ -15,9 +15,300 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "https://dev-api.hauslet.com",
     "basePath": "/",
     "paths": {
+        "/2fa/backup-codes": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generates new backup codes after verifying current 2FA code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "2FA"
+                ],
+                "summary": "Regenerate backup codes",
+                "parameters": [
+                    {
+                        "description": "Current 2FA code",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_auth_port_http.Verify2FARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.BackupCodesResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/2fa/disable": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Disables 2FA after verifying current code",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "2FA"
+                ],
+                "summary": "Disable 2FA",
+                "parameters": [
+                    {
+                        "description": "Current 2FA code",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_auth_port_http.Verify2FARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/2fa/send-code": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sends a new verification code for Email/SMS 2FA",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "2FA"
+                ],
+                "summary": "Send 2FA code",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/2fa/setup": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Starts 2FA setup with the selected method",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "2FA"
+                ],
+                "summary": "Initiate 2FA setup",
+                "parameters": [
+                    {
+                        "description": "Setup request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_auth_port_http.Setup2FARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.SetupResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/2fa/setup/complete": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Verifies the code and enables 2FA",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "2FA"
+                ],
+                "summary": "Complete 2FA setup",
+                "parameters": [
+                    {
+                        "description": "Verification code",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_auth_port_http.Verify2FARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.BackupCodesResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/2fa/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns whether 2FA is enabled and which method",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "2FA"
+                ],
+                "summary": "Get 2FA status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.TwoFactorStatus"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/2fa/verify": {
+            "post": {
+                "description": "Verifies the 2FA code to complete login",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "2FA"
+                ],
+                "summary": "Verify 2FA code",
+                "parameters": [
+                    {
+                        "description": "Verification code",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_auth_port_http.Verify2FARequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/listings/{id}/media": {
             "post": {
                 "security": [
@@ -327,6 +618,93 @@
                 }
             }
         },
+        "/auth/2fa/resend": {
+            "post": {
+                "description": "Resends the verification code for pending 2FA login",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "2FA"
+                ],
+                "summary": "Resend 2FA code",
+                "parameters": [
+                    {
+                        "description": "Temp token",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/2fa/verify": {
+            "post": {
+                "description": "Verifies the 2FA code and issues a full JWT token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "2FA"
+                ],
+                "summary": "Complete 2FA login",
+                "parameters": [
+                    {
+                        "description": "Temp token and verification code",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.Verify2FALoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/link/{provider}": {
             "get": {
                 "security": [
@@ -380,6 +758,101 @@
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/list": {
+            "get": {
+                "description": "List all enabled authentication providers (e.g., google, github, email).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "List Auth Providers",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Authenticate using email/username and password.",
+                "consumes": [
+                    "application/x-www-form-urlencoded",
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login with Email/Password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User Email or Username",
+                        "name": "user",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Password",
+                        "name": "passwd",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/token.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "get": {
+                "description": "Logout and clear the session cookie/token.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -545,6 +1018,32 @@
                 }
             }
         },
+        "/auth/user": {
+            "get": {
+                "description": "Get the currently authenticated user's details from the session/token.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get Current User (Auth Library)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/token.User"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/verify-email": {
             "post": {
                 "description": "Verify user's email address using OTP code",
@@ -598,6 +1097,77 @@
                         }
                     }
                 }
+            }
+        },
+        "/auth/{provider}/callback": {
+            "get": {
+                "description": "Callback endpoint for OAuth providers. Handled automatically, but documented for completeness.",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "OAuth Callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider Name",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authorization Code",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "State",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/auth/{provider}/login": {
+            "get": {
+                "description": "Initiate OAuth login flow for a specific provider.",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "OAuth Login",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider Name (e.g., google, github)",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/avatar/{user_hash}": {
+            "get": {
+                "description": "Proxy to get user avatar from external provider (if configured)",
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get User Avatar",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User Hash",
+                        "name": "user_hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {}
             }
         },
         "/change-password": {
@@ -686,6 +1256,13 @@
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "2FA Required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     },
                     "500": {
@@ -1039,6 +1616,18 @@
         }
     },
     "definitions": {
+        "hauslet_internal_modules_auth_domain.BackupCodesResult": {
+            "type": "object",
+            "properties": {
+                "codes": {
+                    "description": "Plain text codes (shown once)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "hauslet_internal_modules_auth_domain.ChangePasswordRequest": {
             "type": "object",
             "required": [
@@ -1132,6 +1721,53 @@
                 }
             }
         },
+        "hauslet_internal_modules_auth_domain.SetupResponse": {
+            "type": "object",
+            "properties": {
+                "method": {
+                    "$ref": "#/definitions/hauslet_internal_modules_auth_domain.TwoFactorMethod"
+                },
+                "qr_code_image": {
+                    "description": "Base64 data URL for QR code image",
+                    "type": "string"
+                },
+                "qr_code_url": {
+                    "description": "otpauth:// URL (for authenticator)",
+                    "type": "string"
+                },
+                "secret": {
+                    "description": "Only for authenticator (shown once)",
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_auth_domain.TwoFactorMethod": {
+            "type": "string",
+            "enum": [
+                "email",
+                "sms",
+                "authenticator"
+            ],
+            "x-enum-varnames": [
+                "TwoFactorEmail",
+                "TwoFactorSMS",
+                "TwoFactorAuthenticator"
+            ]
+        },
+        "hauslet_internal_modules_auth_domain.TwoFactorStatus": {
+            "type": "object",
+            "properties": {
+                "backup_codes_left": {
+                    "type": "integer"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "method": {
+                    "$ref": "#/definitions/hauslet_internal_modules_auth_domain.TwoFactorMethod"
+                }
+            }
+        },
         "hauslet_internal_modules_auth_domain.UpdateUserRequest": {
             "type": "object",
             "properties": {
@@ -1176,6 +1812,17 @@
                     "type": "string"
                 },
                 "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_auth_domain.Verify2FALoginRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "temp_token": {
                     "type": "string"
                 }
             }
@@ -1386,6 +2033,27 @@
                 }
             }
         },
+        "internal_modules_auth_port_http.Setup2FARequest": {
+            "type": "object",
+            "properties": {
+                "method": {
+                    "description": "\"email\", \"sms\", \"authenticator\"",
+                    "type": "string"
+                },
+                "phone_number": {
+                    "description": "Required for SMS method",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_modules_auth_port_http.Verify2FARequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_modules_auth_port_http.VerifyEmailRequest": {
             "type": "object",
             "properties": {
@@ -1427,6 +2095,38 @@
                     "type": "string"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "token.User": {
+            "type": "object",
+            "properties": {
+                "attrs": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "aud": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ip": {
+                    "description": "set by client",
+                    "type": "string"
+                },
+                "name": {
+                    "description": "set by service",
+                    "type": "string"
+                },
+                "picture": {
+                    "type": "string"
+                },
+                "role": {
                     "type": "string"
                 }
             }

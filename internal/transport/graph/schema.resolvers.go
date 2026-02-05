@@ -2046,7 +2046,11 @@ func (r *verificationAttemptResolver) ProcessingTimeMs(ctx context.Context, obj 
 
 // TargetType is the resolver for the targetType field.
 func (r *verificationSessionResolver) TargetType(ctx context.Context, obj *domain12.VerificationSession) (*string, error) {
-	panic(fmt.Errorf("not implemented: TargetType - targetType"))
+	if obj.TargetType == "" {
+		return nil, nil
+	}
+	s := obj.TargetType.String()
+	return &s, nil
 }
 
 // OwnerType is the resolver for the ownerType field.
