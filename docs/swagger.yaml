@@ -267,6 +267,11 @@ definitions:
       total:
         type: integer
     type: object
+  internal_modules_auth_port_http.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    type: object
   internal_modules_auth_port_http.PasswordlessLoginRequest:
     properties:
       code:
@@ -277,6 +282,15 @@ definitions:
   internal_modules_auth_port_http.ResendOTPRequest:
     properties:
       email:
+        type: string
+    type: object
+  internal_modules_auth_port_http.ResetPasswordRequest:
+    properties:
+      email:
+        type: string
+      new_password:
+        type: string
+      token:
         type: string
     type: object
   internal_modules_auth_port_http.Setup2FARequest:
@@ -834,6 +848,38 @@ paths:
       summary: Complete 2FA login
       tags:
       - 2FA
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Send a password reset email to the user
+      parameters:
+      - description: Email address
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Request password reset
+      tags:
+      - auth
   /auth/link/{provider}:
     get:
       description: Start OAuth flow to link a provider (google) to authenticated user
@@ -904,6 +950,10 @@ paths:
         in: formData
         name: passwd
         required: true
+        type: string
+      - description: Optional Audience (Cookie Domain)
+        in: formData
+        name: aud
         type: string
       produces:
       - application/json
@@ -1039,6 +1089,38 @@ paths:
           schema:
             $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
       summary: Resend OTP code
+      tags:
+      - auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset user password using the token sent via email
+      parameters:
+      - description: Reset details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Reset password
       tags:
       - auth
   /auth/user:

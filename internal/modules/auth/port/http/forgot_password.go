@@ -2,10 +2,13 @@ package http
 
 import (
 	"encoding/json"
+	"hauslet/internal/modules/auth/domain"
 	"net/http"
 )
 
 // ForgotPasswordRequest payload
+var _ = domain.ErrorResponse{}
+
 type ForgotPasswordRequest struct {
 	Email string `json:"email"`
 }
@@ -18,6 +21,16 @@ type ResetPasswordRequest struct {
 }
 
 // ForgotPassword handles password reset initiation
+// @Summary Request password reset
+// @Description Send a password reset email to the user
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body ForgotPasswordRequest true "Email address"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} domain.ErrorResponse
+// @Failure 500 {object} domain.ErrorResponse
+// @Router /auth/forgot-password [post]
 func (h *HTTPHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var req ForgotPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -42,6 +55,16 @@ func (h *HTTPHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 // ResetPassword handles completing the password reset
+// @Summary Reset password
+// @Description Reset user password using the token sent via email
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body ResetPasswordRequest true "Reset details"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} domain.ErrorResponse
+// @Failure 500 {object} domain.ErrorResponse
+// @Router /auth/reset-password [post]
 func (h *HTTPHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var req ResetPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

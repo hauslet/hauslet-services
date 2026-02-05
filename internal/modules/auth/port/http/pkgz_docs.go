@@ -22,6 +22,7 @@ var (
 // @Produce json
 // @Param user formData string true "User Email or Username"
 // @Param passwd formData string true "Password"
+// @Param aud formData string false "Optional Audience (Cookie Domain)"
 // @Success 200 {object} token.User
 // @Failure 400 {object} domain.ErrorResponse
 // @Failure 401 {object} domain.ErrorResponse
