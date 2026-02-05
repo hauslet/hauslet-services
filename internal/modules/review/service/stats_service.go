@@ -23,6 +23,21 @@ func (s *ReviewServiceImpl) GetListingStats(ctx context.Context, listingID uuid.
 	return domain.MapListingStatsFromSchema(schemaStats), nil
 }
 
+// GetListingStatsBatch retrieves cached statistics for multiple listings
+func (s *ReviewServiceImpl) GetListingStatsBatch(ctx context.Context, listingIDs []uuid.UUID) (map[uuid.UUID]*domain.ListingStats, error) {
+	schemaStatsMap, err := s.statsRepo.GetListingStatsBatch(ctx, listingIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get listing stats batch: %w", err)
+	}
+
+	result := make(map[uuid.UUID]*domain.ListingStats, len(schemaStatsMap))
+	for id, stat := range schemaStatsMap {
+		result[id] = domain.MapListingStatsFromSchema(stat)
+	}
+
+	return result, nil
+}
+
 // GetHostStats retrieves cached statistics for a host
 func (s *ReviewServiceImpl) GetHostStats(ctx context.Context, hostID uuid.UUID) (*domain.HostStats, error) {
 	schemaStats, err := s.statsRepo.GetHostStats(ctx, hostID)

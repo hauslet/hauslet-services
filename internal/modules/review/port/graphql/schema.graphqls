@@ -213,3 +213,12 @@ extend type Mutation {
   # Delete own response
   deleteResponse(responseId: UUID!): Boolean!
 }
+
+# ========================================================================
+# Type Extensions
+# ========================================================================
+
+# Extend Listing with review statistics (resolved via dataloader)
+extend type Listing {
+  stats: ListingStats
+}

@@ -7,6 +7,7 @@ import (
 	bookingservice "hauslet/internal/modules/booking/service"
 	profileservice "hauslet/internal/modules/profile/service"
 	propertyservice "hauslet/internal/modules/property/service"
+	reviewservice "hauslet/internal/modules/review/service"
 )
 
 type loadersKey struct{}
@@ -18,6 +19,7 @@ type Loaders struct {
 	Listing            *ListingLoader
 	Booking            *BookingLoader
 	ListingsByProperty *ListingsByPropertyLoader
+	ListingStats       *ListingStatsLoader
 }
 
 // Middleware attaches loaders to the request context for GraphQL handlers.
@@ -25,6 +27,7 @@ func Middleware(
 	profileSvc profileservice.ProfileService,
 	propertySvc propertyservice.PropertyService,
 	bookingSvc bookingservice.BookingService,
+	reviewSvc reviewservice.ReviewService,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +37,7 @@ func Middleware(
 				Listing:            NewListingLoader(propertySvc),
 				Booking:            NewBookingLoader(bookingSvc),
 				ListingsByProperty: NewListingsByPropertyLoader(propertySvc),
+				ListingStats:       NewListingStatsLoader(reviewSvc),
 			})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

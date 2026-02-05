@@ -51,6 +51,7 @@ type ReviewService interface {
 	// --- Statistics ---
 
 	GetListingStats(ctx context.Context, listingID uuid.UUID) (*domain.ListingStats, error)
+	GetListingStatsBatch(ctx context.Context, listingIDs []uuid.UUID) (map[uuid.UUID]*domain.ListingStats, error)
 	GetHostStats(ctx context.Context, hostID uuid.UUID) (*domain.HostStats, error)
 
 	RecalculateListingStats(ctx context.Context, listingID uuid.UUID) error

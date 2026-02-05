@@ -42,6 +42,7 @@ type ResponseRepository interface {
 // It prevents us from running "SELECT AVG(rating)" on every page load.
 type StatsRepository interface {
 	GetListingStats(ctx context.Context, listingID uuid.UUID) (*schema.ListingStats, error)
+	GetListingStatsBatch(ctx context.Context, listingIDs []uuid.UUID) (map[uuid.UUID]*schema.ListingStats, error)
 	RecalculateStats(ctx context.Context, listingID uuid.UUID) error
 	GetHostStats(ctx context.Context, hostID uuid.UUID) (*schema.HostStats, error)
 }

@@ -38,6 +38,7 @@ import (
 	domain4 "hauslet/internal/modules/wishlist/domain"
 	wishlistgraphql "hauslet/internal/modules/wishlist/port/graphql"
 	"hauslet/internal/platform/payment"
+	"hauslet/internal/transport/graph/loaders"
 	"hauslet/internal/transport/graph/model"
 	"strings"
 	"time"
@@ -314,8 +315,18 @@ func (r *listingResolver) OwnerProfile(ctx context.Context, obj *domain.Listing)
 }
 
 // Property is the resolver for the property field.
+// Property is the resolver for the property field.
 func (r *listingResolver) Property(ctx context.Context, obj *domain.Listing) (*domain.Property, error) {
 	return r.PropertyResolver.ListingProperty(ctx, obj)
+}
+
+// Stats is the resolver for the stats field.
+func (r *listingResolver) Stats(ctx context.Context, obj *domain.Listing) (*domain8.ListingStats, error) {
+	loaders := loaders.For(ctx)
+	if loaders == nil || loaders.ListingStats == nil {
+		return nil, nil
+	}
+	return loaders.ListingStats.Load(ctx, obj.ID)
 }
 
 // Thumbnails is the resolver for the thumbnails field.

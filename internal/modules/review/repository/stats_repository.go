@@ -127,6 +127,25 @@ func (r *StatsRepositoryImpl) RecalculateStats(ctx context.Context, listingID uu
 	return r.db.WithContext(ctx).Exec(query, listingID, listingID).Error
 }
 
+// GetListingStatsBatch retrieves stats for multiple listings in a single query
+func (r *StatsRepositoryImpl) GetListingStatsBatch(ctx context.Context, listingIDs []uuid.UUID) (map[uuid.UUID]*schema.ListingStats, error) {
+	if len(listingIDs) == 0 {
+		return map[uuid.UUID]*schema.ListingStats{}, nil
+	}
+
+	var stats []schema.ListingStats
+	if err := r.db.WithContext(ctx).Where("listing_id IN ?", listingIDs).Find(&stats).Error; err != nil {
+		return nil, err
+	}
+
+	result := make(map[uuid.UUID]*schema.ListingStats, len(stats))
+	for i := range stats {
+		result[stats[i].ListingID] = &stats[i]
+	}
+
+	return result, nil
+}
+
 // RecalculateHostStats aggregates stats for a user (Host).
 // NOTE: This implementation aggregates reviews where TargetType = 'host'.
 // If your business logic defines "Host Stats" as "Aggregate of all their listings",

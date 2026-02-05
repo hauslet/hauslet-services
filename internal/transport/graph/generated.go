@@ -607,6 +607,7 @@ type ComplexityRoot struct {
 		SaleDetails        func(childComplexity int) int
 		ShortletDetails    func(childComplexity int) int
 		Slug               func(childComplexity int) int
+		Stats              func(childComplexity int) int
 		Status             func(childComplexity int) int
 		StatusChangedAt    func(childComplexity int) int
 		Title              func(childComplexity int) int
@@ -1694,6 +1695,8 @@ type ListingResolver interface {
 	OwnerProfile(ctx context.Context, obj *domain12.Listing) (*domain4.Profile, error)
 
 	Property(ctx context.Context, obj *domain12.Listing) (*domain12.Property, error)
+
+	Stats(ctx context.Context, obj *domain12.Listing) (*domain11.ListingStats, error)
 }
 type ListingMediaResolver interface {
 	Thumbnails(ctx context.Context, obj *domain12.ListingMedia) ([]*domain12.ThumbnailVariant, error)
@@ -4321,6 +4324,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Listing.Slug(childComplexity), true
+	case "Listing.stats":
+		if e.complexity.Listing.Stats == nil {
+			break
+		}
+
+		return e.complexity.Listing.Stats(childComplexity), true
 	case "Listing.status":
 		if e.complexity.Listing.Status == nil {
 			break
@@ -13410,6 +13419,15 @@ extend type Mutation {
   # Delete own response
   deleteResponse(responseId: UUID!): Boolean!
 }
+
+# ========================================================================
+# Type Extensions
+# ========================================================================
+
+# Extend Listing with review statistics (resolved via dataloader)
+extend type Listing {
+  stats: ListingStats
+}
 `, BuiltIn: false},
 	{Name: "../../modules/promotions/port/graphql/schema.graphqls", Input: `# Promotion System Schema
 
@@ -18363,6 +18381,8 @@ func (ec *executionContext) fieldContext_Booking_listing(_ context.Context, fiel
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -28796,6 +28816,59 @@ func (ec *executionContext) fieldContext_Listing_deletedAt(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Listing_stats(ctx context.Context, field graphql.CollectedField, obj *domain12.Listing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Listing_stats,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Listing().Stats(ctx, obj)
+		},
+		nil,
+		ec.marshalOListingStats2ᚖhausletᚋinternalᚋmodulesᚋreviewᚋdomainᚐListingStats,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Listing_stats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Listing",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "listingId":
+				return ec.fieldContext_ListingStats_listingId(ctx, field)
+			case "totalReviews":
+				return ec.fieldContext_ListingStats_totalReviews(ctx, field)
+			case "averageRating":
+				return ec.fieldContext_ListingStats_averageRating(ctx, field)
+			case "ratingDistribution":
+				return ec.fieldContext_ListingStats_ratingDistribution(ctx, field)
+			case "averageCleanliness":
+				return ec.fieldContext_ListingStats_averageCleanliness(ctx, field)
+			case "averageAccuracy":
+				return ec.fieldContext_ListingStats_averageAccuracy(ctx, field)
+			case "averageCommunication":
+				return ec.fieldContext_ListingStats_averageCommunication(ctx, field)
+			case "averageLocation":
+				return ec.fieldContext_ListingStats_averageLocation(ctx, field)
+			case "averageCheckin":
+				return ec.fieldContext_ListingStats_averageCheckin(ctx, field)
+			case "averageValue":
+				return ec.fieldContext_ListingStats_averageValue(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ListingStats_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ListingStats", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ListingAnalytics_listingId(ctx context.Context, field graphql.CollectedField, obj *graphql13.ListingAnalyticsResponse) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -29805,6 +29878,8 @@ func (ec *executionContext) fieldContext_ListingEdge_node(_ context.Context, fie
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -31144,6 +31219,8 @@ func (ec *executionContext) fieldContext_ListingWithDistance_listing(_ context.C
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -32940,6 +33017,8 @@ func (ec *executionContext) fieldContext_Mutation_createListing(ctx context.Cont
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -33045,6 +33124,8 @@ func (ec *executionContext) fieldContext_Mutation_updateListing(ctx context.Cont
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -33191,6 +33272,8 @@ func (ec *executionContext) fieldContext_Mutation_publishListing(ctx context.Con
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -33296,6 +33379,8 @@ func (ec *executionContext) fieldContext_Mutation_unpublishListing(ctx context.C
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -46319,6 +46404,8 @@ func (ec *executionContext) fieldContext_Query_listing(ctx context.Context, fiel
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -46424,6 +46511,8 @@ func (ec *executionContext) fieldContext_Query_listingByPublicId(ctx context.Con
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -46529,6 +46618,8 @@ func (ec *executionContext) fieldContext_Query_listingBySlug(ctx context.Context
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -53436,6 +53527,8 @@ func (ec *executionContext) fieldContext_RankedListing_listing(_ context.Context
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -55983,6 +56076,8 @@ func (ec *executionContext) fieldContext_ScoredListing_listing(_ context.Context
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -61470,6 +61565,8 @@ func (ec *executionContext) fieldContext_WishlistItem_listing(_ context.Context,
 				return ec.fieldContext_Listing_updatedAt(ctx, field)
 			case "deletedAt":
 				return ec.fieldContext_Listing_deletedAt(ctx, field)
+			case "stats":
+				return ec.fieldContext_Listing_stats(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Listing", field.Name)
 		},
@@ -72468,6 +72565,39 @@ func (ec *executionContext) _Listing(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "deletedAt":
 			out.Values[i] = ec._Listing_deletedAt(ctx, field, obj)
+		case "stats":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Listing_stats(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
