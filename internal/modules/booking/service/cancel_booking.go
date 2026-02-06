@@ -62,6 +62,11 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 			Reason:           reason,
 		}
 
+		// Extract service fee from price breakdown if available
+		if booking.PriceBreakdown != nil && booking.PriceBreakdown.ServiceFee != nil {
+			refundInput.ServiceFee = *booking.PriceBreakdown.ServiceFee
+		}
+
 		// Use listing's refund policy if available
 		if constraints != nil && constraints.RefundPolicy != "" {
 			refundInput.RefundPolicy = constraints.RefundPolicy
@@ -150,6 +155,25 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 		}
 	}
 
+	// Settle remaining escrow funds (distribute non-refunded amount to host/platform)
+	// This handles cases where guest gets partial or zero refund based on cancellation policy
+	if booking.LastPaymentID != nil && s.financeHooks != nil && refundBreakdown != nil {
+		currencyMinorUnit := int64(100)
+		hostAmount := int64(refundBreakdown.HostRetainedAmount * float64(currencyMinorUnit))
+		platformAmount := int64(refundBreakdown.PlatformRetained * float64(currencyMinorUnit))
+
+		if err := s.financeHooks.OnBookingCancelledWithFunds(ctx, booking.ID, ownerID, hostAmount, platformAmount, booking.Currency); err != nil {
+			if s.log != nil {
+				s.log.Warn("failed to settle cancelled booking funds", "booking_id", bookingID.String(), "error", err)
+			}
+			// Don't fail the cancellation if settlement fails - can be processed manually
+		} else {
+			if s.log != nil {
+				s.log.Info("cancelled booking funds settled", "booking_id", bookingID.String(), "host_amount", hostAmount, "platform_amount", platformAmount)
+			}
+		}
+	}
+
 	// Cancel calendar events
 	if err := s.calendar.CancelEvent(ctx, booking.CalendarEventID, ownerID); err != nil {
 		return nil, err
@@ -166,6 +190,11 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 
 	cancelledByStr := string(cancelledBy)
 	booking.CancelledBy = &cancelledByStr
+
+	// Store refund breakdown if available
+	if refundBreakdown != nil {
+		booking.RefundBreakdown = mapPricingRefundToSnapshot(refundBreakdown)
+	}
 
 	if refundAmount > 0 {
 		booking.RefundAmount = refundAmount
@@ -242,4 +271,34 @@ func (s *BookingServiceImpl) getBookingWithOwner(ctx context.Context, bookingID 
 	}
 
 	return booking, ownerID, nil
+}
+
+func mapPricingRefundToSnapshot(s *pricingdomain.RefundBreakdown) *domain.RefundBreakdownSnapshot {
+	if s == nil {
+		return nil
+	}
+	return &domain.RefundBreakdownSnapshot{
+		OriginalAmount:       s.OriginalAmount,
+		Currency:             s.Currency,
+		ServiceFee:           s.ServiceFee,
+		ServiceFeeRefundable: s.ServiceFeeRefundable,
+		BaseAmountWithoutFee: s.BaseAmountWithoutFee,
+		RefundPercentage:     s.RefundPercentage,
+		BaseRefund:           s.BaseRefund,
+		ProcessingFee:        s.ProcessingFee,
+		ProcessingFeePayer:   s.ProcessingFeePayer,
+		NetRefund:            s.NetRefund,
+		NonRefundedAmount:    s.NonRefundedAmount,
+		HostRetainedAmount:   s.HostRetainedAmount,
+		PlatformRetained:     s.PlatformRetained,
+		AppliedPolicy:        s.AppliedPolicy,
+		IsGracePeriod:        s.IsGracePeriod,
+		HoursUntilCheckIn:    s.HoursUntilCheckIn,
+		HoursAfterBooking:    s.HoursAfterBooking,
+		CancelledBy:          s.CancelledBy,
+		Reason:               s.Reason,
+		Summary:              s.Summary,
+		PolicyRules:          s.PolicyRules,
+		CalculatedAt:         s.CalculatedAt,
+	}
 }

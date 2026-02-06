@@ -71,12 +71,16 @@ func (r *RepositoryImpl) DeletePayment(ctx context.Context, id uuid.UUID) error 
 	return nil
 }
 
-// ListPaymentsByPayerID lists payments by payer ID with pagination
-func (r *RepositoryImpl) ListPaymentsByPayerID(ctx context.Context, payerID uuid.UUID, limit, offset int) ([]*schema.Payment, error) {
+// ListPaymentsByPayer lists payments by payer ID with pagination
+func (r *RepositoryImpl) ListPaymentsByPayer(ctx context.Context, payerID uuid.UUID, resourceType *schema.ResourceType, limit, offset int) ([]*schema.Payment, error) {
 	var payments []*schema.Payment
 	query := r.db.WithContext(ctx).
 		Where("payer_id = ?", payerID).
 		Order("created_at DESC")
+
+	if resourceType != nil {
+		query = query.Where("resource_type = ?", *resourceType)
+	}
 
 	if limit > 0 {
 		query = query.Limit(limit)
@@ -141,6 +145,24 @@ func (r *RepositoryImpl) ListPaymentsByStatus(ctx context.Context, status schema
 		return nil, fmt.Errorf("failed to list payments by status: %w", err)
 	}
 	return payments, nil
+}
+
+// GetPaymentStats retrieves aggregated payment stats for a payer
+func (r *RepositoryImpl) GetPaymentStats(ctx context.Context, payerID uuid.UUID) (*schema.PaymentStats, error) {
+	var stats schema.PaymentStats
+	err := r.db.WithContext(ctx).Model(&schema.Payment{}).
+		Where("payer_id = ?", payerID).
+		Select(`
+			COALESCE(SUM(CASE WHEN status = 'succeeded' THEN amount ELSE 0 END), 0) as total_spent,
+			COALESCE(SUM(CASE WHEN status IN ('pending', 'processing') THEN amount ELSE 0 END), 0) as upcoming_payments,
+			COALESCE(SUM(refunded_amount), 0) as total_refunds
+		`).
+		Scan(&stats).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get payment stats: %w", err)
+	}
+	return &stats, nil
 }
 
 // WithinTransaction executes a function within a database transaction

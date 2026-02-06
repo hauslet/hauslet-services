@@ -137,9 +137,9 @@ func TestPaymentService_ListPaymentsByPayer(t *testing.T) {
 		},
 	}
 
-	mockRepo.On("ListPaymentsByPayerID", ctx, payerID, 10, 0).Return(expectedPayments, nil)
+	mockRepo.On("ListPaymentsByPayer", ctx, payerID, (*schema.ResourceType)(nil), 10, 0).Return(expectedPayments, nil)
 
-	result, err := svc.ListPaymentsByPayer(ctx, payerID, 10, 0)
+	result, err := svc.ListPaymentsByPayer(ctx, payerID, nil, 10, 0)
 
 	require.NoError(t, err)
 	assert.Len(t, result, 2)

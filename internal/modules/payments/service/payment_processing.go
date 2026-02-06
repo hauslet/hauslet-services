@@ -270,10 +270,16 @@ func (s *PaymentServiceImpl) VerifyPayment(ctx context.Context, reference string
 }
 
 // ListPaymentsByPayer lists payments for a payer
-func (s *PaymentServiceImpl) ListPaymentsByPayer(ctx context.Context, payerID uuid.UUID, limit, offset int) ([]domain.Payment, error) {
+func (s *PaymentServiceImpl) ListPaymentsByPayer(ctx context.Context, payerID uuid.UUID, resourceType *domain.ResourceType, limit, offset int) ([]domain.Payment, error) {
 	s.log.Info("listing payments for payer", "payer_id", payerID)
 
-	schemaPayments, err := s.repo.ListPaymentsByPayerID(ctx, payerID, limit, offset)
+	var schemaType *schema.ResourceType
+	if resourceType != nil {
+		st := schema.ResourceType(*resourceType)
+		schemaType = &st
+	}
+
+	schemaPayments, err := s.repo.ListPaymentsByPayer(ctx, payerID, schemaType, limit, offset)
 	if err != nil {
 		s.log.Error("failed to list payments for payer", "payer_id", payerID, "error", err)
 		return nil, fmt.Errorf("failed to list payments: %w", err)

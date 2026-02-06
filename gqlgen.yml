@@ -255,6 +255,8 @@ models:
     model: hauslet/internal/modules/booking/domain.Booking
   BookingQuote:
     model: hauslet/internal/modules/booking/domain.BookingQuote
+  RefundBreakdownSnapshot:
+    model: hauslet/internal/modules/booking/domain.RefundBreakdownSnapshot
   PriceBreakdownSnapshot:
     model: hauslet/internal/modules/booking/domain.PriceBreakdownSnapshot
   DiscountSnapshot:

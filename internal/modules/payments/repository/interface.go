@@ -18,10 +18,11 @@ type PaymentRepository interface {
 	DeletePayment(ctx context.Context, id uuid.UUID) error
 
 	// Payment queries
-	ListPaymentsByPayerID(ctx context.Context, payerID uuid.UUID, limit, offset int) ([]*schema.Payment, error)
+	ListPaymentsByPayer(ctx context.Context, payerID uuid.UUID, resourceType *schema.ResourceType, limit, offset int) ([]*schema.Payment, error)
 	ListPaymentsByBookingID(ctx context.Context, bookingID uuid.UUID) ([]*schema.Payment, error)
 	ListPaymentsByBusinessID(ctx context.Context, businessID uuid.UUID, limit, offset int) ([]*schema.Payment, error)
 	ListPaymentsByStatus(ctx context.Context, status schema.PaymentStatus, limit, offset int) ([]*schema.Payment, error)
+	GetPaymentStats(ctx context.Context, payerID uuid.UUID) (*schema.PaymentStats, error)
 
 	// Transaction support
 	WithinTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error

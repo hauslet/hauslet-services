@@ -605,6 +605,296 @@ func (s *FinanceServiceImpl) RecordPayout(
 	return transaction, nil
 }
 
+// SettleCancelledBooking settles remaining escrow funds after a booking cancellation.
+// This handles the case where a guest receives a partial or zero refund due to cancellation
+// policy (e.g., strict policy, late cancellation). The remaining funds are distributed:
+// - Platform commission goes to platform fee wallet
+// - Host's share goes to host's available wallet
+//
+// Note: Unlike normal payouts, this does NOT initiate a bank disbursement automatically.
+// The host will need to request withdrawal, or admin can process it manually.
+func (s *FinanceServiceImpl) SettleCancelledBooking(
+	ctx context.Context,
+	bookingID, hostID uuid.UUID,
+	hostAmount, platformAmount int64,
+	currency string,
+) error {
+	// Get the escrow wallet for this booking
+	escrowWallet, err := s.GetOrCreateWallet(ctx, domain.OwnerTypeUser, bookingID, domain.WalletTypeEscrow, currency)
+	if err != nil {
+		return fmt.Errorf("failed to get escrow wallet: %w", err)
+	}
+
+	// Check if there are remaining funds to settle
+	remainingBalance := escrowWallet.Balance
+	if remainingBalance <= 0 {
+		s.log.Info("[AUDIT] cancellation_settlement_skipped",
+			"booking_id", bookingID,
+			"reason", "no_remaining_balance",
+		)
+		return nil // Nothing to settle
+	}
+
+	s.log.Info("[AUDIT] cancellation_settlement_started",
+		"booking_id", bookingID,
+		"host_id", hostID,
+		"remaining_balance", remainingBalance,
+		"currency", currency,
+		"expected_host_amount", hostAmount,
+		"expected_platform_amount", platformAmount,
+	)
+
+	// Validate amounts against remaining balance
+	totalRequired := hostAmount + platformAmount
+	if totalRequired > remainingBalance {
+		s.log.Warn("[AUDIT] settlement_amount_mismatch_underflow",
+			"booking_id", bookingID,
+			"remaining", remainingBalance,
+			"required", totalRequired,
+		)
+		// Adjust platform amount downwards to match available funds
+		diff := totalRequired - remainingBalance
+		platformAmount -= diff
+		if platformAmount < 0 {
+			// If platform amount becomes negative, reduce host amount (highly unlikely)
+			hostAmount += platformAmount
+			platformAmount = 0
+		}
+	} else if totalRequired < remainingBalance {
+		s.log.Info("[AUDIT] settlement_amount_mismatch_overflow",
+			"booking_id", bookingID,
+			"remaining", remainingBalance,
+			"required", totalRequired,
+			"action", "excess_to_platform",
+		)
+		// Give excess to platform
+		platformAmount += (remainingBalance - totalRequired)
+	}
+
+	// Use finalised amounts
+	commission := platformAmount
+	hostPayout := hostAmount
+
+	s.log.Info("[AUDIT] cancellation_settlement_breakdown",
+		"booking_id", bookingID,
+		"remaining_balance", remainingBalance,
+		"commission", commission,
+		"host_payout", hostPayout,
+	)
+
+	// Generate idempotency reference
+	reference := generateTimestampReference(domain.TransactionTypeCancellationSettlement, bookingID, remainingBalance)
+
+	// Check if already settled
+	existing, _ := s.ledgerRepo.GetByReference(ctx, reference+":commission:debit")
+	if existing != nil {
+		s.log.Warn("[AUDIT] duplicate_cancellation_settlement",
+			"booking_id", bookingID,
+		)
+		return domain.ErrDuplicateTransaction
+	}
+
+	// Get platform fee wallet
+	platformID := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("hauslet"))
+	platformWallet, err := s.GetOrCreateWallet(ctx, domain.OwnerTypePlatform, platformID, domain.WalletTypePlatformFee, currency)
+	if err != nil {
+		return fmt.Errorf("failed to get platform wallet: %w", err)
+	}
+
+	// Get or create host available wallet
+	hostWallet, err := s.GetOrCreateWallet(ctx, domain.OwnerTypeUser, hostID, domain.WalletTypeHostAvailable, currency)
+	if err != nil {
+		return fmt.Errorf("failed to get host wallet: %w", err)
+	}
+
+	// Record settlement in database transaction
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Create transaction-aware repositories
+		txRepo := s.transactionRepo.WithTx(tx)
+		ledgerRepo := s.ledgerRepo.WithTx(tx)
+		walletRepo := s.walletRepo.WithTx(tx)
+
+		// Create settlement transaction record
+		transaction := &domain.Transaction{
+			ID:           uuid.New(),
+			Type:         domain.TransactionTypeCancellationSettlement,
+			Status:       domain.TransactionStatusPending,
+			ResourceType: domain.ResourceTypeBooking,
+			ResourceID:   bookingID,
+			Amount:       remainingBalance,
+			Currency:     currency,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+
+		txSchema := domain.MapTransactionToSchema(transaction)
+		if err := txRepo.Create(ctx, txSchema); err != nil {
+			return fmt.Errorf("failed to create transaction: %w", err)
+		}
+
+		// Lock escrow wallet
+		lockedEscrow, err := walletRepo.GetByIDForUpdate(ctx, escrowWallet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock escrow wallet: %w", err)
+		}
+
+		// Verify escrow still has the expected balance
+		if lockedEscrow.Balance != remainingBalance {
+			s.log.Warn("[AUDIT] escrow_balance_changed",
+				"booking_id", bookingID,
+				"expected", remainingBalance,
+				"actual", lockedEscrow.Balance,
+			)
+			// Use actual balance
+			remainingBalance = lockedEscrow.Balance
+
+			// Re-apply adjustment logic
+			commission = platformAmount
+			hostPayout = hostAmount
+
+			if hostPayout+commission > remainingBalance {
+				diff := (hostPayout + commission) - remainingBalance
+				commission -= diff
+				if commission < 0 {
+					hostPayout += commission
+					commission = 0
+				}
+			} else if hostPayout+commission < remainingBalance {
+				commission += remainingBalance - (hostPayout + commission)
+			}
+		}
+
+		if remainingBalance <= 0 {
+			return nil // Nothing to settle
+		}
+
+		// Step 1: Record commission (escrow → platform fee wallet)
+		if commission > 0 {
+			commissionEntries := buildDoubleEntry(
+				transaction.ID,
+				reference+":commission",
+				escrowWallet.ID,
+				platformWallet.ID,
+				commission,
+				currency,
+				domain.ResourceTypeBooking,
+				bookingID,
+				fmt.Sprintf("Cancellation commission for booking %s", bookingID),
+			)
+
+			if err := validateDoubleEntry(commissionEntries); err != nil {
+				return err
+			}
+
+			entrySchemas := make([]*schema.LedgerEntry, len(commissionEntries))
+			for i, entry := range commissionEntries {
+				entrySchemas[i] = domain.MapLedgerEntryToSchema(entry)
+			}
+
+			if err := ledgerRepo.CreateEntries(ctx, entrySchemas); err != nil {
+				return fmt.Errorf("failed to create commission ledger entries: %w", err)
+			}
+
+			// Update platform fee wallet balance
+			lockedPlatform, err := walletRepo.GetByIDForUpdate(ctx, platformWallet.ID)
+			if err != nil {
+				return fmt.Errorf("failed to lock platform wallet: %w", err)
+			}
+			if err := walletRepo.UpdateBalance(ctx, platformWallet.ID, lockedPlatform.Balance+commission); err != nil {
+				return fmt.Errorf("failed to update platform wallet balance: %w", err)
+			}
+
+			s.log.Info("[AUDIT] cancellation_commission_recorded",
+				"booking_id", bookingID,
+				"amount", commission,
+				"currency", currency,
+			)
+		}
+
+		// Step 2: Record host payout (escrow → host available wallet)
+		if hostPayout > 0 {
+			payoutEntries := buildDoubleEntry(
+				transaction.ID,
+				reference+":payout",
+				escrowWallet.ID,
+				hostWallet.ID,
+				hostPayout,
+				currency,
+				domain.ResourceTypeBooking,
+				bookingID,
+				fmt.Sprintf("Cancellation payout to host for booking %s", bookingID),
+			)
+
+			if err := validateDoubleEntry(payoutEntries); err != nil {
+				return err
+			}
+
+			entrySchemas := make([]*schema.LedgerEntry, len(payoutEntries))
+			for i, entry := range payoutEntries {
+				entrySchemas[i] = domain.MapLedgerEntryToSchema(entry)
+			}
+
+			if err := ledgerRepo.CreateEntries(ctx, entrySchemas); err != nil {
+				return fmt.Errorf("failed to create payout ledger entries: %w", err)
+			}
+
+			// Update host wallet balance
+			lockedHost, err := walletRepo.GetByIDForUpdate(ctx, hostWallet.ID)
+			if err != nil {
+				return fmt.Errorf("failed to lock host wallet: %w", err)
+			}
+			if err := walletRepo.UpdateBalance(ctx, hostWallet.ID, lockedHost.Balance+hostPayout); err != nil {
+				return fmt.Errorf("failed to update host wallet balance: %w", err)
+			}
+
+			s.log.Info("[AUDIT] cancellation_payout_recorded",
+				"booking_id", bookingID,
+				"host_id", hostID,
+				"amount", hostPayout,
+				"currency", currency,
+			)
+		}
+
+		// Zero out escrow wallet
+		if err := walletRepo.UpdateBalance(ctx, escrowWallet.ID, 0); err != nil {
+			return fmt.Errorf("failed to zero escrow wallet: %w", err)
+		}
+
+		s.log.Info("[AUDIT] escrow_zeroed",
+			"booking_id", bookingID,
+			"wallet_id", escrowWallet.ID,
+		)
+
+		// Mark transaction as completed
+		transaction.MarkCompleted()
+		if err := txRepo.UpdateStatus(ctx, transaction.ID, transaction.Status.String(), nil); err != nil {
+			return fmt.Errorf("failed to update transaction status: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		s.log.Error("[AUDIT] cancellation_settlement_failed",
+			"booking_id", bookingID,
+			"host_id", hostID,
+			"remaining_balance", remainingBalance,
+			"error", err,
+		)
+		return err
+	}
+
+	s.log.Info("[AUDIT] cancellation_settlement_completed",
+		"booking_id", bookingID,
+		"host_id", hostID,
+		"commission", commission,
+		"host_payout", hostPayout,
+		"currency", currency,
+	)
+
+	return nil
+}
+
 // GetTransactionHistory returns all transactions for a resource
 func (s *FinanceServiceImpl) GetTransactionHistory(
 	ctx context.Context,

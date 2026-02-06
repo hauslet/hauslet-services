@@ -175,16 +175,16 @@ func (s *RepositoryTestSuite) TestListPaymentsByPayerID() {
 	}
 
 	// List payments
-	payments, err := s.repo.ListPaymentsByPayerID(s.ctx, userID, 10, 0)
+	payments, err := s.repo.ListPaymentsByPayer(s.ctx, userID, nil, 10, 0)
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 5, len(payments))
 
 	// Test pagination
-	paymentsPage1, err := s.repo.ListPaymentsByPayerID(s.ctx, userID, 2, 0)
+	paymentsPage1, err := s.repo.ListPaymentsByPayer(s.ctx, userID, nil, 2, 0)
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 2, len(paymentsPage1))
 
-	paymentsPage2, err := s.repo.ListPaymentsByPayerID(s.ctx, userID, 2, 2)
+	paymentsPage2, err := s.repo.ListPaymentsByPayer(s.ctx, userID, nil, 2, 2)
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), 2, len(paymentsPage2))
 }

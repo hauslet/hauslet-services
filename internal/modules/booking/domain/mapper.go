@@ -53,6 +53,10 @@ func MapBookingFromSchema(s *schema.Booking) *Booking {
 		d.PriceBreakdown = mapPriceBreakdownFromSchema(s.PriceBreakdown)
 	}
 
+	if s.RefundBreakdown != nil {
+		d.RefundBreakdown = mapRefundBreakdownFromSchema(s.RefundBreakdown)
+	}
+
 	return d
 }
 
@@ -103,6 +107,10 @@ func MapBookingFromDomain(d *Booking) *schema.Booking {
 
 	if d.PriceBreakdown != nil {
 		s.PriceBreakdown = mapPriceBreakdownToSchema(d.PriceBreakdown)
+	}
+
+	if d.RefundBreakdown != nil {
+		s.RefundBreakdown = mapRefundBreakdownToSchema(d.RefundBreakdown)
 	}
 
 	return s
@@ -218,4 +226,64 @@ func mapPriceBreakdownToSchema(d *PriceBreakdownSnapshot) *schema.PriceBreakdown
 	}
 
 	return s
+}
+
+func mapRefundBreakdownFromSchema(s *schema.RefundBreakdownSnapshot) *RefundBreakdownSnapshot {
+	if s == nil {
+		return nil
+	}
+	return &RefundBreakdownSnapshot{
+		OriginalAmount:       s.OriginalAmount,
+		Currency:             s.Currency,
+		ServiceFee:           s.ServiceFee,
+		ServiceFeeRefundable: s.ServiceFeeRefundable,
+		BaseAmountWithoutFee: s.BaseAmountWithoutFee,
+		RefundPercentage:     s.RefundPercentage,
+		BaseRefund:           s.BaseRefund,
+		ProcessingFee:        s.ProcessingFee,
+		ProcessingFeePayer:   s.ProcessingFeePayer,
+		NetRefund:            s.NetRefund,
+		NonRefundedAmount:    s.NonRefundedAmount,
+		HostRetainedAmount:   s.HostRetainedAmount,
+		PlatformRetained:     s.PlatformRetained,
+		AppliedPolicy:        s.AppliedPolicy,
+		IsGracePeriod:        s.IsGracePeriod,
+		HoursUntilCheckIn:    s.HoursUntilCheckIn,
+		HoursAfterBooking:    s.HoursAfterBooking,
+		CancelledBy:          s.CancelledBy,
+		Reason:               s.Reason,
+		Summary:              s.Summary,
+		PolicyRules:          s.PolicyRules,
+		CalculatedAt:         s.CalculatedAt,
+	}
+}
+
+func mapRefundBreakdownToSchema(d *RefundBreakdownSnapshot) *schema.RefundBreakdownSnapshot {
+	if d == nil {
+		return nil
+	}
+	return &schema.RefundBreakdownSnapshot{
+		OriginalAmount:       d.OriginalAmount,
+		Currency:             d.Currency,
+		ServiceFee:           d.ServiceFee,
+		ServiceFeeRefundable: d.ServiceFeeRefundable,
+		BaseAmountWithoutFee: d.BaseAmountWithoutFee,
+		RefundPercentage:     d.RefundPercentage,
+		BaseRefund:           d.BaseRefund,
+		ProcessingFee:        d.ProcessingFee,
+		ProcessingFeePayer:   d.ProcessingFeePayer,
+		NetRefund:            d.NetRefund,
+		NonRefundedAmount:    d.NonRefundedAmount,
+		HostRetainedAmount:   d.HostRetainedAmount,
+		PlatformRetained:     d.PlatformRetained,
+		AppliedPolicy:        d.AppliedPolicy,
+		IsGracePeriod:        d.IsGracePeriod,
+		HoursUntilCheckIn:    d.HoursUntilCheckIn,
+		HoursAfterBooking:    d.HoursAfterBooking,
+		CancelledBy:          d.CancelledBy,
+		Reason:               d.Reason,
+		Summary:              d.Summary,
+		PolicyRules:          d.PolicyRules,
+		CalculatedAt:         d.CalculatedAt,
+	}
 }

@@ -210,6 +210,12 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor,omitempty"`
 }
 
+type PaymentStats struct {
+	TotalSpent       int `json:"totalSpent"`
+	UpcomingPayments int `json:"upcomingPayments"`
+	TotalRefunds     int `json:"totalRefunds"`
+}
+
 type PlatformFeeBreakdown struct {
 	GuestFeePercent         float64 `json:"guestFeePercent"`
 	GuestFeeAmount          float64 `json:"guestFeeAmount"`
@@ -514,6 +520,69 @@ func (e *DayOfWeek) UnmarshalJSON(b []byte) error {
 }
 
 func (e DayOfWeek) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type PaymentResourceType string
+
+const (
+	PaymentResourceTypeGeneral        PaymentResourceType = "general"
+	PaymentResourceTypeBooking        PaymentResourceType = "booking"
+	PaymentResourceTypeIDVerification PaymentResourceType = "id_verification"
+	PaymentResourceTypeSubscription   PaymentResourceType = "subscription"
+	PaymentResourceTypePromotion      PaymentResourceType = "promotion"
+	PaymentResourceTypeRentalDraft    PaymentResourceType = "rental_draft"
+)
+
+var AllPaymentResourceType = []PaymentResourceType{
+	PaymentResourceTypeGeneral,
+	PaymentResourceTypeBooking,
+	PaymentResourceTypeIDVerification,
+	PaymentResourceTypeSubscription,
+	PaymentResourceTypePromotion,
+	PaymentResourceTypeRentalDraft,
+}
+
+func (e PaymentResourceType) IsValid() bool {
+	switch e {
+	case PaymentResourceTypeGeneral, PaymentResourceTypeBooking, PaymentResourceTypeIDVerification, PaymentResourceTypeSubscription, PaymentResourceTypePromotion, PaymentResourceTypeRentalDraft:
+		return true
+	}
+	return false
+}
+
+func (e PaymentResourceType) String() string {
+	return string(e)
+}
+
+func (e *PaymentResourceType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PaymentResourceType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PaymentResourceType", str)
+	}
+	return nil
+}
+
+func (e PaymentResourceType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *PaymentResourceType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e PaymentResourceType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

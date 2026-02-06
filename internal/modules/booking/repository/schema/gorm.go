@@ -54,9 +54,10 @@ type Booking struct {
 	RefundAmount      int64      `gorm:"default:0"`
 	RefundInitiatedAt *time.Time `gorm:"index"`
 	RefundProcessedAt *time.Time
-	RefundReason      *string `gorm:"type:text"`
-	RefundReference   *string `gorm:"type:varchar(255);index"`
-	CancelledBy       *string `gorm:"type:varchar(20)"` // guest, host, admin
+	RefundReason      *string                  `gorm:"type:text"`
+	RefundReference   *string                  `gorm:"type:varchar(255);index"`
+	RefundBreakdown   *RefundBreakdownSnapshot `gorm:"type:jsonb;serializer:json"`
+	CancelledBy       *string                  `gorm:"type:varchar(20)"` // guest, host, admin
 
 	SpecialRequests *string `gorm:"type:text"`
 
@@ -250,4 +251,52 @@ func (p *PriceBreakdownSnapshot) Scan(value interface{}) error {
 		return fmt.Errorf("failed to unmarshal PriceBreakdownSnapshot value: %v", value)
 	}
 	return json.Unmarshal(bytes, p)
+}
+
+// RefundBreakdownSnapshot stores calculated refund details at cancellation time.
+type RefundBreakdownSnapshot struct {
+	OriginalAmount       float64 `json:"original_amount"`
+	Currency             string  `json:"currency"`
+	ServiceFee           float64 `json:"service_fee"`
+	ServiceFeeRefundable bool    `json:"service_fee_refundable"`
+	BaseAmountWithoutFee float64 `json:"base_amount_without_fee"`
+
+	RefundPercentage   float64 `json:"refund_percentage"`
+	BaseRefund         float64 `json:"base_refund"`
+	ProcessingFee      float64 `json:"processing_fee"`
+	ProcessingFeePayer string  `json:"processing_fee_payer"`
+	NetRefund          float64 `json:"net_refund"`
+
+	NonRefundedAmount  float64 `json:"non_refunded_amount"`
+	HostRetainedAmount float64 `json:"host_retained_amount"`
+	PlatformRetained   float64 `json:"platform_retained"`
+
+	AppliedPolicy     string  `json:"applied_policy"`
+	IsGracePeriod     bool    `json:"is_grace_period"`
+	HoursUntilCheckIn float64 `json:"hours_until_checkin"`
+	HoursAfterBooking float64 `json:"hours_after_booking"`
+	CancelledBy       string  `json:"cancelled_by"`
+
+	Reason      string `json:"reason"`
+	Summary     string `json:"summary"`
+	PolicyRules string `json:"policy_rules"`
+
+	CalculatedAt time.Time `json:"calculated_at"`
+}
+
+// Value implements driver.Valuer for RefundBreakdownSnapshot.
+func (r RefundBreakdownSnapshot) Value() (driver.Value, error) {
+	return json.Marshal(r)
+}
+
+// Scan implements sql.Scanner for RefundBreakdownSnapshot.
+func (r *RefundBreakdownSnapshot) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("failed to unmarshal RefundBreakdownSnapshot value: %v", value)
+	}
+	return json.Unmarshal(bytes, r)
 }

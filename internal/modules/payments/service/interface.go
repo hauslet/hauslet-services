@@ -14,8 +14,9 @@ type PaymentService interface {
 	GetPayment(ctx context.Context, id uuid.UUID) (*domain.Payment, error)
 	GetPaymentByReference(ctx context.Context, reference string) (*domain.Payment, error)
 	VerifyPayment(ctx context.Context, reference string) (*domain.Payment, error)
-	ListPaymentsByPayer(ctx context.Context, payerID uuid.UUID, limit, offset int) ([]domain.Payment, error)
+	ListPaymentsByPayer(ctx context.Context, payerID uuid.UUID, resourceType *domain.ResourceType, limit, offset int) ([]domain.Payment, error)
 	ListPaymentsByBooking(ctx context.Context, bookingID uuid.UUID) ([]domain.Payment, error)
+	GetPaymentStats(ctx context.Context, payerID uuid.UUID) (*domain.PaymentStats, error)
 
 	// Refund operations
 	RefundPayment(ctx context.Context, input domain.RefundPaymentInput) (*domain.Payment, error)

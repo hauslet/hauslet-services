@@ -72,7 +72,7 @@ func (r *Resolver) PaymentByReference(ctx context.Context, reference string) (*d
 }
 
 // MyPayments lists payments for the current user
-func (r *Resolver) MyPayments(ctx context.Context, limit *int, offset *int, status *domain.PaymentStatus) ([]domain.Payment, error) {
+func (r *Resolver) MyPayments(ctx context.Context, limit *int, offset *int, status *domain.PaymentStatus, resourceType *domain.ResourceType) ([]domain.Payment, error) {
 	// Get current user from context
 	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
@@ -89,7 +89,7 @@ func (r *Resolver) MyPayments(ctx context.Context, limit *int, offset *int, stat
 		o = *offset
 	}
 
-	payments, err := r.paymentService.ListPaymentsByPayer(ctx, userID, l, o)
+	payments, err := r.paymentService.ListPaymentsByPayer(ctx, userID, resourceType, l, o)
 	if err != nil {
 		r.log.Error("failed to list payments for user", "user_id", userID, "error", err)
 		return nil, err
@@ -106,6 +106,22 @@ func (r *Resolver) MyPayments(ctx context.Context, limit *int, offset *int, stat
 	}
 
 	return payments, nil
+}
+
+// MyPaymentStats retrieves aggregated payment stats for the current user
+func (r *Resolver) MyPaymentStats(ctx context.Context) (*domain.PaymentStats, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	stats, err := r.paymentService.GetPaymentStats(ctx, userID)
+	if err != nil {
+		r.log.Error("failed to get payment stats for user", "user_id", userID, "error", err)
+		return nil, err
+	}
+
+	return stats, nil
 }
 
 // MyPaymentMethods lists payment methods for the current user
@@ -159,7 +175,7 @@ func (r *Resolver) MyTransactions(ctx context.Context, txType *domain.Transactio
 	}
 
 	paymentLimit := l + o
-	payments, err := r.paymentService.ListPaymentsByPayer(ctx, userID, paymentLimit, 0)
+	payments, err := r.paymentService.ListPaymentsByPayer(ctx, userID, nil, paymentLimit, 0)
 	if err != nil {
 		r.log.Error("failed to list payments for user", "user_id", userID, "error", err)
 		return nil, err

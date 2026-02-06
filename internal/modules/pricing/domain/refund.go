@@ -19,17 +19,18 @@ const (
 type RefundCalculationInput struct {
 	// Booking details
 	BookingID        uuid.UUID `json:"booking_id"`
-	TotalPaid        float64   `json:"total_paid"`          // Total amount paid by guest
-	Currency         string    `json:"currency"`            // Currency code
-	BookingCreatedAt time.Time `json:"booking_created_at"`  // When booking was created (for grace period)
-	CheckInTime      time.Time `json:"check_in_time"`       // Original check-in time
-	CancellationTime time.Time `json:"cancellation_time"`   // When cancellation is happening
+	TotalPaid        float64   `json:"total_paid"`         // Total amount paid by guest (includes service fee)
+	ServiceFee       float64   `json:"service_fee"`        // Platform guest service fee from price breakdown
+	Currency         string    `json:"currency"`           // Currency code
+	BookingCreatedAt time.Time `json:"booking_created_at"` // When booking was created (for grace period)
+	CheckInTime      time.Time `json:"check_in_time"`      // Original check-in time
+	CancellationTime time.Time `json:"cancellation_time"`  // When cancellation is happening
 
 	// Policy
 	RefundPolicy string `json:"refund_policy"` // flexible/moderate/strict/long_term
 
 	// Cancellation context
-	CancelledBy CancellationActor `json:"cancelled_by"` // Who initiated cancellation
+	CancelledBy CancellationActor `json:"cancelled_by"`     // Who initiated cancellation
 	Reason      *string           `json:"reason,omitempty"` // Optional reason
 }
 
@@ -37,22 +38,32 @@ type RefundCalculationInput struct {
 type RefundBreakdown struct {
 	// Original booking details
 	BookingID      uuid.UUID `json:"booking_id"`
-	OriginalAmount float64   `json:"original_amount"`
+	OriginalAmount float64   `json:"original_amount"` // Total amount paid by guest (includes all fees)
 	Currency       string    `json:"currency"`
+
+	// Fee breakdown (for transparency in UI)
+	ServiceFee           float64 `json:"service_fee"`             // Platform guest service fee (8%)
+	ServiceFeeRefundable bool    `json:"service_fee_refundable"`  // Whether service fee is refunded (usually false)
+	BaseAmountWithoutFee float64 `json:"base_amount_without_fee"` // OriginalAmount - ServiceFee
 
 	// Refund calculation
 	RefundPercentage   float64 `json:"refund_percentage"`    // e.g., 100.0, 50.0, 0.0
-	BaseRefund         float64 `json:"base_refund"`          // Amount before fees (original * percentage)
-	ProcessingFee      float64 `json:"processing_fee"`       // Non-refundable processing fee
+	BaseRefund         float64 `json:"base_refund"`          // Amount before fees (base * percentage)
+	ProcessingFee      float64 `json:"processing_fee"`       // Non-refundable processing fee (payment gateway)
 	ProcessingFeePayer string  `json:"processing_fee_payer"` // guest/host/shared
 	NetRefund          float64 `json:"net_refund"`           // Final amount to refund to guest
 
+	// Non-refunded breakdown (for host payout / platform retention)
+	NonRefundedAmount  float64 `json:"non_refunded_amount"`  // Original - NetRefund (goes to host/platform)
+	HostRetainedAmount float64 `json:"host_retained_amount"` // Amount host keeps from non-refunded portion
+	PlatformRetained   float64 `json:"platform_retained"`    // Service fee + commission on non-refunded
+
 	// Policy context
-	AppliedPolicy      string    `json:"applied_policy"`       // Which policy was used (e.g., "moderate")
-	IsGracePeriod      bool      `json:"is_grace_period"`      // Was grace period applied?
-	HoursUntilCheckIn  float64   `json:"hours_until_checkin"`  // Hours between cancellation and check-in
-	HoursAfterBooking  float64   `json:"hours_after_booking"`  // Hours between booking creation and cancellation
-	CancelledBy        string    `json:"cancelled_by"`         // Who cancelled
+	AppliedPolicy     string  `json:"applied_policy"`      // Which policy was used (e.g., "moderate")
+	IsGracePeriod     bool    `json:"is_grace_period"`     // Was grace period applied?
+	HoursUntilCheckIn float64 `json:"hours_until_checkin"` // Hours between cancellation and check-in
+	HoursAfterBooking float64 `json:"hours_after_booking"` // Hours between booking creation and cancellation
+	CancelledBy       string  `json:"cancelled_by"`        // Who cancelled
 
 	// Timestamps
 	BookedAt     time.Time `json:"booked_at"`

@@ -28,18 +28,24 @@ func (s *PricingServiceImpl) CalculateRefund(
 	hoursAfterBooking := input.CancellationTime.Sub(input.BookingCreatedAt).Hours()
 	hoursUntilCheckIn := input.CheckInTime.Sub(input.CancellationTime).Hours()
 
-	// Initialize breakdown
+	// Initialize breakdown with fee information
+	serviceFee := input.ServiceFee
+	baseAmountWithoutFee := input.TotalPaid - serviceFee
+
 	breakdown := &domain.RefundBreakdown{
-		BookingID:         input.BookingID,
-		OriginalAmount:    input.TotalPaid,
-		Currency:          input.Currency,
-		HoursUntilCheckIn: hoursUntilCheckIn,
-		HoursAfterBooking: hoursAfterBooking,
-		CancelledBy:       string(input.CancelledBy),
-		BookedAt:          input.BookingCreatedAt,
-		CheckInAt:         input.CheckInTime,
-		CancelledAt:       input.CancellationTime,
-		CalculatedAt:      calculatedAt,
+		BookingID:            input.BookingID,
+		OriginalAmount:       input.TotalPaid,
+		Currency:             input.Currency,
+		ServiceFee:           serviceFee,
+		ServiceFeeRefundable: false, // Platform service fee is non-refundable by default
+		BaseAmountWithoutFee: baseAmountWithoutFee,
+		HoursUntilCheckIn:    hoursUntilCheckIn,
+		HoursAfterBooking:    hoursAfterBooking,
+		CancelledBy:          string(input.CancelledBy),
+		BookedAt:             input.BookingCreatedAt,
+		CheckInAt:            input.CheckInTime,
+		CancelledAt:          input.CancellationTime,
+		CalculatedAt:         calculatedAt,
 	}
 
 	// Check for invalid scenarios
@@ -99,11 +105,12 @@ func (s *PricingServiceImpl) calculateGracePeriodRefund(breakdown *domain.Refund
 	breakdown.BaseRefund = breakdown.OriginalAmount
 	breakdown.AppliedPolicy = "grace_period"
 	breakdown.IsGracePeriod = true
+	breakdown.ServiceFeeRefundable = true // Grace period refunds everything including service fee
 
 	// Calculate processing fee
 	processingFee := s.calculateProcessingFee(breakdown.OriginalAmount)
 	breakdown.ProcessingFee = processingFee
-	breakdown.ProcessingFeePayer = s.platformConfig.Refunds.ProcessingFeePayer
+	breakdown.ProcessingFeePayer = "platform" // Platform absorbs fee for grace period cancellations
 
 	// Apply processing fee based on who pays
 	feeDeduction := s.applyProcessingFee(processingFee, breakdown.ProcessingFeePayer)
@@ -123,6 +130,9 @@ func (s *PricingServiceImpl) calculateGracePeriodRefund(breakdown *domain.Refund
 		s.platformConfig.Refunds.ProcessingFeePercent,
 	)
 
+	// Calculate non-refunded breakdown (host/platform retention)
+	s.calculateNonRefundedBreakdown(breakdown)
+
 	if s.log != nil {
 		s.log.Info("refund calculation", "policy", "grace_period", "refund", breakdown.NetRefund, "refund_percent", breakdown.RefundPercentage)
 	}
@@ -137,6 +147,7 @@ func (s *PricingServiceImpl) calculateHostCancellationRefund(breakdown *domain.R
 	breakdown.BaseRefund = breakdown.OriginalAmount
 	breakdown.AppliedPolicy = "host_cancellation"
 	breakdown.IsGracePeriod = false
+	breakdown.ServiceFeeRefundable = true // Host cancellation refunds everything check
 
 	// Host pays all fees
 	breakdown.ProcessingFee = 0
@@ -149,6 +160,9 @@ func (s *PricingServiceImpl) calculateHostCancellationRefund(breakdown *domain.R
 		breakdown.HoursUntilCheckIn,
 	)
 	breakdown.PolicyRules = "Host Cancellation Policy: 100% refund to guest, host absorbs all fees and may face penalties"
+
+	// Calculate non-refunded breakdown (host/platform retention)
+	s.calculateNonRefundedBreakdown(breakdown)
 
 	if s.log != nil {
 		s.log.Info("refund calculation", "policy", "host_cancellation", "refund", breakdown.NetRefund, "refund_percent", breakdown.RefundPercentage)
@@ -172,6 +186,9 @@ func (s *PricingServiceImpl) calculateAdminCancellationRefund(breakdown *domain.
 	breakdown.Summary = "100% refund - admin override"
 	breakdown.Reason = "Full refund applied by platform administrator. All fees waived."
 	breakdown.PolicyRules = "Admin Override: 100% refund, platform absorbs all fees"
+
+	// Calculate non-refunded breakdown (host/platform retention)
+	s.calculateNonRefundedBreakdown(breakdown)
 
 	if s.log != nil {
 		s.log.Info("refund calculation", "policy", "admin_cancellation", "refund", breakdown.NetRefund, "refund_percent", breakdown.RefundPercentage)
@@ -237,7 +254,7 @@ func (s *PricingServiceImpl) calculatePolicyBasedRefund(
 	}
 
 	breakdown.RefundPercentage = refundPercent
-	breakdown.BaseRefund = breakdown.OriginalAmount * (refundPercent / 100.0)
+	breakdown.BaseRefund = breakdown.BaseAmountWithoutFee * (refundPercent / 100.0)
 
 	// Handle zero refund case
 	if refundPercent <= 0 {
@@ -245,6 +262,9 @@ func (s *PricingServiceImpl) calculatePolicyBasedRefund(
 		breakdown.ProcessingFeePayer = "n/a"
 		breakdown.NetRefund = 0
 		breakdown.Summary = fmt.Sprintf("No refund - %s policy", policyName)
+
+		// Calculate non-refunded breakdown (host/platform retention)
+		s.calculateNonRefundedBreakdown(breakdown)
 
 		if s.log != nil {
 			s.log.Info("refund calculation", "policy", policyName, "result", "no_refund")
@@ -273,6 +293,9 @@ func (s *PricingServiceImpl) calculatePolicyBasedRefund(
 		breakdown.Summary = fmt.Sprintf("%.0f%% refund - %s policy", refundPercent, policyName)
 	}
 
+	// Calculate non-refunded breakdown (host/platform retention)
+	s.calculateNonRefundedBreakdown(breakdown)
+
 	if s.log != nil {
 		s.log.Info("refund calculation", "policy", policyName, "refund", breakdown.NetRefund, "refund_percent", breakdown.RefundPercentage, "hours_until_checkin", breakdown.HoursUntilCheckIn, "cutoff_hours", policyTier.CutoffHoursBeforeCheckIn)
 	}
@@ -295,6 +318,9 @@ func (s *PricingServiceImpl) buildNoRefundBreakdown(
 	breakdown.Summary = "No refund"
 	breakdown.Reason = reason
 	breakdown.PolicyRules = "No refund policy applies"
+
+	// Calculate non-refunded breakdown (host/platform retention)
+	s.calculateNonRefundedBreakdown(breakdown)
 
 	if s.log != nil {
 		s.log.Info("refund calculation", "policy", policy, "result", "no_refund")
@@ -322,4 +348,54 @@ func (s *PricingServiceImpl) applyProcessingFee(fee float64, payer string) float
 	default:
 		return fee // Default: guest pays
 	}
+}
+
+// calculateNonRefundedBreakdown calculates how non-refunded amount is split between host and platform
+func (s *PricingServiceImpl) calculateNonRefundedBreakdown(breakdown *domain.RefundBreakdown) {
+	// Non-refunded amount is what the guest paid minus what they get back
+	nonRefunded := breakdown.OriginalAmount - breakdown.NetRefund
+	breakdown.NonRefundedAmount = nonRefunded
+
+	if nonRefunded <= 0 {
+		breakdown.HostRetainedAmount = 0
+		breakdown.PlatformRetained = 0
+		return
+	}
+
+	// Platform always keeps the service fee (non-refundable)
+	serviceFeeRetained := breakdown.ServiceFee
+	if breakdown.ServiceFeeRefundable {
+		serviceFeeRetained = 0
+	}
+
+	// Helper to determine if processing fee is retained in non-refunded amount
+	processingFeeRetained := 0.0
+	if breakdown.ProcessingFeePayer == "guest" || breakdown.ProcessingFeePayer == "shared" {
+		// If guest paid (deducted from refund), platform keeps it
+		// Note: shared logic simplification: if shared, assumption is part deducted.
+		// For now, if "guest" pays, we know it's in the pot.
+		if breakdown.ProcessingFeePayer == "guest" {
+			processingFeeRetained = breakdown.ProcessingFee
+		}
+	}
+
+	// Calculate commission on non-refunded base amount (excluding service fee)
+	// The non-refunded base = BaseAmountWithoutFee - (NetRefund - ServiceFee portion of refund)
+	// Simplified: commission is taken from what host would receive
+	commissionPercent := s.platformConfig.Fees.HostCommissionPercent
+
+	// Host's portion is: NonRefunded - ServiceFee - ProcessingFee (since these go to platform)
+	hostGrossPortion := nonRefunded - serviceFeeRetained - processingFeeRetained
+	if hostGrossPortion < 0 {
+		hostGrossPortion = 0
+	}
+
+	// Commission is calculated on host's gross portion
+	commission := hostGrossPortion * (commissionPercent / 100.0)
+
+	// Host keeps: gross portion minus commission
+	breakdown.HostRetainedAmount = hostGrossPortion - commission
+
+	// Platform keeps: service fee + processing fee + commission
+	breakdown.PlatformRetained = serviceFeeRetained + processingFeeRetained + commission
 }

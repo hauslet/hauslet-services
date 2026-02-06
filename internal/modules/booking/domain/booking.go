@@ -43,12 +43,13 @@ type Booking struct {
 	LastPaymentID    *uuid.UUID `json:"last_payment_id,omitempty"`
 
 	// Refund tracking
-	RefundAmount      int64      `json:"refund_amount"` // Amount refunded in minor units
-	RefundInitiatedAt *time.Time `json:"refund_initiated_at,omitempty"`
-	RefundProcessedAt *time.Time `json:"refund_processed_at,omitempty"`
-	RefundReason      *string    `json:"refund_reason,omitempty"`
-	RefundReference   *string    `json:"refund_reference,omitempty"`
-	CancelledBy       *string    `json:"cancelled_by,omitempty"` // guest, host, admin
+	RefundAmount      int64                    `json:"refund_amount"` // Amount refunded in minor units
+	RefundInitiatedAt *time.Time               `json:"refund_initiated_at,omitempty"`
+	RefundProcessedAt *time.Time               `json:"refund_processed_at,omitempty"`
+	RefundReason      *string                  `json:"refund_reason,omitempty"`
+	RefundReference   *string                  `json:"refund_reference,omitempty"`
+	RefundBreakdown   *RefundBreakdownSnapshot `json:"refund_breakdown,omitempty"`
+	CancelledBy       *string                  `json:"cancelled_by,omitempty"` // guest, host, admin
 
 	SpecialRequests *string `json:"special_requests,omitempty"`
 
@@ -105,6 +106,37 @@ type PriceBreakdownSnapshot struct {
 	Total         float64               `json:"total"`
 	Currency      string                `json:"currency"`
 	PlatformFees  *PlatformFeeBreakdown `json:"platform_fees,omitempty"`
+}
+
+// RefundBreakdownSnapshot stores calculated refund details at cancellation time.
+type RefundBreakdownSnapshot struct {
+	OriginalAmount       float64 `json:"original_amount"`
+	Currency             string  `json:"currency"`
+	ServiceFee           float64 `json:"service_fee"`
+	ServiceFeeRefundable bool    `json:"service_fee_refundable"`
+	BaseAmountWithoutFee float64 `json:"base_amount_without_fee"`
+
+	RefundPercentage   float64 `json:"refund_percentage"`
+	BaseRefund         float64 `json:"base_refund"`
+	ProcessingFee      float64 `json:"processing_fee"`
+	ProcessingFeePayer string  `json:"processing_fee_payer"`
+	NetRefund          float64 `json:"net_refund"`
+
+	NonRefundedAmount  float64 `json:"non_refunded_amount"`
+	HostRetainedAmount float64 `json:"host_retained_amount"`
+	PlatformRetained   float64 `json:"platform_retained"`
+
+	AppliedPolicy     string  `json:"applied_policy"`
+	IsGracePeriod     bool    `json:"is_grace_period"`
+	HoursUntilCheckIn float64 `json:"hours_until_checkin"`
+	HoursAfterBooking float64 `json:"hours_after_booking"`
+	CancelledBy       string  `json:"cancelled_by"`
+
+	Reason      string `json:"reason"`
+	Summary     string `json:"summary"`
+	PolicyRules string `json:"policy_rules"`
+
+	CalculatedAt time.Time `json:"calculated_at"`
 }
 
 // DiscountSnapshot captures a discount that was applied during pricing.

@@ -39,12 +39,22 @@ enum TransactionStatus {
   reversed
 }
 
+enum PaymentResourceType {
+  general
+  booking
+  id_verification
+  subscription
+  promotion
+  rental_draft
+}
+
 type Payment {
   id: UUID!
   reference: String!
   providerRef: String
   bookingId: UUID
   businessId: UUID
+  resourceType: PaymentResourceType!
   payerId: UUID!
   payerName: String!
   payerEmail: String!
@@ -131,10 +141,17 @@ input CreatePayoutInput {
   recipientCode: String!
 }
 
+type PaymentStats {
+  totalSpent: Int!
+  upcomingPayments: Int!
+  totalRefunds: Int!
+}
+
 extend type Query {
   payment(id: UUID!): Payment
   paymentByReference(reference: String!): Payment
-  myPayments(limit: Int, offset: Int, status: PaymentStatus): [Payment!]!
+  myPayments(limit: Int, offset: Int, status: PaymentStatus, type: PaymentResourceType): [Payment!]!
+  myPaymentStats: PaymentStats!
 
   paymentMethod(id: UUID!): PaymentMethod
   paymentMethods(userId: UUID!): [PaymentMethod!]!

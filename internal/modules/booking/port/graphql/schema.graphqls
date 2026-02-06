@@ -54,6 +54,15 @@ type Booking {
   paymentReference: String
   lastPaymentId: UUID
 
+  # Refund details
+  refundAmount: Int
+  refundInitiatedAt: Time
+  refundProcessedAt: Time
+  refundReason: String
+  refundReference: String
+  cancelledBy: String
+  refundBreakdown: RefundBreakdownSnapshot
+
   specialRequests: String
 
   priceBreakdown: PriceBreakdownSnapshot
@@ -66,6 +75,36 @@ type Booking {
   createdAt: Time!
   updatedAt: Time!
   deletedAt: Time
+}
+
+type RefundBreakdownSnapshot {
+  originalAmount: Float!
+  currency: String!
+  serviceFee: Float!
+  serviceFeeRefundable: Boolean!
+  baseAmountWithoutFee: Float!
+
+  refundPercentage: Float!
+  baseRefund: Float!
+  processingFee: Float!
+  processingFeePayer: String!
+  netRefund: Float!
+
+  nonRefundedAmount: Float!
+  hostRetainedAmount: Float!
+  platformRetained: Float!
+
+  appliedPolicy: String!
+  isGracePeriod: Boolean!
+  hoursUntilCheckIn: Float!
+  hoursAfterBooking: Float!
+  cancelledBy: String!
+
+  reason: String!
+  summary: String!
+  policyRules: String!
+
+  calculatedAt: Time!
 }
 
 type PriceBreakdownSnapshot {

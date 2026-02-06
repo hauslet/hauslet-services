@@ -179,7 +179,7 @@ func (h *AdminHandler) ListAllPayments(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		payments, err = h.paymentService.ListPaymentsByPayer(r.Context(), payerID, limit, offset)
+		payments, err = h.paymentService.ListPaymentsByPayer(r.Context(), payerID, nil, limit, offset)
 		if err != nil {
 			h.log.Error("failed to list payments by payer", "payer_id", payerID, "error", err)
 			h.sendError(w, "Failed to list payments", http.StatusInternalServerError, "")

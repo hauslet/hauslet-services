@@ -93,6 +93,8 @@ Following your requirements:
 - Status tracking
 - Email notifications
 
+> **Note**: This module handles the *external movement* of funds (Payouts). Internal allocation to wallets (Settlement) is handled by the **Finance** module.
+
 ### ✅ Transaction Ledger
 - Complete transaction history
 - Payment/Refund/Payout tracking

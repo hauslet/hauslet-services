@@ -21,6 +21,9 @@ type FinanceHooks interface {
 	OnPaymentSucceeded(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
 	OnRefundProcessed(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
 	OnBookingCompleted(ctx context.Context, bookingID, hostID uuid.UUID) error
+	// OnBookingCancelledWithFunds settles remaining escrow funds after a booking cancellation
+	// This handles non-refunded amounts when a guest cancels (e.g., strict policy, late cancellation)
+	OnBookingCancelledWithFunds(ctx context.Context, bookingID, hostID uuid.UUID, hostAmount, platformAmount int64, currency string) error
 }
 
 // ReviewHooks defines callbacks to review module for review-related notifications.

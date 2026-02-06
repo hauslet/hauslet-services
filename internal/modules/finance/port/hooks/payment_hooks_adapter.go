@@ -56,3 +56,15 @@ func (a *PaymentHooksAdapter) OnBookingCompleted(
 	// No action needed here - cron will pick up completed bookings automatically
 	return nil
 }
+
+// OnBookingCancelledWithFunds handles booking cancellation fund settlement
+// This is called after a booking is cancelled and refund has been processed
+// to distribute any remaining non-refunded funds (commission to platform, remainder to host)
+func (a *PaymentHooksAdapter) OnBookingCancelledWithFunds(
+	ctx context.Context,
+	bookingID, hostID uuid.UUID,
+	hostAmount, platformAmount int64,
+	currency string,
+) error {
+	return a.financeSvc.SettleCancelledBooking(ctx, bookingID, hostID, hostAmount, platformAmount, currency)
+}

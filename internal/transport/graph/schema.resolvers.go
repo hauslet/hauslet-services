@@ -948,6 +948,12 @@ func (r *mutationResolver) SubmitListingVerification(ctx context.Context, input 
 	})
 }
 
+// ResourceType is the resolver for the resourceType field.
+func (r *paymentResolver) ResourceType(ctx context.Context, obj *domain6.Payment) (model.PaymentResourceType, error) {
+	// Convert domain ResourceType string to model PaymentResourceType
+	return model.PaymentResourceType(obj.ResourceType), nil
+}
+
 // Currency is the resolver for the currency field.
 func (r *paymentResolver) Currency(ctx context.Context, obj *domain6.Payment) (string, error) {
 	return string(obj.Currency), nil
@@ -1370,8 +1376,17 @@ func (r *queryResolver) PaymentByReference(ctx context.Context, reference string
 }
 
 // MyPayments is the resolver for the myPayments field.
-func (r *queryResolver) MyPayments(ctx context.Context, limit *int, offset *int, status *domain6.PaymentStatus) ([]*domain6.Payment, error) {
-	payments, err := r.PaymentsResolver.MyPayments(ctx, limit, offset, status)
+func (r *queryResolver) MyPayments(ctx context.Context, limit *int, offset *int, status *domain6.PaymentStatus, typeArg *model.PaymentResourceType) ([]*domain6.Payment, error) {
+	// Map the model resource type to domain resource type only if it's not nil
+	var domainResourceType *domain6.ResourceType
+	if typeArg != nil {
+		// Convert generated model enum string to domain enum string
+		sType := string(*typeArg)
+		rt := domain6.ResourceType(sType)
+		domainResourceType = &rt
+	}
+
+	payments, err := r.PaymentsResolver.MyPayments(ctx, limit, offset, status, domainResourceType)
 	if err != nil {
 		return nil, err
 	}
@@ -1381,6 +1396,20 @@ func (r *queryResolver) MyPayments(ctx context.Context, limit *int, offset *int,
 		result[i] = &payments[i]
 	}
 	return result, nil
+}
+
+// MyPaymentStats is the resolver for the myPaymentStats field.
+func (r *queryResolver) MyPaymentStats(ctx context.Context) (*model.PaymentStats, error) {
+	stats, err := r.PaymentsResolver.MyPaymentStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.PaymentStats{
+		TotalSpent:       int(stats.TotalSpent),
+		UpcomingPayments: int(stats.UpcomingPayments),
+		TotalRefunds:     int(stats.TotalRefunds),
+	}, nil
 }
 
 // PaymentMethod is the resolver for the paymentMethod field.
@@ -1978,7 +2007,45 @@ func (r *subscriptionResolver) MyConversationsUpdated(ctx context.Context) (<-ch
 
 // TypingIndicator is the resolver for the typingIndicator field.
 func (r *subscriptionResolver) TypingIndicator(ctx context.Context, conversationID uuid.UUID) (<-chan *model.TypingIndicator, error) {
-	panic(fmt.Errorf("not implemented: TypingIndicator - typingIndicator"))
+	// Get the domain channel from the messaging resolver
+	domainCh, err := r.MessagingResolver.TypingIndicator(ctx, conversationID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create output channel that converts domain types to model types
+	outCh := make(chan *model.TypingIndicator, 10)
+
+	go func() {
+		defer close(outCh)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case indicator, ok := <-domainCh:
+				if !ok {
+					return
+				}
+
+				// Convert domain.TypingIndicator to model.TypingIndicator
+				modelIndicator := &model.TypingIndicator{
+					ConversationID: indicator.ConversationID,
+					UserID:         indicator.UserID,
+					IsTyping:       indicator.IsTyping,
+					Timestamp:      indicator.Timestamp,
+				}
+
+				select {
+				case outCh <- modelIndicator:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return outCh, nil
 }
 
 // Currency is the resolver for the currency field.

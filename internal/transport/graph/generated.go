@@ -183,39 +183,46 @@ type ComplexityRoot struct {
 	}
 
 	Booking struct {
-		ActiveAt         func(childComplexity int) int
-		ArchivedAt       func(childComplexity int) int
-		BookingReference func(childComplexity int) int
-		BookingType      func(childComplexity int) int
-		CalendarEventID  func(childComplexity int) int
-		CancelledAt      func(childComplexity int) int
-		CheckIn          func(childComplexity int) int
-		CheckInTime      func(childComplexity int) int
-		CheckOut         func(childComplexity int) int
-		CheckOutTime     func(childComplexity int) int
-		CleaningEventID  func(childComplexity int) int
-		CompletedAt      func(childComplexity int) int
-		ConfirmedAt      func(childComplexity int) int
-		CreatedAt        func(childComplexity int) int
-		Currency         func(childComplexity int) int
-		DeletedAt        func(childComplexity int) int
-		GuestCount       func(childComplexity int) int
-		GuestEmail       func(childComplexity int) int
-		GuestID          func(childComplexity int) int
-		GuestName        func(childComplexity int) int
-		GuestPhone       func(childComplexity int) int
-		HoldExpiresAt    func(childComplexity int) int
-		ID               func(childComplexity int) int
-		LastPaymentID    func(childComplexity int) int
-		Listing          func(childComplexity int) int
-		ListingID        func(childComplexity int) int
-		PaymentDueAt     func(childComplexity int) int
-		PaymentReference func(childComplexity int) int
-		PriceBreakdown   func(childComplexity int) int
-		SpecialRequests  func(childComplexity int) int
-		Status           func(childComplexity int) int
-		TotalPrice       func(childComplexity int) int
-		UpdatedAt        func(childComplexity int) int
+		ActiveAt          func(childComplexity int) int
+		ArchivedAt        func(childComplexity int) int
+		BookingReference  func(childComplexity int) int
+		BookingType       func(childComplexity int) int
+		CalendarEventID   func(childComplexity int) int
+		CancelledAt       func(childComplexity int) int
+		CancelledBy       func(childComplexity int) int
+		CheckIn           func(childComplexity int) int
+		CheckInTime       func(childComplexity int) int
+		CheckOut          func(childComplexity int) int
+		CheckOutTime      func(childComplexity int) int
+		CleaningEventID   func(childComplexity int) int
+		CompletedAt       func(childComplexity int) int
+		ConfirmedAt       func(childComplexity int) int
+		CreatedAt         func(childComplexity int) int
+		Currency          func(childComplexity int) int
+		DeletedAt         func(childComplexity int) int
+		GuestCount        func(childComplexity int) int
+		GuestEmail        func(childComplexity int) int
+		GuestID           func(childComplexity int) int
+		GuestName         func(childComplexity int) int
+		GuestPhone        func(childComplexity int) int
+		HoldExpiresAt     func(childComplexity int) int
+		ID                func(childComplexity int) int
+		LastPaymentID     func(childComplexity int) int
+		Listing           func(childComplexity int) int
+		ListingID         func(childComplexity int) int
+		PaymentDueAt      func(childComplexity int) int
+		PaymentReference  func(childComplexity int) int
+		PriceBreakdown    func(childComplexity int) int
+		RefundAmount      func(childComplexity int) int
+		RefundBreakdown   func(childComplexity int) int
+		RefundInitiatedAt func(childComplexity int) int
+		RefundProcessedAt func(childComplexity int) int
+		RefundReason      func(childComplexity int) int
+		RefundReference   func(childComplexity int) int
+		SpecialRequests   func(childComplexity int) int
+		Status            func(childComplexity int) int
+		TotalPrice        func(childComplexity int) int
+		UpdatedAt         func(childComplexity int) int
 	}
 
 	BookingQuote struct {
@@ -934,6 +941,7 @@ type ComplexityRoot struct {
 		Reference      func(childComplexity int) int
 		RefundedAmount func(childComplexity int) int
 		RefundedAt     func(childComplexity int) int
+		ResourceType   func(childComplexity int) int
 		Status         func(childComplexity int) int
 		UpdatedAt      func(childComplexity int) int
 	}
@@ -953,6 +961,12 @@ type ComplexityRoot struct {
 		Type               func(childComplexity int) int
 		UpdatedAt          func(childComplexity int) int
 		UserID             func(childComplexity int) int
+	}
+
+	PaymentStats struct {
+		TotalRefunds     func(childComplexity int) int
+		TotalSpent       func(childComplexity int) int
+		UpcomingPayments func(childComplexity int) int
 	}
 
 	PayoutDetail struct {
@@ -1225,7 +1239,8 @@ type ComplexityRoot struct {
 		MyListings                     func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		MyMemberships                  func(childComplexity int) int
 		MyPaymentMethods               func(childComplexity int) int
-		MyPayments                     func(childComplexity int, limit *int, offset *int, status *domain9.PaymentStatus) int
+		MyPaymentStats                 func(childComplexity int) int
+		MyPayments                     func(childComplexity int, limit *int, offset *int, status *domain9.PaymentStatus, typeArg *model.PaymentResourceType) int
 		MyPayoutDetails                func(childComplexity int) int
 		MyProfile                      func(childComplexity int) int
 		MyTransactions                 func(childComplexity int, typeArg *domain9.TransactionType, status *domain9.TransactionStatus, limit *int, offset *int) int
@@ -1301,6 +1316,31 @@ type ComplexityRoot struct {
 		TotalTransactionsChecked func(childComplexity int) int
 		TotalWalletsChecked      func(childComplexity int) int
 		UpdatedAt                func(childComplexity int) int
+	}
+
+	RefundBreakdownSnapshot struct {
+		AppliedPolicy        func(childComplexity int) int
+		BaseAmountWithoutFee func(childComplexity int) int
+		BaseRefund           func(childComplexity int) int
+		CalculatedAt         func(childComplexity int) int
+		CancelledBy          func(childComplexity int) int
+		Currency             func(childComplexity int) int
+		HostRetainedAmount   func(childComplexity int) int
+		HoursAfterBooking    func(childComplexity int) int
+		HoursUntilCheckIn    func(childComplexity int) int
+		IsGracePeriod        func(childComplexity int) int
+		NetRefund            func(childComplexity int) int
+		NonRefundedAmount    func(childComplexity int) int
+		OriginalAmount       func(childComplexity int) int
+		PlatformRetained     func(childComplexity int) int
+		PolicyRules          func(childComplexity int) int
+		ProcessingFee        func(childComplexity int) int
+		ProcessingFeePayer   func(childComplexity int) int
+		Reason               func(childComplexity int) int
+		RefundPercentage     func(childComplexity int) int
+		ServiceFee           func(childComplexity int) int
+		ServiceFeeRefundable func(childComplexity int) int
+		Summary              func(childComplexity int) int
 	}
 
 	RentalDetail struct {
@@ -1829,6 +1869,8 @@ type MutationResolver interface {
 	SubmitListingVerification(ctx context.Context, input model.SubmitListingVerificationInput) (*graphql6.VerificationSubmitResponse, error)
 }
 type PaymentResolver interface {
+	ResourceType(ctx context.Context, obj *domain9.Payment) (model.PaymentResourceType, error)
+
 	Currency(ctx context.Context, obj *domain9.Payment) (string, error)
 
 	Metadata(ctx context.Context, obj *domain9.Payment) (map[string]any, error)
@@ -1899,7 +1941,8 @@ type QueryResolver interface {
 	CheckListingAvailability(ctx context.Context, listingID uuid.UUID, startTime time.Time, endTime time.Time) (bool, error)
 	Payment(ctx context.Context, id uuid.UUID) (*domain9.Payment, error)
 	PaymentByReference(ctx context.Context, reference string) (*domain9.Payment, error)
-	MyPayments(ctx context.Context, limit *int, offset *int, status *domain9.PaymentStatus) ([]*domain9.Payment, error)
+	MyPayments(ctx context.Context, limit *int, offset *int, status *domain9.PaymentStatus, typeArg *model.PaymentResourceType) ([]*domain9.Payment, error)
+	MyPaymentStats(ctx context.Context) (*model.PaymentStats, error)
 	PaymentMethod(ctx context.Context, id uuid.UUID) (*domain9.PaymentMethod, error)
 	PaymentMethods(ctx context.Context, userID uuid.UUID) ([]*domain9.PaymentMethod, error)
 	MyPaymentMethods(ctx context.Context) ([]*domain9.PaymentMethod, error)
@@ -2350,6 +2393,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Booking.CancelledAt(childComplexity), true
+	case "Booking.cancelledBy":
+		if e.complexity.Booking.CancelledBy == nil {
+			break
+		}
+
+		return e.complexity.Booking.CancelledBy(childComplexity), true
 	case "Booking.checkIn":
 		if e.complexity.Booking.CheckIn == nil {
 			break
@@ -2488,6 +2537,42 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Booking.PriceBreakdown(childComplexity), true
+	case "Booking.refundAmount":
+		if e.complexity.Booking.RefundAmount == nil {
+			break
+		}
+
+		return e.complexity.Booking.RefundAmount(childComplexity), true
+	case "Booking.refundBreakdown":
+		if e.complexity.Booking.RefundBreakdown == nil {
+			break
+		}
+
+		return e.complexity.Booking.RefundBreakdown(childComplexity), true
+	case "Booking.refundInitiatedAt":
+		if e.complexity.Booking.RefundInitiatedAt == nil {
+			break
+		}
+
+		return e.complexity.Booking.RefundInitiatedAt(childComplexity), true
+	case "Booking.refundProcessedAt":
+		if e.complexity.Booking.RefundProcessedAt == nil {
+			break
+		}
+
+		return e.complexity.Booking.RefundProcessedAt(childComplexity), true
+	case "Booking.refundReason":
+		if e.complexity.Booking.RefundReason == nil {
+			break
+		}
+
+		return e.complexity.Booking.RefundReason(childComplexity), true
+	case "Booking.refundReference":
+		if e.complexity.Booking.RefundReference == nil {
+			break
+		}
+
+		return e.complexity.Booking.RefundReference(childComplexity), true
 	case "Booking.specialRequests":
 		if e.complexity.Booking.SpecialRequests == nil {
 			break
@@ -6426,6 +6511,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Payment.RefundedAt(childComplexity), true
+	case "Payment.resourceType":
+		if e.complexity.Payment.ResourceType == nil {
+			break
+		}
+
+		return e.complexity.Payment.ResourceType(childComplexity), true
 	case "Payment.status":
 		if e.complexity.Payment.Status == nil {
 			break
@@ -6523,6 +6614,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PaymentMethod.UserID(childComplexity), true
+
+	case "PaymentStats.totalRefunds":
+		if e.complexity.PaymentStats.TotalRefunds == nil {
+			break
+		}
+
+		return e.complexity.PaymentStats.TotalRefunds(childComplexity), true
+	case "PaymentStats.totalSpent":
+		if e.complexity.PaymentStats.TotalSpent == nil {
+			break
+		}
+
+		return e.complexity.PaymentStats.TotalSpent(childComplexity), true
+	case "PaymentStats.upcomingPayments":
+		if e.complexity.PaymentStats.UpcomingPayments == nil {
+			break
+		}
+
+		return e.complexity.PaymentStats.UpcomingPayments(childComplexity), true
 
 	case "PayoutDetail.accountName":
 		if e.complexity.PayoutDetail.AccountName == nil {
@@ -8276,6 +8386,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyPaymentMethods(childComplexity), true
+	case "Query.myPaymentStats":
+		if e.complexity.Query.MyPaymentStats == nil {
+			break
+		}
+
+		return e.complexity.Query.MyPaymentStats(childComplexity), true
 	case "Query.myPayments":
 		if e.complexity.Query.MyPayments == nil {
 			break
@@ -8286,7 +8402,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.MyPayments(childComplexity, args["limit"].(*int), args["offset"].(*int), args["status"].(*domain9.PaymentStatus)), true
+		return e.complexity.Query.MyPayments(childComplexity, args["limit"].(*int), args["offset"].(*int), args["status"].(*domain9.PaymentStatus), args["type"].(*model.PaymentResourceType)), true
 	case "Query.myPayoutDetails":
 		if e.complexity.Query.MyPayoutDetails == nil {
 			break
@@ -8834,6 +8950,139 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ReconciliationReport.UpdatedAt(childComplexity), true
+
+	case "RefundBreakdownSnapshot.appliedPolicy":
+		if e.complexity.RefundBreakdownSnapshot.AppliedPolicy == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.AppliedPolicy(childComplexity), true
+	case "RefundBreakdownSnapshot.baseAmountWithoutFee":
+		if e.complexity.RefundBreakdownSnapshot.BaseAmountWithoutFee == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.BaseAmountWithoutFee(childComplexity), true
+	case "RefundBreakdownSnapshot.baseRefund":
+		if e.complexity.RefundBreakdownSnapshot.BaseRefund == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.BaseRefund(childComplexity), true
+	case "RefundBreakdownSnapshot.calculatedAt":
+		if e.complexity.RefundBreakdownSnapshot.CalculatedAt == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.CalculatedAt(childComplexity), true
+	case "RefundBreakdownSnapshot.cancelledBy":
+		if e.complexity.RefundBreakdownSnapshot.CancelledBy == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.CancelledBy(childComplexity), true
+	case "RefundBreakdownSnapshot.currency":
+		if e.complexity.RefundBreakdownSnapshot.Currency == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.Currency(childComplexity), true
+	case "RefundBreakdownSnapshot.hostRetainedAmount":
+		if e.complexity.RefundBreakdownSnapshot.HostRetainedAmount == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.HostRetainedAmount(childComplexity), true
+	case "RefundBreakdownSnapshot.hoursAfterBooking":
+		if e.complexity.RefundBreakdownSnapshot.HoursAfterBooking == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.HoursAfterBooking(childComplexity), true
+	case "RefundBreakdownSnapshot.hoursUntilCheckIn":
+		if e.complexity.RefundBreakdownSnapshot.HoursUntilCheckIn == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.HoursUntilCheckIn(childComplexity), true
+	case "RefundBreakdownSnapshot.isGracePeriod":
+		if e.complexity.RefundBreakdownSnapshot.IsGracePeriod == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.IsGracePeriod(childComplexity), true
+	case "RefundBreakdownSnapshot.netRefund":
+		if e.complexity.RefundBreakdownSnapshot.NetRefund == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.NetRefund(childComplexity), true
+	case "RefundBreakdownSnapshot.nonRefundedAmount":
+		if e.complexity.RefundBreakdownSnapshot.NonRefundedAmount == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.NonRefundedAmount(childComplexity), true
+	case "RefundBreakdownSnapshot.originalAmount":
+		if e.complexity.RefundBreakdownSnapshot.OriginalAmount == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.OriginalAmount(childComplexity), true
+	case "RefundBreakdownSnapshot.platformRetained":
+		if e.complexity.RefundBreakdownSnapshot.PlatformRetained == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.PlatformRetained(childComplexity), true
+	case "RefundBreakdownSnapshot.policyRules":
+		if e.complexity.RefundBreakdownSnapshot.PolicyRules == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.PolicyRules(childComplexity), true
+	case "RefundBreakdownSnapshot.processingFee":
+		if e.complexity.RefundBreakdownSnapshot.ProcessingFee == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.ProcessingFee(childComplexity), true
+	case "RefundBreakdownSnapshot.processingFeePayer":
+		if e.complexity.RefundBreakdownSnapshot.ProcessingFeePayer == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.ProcessingFeePayer(childComplexity), true
+	case "RefundBreakdownSnapshot.reason":
+		if e.complexity.RefundBreakdownSnapshot.Reason == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.Reason(childComplexity), true
+	case "RefundBreakdownSnapshot.refundPercentage":
+		if e.complexity.RefundBreakdownSnapshot.RefundPercentage == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.RefundPercentage(childComplexity), true
+	case "RefundBreakdownSnapshot.serviceFee":
+		if e.complexity.RefundBreakdownSnapshot.ServiceFee == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.ServiceFee(childComplexity), true
+	case "RefundBreakdownSnapshot.serviceFeeRefundable":
+		if e.complexity.RefundBreakdownSnapshot.ServiceFeeRefundable == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.ServiceFeeRefundable(childComplexity), true
+	case "RefundBreakdownSnapshot.summary":
+		if e.complexity.RefundBreakdownSnapshot.Summary == nil {
+			break
+		}
+
+		return e.complexity.RefundBreakdownSnapshot.Summary(childComplexity), true
 
 	case "RentalDetail.discounts":
 		if e.complexity.RentalDetail.Discounts == nil {
@@ -12079,6 +12328,15 @@ type Booking {
   paymentReference: String
   lastPaymentId: UUID
 
+  # Refund details
+  refundAmount: Int
+  refundInitiatedAt: Time
+  refundProcessedAt: Time
+  refundReason: String
+  refundReference: String
+  cancelledBy: String
+  refundBreakdown: RefundBreakdownSnapshot
+
   specialRequests: String
 
   priceBreakdown: PriceBreakdownSnapshot
@@ -12091,6 +12349,36 @@ type Booking {
   createdAt: Time!
   updatedAt: Time!
   deletedAt: Time
+}
+
+type RefundBreakdownSnapshot {
+  originalAmount: Float!
+  currency: String!
+  serviceFee: Float!
+  serviceFeeRefundable: Boolean!
+  baseAmountWithoutFee: Float!
+
+  refundPercentage: Float!
+  baseRefund: Float!
+  processingFee: Float!
+  processingFeePayer: String!
+  netRefund: Float!
+
+  nonRefundedAmount: Float!
+  hostRetainedAmount: Float!
+  platformRetained: Float!
+
+  appliedPolicy: String!
+  isGracePeriod: Boolean!
+  hoursUntilCheckIn: Float!
+  hoursAfterBooking: Float!
+  cancelledBy: String!
+
+  reason: String!
+  summary: String!
+  policyRules: String!
+
+  calculatedAt: Time!
 }
 
 type PriceBreakdownSnapshot {
@@ -12491,12 +12779,22 @@ enum TransactionStatus {
   reversed
 }
 
+enum PaymentResourceType {
+  general
+  booking
+  id_verification
+  subscription
+  promotion
+  rental_draft
+}
+
 type Payment {
   id: UUID!
   reference: String!
   providerRef: String
   bookingId: UUID
   businessId: UUID
+  resourceType: PaymentResourceType!
   payerId: UUID!
   payerName: String!
   payerEmail: String!
@@ -12583,10 +12881,17 @@ input CreatePayoutInput {
   recipientCode: String!
 }
 
+type PaymentStats {
+  totalSpent: Int!
+  upcomingPayments: Int!
+  totalRefunds: Int!
+}
+
 extend type Query {
   payment(id: UUID!): Payment
   paymentByReference(reference: String!): Payment
-  myPayments(limit: Int, offset: Int, status: PaymentStatus): [Payment!]!
+  myPayments(limit: Int, offset: Int, status: PaymentStatus, type: PaymentResourceType): [Payment!]!
+  myPaymentStats: PaymentStats!
 
   paymentMethod(id: UUID!): PaymentMethod
   paymentMethods(userId: UUID!): [PaymentMethod!]!
@@ -16509,6 +16814,11 @@ func (ec *executionContext) field_Query_myPayments_args(ctx context.Context, raw
 		return nil, err
 	}
 	args["status"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "type", ec.unmarshalOPaymentResourceType2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentResourceType)
+	if err != nil {
+		return nil, err
+	}
+	args["type"] = arg3
 	return args, nil
 }
 
@@ -18965,6 +19275,255 @@ func (ec *executionContext) fieldContext_Booking_lastPaymentId(_ context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type UUID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Booking_refundAmount(ctx context.Context, field graphql.CollectedField, obj *domain7.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_refundAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.RefundAmount, nil
+		},
+		nil,
+		ec.marshalOInt2int64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_refundAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Booking_refundInitiatedAt(ctx context.Context, field graphql.CollectedField, obj *domain7.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_refundInitiatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.RefundInitiatedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_refundInitiatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Booking_refundProcessedAt(ctx context.Context, field graphql.CollectedField, obj *domain7.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_refundProcessedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.RefundProcessedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_refundProcessedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Booking_refundReason(ctx context.Context, field graphql.CollectedField, obj *domain7.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_refundReason,
+		func(ctx context.Context) (any, error) {
+			return obj.RefundReason, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_refundReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Booking_refundReference(ctx context.Context, field graphql.CollectedField, obj *domain7.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_refundReference,
+		func(ctx context.Context) (any, error) {
+			return obj.RefundReference, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_refundReference(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Booking_cancelledBy(ctx context.Context, field graphql.CollectedField, obj *domain7.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_cancelledBy,
+		func(ctx context.Context) (any, error) {
+			return obj.CancelledBy, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_cancelledBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Booking_refundBreakdown(ctx context.Context, field graphql.CollectedField, obj *domain7.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Booking_refundBreakdown,
+		func(ctx context.Context) (any, error) {
+			return obj.RefundBreakdown, nil
+		},
+		nil,
+		ec.marshalORefundBreakdownSnapshot2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐRefundBreakdownSnapshot,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Booking_refundBreakdown(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Booking",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "originalAmount":
+				return ec.fieldContext_RefundBreakdownSnapshot_originalAmount(ctx, field)
+			case "currency":
+				return ec.fieldContext_RefundBreakdownSnapshot_currency(ctx, field)
+			case "serviceFee":
+				return ec.fieldContext_RefundBreakdownSnapshot_serviceFee(ctx, field)
+			case "serviceFeeRefundable":
+				return ec.fieldContext_RefundBreakdownSnapshot_serviceFeeRefundable(ctx, field)
+			case "baseAmountWithoutFee":
+				return ec.fieldContext_RefundBreakdownSnapshot_baseAmountWithoutFee(ctx, field)
+			case "refundPercentage":
+				return ec.fieldContext_RefundBreakdownSnapshot_refundPercentage(ctx, field)
+			case "baseRefund":
+				return ec.fieldContext_RefundBreakdownSnapshot_baseRefund(ctx, field)
+			case "processingFee":
+				return ec.fieldContext_RefundBreakdownSnapshot_processingFee(ctx, field)
+			case "processingFeePayer":
+				return ec.fieldContext_RefundBreakdownSnapshot_processingFeePayer(ctx, field)
+			case "netRefund":
+				return ec.fieldContext_RefundBreakdownSnapshot_netRefund(ctx, field)
+			case "nonRefundedAmount":
+				return ec.fieldContext_RefundBreakdownSnapshot_nonRefundedAmount(ctx, field)
+			case "hostRetainedAmount":
+				return ec.fieldContext_RefundBreakdownSnapshot_hostRetainedAmount(ctx, field)
+			case "platformRetained":
+				return ec.fieldContext_RefundBreakdownSnapshot_platformRetained(ctx, field)
+			case "appliedPolicy":
+				return ec.fieldContext_RefundBreakdownSnapshot_appliedPolicy(ctx, field)
+			case "isGracePeriod":
+				return ec.fieldContext_RefundBreakdownSnapshot_isGracePeriod(ctx, field)
+			case "hoursUntilCheckIn":
+				return ec.fieldContext_RefundBreakdownSnapshot_hoursUntilCheckIn(ctx, field)
+			case "hoursAfterBooking":
+				return ec.fieldContext_RefundBreakdownSnapshot_hoursAfterBooking(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_RefundBreakdownSnapshot_cancelledBy(ctx, field)
+			case "reason":
+				return ec.fieldContext_RefundBreakdownSnapshot_reason(ctx, field)
+			case "summary":
+				return ec.fieldContext_RefundBreakdownSnapshot_summary(ctx, field)
+			case "policyRules":
+				return ec.fieldContext_RefundBreakdownSnapshot_policyRules(ctx, field)
+			case "calculatedAt":
+				return ec.fieldContext_RefundBreakdownSnapshot_calculatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RefundBreakdownSnapshot", field.Name)
 		},
 	}
 	return fc, nil
@@ -21695,6 +22254,20 @@ func (ec *executionContext) fieldContext_CalendarEvent_booking(_ context.Context
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -22254,6 +22827,20 @@ func (ec *executionContext) fieldContext_CompleteBookingPayload_booking(_ contex
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -34510,6 +35097,20 @@ func (ec *executionContext) fieldContext_Mutation_requestBooking(ctx context.Con
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -34674,6 +35275,20 @@ func (ec *executionContext) fieldContext_Mutation_confirmBooking(ctx context.Con
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -34783,6 +35398,20 @@ func (ec *executionContext) fieldContext_Mutation_cancelBooking(ctx context.Cont
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -34892,6 +35521,20 @@ func (ec *executionContext) fieldContext_Mutation_checkInBooking(ctx context.Con
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -35001,6 +35644,20 @@ func (ec *executionContext) fieldContext_Mutation_checkOutBooking(ctx context.Co
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -39943,6 +40600,35 @@ func (ec *executionContext) fieldContext_Payment_businessId(_ context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _Payment_resourceType(ctx context.Context, field graphql.CollectedField, obj *domain9.Payment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Payment_resourceType,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Payment().ResourceType(ctx, obj)
+		},
+		nil,
+		ec.marshalNPaymentResourceType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentResourceType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Payment_resourceType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Payment",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type PaymentResourceType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Payment_payerId(ctx context.Context, field graphql.CollectedField, obj *domain9.Payment) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -40721,6 +41407,93 @@ func (ec *executionContext) fieldContext_PaymentMethod_updatedAt(_ context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentStats_totalSpent(ctx context.Context, field graphql.CollectedField, obj *model.PaymentStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PaymentStats_totalSpent,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalSpent, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PaymentStats_totalSpent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentStats_upcomingPayments(ctx context.Context, field graphql.CollectedField, obj *model.PaymentStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PaymentStats_upcomingPayments,
+		func(ctx context.Context) (any, error) {
+			return obj.UpcomingPayments, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PaymentStats_upcomingPayments(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PaymentStats_totalRefunds(ctx context.Context, field graphql.CollectedField, obj *model.PaymentStats) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PaymentStats_totalRefunds,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalRefunds, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PaymentStats_totalRefunds(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PaymentStats",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -48027,6 +48800,20 @@ func (ec *executionContext) fieldContext_Query_booking(ctx context.Context, fiel
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -48136,6 +48923,20 @@ func (ec *executionContext) fieldContext_Query_bookingByReference(ctx context.Co
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -48245,6 +49046,20 @@ func (ec *executionContext) fieldContext_Query_myBookings(ctx context.Context, f
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -48354,6 +49169,20 @@ func (ec *executionContext) fieldContext_Query_listingBookings(ctx context.Conte
 				return ec.fieldContext_Booking_paymentReference(ctx, field)
 			case "lastPaymentId":
 				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
 			case "specialRequests":
 				return ec.fieldContext_Booking_specialRequests(ctx, field)
 			case "priceBreakdown":
@@ -48855,6 +49684,8 @@ func (ec *executionContext) fieldContext_Query_payment(ctx context.Context, fiel
 				return ec.fieldContext_Payment_bookingId(ctx, field)
 			case "businessId":
 				return ec.fieldContext_Payment_businessId(ctx, field)
+			case "resourceType":
+				return ec.fieldContext_Payment_resourceType(ctx, field)
 			case "payerId":
 				return ec.fieldContext_Payment_payerId(ctx, field)
 			case "payerName":
@@ -48934,6 +49765,8 @@ func (ec *executionContext) fieldContext_Query_paymentByReference(ctx context.Co
 				return ec.fieldContext_Payment_bookingId(ctx, field)
 			case "businessId":
 				return ec.fieldContext_Payment_businessId(ctx, field)
+			case "resourceType":
+				return ec.fieldContext_Payment_resourceType(ctx, field)
 			case "payerId":
 				return ec.fieldContext_Payment_payerId(ctx, field)
 			case "payerName":
@@ -48986,7 +49819,7 @@ func (ec *executionContext) _Query_myPayments(ctx context.Context, field graphql
 		ec.fieldContext_Query_myPayments,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().MyPayments(ctx, fc.Args["limit"].(*int), fc.Args["offset"].(*int), fc.Args["status"].(*domain9.PaymentStatus))
+			return ec.resolvers.Query().MyPayments(ctx, fc.Args["limit"].(*int), fc.Args["offset"].(*int), fc.Args["status"].(*domain9.PaymentStatus), fc.Args["type"].(*model.PaymentResourceType))
 		},
 		nil,
 		ec.marshalNPayment2ᚕᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPaymentᚄ,
@@ -49013,6 +49846,8 @@ func (ec *executionContext) fieldContext_Query_myPayments(ctx context.Context, f
 				return ec.fieldContext_Payment_bookingId(ctx, field)
 			case "businessId":
 				return ec.fieldContext_Payment_businessId(ctx, field)
+			case "resourceType":
+				return ec.fieldContext_Payment_resourceType(ctx, field)
 			case "payerId":
 				return ec.fieldContext_Payment_payerId(ctx, field)
 			case "payerName":
@@ -49053,6 +49888,43 @@ func (ec *executionContext) fieldContext_Query_myPayments(ctx context.Context, f
 	if fc.Args, err = ec.field_Query_myPayments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myPaymentStats(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myPaymentStats,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyPaymentStats(ctx)
+		},
+		nil,
+		ec.marshalNPaymentStats2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentStats,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myPaymentStats(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "totalSpent":
+				return ec.fieldContext_PaymentStats_totalSpent(ctx, field)
+			case "upcomingPayments":
+				return ec.fieldContext_PaymentStats_upcomingPayments(ctx, field)
+			case "totalRefunds":
+				return ec.fieldContext_PaymentStats_totalRefunds(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PaymentStats", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -54328,6 +55200,644 @@ func (ec *executionContext) _ReconciliationReport_updatedAt(ctx context.Context,
 func (ec *executionContext) fieldContext_ReconciliationReport_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ReconciliationReport",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_originalAmount(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_originalAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.OriginalAmount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_originalAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_currency(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_currency,
+		func(ctx context.Context) (any, error) {
+			return obj.Currency, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_currency(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_serviceFee(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_serviceFee,
+		func(ctx context.Context) (any, error) {
+			return obj.ServiceFee, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_serviceFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_serviceFeeRefundable(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_serviceFeeRefundable,
+		func(ctx context.Context) (any, error) {
+			return obj.ServiceFeeRefundable, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_serviceFeeRefundable(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_baseAmountWithoutFee(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_baseAmountWithoutFee,
+		func(ctx context.Context) (any, error) {
+			return obj.BaseAmountWithoutFee, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_baseAmountWithoutFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_refundPercentage(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_refundPercentage,
+		func(ctx context.Context) (any, error) {
+			return obj.RefundPercentage, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_refundPercentage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_baseRefund(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_baseRefund,
+		func(ctx context.Context) (any, error) {
+			return obj.BaseRefund, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_baseRefund(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_processingFee(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_processingFee,
+		func(ctx context.Context) (any, error) {
+			return obj.ProcessingFee, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_processingFee(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_processingFeePayer(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_processingFeePayer,
+		func(ctx context.Context) (any, error) {
+			return obj.ProcessingFeePayer, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_processingFeePayer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_netRefund(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_netRefund,
+		func(ctx context.Context) (any, error) {
+			return obj.NetRefund, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_netRefund(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_nonRefundedAmount(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_nonRefundedAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.NonRefundedAmount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_nonRefundedAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_hostRetainedAmount(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_hostRetainedAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.HostRetainedAmount, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_hostRetainedAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_platformRetained(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_platformRetained,
+		func(ctx context.Context) (any, error) {
+			return obj.PlatformRetained, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_platformRetained(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_appliedPolicy(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_appliedPolicy,
+		func(ctx context.Context) (any, error) {
+			return obj.AppliedPolicy, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_appliedPolicy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_isGracePeriod(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_isGracePeriod,
+		func(ctx context.Context) (any, error) {
+			return obj.IsGracePeriod, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_isGracePeriod(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_hoursUntilCheckIn(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_hoursUntilCheckIn,
+		func(ctx context.Context) (any, error) {
+			return obj.HoursUntilCheckIn, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_hoursUntilCheckIn(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_hoursAfterBooking(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_hoursAfterBooking,
+		func(ctx context.Context) (any, error) {
+			return obj.HoursAfterBooking, nil
+		},
+		nil,
+		ec.marshalNFloat2float64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_hoursAfterBooking(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_cancelledBy(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_cancelledBy,
+		func(ctx context.Context) (any, error) {
+			return obj.CancelledBy, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_cancelledBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_reason(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_reason,
+		func(ctx context.Context) (any, error) {
+			return obj.Reason, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_reason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_summary(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_summary,
+		func(ctx context.Context) (any, error) {
+			return obj.Summary, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_summary(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_policyRules(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_policyRules,
+		func(ctx context.Context) (any, error) {
+			return obj.PolicyRules, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_policyRules(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RefundBreakdownSnapshot_calculatedAt(ctx context.Context, field graphql.CollectedField, obj *domain7.RefundBreakdownSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RefundBreakdownSnapshot_calculatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CalculatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RefundBreakdownSnapshot_calculatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RefundBreakdownSnapshot",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -69370,6 +70880,20 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = ec._Booking_paymentReference(ctx, field, obj)
 		case "lastPaymentId":
 			out.Values[i] = ec._Booking_lastPaymentId(ctx, field, obj)
+		case "refundAmount":
+			out.Values[i] = ec._Booking_refundAmount(ctx, field, obj)
+		case "refundInitiatedAt":
+			out.Values[i] = ec._Booking_refundInitiatedAt(ctx, field, obj)
+		case "refundProcessedAt":
+			out.Values[i] = ec._Booking_refundProcessedAt(ctx, field, obj)
+		case "refundReason":
+			out.Values[i] = ec._Booking_refundReason(ctx, field, obj)
+		case "refundReference":
+			out.Values[i] = ec._Booking_refundReference(ctx, field, obj)
+		case "cancelledBy":
+			out.Values[i] = ec._Booking_cancelledBy(ctx, field, obj)
+		case "refundBreakdown":
+			out.Values[i] = ec._Booking_refundBreakdown(ctx, field, obj)
 		case "specialRequests":
 			out.Values[i] = ec._Booking_specialRequests(ctx, field, obj)
 		case "priceBreakdown":
@@ -75118,6 +76642,42 @@ func (ec *executionContext) _Payment(ctx context.Context, sel ast.SelectionSet, 
 			out.Values[i] = ec._Payment_bookingId(ctx, field, obj)
 		case "businessId":
 			out.Values[i] = ec._Payment_businessId(ctx, field, obj)
+		case "resourceType":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Payment_resourceType(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "payerId":
 			out.Values[i] = ec._Payment_payerId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -75473,6 +77033,55 @@ func (ec *executionContext) _PaymentMethod(ctx context.Context, sel ast.Selectio
 			out.Values[i] = ec._PaymentMethod_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&out.Invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var paymentStatsImplementors = []string{"PaymentStats"}
+
+func (ec *executionContext) _PaymentStats(ctx context.Context, sel ast.SelectionSet, obj *model.PaymentStats) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, paymentStatsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PaymentStats")
+		case "totalSpent":
+			out.Values[i] = ec._PaymentStats_totalSpent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "upcomingPayments":
+			out.Values[i] = ec._PaymentStats_upcomingPayments(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalRefunds":
+			out.Values[i] = ec._PaymentStats_totalRefunds(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -77639,6 +79248,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myPaymentStats":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myPaymentStats(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "paymentMethod":
 			field := field
 
@@ -79488,6 +81119,150 @@ func (ec *executionContext) _ReconciliationReport(ctx context.Context, sel ast.S
 			}
 		case "updatedAt":
 			out.Values[i] = ec._ReconciliationReport_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var refundBreakdownSnapshotImplementors = []string{"RefundBreakdownSnapshot"}
+
+func (ec *executionContext) _RefundBreakdownSnapshot(ctx context.Context, sel ast.SelectionSet, obj *domain7.RefundBreakdownSnapshot) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, refundBreakdownSnapshotImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RefundBreakdownSnapshot")
+		case "originalAmount":
+			out.Values[i] = ec._RefundBreakdownSnapshot_originalAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "currency":
+			out.Values[i] = ec._RefundBreakdownSnapshot_currency(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "serviceFee":
+			out.Values[i] = ec._RefundBreakdownSnapshot_serviceFee(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "serviceFeeRefundable":
+			out.Values[i] = ec._RefundBreakdownSnapshot_serviceFeeRefundable(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "baseAmountWithoutFee":
+			out.Values[i] = ec._RefundBreakdownSnapshot_baseAmountWithoutFee(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "refundPercentage":
+			out.Values[i] = ec._RefundBreakdownSnapshot_refundPercentage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "baseRefund":
+			out.Values[i] = ec._RefundBreakdownSnapshot_baseRefund(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "processingFee":
+			out.Values[i] = ec._RefundBreakdownSnapshot_processingFee(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "processingFeePayer":
+			out.Values[i] = ec._RefundBreakdownSnapshot_processingFeePayer(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "netRefund":
+			out.Values[i] = ec._RefundBreakdownSnapshot_netRefund(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "nonRefundedAmount":
+			out.Values[i] = ec._RefundBreakdownSnapshot_nonRefundedAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hostRetainedAmount":
+			out.Values[i] = ec._RefundBreakdownSnapshot_hostRetainedAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "platformRetained":
+			out.Values[i] = ec._RefundBreakdownSnapshot_platformRetained(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "appliedPolicy":
+			out.Values[i] = ec._RefundBreakdownSnapshot_appliedPolicy(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isGracePeriod":
+			out.Values[i] = ec._RefundBreakdownSnapshot_isGracePeriod(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hoursUntilCheckIn":
+			out.Values[i] = ec._RefundBreakdownSnapshot_hoursUntilCheckIn(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hoursAfterBooking":
+			out.Values[i] = ec._RefundBreakdownSnapshot_hoursAfterBooking(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cancelledBy":
+			out.Values[i] = ec._RefundBreakdownSnapshot_cancelledBy(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reason":
+			out.Values[i] = ec._RefundBreakdownSnapshot_reason(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "summary":
+			out.Values[i] = ec._RefundBreakdownSnapshot_summary(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "policyRules":
+			out.Values[i] = ec._RefundBreakdownSnapshot_policyRules(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "calculatedAt":
+			out.Values[i] = ec._RefundBreakdownSnapshot_calculatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -85729,6 +87504,30 @@ func (ec *executionContext) marshalNPaymentPeriod2hausletᚋinternalᚋmodules�
 	return res
 }
 
+func (ec *executionContext) unmarshalNPaymentResourceType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentResourceType(ctx context.Context, v any) (model.PaymentResourceType, error) {
+	var res model.PaymentResourceType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPaymentResourceType2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentResourceType(ctx context.Context, sel ast.SelectionSet, v model.PaymentResourceType) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNPaymentStats2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentStats(ctx context.Context, sel ast.SelectionSet, v model.PaymentStats) graphql.Marshaler {
+	return ec._PaymentStats(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPaymentStats2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentStats(ctx context.Context, sel ast.SelectionSet, v *model.PaymentStats) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PaymentStats(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNPaymentStatus2hausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPaymentStatus(ctx context.Context, v any) (domain9.PaymentStatus, error) {
 	tmp, err := graphql.UnmarshalString(v)
 	res := domain9.PaymentStatus(tmp)
@@ -89316,6 +91115,22 @@ func (ec *executionContext) marshalOPaymentPeriod2ᚖhausletᚋinternalᚋmodule
 	return res
 }
 
+func (ec *executionContext) unmarshalOPaymentResourceType2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentResourceType(ctx context.Context, v any) (*model.PaymentResourceType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.PaymentResourceType)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOPaymentResourceType2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐPaymentResourceType(ctx context.Context, sel ast.SelectionSet, v *model.PaymentResourceType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
 func (ec *executionContext) unmarshalOPaymentStatus2ᚖhausletᚋinternalᚋmodulesᚋpaymentsᚋdomainᚐPaymentStatus(ctx context.Context, v any) (*domain9.PaymentStatus, error) {
 	if v == nil {
 		return nil, nil
@@ -89670,6 +91485,13 @@ func (ec *executionContext) unmarshalORankingConfigInput2ᚖhausletᚋinternal�
 	}
 	res, err := ec.unmarshalInputRankingConfigInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalORefundBreakdownSnapshot2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐRefundBreakdownSnapshot(ctx context.Context, sel ast.SelectionSet, v *domain7.RefundBreakdownSnapshot) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RefundBreakdownSnapshot(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalORejectionReason2ᚖhausletᚋinternalᚋmodulesᚋverificationᚋdomainᚐRejectionReason(ctx context.Context, v any) (*domain10.RejectionReason, error) {

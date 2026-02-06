@@ -105,3 +105,10 @@ type PaymentSummary struct {
 	Status    PaymentStatus
 	CreatedAt time.Time
 }
+
+// PaymentStats represents aggregated payment statistics for a user
+type PaymentStats struct {
+	TotalSpent       int64
+	UpcomingPayments int64
+	TotalRefunds     int64
+}

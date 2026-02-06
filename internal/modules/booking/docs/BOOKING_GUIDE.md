@@ -668,7 +668,14 @@ mutation {
     id
     status  # cancelled
     cancelledAt
-    refundAmount  # Calculated based on policy
+    refundAmount
+    refundBreakdown {
+      originalAmount
+      netRefund
+      platformRetained
+      hostRetainedAmount
+      summary
+    }
   }
 }
 ```
@@ -678,9 +685,9 @@ mutation {
 1. Calculate refund (policy + timing)
 2. Update booking status → cancelled
 3. Release calendar dates
-4. Queue refund job (Cloud Tasks)
-5. Finance.RecordRefund()
-6. Paystack.RefundPayment()
+4. Queue refund job (if async) or Process immediately
+5. **Payment**: RefundPayment() (Return money to guest)
+6. **Finance**: OnBookingCancelledWithFunds() (Settlement of non-refunded amount)
 7. Email guest confirmation + refund details
 8. Email host cancellation notice
 
@@ -696,14 +703,33 @@ Cancellation: 10 days before (qualifies for full refund)
 Refundable Amount: ₦220,125
 ├─ Base total: ₦166,000 (100% refund)
 ├─ Cleaning fee: ₦10,000 (100% refund)
-├─ Service fee: ₦19,125 (50% refund = ₦9,563)
+├─ Service fee: ₦19,125 (0% refund - Platform Retained)
 └─ Caution fee: ₦25,000 (100% refund)
 
-Total Refund: ₦210,563
-Platform keeps: ₦9,562 (service fee)
+Total Refund: ₦201,000
+Platform keeps: ₦19,125 (service fee)
 
 Processing Time: 5-10 business days
 ```
+
+### Financial Settlement (Funds Distribution)
+
+When a booking is cancelled, funds held in escrow are settled immediately based on the calculated **Refund Breakdown**.
+
+**Distribution Logic**:
+1. **Ledger Update**: The Booking service triggers `OnBookingCancelledWithFunds` in the Finance module.
+2. **Escrow Release**:
+   * **Guest Refund**: Amount returned via Payment Gateway.
+   * **Host Payout**: Any non-refunded nightly rates (minus platform commission) serve as a payout to the host.
+   * **Platform Revenue**: Retained Service Fees + Commission on non-refunded amounts.
+
+**Example (Late Cancellation - 50% Refund)**:
+*   **Original**: ₦200,000 (Host: ₦180k, Fee: ₦20k)
+*   **Refund**: ₦90,000 (50% of Host share)
+*   **Host Payout**: ₦90,000 (50% retained) - 10% Commission = ₦81,000
+*   **Platform Revenue**: ₦20,000 (Original Fee) + ₦9,000 (Commission on retained) = ₦29,000
+
+This ensures accurate financial tracking for every cancellation scenario.
 
 ### Who Can Cancel?
 

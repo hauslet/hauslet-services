@@ -47,8 +47,8 @@ func (m *MockRepository) DeletePayment(ctx context.Context, id uuid.UUID) error 
 	return args.Error(0)
 }
 
-func (m *MockRepository) ListPaymentsByPayerID(ctx context.Context, payerID uuid.UUID, limit, offset int) ([]*schema.Payment, error) {
-	args := m.Called(ctx, payerID, limit, offset)
+func (m *MockRepository) ListPaymentsByPayer(ctx context.Context, payerID uuid.UUID, resourceType *schema.ResourceType, limit, offset int) ([]*schema.Payment, error) {
+	args := m.Called(ctx, payerID, resourceType, limit, offset)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -82,6 +82,14 @@ func (m *MockRepository) ListPaymentsByStatus(ctx context.Context, status schema
 func (m *MockRepository) WithinTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error {
 	args := m.Called(ctx, fn)
 	return args.Error(0)
+}
+
+func (m *MockRepository) GetPaymentStats(ctx context.Context, payerID uuid.UUID) (*schema.PaymentStats, error) {
+	args := m.Called(ctx, payerID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*schema.PaymentStats), args.Error(1)
 }
 
 // Transaction repository methods

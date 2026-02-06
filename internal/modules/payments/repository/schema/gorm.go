@@ -172,3 +172,10 @@ type PayoutDetail struct {
 func (PayoutDetail) TableName() string {
 	return "payout_details"
 }
+
+// PaymentStats is a DTO for aggregated payment statistics
+type PaymentStats struct {
+	TotalSpent       int64
+	UpcomingPayments int64
+	TotalRefunds     int64
+}

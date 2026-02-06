@@ -50,6 +50,11 @@ type LedgerService interface {
 	// Creates ledger entries: Debit escrow → Credit host available wallet
 	RecordPayout(ctx context.Context, bookingID, hostID uuid.UUID, amount int64, currency string) (*domain.Transaction, error)
 
+	// SettleCancelledBooking settles remaining escrow funds after a booking cancellation
+	// This distributes non-refunded amounts: commission to platform, remainder to host
+	// Should be called after refund processing when there are remaining funds in escrow
+	SettleCancelledBooking(ctx context.Context, bookingID, hostID uuid.UUID, hostAmount, platformAmount int64, currency string) error
+
 	// GetTransactionHistory returns all transactions for a resource
 	GetTransactionHistory(ctx context.Context, resourceType domain.ResourceType, resourceID uuid.UUID) ([]*domain.Transaction, error)
 

@@ -4,10 +4,10 @@ package domain
 type WalletType string
 
 const (
-	WalletTypeEscrow        WalletType = "escrow"          // Holds guest funds until release
-	WalletTypeHostAvailable WalletType = "host_available"  // Host's available balance for withdrawal
-	WalletTypePlatformFee   WalletType = "platform_fee"    // Platform commission wallet
-	WalletTypeRefundPool    WalletType = "refund_pool"     // Pool for refunds
+	WalletTypeEscrow        WalletType = "escrow"         // Holds guest funds until release
+	WalletTypeHostAvailable WalletType = "host_available" // Host's available balance for withdrawal
+	WalletTypePlatformFee   WalletType = "platform_fee"   // Platform commission wallet
+	WalletTypeRefundPool    WalletType = "refund_pool"    // Pool for refunds
 )
 
 // WalletStatus defines the status of a wallet
@@ -23,11 +23,12 @@ const (
 type TransactionType string
 
 const (
-	TransactionTypeCharge     TransactionType = "charge"     // Guest payment received
-	TransactionTypeRefund     TransactionType = "refund"     // Refund to guest
-	TransactionTypePayout     TransactionType = "payout"     // Payout to host
-	TransactionTypeCommission TransactionType = "commission" // Platform fee deduction
-	TransactionTypeReversal   TransactionType = "reversal"   // Dispute reversal
+	TransactionTypeCharge                 TransactionType = "charge"                  // Guest payment received
+	TransactionTypeRefund                 TransactionType = "refund"                  // Refund to guest
+	TransactionTypePayout                 TransactionType = "payout"                  // Payout to host
+	TransactionTypeCommission             TransactionType = "commission"              // Platform fee deduction
+	TransactionTypeReversal               TransactionType = "reversal"                // Dispute reversal
+	TransactionTypeCancellationSettlement TransactionType = "cancellation_settlement" // Cancelled booking fund distribution
 )
 
 // TransactionStatus defines the status of a transaction
@@ -74,11 +75,11 @@ const (
 type DisputeStatus string
 
 const (
-	DisputeStatusOpen        DisputeStatus = "open"        // Dispute has been filed and is under review
-	DisputeStatusInvestigating DisputeStatus = "investigating" // Admin is actively investigating
-	DisputeStatusResolvedRefund DisputeStatus = "resolved_refund" // Resolved in favor of guest (refund issued)
+	DisputeStatusOpen            DisputeStatus = "open"             // Dispute has been filed and is under review
+	DisputeStatusInvestigating   DisputeStatus = "investigating"    // Admin is actively investigating
+	DisputeStatusResolvedRefund  DisputeStatus = "resolved_refund"  // Resolved in favor of guest (refund issued)
 	DisputeStatusResolvedRelease DisputeStatus = "resolved_release" // Resolved in favor of host (funds released)
-	DisputeStatusCancelled   DisputeStatus = "cancelled"   // Dispute was cancelled/withdrawn
+	DisputeStatusCancelled       DisputeStatus = "cancelled"        // Dispute was cancelled/withdrawn
 )
 
 // DisputeReason defines the reason for filing a dispute
