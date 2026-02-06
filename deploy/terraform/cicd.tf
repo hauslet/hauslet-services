@@ -3,20 +3,20 @@
 
 # Enable required APIs
 resource "google_project_service" "artifactregistry" {
-  project = var.project_id
-  service = "artifactregistry.googleapis.com"
+  project            = var.project_id
+  service            = "artifactregistry.googleapis.com"
   disable_on_destroy = false
 }
 
 resource "google_project_service" "cloudbuild" {
-  project = var.project_id
-  service = "cloudbuild.googleapis.com"
+  project            = var.project_id
+  service            = "cloudbuild.googleapis.com"
   disable_on_destroy = false
 }
 
 resource "google_project_service" "run" {
-  project = var.project_id
-  service = "run.googleapis.com"
+  project            = var.project_id
+  service            = "run.googleapis.com"
   disable_on_destroy = false
 }
 
@@ -34,7 +34,7 @@ resource "google_artifact_registry_repository" "hauslet" {
 
     condition {
       tag_state  = "UNTAGGED"
-      older_than = "2592000s"  # 30 days
+      older_than = "2592000s" # 30 days
     }
   }
 
@@ -62,7 +62,7 @@ resource "google_storage_bucket" "build_artifacts" {
 
   lifecycle_rule {
     condition {
-      age = 90  # Delete after 90 days
+      age = 90 # Delete after 90 days
     }
     action {
       type = "Delete"
@@ -216,4 +216,34 @@ output "worker_service_account_email" {
 output "build_artifacts_bucket" {
   description = "Cloud Storage bucket for build artifacts"
   value       = google_storage_bucket.build_artifacts.name
+}
+
+# IAM Permissions for Staging Service Accounts
+
+# Allow API Staging to enqueue Cloud Tasks
+resource "google_project_iam_member" "api_staging_cloudtasks" {
+  project = var.project_id
+  role    = "roles/cloudtasks.enqueuer"
+  member  = "serviceAccount:${google_service_account.api_staging.email}"
+}
+
+# Allow Worker Staging to enqueue Cloud Tasks (for re-queues)
+resource "google_project_iam_member" "worker_staging_cloudtasks" {
+  project = var.project_id
+  role    = "roles/cloudtasks.enqueuer"
+  member  = "serviceAccount:${google_service_account.worker_staging.email}"
+}
+
+# Allow API Staging to act as Worker Staging (for OIDC tokens targeted at Worker)
+resource "google_service_account_iam_member" "api_staging_act_as_worker" {
+  service_account_id = google_service_account.worker_staging.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.api_staging.email}"
+}
+
+# Allow Worker Staging to act as Worker Staging (for self-targeted OIDC tokens)
+resource "google_service_account_iam_member" "worker_staging_act_as_self" {
+  service_account_id = google_service_account.worker_staging.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.worker_staging.email}"
 }

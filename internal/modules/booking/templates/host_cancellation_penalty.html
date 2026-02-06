@@ -1,17 +1,42 @@
-<h1>Cancellation Penalty Applied</h1>
-<p>Hi {{.HostName}},</p>
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        Cancellation Penalty Applied
+    </h1>
 
-<p>A penalty of <strong>{{.PenaltyAmount}}</strong> has been applied for cancelling booking #{{.BookingRef}}.</p>
+    <p style="font-size: 16px; line-height: 26px; color: #000000;">
+        Hi {{.HostName}},
+    </p>
 
-{{if .SuspensionDays}}
-<p>Your listings have been suspended for <strong>{{.SuspensionDays}} days</strong>{{if .SuspensionEndDate}} until {{.SuspensionEndDate}}{{end}}.</p>
+    <p style="font-size: 16px; line-height: 26px; color: #000000;">
+        A penalty of <strong>{{.PenaltyAmount}}</strong> has been applied for cancelling booking #{{.BookingRef}}.
+    </p>
+
+    {{if .SuspensionDays}}
+    <p style="font-size: 16px; line-height: 26px; color: #000000;">
+        Your listings have been suspended for <strong>{{.SuspensionDays}} days</strong>{{if .SuspensionEndDate}} until
+        {{.SuspensionEndDate}}{{end}}.
+    </p>
+    {{end}}
+
+    {{if .PenaltyPaid}}
+    {{else}}
+    <p style="font-size: 16px; line-height: 26px; color: #000000;">
+        This penalty could not be collected immediately and will be deducted from future payouts.
+    </p>
+    {{end}}
+
+    <p style="font-size: 16px; line-height: 26px; color: #000000;">
+        This was cancellation #{{.CancellationCount}} in the last {{.WindowDays}} days.
+    </p>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.ManageURL}}"
+            style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            View Booking
+        </a>
+    </div>
+</div>
 {{end}}
 
-{{if .PenaltyPaid}}
-{{else}}
-<p>This penalty could not be collected immediately and will be deducted from future payouts.</p>
-{{end}}
-
-<p>This was cancellation #{{.CancellationCount}} in the last {{.WindowDays}} days.</p>
-
-<p><a href="{{.ManageURL}}">View Booking</a></p>
+{{template "layout" .}}

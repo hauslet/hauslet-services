@@ -1,12 +1,38 @@
-<h1>Booking Cancellation Processed</h1>
-<p>Hi {{.HostName}},</p>
-<p>We've processed your cancellation for booking #{{.BookingRef}}.</p>
+{{define "content"}}
+<div style="padding: 0 20px;">
+    <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+        Booking Cancellation Processed
+    </h1>
 
-{{if .WarningMessage}}
-<p>{{.WarningMessage}}</p>
+    <p style="font-size: 16px; line-height: 26px; color: #000000;">
+        Hi {{.HostName}},
+    </p>
+
+    <p style="font-size: 16px; line-height: 26px; color: #000000;">
+        We've processed your cancellation for booking #{{.BookingRef}}.
+    </p>
+
+    {{if .WarningMessage}}
+    <p style="font-size: 16px; line-height: 26px; color: #d93025;">
+        {{.WarningMessage}}
+    </p>
+    {{end}}
+
+    <p style="font-size: 16px; line-height: 26px; color: #000000;">
+        This was cancellation #{{.CancellationCount}} in the last {{.WindowDays}} days.
+    </p>
+
+    <p style="font-size: 16px; line-height: 26px; color: #000000;">
+        Please avoid frequent cancellations to prevent penalties or listing suspensions.
+    </p>
+
+    <div style="text-align: center; margin: 36px 0;">
+        <a href="{{.ManageURL}}"
+            style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            View Booking
+        </a>
+    </div>
+</div>
 {{end}}
 
-<p>This was cancellation #{{.CancellationCount}} in the last {{.WindowDays}} days.</p>
-<p>Please avoid frequent cancellations to prevent penalties or listing suspensions.</p>
-
-<p><a href="{{.ManageURL}}">View Booking</a></p>
+{{template "layout" .}}

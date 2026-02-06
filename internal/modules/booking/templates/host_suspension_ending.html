@@ -1,21 +1,47 @@
-<h1>Your Listing Suspension Ends Soon</h1>
-<p>Hi {{.HostName}},</p>
+{{define "content"}}
+<div style="padding: 0 20px;">
+  <h1 style="font-size: 26px; font-weight: bold; margin-top: 36px; text-align: center; color: #000000;">
+    Your Listing Suspension Ends Soon
+  </h1>
 
-<p>Good news! Your listing suspension will end <strong>{{.EndDate}}</strong>.</p>
+  <p style="font-size: 16px; line-height: 26px; color: #000000;">
+    Hi {{.HostName}},
+  </p>
 
-<p>Once the suspension lifts, your listings will automatically become visible to guests again.</p>
+  <p style="font-size: 16px; line-height: 26px; color: #000000;">
+    Good news! Your listing suspension will end <strong>{{.EndDate}}</strong>.
+  </p>
 
-{{if .TipsToAvoid}}
-<h3>Tips to Avoid Future Suspensions:</h3>
-<ul>
-{{range .TipsToAvoid}}
-  <li>{{.}}</li>
+  <p style="font-size: 16px; line-height: 26px; color: #000000;">
+    Once the suspension lifts, your listings will automatically become visible to guests again.
+  </p>
+
+  {{if .TipsToAvoid}}
+  <h3 style="font-size: 18px; font-weight: bold; margin-top: 24px; color: #000000;">Tips to Avoid Future Suspensions:
+  </h3>
+  <ul style="font-size: 16px; line-height: 26px; color: #000000; padding-left: 20px;">
+    {{range .TipsToAvoid}}
+    <li>{{.}}</li>
+    {{end}}
+  </ul>
+  {{end}}
+
+  <p style="font-size: 16px; line-height: 26px; color: #000000;">
+    We recommend reviewing your calendar availability and booking settings before the suspension ends to ensure a smooth
+    return.
+  </p>
+
+  <div style="text-align: center; margin: 36px 0;">
+    <a href="{{.ManageListingsURL}}"
+      style="display: inline-block; background-color: #924DBF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+      Manage Your Listings
+    </a>
+  </div>
+
+  <p style="font-size: 14px; line-height: 24px; color: #666666; text-align: center;">
+    If you have any questions, please contact our support team.
+  </p>
+</div>
 {{end}}
-</ul>
-{{end}}
 
-<p>We recommend reviewing your calendar availability and booking settings before the suspension ends to ensure a smooth return.</p>
-
-<p><a href="{{.ManageListingsURL}}">Manage Your Listings</a></p>
-
-<p>If you have any questions, please contact our support team.</p>
+{{template "layout" .}}
