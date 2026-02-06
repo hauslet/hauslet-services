@@ -1,5 +1,3 @@
-# internal/modules/payments/port/graphql/schema.graphqls
-
 enum PaymentStatus {
   pending
   processing
