@@ -13156,6 +13156,7 @@ enum FinanceTransactionType {
   refund
   payout
   commission
+  penalty
 }
 
 enum FinanceTransactionStatus {
@@ -13450,7 +13451,6 @@ type ReconciliationReport {
   createdAt: Time!
   updatedAt: Time!
 }
-
 `, BuiltIn: false},
 	{Name: "../../modules/wishlist/port/graphql/schema.graphqls", Input: `# internal/modules/wishlist/port/graphql/schema.graphqls
 

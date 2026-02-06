@@ -53,6 +53,7 @@ func (a *PropertyDiscoveryAdapter) GetRecentListings(ctx context.Context, limit 
 	}
 	published := true
 	filter.Published = &published
+	filter.ExcludeSuspended = true
 
 	// Use ListListings with limit
 	listings, _, err := a.propertySvc.ListListings(ctx, filter, propertyservice.Pagination{
@@ -73,6 +74,7 @@ func (a *PropertyDiscoveryAdapter) mapToPropertyFilter(filter discoveryservice.S
 	propertyFilter := propertyservice.ListingFilter{
 		Statuses: []propertydomain.ListingStatus{propertydomain.StatusActive},
 	}
+	propertyFilter.ExcludeSuspended = true
 
 	// Set published to true
 	published := true

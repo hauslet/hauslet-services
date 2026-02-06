@@ -41,16 +41,21 @@ type ProfileRepository interface {
 	UpdateTravelCompanion(ctx context.Context, userID string, companion schema.TravelCompanion) error
 	DeleteTravelCompanion(ctx context.Context, userID string, companionID string) error
 
+	// Host cancellation tracking
+	CreateHostCancellationRecord(ctx context.Context, record *schema.HostCancellationRecord) error
+	CountHostCancellationsSince(ctx context.Context, hostID uuid.UUID, since time.Time) (int, error)
+	GetHostCancellationRecordByBookingID(ctx context.Context, bookingID uuid.UUID) (*schema.HostCancellationRecord, error)
+
 	// --- Administrative ---
 	RestoreProfile(ctx context.Context, userID string) error
 	HardDeleteProfile(ctx context.Context, userID string) error
 	GetDeletedProfiles(ctx context.Context) ([]*schema.Profile, error)
 }
 
-type ProfileRerpositoryImpl struct {
+type ProfileRepositoryImpl struct {
 	db *gorm.DB
 }
 
 func NewProfileRepository(db *gorm.DB) ProfileRepository {
-	return &ProfileRerpositoryImpl{db: db}
+	return &ProfileRepositoryImpl{db: db}
 }

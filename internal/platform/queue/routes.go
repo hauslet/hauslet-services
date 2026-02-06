@@ -53,6 +53,10 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/finance/payout/retry",
 		Timeout: 120 * time.Second,
 	},
+	"penalty_debt_collection": {
+		Path:    "/tasks/finance/penalty-debt/collection",
+		Timeout: 120 * time.Second,
+	},
 	"finance_reconciliation": {
 		Path:    "/tasks/finance/reconciliation",
 		Timeout: 300 * time.Second,

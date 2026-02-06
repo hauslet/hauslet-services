@@ -12,7 +12,7 @@ resource "google_project_service" "cloudtasks" {
 # Email Queue - For sending emails asynchronously
 resource "google_cloud_tasks_queue" "email" {
   name     = "email-queue"
-  location = "europe-west2"  # Cloud Tasks location
+  location = "europe-west2" # Cloud Tasks location
 
   rate_limits {
     max_dispatches_per_second = 10
@@ -21,9 +21,9 @@ resource "google_cloud_tasks_queue" "email" {
 
   retry_config {
     max_attempts       = 5
-    max_retry_duration = "3600s"  # 1 hour
+    max_retry_duration = "3600s" # 1 hour
     min_backoff        = "5s"
-    max_backoff        = "300s"   # 5 minutes
+    max_backoff        = "300s" # 5 minutes
     max_doublings      = 5
   }
 
@@ -254,6 +254,29 @@ resource "google_cloud_tasks_queue" "payout_retry" {
     max_retry_duration = "1800s"
     min_backoff        = "30s"
     max_backoff        = "600s"
+    max_doublings      = 3
+  }
+
+  depends_on = [
+    google_project_service.cloudtasks
+  ]
+}
+
+# Penalty Debt Collection Queue - For collecting unpaid host cancellation penalties
+resource "google_cloud_tasks_queue" "penalty_debt_collection" {
+  name     = "penalty-debt-collection-queue"
+  location = "europe-west2"
+
+  rate_limits {
+    max_dispatches_per_second = 5
+    max_concurrent_dispatches = 2
+  }
+
+  retry_config {
+    max_attempts       = 3
+    max_retry_duration = "1800s"
+    min_backoff        = "30s"
+    max_backoff        = "300s"
     max_doublings      = 3
   }
 

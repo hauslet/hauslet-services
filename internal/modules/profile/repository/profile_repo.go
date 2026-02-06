@@ -13,7 +13,7 @@ import (
 )
 
 // CreateProfile creates a new profile record in the database.
-func (r *ProfileRerpositoryImpl) CreateProfile(ctx context.Context, profile *schema.Profile) error {
+func (r *ProfileRepositoryImpl) CreateProfile(ctx context.Context, profile *schema.Profile) error {
 	if profile == nil {
 		return errors.New("profile cannot be nil")
 	}
@@ -36,7 +36,7 @@ func (r *ProfileRerpositoryImpl) CreateProfile(ctx context.Context, profile *sch
 }
 
 // GetProfileByUserID retrieves a profile by the associated user ID.
-func (r *ProfileRerpositoryImpl) GetProfileByUserID(ctx context.Context, userID string) (*schema.Profile, error) {
+func (r *ProfileRepositoryImpl) GetProfileByUserID(ctx context.Context, userID string) (*schema.Profile, error) {
 	if userID == "" {
 		return nil, errors.New("userID cannot be empty")
 	}
@@ -63,7 +63,7 @@ func (r *ProfileRerpositoryImpl) GetProfileByUserID(ctx context.Context, userID 
 }
 
 // ProfileExists checks if a profile exists for the given user ID.
-func (r *ProfileRerpositoryImpl) ProfileExists(ctx context.Context, userID string) (bool, error) {
+func (r *ProfileRepositoryImpl) ProfileExists(ctx context.Context, userID string) (bool, error) {
 	if userID == "" {
 		return false, errors.New("userID cannot be empty")
 	}
@@ -87,7 +87,7 @@ func (r *ProfileRerpositoryImpl) ProfileExists(ctx context.Context, userID strin
 }
 
 // UpdateProfile updates an existing profile record in the database.
-func (r *ProfileRerpositoryImpl) UpdateProfile(ctx context.Context, profile *schema.Profile) error {
+func (r *ProfileRepositoryImpl) UpdateProfile(ctx context.Context, profile *schema.Profile) error {
 	if profile == nil {
 		return errors.New("profile cannot be nil")
 	}
@@ -108,7 +108,7 @@ func (r *ProfileRerpositoryImpl) UpdateProfile(ctx context.Context, profile *sch
 }
 
 // DeleteProfile performs a soft delete of a profile by user ID.
-func (r *ProfileRerpositoryImpl) DeleteProfile(ctx context.Context, userID string) error {
+func (r *ProfileRepositoryImpl) DeleteProfile(ctx context.Context, userID string) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -124,7 +124,7 @@ func (r *ProfileRerpositoryImpl) DeleteProfile(ctx context.Context, userID strin
 }
 
 // HardDeleteProfile permanently removes a profile by user ID.
-func (r *ProfileRerpositoryImpl) HardDeleteProfile(ctx context.Context, userID string) error {
+func (r *ProfileRepositoryImpl) HardDeleteProfile(ctx context.Context, userID string) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -141,7 +141,7 @@ func (r *ProfileRerpositoryImpl) HardDeleteProfile(ctx context.Context, userID s
 }
 
 // GetDeletedProfiles retrieves all soft-deleted profiles.
-func (r *ProfileRerpositoryImpl) GetDeletedProfiles(ctx context.Context) ([]*schema.Profile, error) {
+func (r *ProfileRepositoryImpl) GetDeletedProfiles(ctx context.Context) ([]*schema.Profile, error) {
 	var profiles []*schema.Profile
 
 	err := r.db.WithContext(ctx).
@@ -158,7 +158,7 @@ func (r *ProfileRerpositoryImpl) GetDeletedProfiles(ctx context.Context) ([]*sch
 }
 
 // GetProfilesByUserIDs fetches profiles for the given user IDs.
-func (r *ProfileRerpositoryImpl) GetProfilesByUserIDs(ctx context.Context, userIDs []string) ([]*schema.Profile, error) {
+func (r *ProfileRepositoryImpl) GetProfilesByUserIDs(ctx context.Context, userIDs []string) ([]*schema.Profile, error) {
 	if len(userIDs) == 0 {
 		return []*schema.Profile{}, nil
 	}
@@ -184,7 +184,7 @@ func (r *ProfileRerpositoryImpl) GetProfilesByUserIDs(ctx context.Context, userI
 }
 
 // GetProfileByID retrieves a profile by its primary ID.
-func (r *ProfileRerpositoryImpl) GetProfileByID(ctx context.Context, id string) (*schema.Profile, error) {
+func (r *ProfileRepositoryImpl) GetProfileByID(ctx context.Context, id string) (*schema.Profile, error) {
 	if id == "" {
 		return nil, errors.New("id cannot be empty")
 	}
@@ -211,7 +211,7 @@ func (r *ProfileRerpositoryImpl) GetProfileByID(ctx context.Context, id string) 
 }
 
 // ListProfiles returns a paginated list of profiles.
-func (r *ProfileRerpositoryImpl) ListProfiles(ctx context.Context, limit, offset int) ([]*schema.Profile, error) {
+func (r *ProfileRepositoryImpl) ListProfiles(ctx context.Context, limit, offset int) ([]*schema.Profile, error) {
 	var profiles []*schema.Profile
 
 	query := r.db.WithContext(ctx).
@@ -233,7 +233,7 @@ func (r *ProfileRerpositoryImpl) ListProfiles(ctx context.Context, limit, offset
 }
 
 // GetProfilesByUserType returns profiles containing the provided user type.
-func (r *ProfileRerpositoryImpl) GetProfilesByUserType(ctx context.Context, userType string, limit, offset int) ([]*schema.Profile, error) {
+func (r *ProfileRepositoryImpl) GetProfilesByUserType(ctx context.Context, userType string, limit, offset int) ([]*schema.Profile, error) {
 	if userType == "" {
 		return nil, errors.New("userType cannot be empty")
 	}
@@ -259,7 +259,7 @@ func (r *ProfileRerpositoryImpl) GetProfilesByUserType(ctx context.Context, user
 }
 
 // GetVerifiedProfiles returns profiles marked verified, optionally filtered by level.
-func (r *ProfileRerpositoryImpl) GetVerifiedProfiles(ctx context.Context, level string, limit, offset int) ([]*schema.Profile, error) {
+func (r *ProfileRepositoryImpl) GetVerifiedProfiles(ctx context.Context, level string, limit, offset int) ([]*schema.Profile, error) {
 	var profiles []*schema.Profile
 
 	query := r.db.WithContext(ctx).
@@ -285,7 +285,7 @@ func (r *ProfileRerpositoryImpl) GetVerifiedProfiles(ctx context.Context, level 
 }
 
 // SearchProfiles performs a simple text search across profile fields.
-func (r *ProfileRerpositoryImpl) SearchProfiles(ctx context.Context, query string, limit, offset int) ([]*schema.Profile, error) {
+func (r *ProfileRepositoryImpl) SearchProfiles(ctx context.Context, query string, limit, offset int) ([]*schema.Profile, error) {
 	if query == "" {
 		return nil, errors.New("query cannot be empty")
 	}
@@ -318,7 +318,7 @@ func (r *ProfileRerpositoryImpl) SearchProfiles(ctx context.Context, query strin
 }
 
 // PatchProfile performs a partial update using the provided field map.
-func (r *ProfileRerpositoryImpl) PatchProfile(ctx context.Context, id string, updates map[string]any) error {
+func (r *ProfileRepositoryImpl) PatchProfile(ctx context.Context, id string, updates map[string]any) error {
 	if id == "" {
 		return errors.New("id cannot be empty")
 	}
@@ -383,7 +383,7 @@ func (r *ProfileRerpositoryImpl) PatchProfile(ctx context.Context, id string, up
 }
 
 // IncrementReviewStats atomically adjusts rating and review counters.
-func (r *ProfileRerpositoryImpl) IncrementReviewStats(ctx context.Context, userID string, ratingDelta float64, reviewsDelta int) error {
+func (r *ProfileRepositoryImpl) IncrementReviewStats(ctx context.Context, userID string, ratingDelta float64, reviewsDelta int) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -403,7 +403,7 @@ func (r *ProfileRerpositoryImpl) IncrementReviewStats(ctx context.Context, userI
 }
 
 // SetVerificationStatus updates verification fields for a profile.
-func (r *ProfileRerpositoryImpl) SetVerificationStatus(ctx context.Context, userID string, level string, verified bool, verificationDate *time.Time) error {
+func (r *ProfileRepositoryImpl) SetVerificationStatus(ctx context.Context, userID string, level string, verified bool, verificationDate *time.Time) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -432,7 +432,7 @@ func (r *ProfileRerpositoryImpl) SetVerificationStatus(ctx context.Context, user
 }
 
 // AddBadge appends a badge to the badges array if not already present.
-func (r *ProfileRerpositoryImpl) AddBadge(ctx context.Context, userID string, badge string) error {
+func (r *ProfileRepositoryImpl) AddBadge(ctx context.Context, userID string, badge string) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -454,7 +454,7 @@ func (r *ProfileRerpositoryImpl) AddBadge(ctx context.Context, userID string, ba
 }
 
 // RemoveBadge removes a badge from the badges array.
-func (r *ProfileRerpositoryImpl) RemoveBadge(ctx context.Context, userID string, badge string) error {
+func (r *ProfileRepositoryImpl) RemoveBadge(ctx context.Context, userID string, badge string) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -475,7 +475,7 @@ func (r *ProfileRerpositoryImpl) RemoveBadge(ctx context.Context, userID string,
 
 // AddTravelCompanion creates a new travel companion for a profile.
 // AddTravelCompanion creates a new travel companion for a profile.
-func (r *ProfileRerpositoryImpl) AddTravelCompanion(ctx context.Context, userID string, companion schema.TravelCompanion) error {
+func (r *ProfileRepositoryImpl) AddTravelCompanion(ctx context.Context, userID string, companion schema.TravelCompanion) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -506,7 +506,7 @@ func (r *ProfileRerpositoryImpl) AddTravelCompanion(ctx context.Context, userID 
 }
 
 // GetTravelCompanions lists travel companions for a profile.
-func (r *ProfileRerpositoryImpl) GetTravelCompanions(ctx context.Context, userID string) ([]*schema.TravelCompanion, error) {
+func (r *ProfileRepositoryImpl) GetTravelCompanions(ctx context.Context, userID string) ([]*schema.TravelCompanion, error) {
 	if userID == "" {
 		return nil, errors.New("userID cannot be empty")
 	}
@@ -537,7 +537,7 @@ func (r *ProfileRerpositoryImpl) GetTravelCompanions(ctx context.Context, userID
 }
 
 // GetTravelCompanionByID fetches a travel companion by ID scoped to a profile.
-func (r *ProfileRerpositoryImpl) GetTravelCompanionByID(ctx context.Context, userID string, companionID uuid.UUID) (*schema.TravelCompanion, error) {
+func (r *ProfileRepositoryImpl) GetTravelCompanionByID(ctx context.Context, userID string, companionID uuid.UUID) (*schema.TravelCompanion, error) {
 	if userID == "" || companionID == uuid.Nil {
 		return nil, errors.New("userID and companionID cannot be empty")
 	}
@@ -568,7 +568,7 @@ func (r *ProfileRerpositoryImpl) GetTravelCompanionByID(ctx context.Context, use
 }
 
 // UpdateTravelCompanion updates or creates a single travel companion for a profile.
-func (r *ProfileRerpositoryImpl) UpdateTravelCompanion(ctx context.Context, userID string, companion schema.TravelCompanion) error {
+func (r *ProfileRepositoryImpl) UpdateTravelCompanion(ctx context.Context, userID string, companion schema.TravelCompanion) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -602,7 +602,7 @@ func (r *ProfileRerpositoryImpl) UpdateTravelCompanion(ctx context.Context, user
 }
 
 // DeleteTravelCompanion removes a travel companion by ID scoped to a profile.
-func (r *ProfileRerpositoryImpl) DeleteTravelCompanion(ctx context.Context, userID string, companionID string) error {
+func (r *ProfileRepositoryImpl) DeleteTravelCompanion(ctx context.Context, userID string, companionID string) error {
 	if userID == "" || companionID == "" {
 		return errors.New("userID and companionID cannot be empty")
 	}
@@ -643,7 +643,7 @@ func (r *ProfileRerpositoryImpl) DeleteTravelCompanion(ctx context.Context, user
 }
 
 // UpdateTrustScore updates the trust score for a profile.
-func (r *ProfileRerpositoryImpl) UpdateTrustScore(ctx context.Context, userID string, score float64) error {
+func (r *ProfileRepositoryImpl) UpdateTrustScore(ctx context.Context, userID string, score float64) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -660,7 +660,7 @@ func (r *ProfileRerpositoryImpl) UpdateTrustScore(ctx context.Context, userID st
 }
 
 // RestoreProfile clears the soft-delete flag for a profile by user ID.
-func (r *ProfileRerpositoryImpl) RestoreProfile(ctx context.Context, userID string) error {
+func (r *ProfileRepositoryImpl) RestoreProfile(ctx context.Context, userID string) error {
 	if userID == "" {
 		return errors.New("userID cannot be empty")
 	}
@@ -678,7 +678,7 @@ func (r *ProfileRerpositoryImpl) RestoreProfile(ctx context.Context, userID stri
 }
 
 // UpdateModerationStatus updates the moderation status for a profile.
-func (r *ProfileRerpositoryImpl) UpdateModerationStatus(ctx context.Context, profileID uuid.UUID, status bool) error {
+func (r *ProfileRepositoryImpl) UpdateModerationStatus(ctx context.Context, profileID uuid.UUID, status bool) error {
 	if profileID == uuid.Nil {
 		return errors.New("profileID cannot be empty")
 	}
@@ -692,4 +692,58 @@ func (r *ProfileRerpositoryImpl) UpdateModerationStatus(ctx context.Context, pro
 		Model(&schema.Profile{}).
 		Where("id = ?", parsedProfileID).
 		Update("is_moderated", status).Error
+}
+
+// CreateHostCancellationRecord creates a host cancellation record.
+func (r *ProfileRepositoryImpl) CreateHostCancellationRecord(ctx context.Context, record *schema.HostCancellationRecord) error {
+	if record == nil {
+		return errors.New("record cannot be nil")
+	}
+	if record.ID == uuid.Nil {
+		record.ID = uuid.New()
+	}
+	if record.HostID == uuid.Nil {
+		return errors.New("hostID cannot be nil")
+	}
+	if record.BookingID == uuid.Nil {
+		return errors.New("bookingID cannot be nil")
+	}
+
+	return r.db.WithContext(ctx).Create(record).Error
+}
+
+// CountHostCancellationsSince counts host cancellations since the provided time.
+func (r *ProfileRepositoryImpl) CountHostCancellationsSince(ctx context.Context, hostID uuid.UUID, since time.Time) (int, error) {
+	if hostID == uuid.Nil {
+		return 0, errors.New("hostID cannot be nil")
+	}
+
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&schema.HostCancellationRecord{}).
+		Where("host_id = ? AND cancelled_at >= ?", hostID, since).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
+}
+
+// GetHostCancellationRecordByBookingID retrieves a cancellation record by booking ID.
+func (r *ProfileRepositoryImpl) GetHostCancellationRecordByBookingID(ctx context.Context, bookingID uuid.UUID) (*schema.HostCancellationRecord, error) {
+	if bookingID == uuid.Nil {
+		return nil, errors.New("bookingID cannot be nil")
+	}
+
+	var record schema.HostCancellationRecord
+	if err := r.db.WithContext(ctx).
+		Where("booking_id = ?", bookingID).
+		First(&record).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &record, nil
 }

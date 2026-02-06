@@ -153,6 +153,39 @@ func (r *Resolver) Listing(ctx context.Context, obj *domain.Booking) (*propertyd
 	return loaders.Listing.Load(ctx, obj.ListingID)
 }
 
+// CancellationPenaltyPreview represents the penalty preview for a host cancellation.
+type CancellationPenaltyPreview struct {
+	CancellationCount    int    `json:"cancellationCount"`
+	PenaltyAmount        int    `json:"penaltyAmount"`
+	SuspensionDays       int    `json:"suspensionDays"`
+	IsNewHostGracePeriod bool   `json:"isNewHostGracePeriod"`
+	RequiresReview       bool   `json:"requiresReview"`
+	WarningMessage       string `json:"warningMessage"`
+}
+
+// PreviewHostCancellationPenalty previews the penalty for a host cancellation.
+func (r *Resolver) PreviewHostCancellationPenalty(ctx context.Context, bookingID uuid.UUID) (*CancellationPenaltyPreview, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := r.bookingService.PreviewHostCancellationPenalty(ctx, bookingID, userID)
+	if err != nil {
+		r.log.Error("failed to preview host cancellation penalty", "booking_id", bookingID, "error", err)
+		return nil, err
+	}
+
+	return &CancellationPenaltyPreview{
+		CancellationCount:    result.CancellationCount,
+		PenaltyAmount:        int(result.PenaltyAmount),
+		SuspensionDays:       result.SuspensionDays,
+		IsNewHostGracePeriod: result.IsNewHostGracePeriod,
+		RequiresReview:       result.RequiresReview,
+		WarningMessage:       result.WarningMessage,
+	}, nil
+}
+
 // ============================================================================
 // Mutation Resolvers
 // ============================================================================

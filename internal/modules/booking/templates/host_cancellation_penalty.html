@@ -1,0 +1,17 @@
+<h1>Cancellation Penalty Applied</h1>
+<p>Hi {{.HostName}},</p>
+
+<p>A penalty of <strong>{{.PenaltyAmount}}</strong> has been applied for cancelling booking #{{.BookingRef}}.</p>
+
+{{if .SuspensionDays}}
+<p>Your listings have been suspended for <strong>{{.SuspensionDays}} days</strong>{{if .SuspensionEndDate}} until {{.SuspensionEndDate}}{{end}}.</p>
+{{end}}
+
+{{if .PenaltyPaid}}
+{{else}}
+<p>This penalty could not be collected immediately and will be deducted from future payouts.</p>
+{{end}}
+
+<p>This was cancellation #{{.CancellationCount}} in the last {{.WindowDays}} days.</p>
+
+<p><a href="{{.ManageURL}}">View Booking</a></p>

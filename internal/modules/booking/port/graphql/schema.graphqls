@@ -202,6 +202,24 @@ type CompleteBookingPayload {
   requiresAuthorization: Boolean!
 }
 
+"""
+Preview of the penalty that would apply if the host cancels a booking.
+"""
+type CancellationPenaltyPreview {
+  """Number of cancellations including this one in the rolling window."""
+  cancellationCount: Int!
+  """Penalty amount in minor units (e.g., kobo)."""
+  penaltyAmount: Int!
+  """Number of days listings would be suspended (0 if no suspension)."""
+  suspensionDays: Int!
+  """Whether the host is in their new-host grace period (no penalties)."""
+  isNewHostGracePeriod: Boolean!
+  """Whether this cancellation triggers a manual review requirement."""
+  requiresReview: Boolean!
+  """Human-readable warning message explaining the consequences."""
+  warningMessage: String!
+}
+
 extend type Query {
   # Get pricing and availability quote without creating a booking
   quoteBooking(
@@ -230,6 +248,12 @@ extend type Query {
     limit: Int
     offset: Int
   ): [Booking!]!
+
+  """
+  Preview the penalty that would apply if the host cancels this booking.
+  Only accessible to the host of the booking.
+  """
+  previewHostCancellationPenalty(bookingId: UUID!): CancellationPenaltyPreview!
 }
 
 extend type Mutation {

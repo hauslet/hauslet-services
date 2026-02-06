@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hauslet/internal/modules/booking/domain"
 	calendardomain "hauslet/internal/modules/calendar/domain"
+	profileservice "hauslet/internal/modules/profile/service"
 	"strings"
 
 	"time"
@@ -158,6 +159,29 @@ func (s *BookingServiceImpl) notifyBookingCancellation(ctx context.Context, book
 	if hostContact != nil && hostContact.Email != "" {
 		s.notifier.SendHostBookingCancelled(ctx, booking, hostContact.Name, hostContact.Email, cancelledBy, reason)
 	}
+}
+
+func (s *BookingServiceImpl) notifyHostCancellationPenalty(ctx context.Context, booking *domain.Booking, ownerID uuid.UUID, penalty *profileservice.PenaltyResult, penaltyPaid bool) {
+	if s.notifier == nil || booking == nil || penalty == nil {
+		return
+	}
+
+	hostContact := s.getUserContact(ctx, ownerID)
+	if hostContact == nil || hostContact.Email == "" {
+		return
+	}
+
+	windowDays := s.platformConfig.HostCancellation.WindowDays
+	if windowDays <= 0 {
+		windowDays = 30
+	}
+
+	if penalty.PenaltyAmount == 0 {
+		s.notifier.SendHostCancellationWarning(ctx, booking, hostContact.Name, hostContact.Email, penalty.CancellationCount, windowDays, penalty.WarningMessage)
+		return
+	}
+
+	s.notifier.SendHostCancellationPenalty(ctx, booking, hostContact.Name, hostContact.Email, penalty.PenaltyAmount, penalty.SuspensionDays, penalty.CancellationCount, windowDays, penaltyPaid)
 }
 
 func (s *BookingServiceImpl) notifyPaymentFailed(ctx context.Context, booking *domain.Booking) {

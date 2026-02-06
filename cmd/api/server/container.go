@@ -717,6 +717,7 @@ func (c *Container) initFinance() error {
 	financeTransactionRepo := financerepository.NewTransactionRepository(c.DB)
 	financeDisbursementRepo := financerepository.NewDisbursementRepository(c.DB)
 	financeDisputeRepo := financerepository.NewDisputeRepository(c.DB)
+	financePenaltyDebtRepo := financerepository.NewPenaltyDebtRepository(c.DB)
 	financeReconciliationRepo := financerepository.NewReconciliationRepository(c.DB)
 
 	// Create auth adapter for admin notifications
@@ -742,6 +743,7 @@ func (c *Container) initFinance() error {
 		financeTransactionRepo,
 		financeDisbursementRepo,
 		financeDisputeRepo,
+		financePenaltyDebtRepo,
 		financeReconciliationRepo,
 		bookingPartyQuerier,
 		authAdminAdapter,
@@ -759,6 +761,7 @@ func (c *Container) initBooking() error {
 	emailSubject := c.Config.YAML.Queue.Subjects["email"]
 	bookingRepo := bookingrepository.NewBookingRepository(c.DB)
 	propertyRepo := propertyrepository.NewPropertyRepository(c.DB)
+	profileRepo := profilerepository.NewProfileRepository(c.DB)
 
 	bookingNotificationService := bookingnotification.NewNotificationService(
 		c.EmailClient,
@@ -773,6 +776,7 @@ func (c *Container) initBooking() error {
 	propertyHooksAdapter := bookinghooks.NewPropertyHooksAdapter(propertyRepo)
 	bookingProfileAdapter := profileport.NewBookingProfileAdapter(c.ProfileSvc)
 	financeHooksAdapter := financehooks.NewPaymentHooksAdapter(c.FinanceSvc)
+	hostPenaltySvc := profileservice.NewHostPenaltyService(profileRepo, propertyRepo, c.Config.YAML.Platform, c.Logger)
 
 	// Initialize review hooks adapter (needs to be created before booking service)
 	reviewUserAdapter := reviewhooks.NewReviewUserAdapter(c.ProfileSvc)
@@ -806,6 +810,7 @@ func (c *Container) initBooking() error {
 		c.Config.YAML.Queue.Subjects["booking_refund"],
 		financeHooksAdapter,
 		reviewBookingHooksAdapter,
+		hostPenaltySvc,
 		c.Config.YAML.Platform,
 		c.Logger,
 		c.FXClient,
@@ -880,6 +885,7 @@ func (c *Container) initPayout() error {
 	financeLedgerRepo := financerepository.NewLedgerRepository(c.DB)
 	financeTransactionRepo := financerepository.NewTransactionRepository(c.DB)
 	financeDisbursementRepo := financerepository.NewDisbursementRepository(c.DB)
+	financePenaltyDebtRepo := financerepository.NewPenaltyDebtRepository(c.DB)
 
 	financeNotificationSvc := financenotification.NewNotificationService(
 		c.EmailClient,
@@ -898,6 +904,7 @@ func (c *Container) initPayout() error {
 		financeLedgerRepo,
 		financeTransactionRepo,
 		financeDisbursementRepo,
+		financePenaltyDebtRepo,
 		paymentsRepo,
 		bookingQuerierAdapter,
 		financeNotificationSvc,

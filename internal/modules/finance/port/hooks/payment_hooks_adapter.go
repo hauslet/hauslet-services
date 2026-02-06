@@ -57,6 +57,17 @@ func (a *PaymentHooksAdapter) OnBookingCompleted(
 	return nil
 }
 
+// DeductPenalty withdraws a penalty amount from a host wallet.
+func (a *PaymentHooksAdapter) DeductPenalty(
+	ctx context.Context,
+	hostID uuid.UUID,
+	amount int64,
+	bookingID uuid.UUID,
+	currency string,
+) error {
+	return a.financeSvc.DeductPenalty(ctx, hostID, amount, bookingID, currency)
+}
+
 // OnBookingCancelledWithFunds handles booking cancellation fund settlement
 // This is called after a booking is cancelled and refund has been processed
 // to distribute any remaining non-refunded funds (commission to platform, remainder to host)

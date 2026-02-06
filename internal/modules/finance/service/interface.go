@@ -50,6 +50,9 @@ type LedgerService interface {
 	// Creates ledger entries: Debit escrow → Credit host available wallet
 	RecordPayout(ctx context.Context, bookingID, hostID uuid.UUID, amount int64, currency string) (*domain.Transaction, error)
 
+	// DeductPenalty withdraws a penalty amount from host wallet
+	DeductPenalty(ctx context.Context, hostID uuid.UUID, amount int64, bookingID uuid.UUID, currency string) error
+
 	// SettleCancelledBooking settles remaining escrow funds after a booking cancellation
 	// This distributes non-refunded amounts: commission to platform, remainder to host
 	// Should be called after refund processing when there are remaining funds in escrow
@@ -63,6 +66,12 @@ type LedgerService interface {
 
 	// ListTransactionsByOwner returns transactions for a user or business
 	ListTransactionsByOwner(ctx context.Context, ownerType domain.OwnerType, ownerID uuid.UUID, txType *domain.TransactionType, status *domain.TransactionStatus, limit, offset int) ([]*domain.Transaction, error)
+}
+
+// PenaltyDebtService handles unpaid penalty collection.
+type PenaltyDebtService interface {
+	// CollectOutstandingPenaltyDebts attempts to collect unpaid penalties from host wallets.
+	CollectOutstandingPenaltyDebts(ctx context.Context) (*PenaltyDebtCollectionReport, error)
 }
 
 // PayoutService defines operations for automated host payouts
@@ -167,6 +176,7 @@ type AdminProvider interface {
 type FinanceService interface {
 	WalletService
 	LedgerService
+	PenaltyDebtService
 	DisputeService
 	ReconciliationService
 }

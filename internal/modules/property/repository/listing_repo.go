@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"hauslet/internal/modules/property/repository/schema"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -318,6 +319,32 @@ func (r *GormRepository) GetListingsByPropertyIDs(ctx context.Context, propertyI
 		return nil, fmt.Errorf("failed to get listings by property IDs: %w", err)
 	}
 
+	return listings, nil
+}
+
+// FindExpiredSuspensions returns listings with expired suspensions.
+func (r *GormRepository) FindExpiredSuspensions(ctx context.Context, now time.Time) ([]schema.Listing, error) {
+	var listings []schema.Listing
+	if err := r.db.WithContext(ctx).
+		Where("deleted_at IS NULL").
+		Where("suspended_until IS NOT NULL AND suspended_until < ?", now).
+		Find(&listings).Error; err != nil {
+		return nil, fmt.Errorf("failed to list expired suspensions: %w", err)
+	}
+	return listings, nil
+}
+
+// FindSuspensionsEndingSoon returns listings with suspensions ending between from and to times.
+// Excludes listings that have already been notified (suspension_ending_notified_at is set).
+func (r *GormRepository) FindSuspensionsEndingSoon(ctx context.Context, from, to time.Time) ([]schema.Listing, error) {
+	var listings []schema.Listing
+	if err := r.db.WithContext(ctx).
+		Where("deleted_at IS NULL").
+		Where("suspended_until IS NOT NULL AND suspended_until >= ? AND suspended_until < ?", from, to).
+		Where("suspension_ending_notified_at IS NULL").
+		Find(&listings).Error; err != nil {
+		return nil, fmt.Errorf("failed to list suspensions ending soon: %w", err)
+	}
 	return listings, nil
 }
 

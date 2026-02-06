@@ -28,6 +28,11 @@ output "scheduler_jobs" {
       schedule = google_cloud_scheduler_job.disbursement_retry.schedule
       endpoint = google_cloud_scheduler_job.disbursement_retry.http_target[0].uri
     }
+    penalty_debt_collection = {
+      name     = google_cloud_scheduler_job.penalty_debt_collection.name
+      schedule = google_cloud_scheduler_job.penalty_debt_collection.schedule
+      endpoint = google_cloud_scheduler_job.penalty_debt_collection.http_target[0].uri
+    }
     finance_reconciliation = {
       name     = google_cloud_scheduler_job.finance_reconciliation.name
       schedule = google_cloud_scheduler_job.finance_reconciliation.schedule

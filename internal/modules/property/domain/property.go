@@ -109,6 +109,10 @@ type Listing struct {
 	// Moderation
 	LatestReviewStatus ReviewStatus `json:"latest_review_status"`
 
+	// Suspension
+	SuspendedUntil   *time.Time `json:"suspended_until,omitempty"`
+	SuspensionReason string     `json:"suspension_reason,omitempty"`
+
 	// Verification
 	IsVerified        bool              `json:"is_verified"`
 	VerificationLevel VerificationLevel `json:"verification_level"`

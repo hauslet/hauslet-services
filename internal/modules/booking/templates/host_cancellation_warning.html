@@ -1,0 +1,12 @@
+<h1>Booking Cancellation Processed</h1>
+<p>Hi {{.HostName}},</p>
+<p>We've processed your cancellation for booking #{{.BookingRef}}.</p>
+
+{{if .WarningMessage}}
+<p>{{.WarningMessage}}</p>
+{{end}}
+
+<p>This was cancellation #{{.CancellationCount}} in the last {{.WindowDays}} days.</p>
+<p>Please avoid frequent cancellations to prevent penalties or listing suspensions.</p>
+
+<p><a href="{{.ManageURL}}">View Booking</a></p>

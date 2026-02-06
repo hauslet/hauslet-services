@@ -212,6 +212,8 @@ func (s *PayoutServiceImpl) processSinglePayout(
 
 	// Use database transaction to ensure atomicity
 	var disbursement *financeSchema.Disbursement
+	var payoutSkipped bool
+	var payoutWithheld bool
 	if err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Create transaction-aware repositories
 		walletRepo := s.walletRepo.WithTx(tx)
@@ -246,6 +248,7 @@ func (s *PayoutServiceImpl) processSinglePayout(
 				}
 			}
 
+			payoutSkipped = true
 			// Return nil to skip this payout for now. It will be picked up again
 			// in the next cron run once the user adds their details.
 			return nil
@@ -294,50 +297,101 @@ func (s *PayoutServiceImpl) processSinglePayout(
 			)
 		}
 
-		// Step 4: Get or create host available wallet
-		hostWalletSchema, err := walletRepo.GetByOwner(
-			ctx,
-			string(domain.OwnerTypeUser),
-			hostID,
-			string(domain.WalletTypeHostAvailable),
-		)
-		if err != nil {
-			return fmt.Errorf("failed to get host wallet: %w", err)
-		}
-		if hostWalletSchema == nil {
-			// Create host wallet
-			newWallet := &financeSchema.Wallet{
-				ID:         uuid.New(),
-				OwnerType:  string(domain.OwnerTypeUser),
-				OwnerID:    hostID,
-				WalletType: string(domain.WalletTypeHostAvailable),
-				Balance:    0,
-				Currency:   currency,
-				Status:     string(domain.WalletStatusActive),
-				CreatedAt:  time.Now(),
-				UpdatedAt:  time.Now(),
+		// Step 3b: Apply outstanding penalty debts (netted from host payout)
+		if hostPayout > 0 {
+			penaltyApplied, err := s.applyPenaltyDebtsToPayout(
+				ctx,
+				tx,
+				hostID,
+				escrowWalletID,
+				platformWallet.ID,
+				hostPayout,
+				currency,
+				bookingID,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to apply penalty debts: %w", err)
 			}
-			if err := walletRepo.Create(ctx, newWallet); err != nil {
-				return fmt.Errorf("failed to create host wallet: %w", err)
+			if penaltyApplied > 0 && s.log != nil {
+				s.log.Info("[AUDIT] penalty_debt_applied",
+					"booking_id", bookingID,
+					"host_id", hostID,
+					"amount", penaltyApplied,
+				)
 			}
-			hostWalletSchema = newWallet
-		}
-		hostWallet := domain.MapWalletFromSchema(hostWalletSchema)
-
-		// Step 5: Record payout ledger entry (escrow → host_available)
-		payoutTx, err := s.recordPayoutInternal(ctx, tx, bookingID, escrowWalletID, hostWallet.ID, hostPayout, currency)
-		if err != nil {
-			return fmt.Errorf("failed to record payout: %w", err)
+			hostPayout -= penaltyApplied
+			if hostPayout < 0 {
+				hostPayout = 0
+			}
 		}
 
-		if s.log != nil {
-			s.log.Info("payout recorded",
-				"transaction_id", payoutTx.ID,
-				"amount", hostPayout,
+		var hostWallet *domain.Wallet
+		var payoutTx *domain.Transaction
+
+		if hostPayout > 0 {
+			// Step 4: Get or create host available wallet
+			hostWalletSchema, err := walletRepo.GetByOwner(
+				ctx,
+				string(domain.OwnerTypeUser),
+				hostID,
+				string(domain.WalletTypeHostAvailable),
+			)
+			if err != nil {
+				return fmt.Errorf("failed to get host wallet: %w", err)
+			}
+			if hostWalletSchema == nil {
+				// Create host wallet
+				newWallet := &financeSchema.Wallet{
+					ID:         uuid.New(),
+					OwnerType:  string(domain.OwnerTypeUser),
+					OwnerID:    hostID,
+					WalletType: string(domain.WalletTypeHostAvailable),
+					Balance:    0,
+					Currency:   currency,
+					Status:     string(domain.WalletStatusActive),
+					CreatedAt:  time.Now(),
+					UpdatedAt:  time.Now(),
+				}
+				if err := walletRepo.Create(ctx, newWallet); err != nil {
+					return fmt.Errorf("failed to create host wallet: %w", err)
+				}
+				hostWalletSchema = newWallet
+			}
+			hostWallet = domain.MapWalletFromSchema(hostWalletSchema)
+
+			// Step 5: Record payout ledger entry (escrow → host_available)
+			payoutTx, err = s.recordPayoutInternal(ctx, tx, bookingID, escrowWalletID, hostWallet.ID, hostPayout, currency)
+			if err != nil {
+				return fmt.Errorf("failed to record payout: %w", err)
+			}
+
+			if s.log != nil {
+				s.log.Info("payout recorded",
+					"transaction_id", payoutTx.ID,
+					"amount", hostPayout,
+				)
+			}
+		} else if s.log != nil {
+			s.log.Info("[AUDIT] payout_withheld_due_to_penalty",
+				"booking_id", bookingID,
+				"host_id", hostID,
 			)
 		}
 
 		// Step 6: Create disbursement record for actual bank transfer
+		if hostPayout <= 0 {
+			// No funds to disburse after penalties.
+			payoutWithheld = true
+			if s.bookingHooks != nil {
+				if err := s.bookingHooks.MarkAsSettled(ctx, bookingID); err != nil && s.log != nil {
+					s.log.Warn("failed to mark booking as settled",
+						"error", err,
+					)
+				}
+			}
+			return nil
+		}
+
 		defaultProvider := "paystack"
 		switch strings.ToUpper(currency) {
 		case "USD", "GHS":
@@ -412,6 +466,18 @@ func (s *PayoutServiceImpl) processSinglePayout(
 	}
 
 	if disbursement == nil {
+		if payoutWithheld {
+			if s.log != nil {
+				s.log.Info("[AUDIT] payout_skipped_due_to_penalty_debt",
+					"booking_id", bookingID,
+					"host_id", hostID,
+				)
+			}
+			return nil
+		}
+		if payoutSkipped {
+			return nil
+		}
 		return fmt.Errorf("disbursement creation failed")
 	}
 

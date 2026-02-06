@@ -34,6 +34,7 @@ func TestProcessSinglePayoutImmediateDisbursement(t *testing.T) {
 	ledgerRepo := repository.NewLedgerRepository(db)
 	transactionRepo := repository.NewTransactionRepository(db)
 	disbursementRepo := repository.NewDisbursementRepository(db)
+	penaltyDebtRepo := repository.NewPenaltyDebtRepository(db)
 
 	now := time.Now()
 	bookingID := uuid.New()
@@ -120,6 +121,7 @@ func TestProcessSinglePayoutImmediateDisbursement(t *testing.T) {
 		ledgerRepo,
 		transactionRepo,
 		disbursementRepo,
+		penaltyDebtRepo,
 		&stubPayoutDetailRepo{detail: payoutDetail},
 		nil,
 		nil,

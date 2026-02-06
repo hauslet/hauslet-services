@@ -111,6 +111,9 @@ func (m *MockFinanceHooks) OnRefundProcessed(_ context.Context, _, _ uuid.UUID, 
 func (m *MockFinanceHooks) OnBookingCompleted(_ context.Context, _, _ uuid.UUID) error {
 	return nil
 }
+func (m *MockFinanceHooks) DeductPenalty(_ context.Context, _ uuid.UUID, _ int64, _ uuid.UUID, _ string) error {
+	return nil
+}
 
 type MockPaymentGateway struct {
 	mock.Mock

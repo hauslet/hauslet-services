@@ -11,6 +11,7 @@ queue:
     media_thumbnail: "media-thumbnail-queue"
     media_cleanup: "media-cleanup-queue"
     listing_embedding: "listing-embedding-queue"
+    listing_suspension_lifter: "listing-suspension-lifter-queue"
     ai_moderation: "ai-moderation-queue"
     booking_expiry: "booking-expiry-queue"
     booking_completion: "booking-completion-queue"
@@ -19,6 +20,7 @@ queue:
     payment_webhook: "payment-webhook-queue"
     payout_process: "payout-process-queue"
     payout_retry: "payout-retry-queue"
+    penalty_debt_collection: "penalty-debt-collection-queue"
     finance_reconciliation: "finance-reconciliation-queue"
     review_stats: "review-stats-queue"
     review_standoff: "review-standoff-queue"
@@ -33,5 +35,3 @@ queue:
     interactions_aggregator: "interactions-aggregator-queue"
     conversation_cleanup: "conversation-cleanup-queue"
     lead_qualification: "lead-qualification-queue"
-
-

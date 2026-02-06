@@ -8,6 +8,7 @@ import (
 	"hauslet/internal/modules/booking/repository"
 	calendardomain "hauslet/internal/modules/calendar/domain"
 	pricingdomain "hauslet/internal/modules/pricing/domain"
+	profileservice "hauslet/internal/modules/profile/service"
 	platformQueue "hauslet/internal/platform/queue"
 	"hauslet/internal/platform/xchange"
 	"log/slog"
@@ -21,6 +22,7 @@ type FinanceHooks interface {
 	OnPaymentSucceeded(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
 	OnRefundProcessed(ctx context.Context, bookingID, paymentID uuid.UUID, amount int64, currency string) error
 	OnBookingCompleted(ctx context.Context, bookingID, hostID uuid.UUID) error
+	DeductPenalty(ctx context.Context, hostID uuid.UUID, amount int64, bookingID uuid.UUID, currency string) error
 	// OnBookingCancelledWithFunds settles remaining escrow funds after a booking cancellation
 	// This handles non-refunded amounts when a guest cancels (e.g., strict policy, late cancellation)
 	OnBookingCancelledWithFunds(ctx context.Context, bookingID, hostID uuid.UUID, hostAmount, platformAmount int64, currency string) error
@@ -66,9 +68,22 @@ type BookingService interface {
 	// Check-in/out fallback
 	AutoPopulateCheckInOut(ctx context.Context) (int, int, error)
 
+	// Host cancellation penalty preview
+	PreviewHostCancellationPenalty(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*PenaltyPreviewResult, error)
+
 	// Localization
 	LocalizeBooking(ctx context.Context, booking *domain.Booking)
 	LocalizeQuote(ctx context.Context, quote *domain.BookingQuote)
+}
+
+// PenaltyPreviewResult represents the result of a host cancellation penalty preview.
+type PenaltyPreviewResult struct {
+	CancellationCount    int
+	PenaltyAmount        int64
+	SuspensionDays       int
+	IsNewHostGracePeriod bool
+	RequiresReview       bool
+	WarningMessage       string
 }
 
 type ContactInfo struct {
@@ -223,6 +238,7 @@ type BookingServiceImpl struct {
 	refundSubject  string
 	financeHooks   FinanceHooks
 	reviewHooks    ReviewHooks
+	hostPenaltySvc profileservice.HostPenaltyService
 	platformConfig config.PlatformYAMLConfig
 	log            *slog.Logger
 	fx             xchange.XChange
@@ -240,6 +256,7 @@ func NewBookingService(
 	refundSubject string,
 	financeHooks FinanceHooks,
 	reviewHooks ReviewHooks,
+	hostPenaltySvc profileservice.HostPenaltyService,
 	platformConfig config.PlatformYAMLConfig,
 	log *slog.Logger,
 	fx xchange.XChange,
@@ -256,6 +273,7 @@ func NewBookingService(
 		refundSubject:  refundSubject,
 		financeHooks:   financeHooks,
 		reviewHooks:    reviewHooks,
+		hostPenaltySvc: hostPenaltySvc,
 		platformConfig: platformConfig,
 		log:            log,
 		fx:             fx,

@@ -111,6 +111,7 @@ type ListingFilter struct {
 	CreatedAfter       *time.Time
 	CreatedBefore      *time.Time
 	IncludeDeleted     bool
+	ExcludeSuspended   bool
 	SortBy             ListingSortBy
 	SortOrder          SortOrder
 
@@ -307,6 +308,9 @@ func applyListingFilter(db *gorm.DB, f ListingFilter) *gorm.DB {
 	}
 	if f.CreatedBefore != nil {
 		db = db.Where("created_at <= ?", *f.CreatedBefore)
+	}
+	if f.ExcludeSuspended {
+		db = db.Where("suspended_until IS NULL OR suspended_until < ?", time.Now())
 	}
 
 	return db

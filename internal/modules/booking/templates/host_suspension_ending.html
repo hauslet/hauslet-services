@@ -1,0 +1,21 @@
+<h1>Your Listing Suspension Ends Soon</h1>
+<p>Hi {{.HostName}},</p>
+
+<p>Good news! Your listing suspension will end <strong>{{.EndDate}}</strong>.</p>
+
+<p>Once the suspension lifts, your listings will automatically become visible to guests again.</p>
+
+{{if .TipsToAvoid}}
+<h3>Tips to Avoid Future Suspensions:</h3>
+<ul>
+{{range .TipsToAvoid}}
+  <li>{{.}}</li>
+{{end}}
+</ul>
+{{end}}
+
+<p>We recommend reviewing your calendar availability and booking settings before the suspension ends to ensure a smooth return.</p>
+
+<p><a href="{{.ManageListingsURL}}">Manage Your Listings</a></p>
+
+<p>If you have any questions, please contact our support team.</p>

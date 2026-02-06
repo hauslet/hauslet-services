@@ -123,6 +123,25 @@ func (Dispute) TableName() string {
 	return "disputes"
 }
 
+// PenaltyDebt represents an unpaid penalty to be collected from a host.
+type PenaltyDebt struct {
+	ID                uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	HostID            uuid.UUID  `gorm:"type:uuid;not null;index:idx_penalty_debt_host_status"`
+	BookingID         uuid.UUID  `gorm:"type:uuid;not null;uniqueIndex"`
+	Amount            int64      `gorm:"not null"`
+	OutstandingAmount int64      `gorm:"not null"`
+	Currency          string     `gorm:"type:varchar(3);not null"`
+	Status            string     `gorm:"type:varchar(20);not null;index:idx_penalty_debt_host_status"`
+	CreatedAt         time.Time  `gorm:"not null;default:now();index"`
+	UpdatedAt         time.Time  `gorm:"not null;default:now()"`
+	SettledAt         *time.Time `gorm:"index"`
+}
+
+// TableName specifies the table name for PenaltyDebt
+func (PenaltyDebt) TableName() string {
+	return "penalty_debts"
+}
+
 // ReconciliationReport represents a reconciliation run in the database
 type ReconciliationReport struct {
 	ID                       uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`

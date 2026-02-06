@@ -78,6 +78,17 @@ type DisputeRepository interface {
 	WithTx(tx *gorm.DB) DisputeRepository
 }
 
+// PenaltyDebtRepository handles unpaid penalty persistence
+type PenaltyDebtRepository interface {
+	Create(ctx context.Context, debt *schema.PenaltyDebt) error
+	GetByBookingID(ctx context.Context, bookingID uuid.UUID) (*schema.PenaltyDebt, error)
+	ListOutstandingByHost(ctx context.Context, hostID uuid.UUID) ([]*schema.PenaltyDebt, error)
+	ListOutstanding(ctx context.Context, limit int) ([]*schema.PenaltyDebt, error)
+	Update(ctx context.Context, debt *schema.PenaltyDebt) error
+	// WithTx returns a new repository instance using the provided transaction
+	WithTx(tx *gorm.DB) PenaltyDebtRepository
+}
+
 // ReconciliationRepository handles reconciliation report and discrepancy persistence
 type ReconciliationRepository interface {
 	// Report operations

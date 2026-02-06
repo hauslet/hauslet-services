@@ -35,6 +35,11 @@ type Listing struct {
 	// Moderation
 	LatestReviewStatus ReviewStatus `gorm:"default:'pending'"`
 
+	// Suspension
+	SuspendedUntil             *time.Time `gorm:"index"`
+	SuspensionReason           string     `gorm:"type:text"`
+	SuspensionEndingNotifiedAt *time.Time // Tracks when suspension ending notification was sent
+
 	// Verification
 	IsVerified        bool              `gorm:"default:false;index"`
 	VerificationLevel VerificationLevel `gorm:"size:50;default:'none'"`

@@ -2,9 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hauslet/internal/modules/booking/domain"
+	financedomain "hauslet/internal/modules/finance/domain"
 	pricingdomain "hauslet/internal/modules/pricing/domain"
+	profileservice "hauslet/internal/modules/profile/service"
 	bookingJobs "hauslet/internal/queue/jobs/booking"
 	"time"
 
@@ -29,6 +32,10 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 	cancelledBy := s.determineCancellationActor(booking, actorID, ownerID)
 	wasPendingApproval := booking.Status == domain.BookingStatusPendingApproval
 
+	var penaltyResult *profileservice.PenaltyResult
+	var penaltyPaid bool
+	var warningSent bool
+
 	// Get listing constraints for refund policy
 	constraints, err := s.listingHooks.GetListingConstraints(ctx, booking.ListingID)
 	if err != nil {
@@ -36,6 +43,69 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 			s.log.Warn("failed to get listing constraints", "error", err)
 		}
 		// Continue with cancellation even if we can't get constraints
+	}
+
+	// Host cancellation penalty handling (before refund processing)
+	if cancelledBy == pricingdomain.CancelledByHost && !wasPendingApproval && s.hostPenaltySvc != nil {
+		penaltyResult, err = s.hostPenaltySvc.CalculatePenalty(ctx, ownerID)
+		if err != nil {
+			if s.log != nil {
+				s.log.Error("failed to calculate host cancellation penalty", "error", err)
+			}
+		} else {
+			if penaltyResult.PenaltyAmount > 0 && s.financeHooks != nil {
+				if err := s.financeHooks.DeductPenalty(ctx, ownerID, penaltyResult.PenaltyAmount, booking.ID, booking.Currency); err != nil {
+					if errors.Is(err, financedomain.ErrInsufficientBalance) {
+						if s.log != nil {
+							s.log.Warn("insufficient wallet balance for cancellation penalty", "host_id", ownerID, "booking_id", booking.ID, "required", penaltyResult.PenaltyAmount)
+						}
+						penaltyPaid = false
+					} else {
+						if s.log != nil {
+							s.log.Error("failed to deduct cancellation penalty", "error", err)
+						}
+					}
+				} else {
+					penaltyPaid = true
+				}
+			}
+
+			if penaltyResult.PenaltyAmount == 0 {
+				warningSent = true
+			}
+
+			// Record the cancellation (non-blocking)
+			if err := s.hostPenaltySvc.RecordCancellation(ctx, profileservice.RecordCancellationInput{
+				HostID:      ownerID,
+				BookingID:   booking.ID,
+				CancelledAt: time.Now(),
+				Reason: func() string {
+					if reason != nil {
+						return *reason
+					}
+					return ""
+				}(),
+				PenaltyAmount: penaltyResult.PenaltyAmount,
+				PenaltyPaid:   penaltyPaid,
+				WarningSent:   warningSent,
+			}); err != nil {
+				if s.log != nil {
+					s.log.Error("failed to record host cancellation", "error", err)
+				}
+			}
+
+			if penaltyResult.SuspensionDays > 0 {
+				windowDays := s.platformConfig.HostCancellation.WindowDays
+				if windowDays <= 0 {
+					windowDays = 30
+				}
+				if err := s.hostPenaltySvc.ApplySuspension(ctx, ownerID, penaltyResult.SuspensionDays,
+					fmt.Sprintf("Automatic suspension after %d cancellations in %d days", penaltyResult.CancellationCount, windowDays),
+				); err != nil && s.log != nil {
+					s.log.Error("failed to apply listing suspension", "error", err)
+				}
+			}
+		}
 	}
 
 	// Calculate refund if payment exists and pricing service is available
@@ -219,6 +289,10 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 		s.notifyBookingCancellation(ctx, booking, ownerID, string(cancelledBy), reason)
 	}
 
+	if cancelledBy == pricingdomain.CancelledByHost && penaltyResult != nil {
+		s.notifyHostCancellationPenalty(ctx, booking, ownerID, penaltyResult, penaltyPaid)
+	}
+
 	if s.log != nil {
 		s.log.Info("booking cancelled successfully", "booking_id", bookingID.String(), "refund_amount", refundAmount, "cancelled_by", cancelledBy)
 	}
@@ -301,4 +375,59 @@ func mapPricingRefundToSnapshot(s *pricingdomain.RefundBreakdown) *domain.Refund
 		PolicyRules:          s.PolicyRules,
 		CalculatedAt:         s.CalculatedAt,
 	}
+}
+
+// PreviewHostCancellationPenalty allows a host to preview the penalty before confirming a cancellation.
+func (s *BookingServiceImpl) PreviewHostCancellationPenalty(ctx context.Context, bookingID uuid.UUID, actorID uuid.UUID) (*PenaltyPreviewResult, error) {
+	booking, ownerID, err := s.getBookingWithOwner(ctx, bookingID, actorID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Only the host can preview penalties
+	if actorID != ownerID {
+		return nil, domain.ErrUnauthorized
+	}
+
+	// Check if booking is in a cancellable state
+	if !booking.CanBeCancelled() {
+		return nil, domain.ErrCannotCancel
+	}
+
+	// Pre-approved bookings have no penalty
+	if booking.Status == domain.BookingStatusPendingApproval {
+		return &PenaltyPreviewResult{
+			CancellationCount:    0,
+			PenaltyAmount:        0,
+			SuspensionDays:       0,
+			IsNewHostGracePeriod: false,
+			RequiresReview:       false,
+			WarningMessage:       "Cancelling this booking request will have no penalty.",
+		}, nil
+	}
+
+	if s.hostPenaltySvc == nil {
+		return &PenaltyPreviewResult{
+			CancellationCount:    0,
+			PenaltyAmount:        0,
+			SuspensionDays:       0,
+			IsNewHostGracePeriod: false,
+			RequiresReview:       false,
+			WarningMessage:       "",
+		}, nil
+	}
+
+	penaltyResult, err := s.hostPenaltySvc.CalculatePenalty(ctx, ownerID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to calculate penalty: %w", err)
+	}
+
+	return &PenaltyPreviewResult{
+		CancellationCount:    penaltyResult.CancellationCount,
+		PenaltyAmount:        penaltyResult.PenaltyAmount,
+		SuspensionDays:       penaltyResult.SuspensionDays,
+		IsNewHostGracePeriod: penaltyResult.IsNewHostGracePeriod,
+		RequiresReview:       penaltyResult.RequiresReview,
+		WarningMessage:       penaltyResult.WarningMessage,
+	}, nil
 }

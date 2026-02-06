@@ -231,6 +231,84 @@ func (s *NotificationService) SendHostBookingCancelled(ctx context.Context, book
 	s.renderAndSend(ctx, "booking_cancelled_host.html", hostEmail, subject, data, "send booking cancelled host email")
 }
 
+// SendHostCancellationWarning notifies the host about a warning-only cancellation.
+func (s *NotificationService) SendHostCancellationWarning(ctx context.Context, booking *domain.Booking, hostName, hostEmail string, cancellationCount int, windowDays int, warningMessage string) {
+	if booking == nil || hostEmail == "" {
+		return
+	}
+
+	subject := "Your booking cancellation - Important information"
+	preview := fmt.Sprintf("Your first cancellation in the last %d days was processed with no penalty.", windowDays)
+	if warningMessage != "" {
+		preview = warningMessage
+	}
+
+	data := s.baseBookingData(subject, preview, booking)
+	data["HostName"] = s.fallbackName(hostName)
+	data["BookingRef"] = booking.BookingReference
+	data["ManageURL"] = s.hostBookingURL(booking)
+	data["CancellationCount"] = cancellationCount
+	data["WindowDays"] = windowDays
+	data["WarningMessage"] = warningMessage
+
+	s.renderAndSend(ctx, "host_cancellation_warning.html", hostEmail, subject, data, "send host cancellation warning email")
+}
+
+// SendHostCancellationPenalty notifies the host about an applied cancellation penalty.
+func (s *NotificationService) SendHostCancellationPenalty(ctx context.Context, booking *domain.Booking, hostName, hostEmail string, penaltyAmount int64, suspensionDays int, cancellationCount int, windowDays int, penaltyPaid bool) {
+	if booking == nil || hostEmail == "" {
+		return
+	}
+
+	amountMajor := float64(penaltyAmount) / 100
+	amountText := fmt.Sprintf("%s %.2f", booking.Currency, amountMajor)
+	subject := fmt.Sprintf("Cancellation penalty applied - %s", amountText)
+	preview := fmt.Sprintf("A penalty of %s was applied to your wallet.", amountText)
+
+	data := s.baseBookingData(subject, preview, booking)
+	data["HostName"] = s.fallbackName(hostName)
+	data["BookingRef"] = booking.BookingReference
+	data["ManageURL"] = s.hostBookingURL(booking)
+	data["PenaltyAmount"] = amountText
+	data["SuspensionDays"] = suspensionDays
+	data["CancellationCount"] = cancellationCount
+	data["WindowDays"] = windowDays
+	data["PenaltyPaid"] = penaltyPaid
+	if suspensionDays > 0 {
+		endDate := time.Now().AddDate(0, 0, suspensionDays)
+		data["SuspensionEndDate"] = s.formatDate(&endDate)
+	}
+
+	s.renderAndSend(ctx, "host_cancellation_penalty.html", hostEmail, subject, data, "send host cancellation penalty email")
+}
+
+// SendHostSuspensionEnding notifies a host that their suspension will end soon.
+func (s *NotificationService) SendHostSuspensionEnding(ctx context.Context, hostName, hostEmail string, suspensionEndTime time.Time) {
+	if hostEmail == "" {
+		return
+	}
+
+	subject := "Your listing suspension ends soon"
+	preview := fmt.Sprintf("Your listings will be visible again on %s.", s.formatDate(&suspensionEndTime))
+
+	data := map[string]any{
+		"Subject":           subject,
+		"Preview":           preview,
+		"Year":              time.Now().Year(),
+		"HostName":          s.fallbackName(hostName),
+		"EndDate":           s.formatDate(&suspensionEndTime),
+		"ManageListingsURL": fmt.Sprintf("%s/host/listings", s.baseURL),
+		"TipsToAvoid": []string{
+			"Avoid cancelling confirmed bookings whenever possible",
+			"Keep your calendar up to date to prevent overbooking",
+			"Use blocking to prevent bookings on dates you're unavailable",
+			"Communicate with guests early if issues arise",
+		},
+	}
+
+	s.renderAndSend(ctx, "host_suspension_ending.html", hostEmail, subject, data, "send host suspension ending email")
+}
+
 // sendEmailAsync runs the provided send function in a goroutine and logs errors.
 func (s *NotificationService) sendEmailAsync(label string, fn func() error) {
 	go func() {

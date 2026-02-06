@@ -99,6 +99,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	hasPaymentWebhook := qCfg["payment_webhook"] != ""
 	hasCalendarShowingReminders := qCfg["calendar_showing_reminders"] != ""
 	hasCalendarOpenHouseReminders := qCfg["calendar_open_house_reminders"] != ""
+	hasSuspensionLifter := qCfg["listing_suspension_lifter"] != ""
 
 	// Shared repos/services
 	var propertyRepo propertyrepository.Repository
@@ -106,7 +107,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	var propertyProfileAdapter *profileport.PropertyProfileAdapter
 	var profileRepo profilerepository.ProfileRepository
 
-	if hasThumbnail || hasCleanup || hasModeration || hasPaymentWebhook || hasCalendarShowingReminders || hasCalendarOpenHouseReminders {
+	if hasThumbnail || hasCleanup || hasModeration || hasPaymentWebhook || hasCalendarShowingReminders || hasCalendarOpenHouseReminders || hasSuspensionLifter {
 		propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
 		profileRepo = profilerepository.NewProfileRepository(infra.DB)
 		profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, nil, log)
@@ -116,6 +117,20 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 	// Thumbnail handler
 	if hasThumbnail {
 		h := listingHandler.NewListingMediaThumbnailHandler(propertyRepo, infra.Storage, log, qCfg["media_thumbnail"])
+		registry.Register(h)
+	}
+
+	if hasSuspensionLifter {
+		hostPenaltySvc := profileservice.NewHostPenaltyService(profileRepo, propertyRepo, cfg.YAML.Platform, log)
+		// Create booking notification service for suspension ending notifications
+		suspensionNotifier := bookingnotification.NewNotificationService(
+			infra.Email,
+			infra.Queue,
+			qCfg["email"],
+			cfg.App.Client,
+			log,
+		)
+		h := listingHandler.NewListingSuspensionLifterHandler(hostPenaltySvc, suspensionNotifier, log, qCfg["listing_suspension_lifter"])
 		registry.Register(h)
 	}
 
@@ -267,6 +282,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
 			financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
 			financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
+			financePenaltyDebtRepo := financerepository.NewPenaltyDebtRepository(infra.DB)
 			financeReconciliationRepo := financerepository.NewReconciliationRepository(infra.DB)
 			financeSvc := financeservice.NewFinanceService(
 				financeWalletRepo,
@@ -274,6 +290,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				financeTransactionRepo,
 				financeDisbursementRepo,
 				financeDisputeRepo,
+				financePenaltyDebtRepo,
 				financeReconciliationRepo,
 				nil, // bookingPartyQuerier not needed for worker payment tasks
 				nil, // adminProvider not needed
@@ -337,6 +354,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				"",
 				financeHooksAdapter,
 				reviewBookingHooksAdapter, // review hooks initialized for completion handler
+				nil,                       // host penalty service not required for expiry/completion worker
 				cfg.YAML.Platform,
 				log,
 				nil, // fx not needed for worker
@@ -391,6 +409,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			"",
 			nil, // finance hooks not required for check-in/out sync
 			nil, // review hooks not required for check-in/out sync
+			nil, // review hooks not required for check-in/out sync
 			cfg.YAML.Platform,
 			log,
 			nil, // fx not needed for worker
@@ -424,6 +443,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
 		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
 		financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
+		financePenaltyDebtRepo := financerepository.NewPenaltyDebtRepository(infra.DB)
 		financeReconciliationRepo := financerepository.NewReconciliationRepository(infra.DB)
 		financeSvc := financeservice.NewFinanceService(
 			financeWalletRepo,
@@ -431,6 +451,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			financeTransactionRepo,
 			financeDisbursementRepo,
 			financeDisputeRepo,
+			financePenaltyDebtRepo,
 			financeReconciliationRepo,
 			nil, // bookingPartyQuerier not needed for worker expiry tasks
 			nil, // adminProvider not needed
@@ -453,6 +474,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			"",
 			financeHooksAdapter,
 			nil, // review hooks not required for webhook processing
+			nil, // review hooks not required for check-in/out sync
 			cfg.YAML.Platform,
 			log,
 			nil, // fx not needed for worker
@@ -487,6 +509,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			financeLedgerRepo,
 			financeTransactionRepo,
 			financeDisbursementRepo,
+			financePenaltyDebtRepo,
 			paymentsRepo,
 			nil, // booking querier not needed for webhook updates
 			nil, // notification service not required for webhook updates
@@ -567,6 +590,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		financeLedgerRepo := financerepository.NewLedgerRepository(infra.DB)
 		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
 		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
+		financePenaltyDebtRepo := financerepository.NewPenaltyDebtRepository(infra.DB)
 
 		// Initialize payments repository for payout details
 		paymentsRepo := paymentsrepository.NewRepository(infra.DB)
@@ -597,6 +621,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			financeLedgerRepo,
 			financeTransactionRepo,
 			financeDisbursementRepo,
+			financePenaltyDebtRepo,
 			paymentsRepo,
 			bookingQuerierAdapter, // Booking querier for finding bookings ready for payout
 			financeNotificationSvc,
@@ -619,6 +644,37 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		}
 	}
 
+	// Penalty debt collection handler
+	hasPenaltyDebtCollection := qCfg["penalty_debt_collection"] != ""
+	if hasPenaltyDebtCollection {
+		financeWalletRepo := financerepository.NewWalletRepository(infra.DB)
+		financeLedgerRepo := financerepository.NewLedgerRepository(infra.DB)
+		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
+		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
+		financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
+		financePenaltyDebtRepo := financerepository.NewPenaltyDebtRepository(infra.DB)
+		financeReconciliationRepo := financerepository.NewReconciliationRepository(infra.DB)
+
+		financeSvc := financeservice.NewFinanceService(
+			financeWalletRepo,
+			financeLedgerRepo,
+			financeTransactionRepo,
+			financeDisbursementRepo,
+			financeDisputeRepo,
+			financePenaltyDebtRepo,
+			financeReconciliationRepo,
+			nil, // bookingPartyQuerier not needed for debt collection
+			nil, // adminProvider not needed
+			nil, // notificationService not needed
+			cfg.YAML.Platform,
+			infra.DB,
+			log,
+		)
+
+		h := financeHandler.NewPenaltyDebtCollectionHandler(financeSvc, log, qCfg["penalty_debt_collection"])
+		registry.Register(h)
+	}
+
 	// Reconciliation handler
 	hasReconciliation := qCfg["finance_reconciliation"] != ""
 	if hasReconciliation {
@@ -628,6 +684,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		financeTransactionRepo := financerepository.NewTransactionRepository(infra.DB)
 		financeDisbursementRepo := financerepository.NewDisbursementRepository(infra.DB)
 		financeDisputeRepo := financerepository.NewDisputeRepository(infra.DB)
+		financePenaltyDebtRepo := financerepository.NewPenaltyDebtRepository(infra.DB)
 		financeReconciliationRepo := financerepository.NewReconciliationRepository(infra.DB)
 
 		// Initialize auth dependencies for admin notifications
@@ -667,6 +724,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			financeTransactionRepo,
 			financeDisbursementRepo,
 			financeDisputeRepo,
+			financePenaltyDebtRepo,
 			financeReconciliationRepo,
 			nil, // bookingPartyQuerier not needed for reconciliation
 			authAdminAdapter,

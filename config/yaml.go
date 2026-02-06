@@ -42,16 +42,17 @@ type FeatureYAMLConfig struct {
 
 // PlatformYAMLConfig defines platform-wide knobs (fees, payouts, etc.).
 type PlatformYAMLConfig struct {
-	Currency       PlatformCurrencyConfig       `yaml:"currency"`
-	Fees           PlatformFeesConfig           `yaml:"fees"`
-	Taxes          PlatformTaxConfig            `yaml:"taxes"`
-	Payouts        PlatformPayoutConfig         `yaml:"payouts"`
-	Refunds        PlatformRefundConfig         `yaml:"refunds"`
-	AutoAccept     PlatformAutoAcceptConfig     `yaml:"auto_accept"`
-	Reviews        PlatformReviewConfig         `yaml:"reviews"`
-	Notifications  PlatformNotificationConfig   `yaml:"notifications"`
-	Reconciliation PlatformReconciliationConfig `yaml:"reconciliation"`
-	Messaging      PlatformMessagingConfig      `yaml:"messaging"`
+	Currency         PlatformCurrencyConfig       `yaml:"currency"`
+	Fees             PlatformFeesConfig           `yaml:"fees"`
+	Taxes            PlatformTaxConfig            `yaml:"taxes"`
+	Payouts          PlatformPayoutConfig         `yaml:"payouts"`
+	Refunds          PlatformRefundConfig         `yaml:"refunds"`
+	AutoAccept       PlatformAutoAcceptConfig     `yaml:"auto_accept"`
+	Reviews          PlatformReviewConfig         `yaml:"reviews"`
+	Notifications    PlatformNotificationConfig   `yaml:"notifications"`
+	Reconciliation   PlatformReconciliationConfig `yaml:"reconciliation"`
+	Messaging        PlatformMessagingConfig      `yaml:"messaging"`
+	HostCancellation HostCancellationConfig       `yaml:"host_cancellation"`
 }
 
 type PlatformCurrencyConfig struct {
@@ -149,6 +150,22 @@ type PlatformReconciliationConfig struct {
 type PlatformMessagingConfig struct {
 	ArchiveAfterDays int `yaml:"archive_after_days"`
 	DeleteAfterDays  int `yaml:"delete_after_days"`
+}
+
+// HostCancellationConfig defines progressive penalty settings for host-initiated cancellations.
+type HostCancellationConfig struct {
+	Penalties              []PenaltyTier `yaml:"penalties"`
+	WindowDays             int           `yaml:"window_days"`
+	NewHostGraceDays       int           `yaml:"new_host_grace_days"`
+	SuspensionEndingNotice int           `yaml:"suspension_ending_notice_hours"`
+}
+
+// PenaltyTier defines a penalty tier based on cancellation count.
+type PenaltyTier struct {
+	Count          int   `yaml:"count"`
+	Amount         int64 `yaml:"amount"` // Minor units
+	SuspensionDays int   `yaml:"suspension_days"`
+	RequiresReview bool  `yaml:"requires_review"`
 }
 
 // RateLimitYAMLConfig defines rate limiting rules
@@ -403,6 +420,20 @@ func mergePlatformConfig(dst, src *PlatformYAMLConfig) {
 	}
 	if src.Messaging.DeleteAfterDays != 0 {
 		dst.Messaging.DeleteAfterDays = src.Messaging.DeleteAfterDays
+	}
+
+	// Host Cancellation
+	if len(src.HostCancellation.Penalties) > 0 {
+		dst.HostCancellation.Penalties = src.HostCancellation.Penalties
+	}
+	if src.HostCancellation.WindowDays != 0 {
+		dst.HostCancellation.WindowDays = src.HostCancellation.WindowDays
+	}
+	if src.HostCancellation.NewHostGraceDays != 0 {
+		dst.HostCancellation.NewHostGraceDays = src.HostCancellation.NewHostGraceDays
+	}
+	if src.HostCancellation.SuspensionEndingNotice != 0 {
+		dst.HostCancellation.SuspensionEndingNotice = src.HostCancellation.SuspensionEndingNotice
 	}
 }
 

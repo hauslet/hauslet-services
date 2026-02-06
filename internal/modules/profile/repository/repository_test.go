@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func newMockRepo(t *testing.T) (*repository.ProfileRerpositoryImpl, sqlmock.Sqlmock, func()) {
+func newMockRepo(t *testing.T) (*repository.ProfileRepositoryImpl, sqlmock.Sqlmock, func()) {
 	t.Helper()
 
 	sqlDB, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
@@ -34,7 +34,7 @@ func newMockRepo(t *testing.T) (*repository.ProfileRerpositoryImpl, sqlmock.Sqlm
 		t.Fatalf("failed to open gorm DB: %v", err)
 	}
 
-	repo := repository.NewProfileRepository(gdb).(*repository.ProfileRerpositoryImpl)
+	repo := repository.NewProfileRepository(gdb).(*repository.ProfileRepositoryImpl)
 	cleanup := func() { sqlDB.Close() }
 	return repo, mock, cleanup
 }

@@ -249,6 +249,7 @@ func (s *ServiceImpl) FindSimilarListings(ctx context.Context, listingID uuid.UU
 		Statuses:       []domain.ListingStatus{domain.StatusActive},
 		IncludeDeleted: false,
 	}
+	serviceFilter.ExcludeSuspended = true
 	repoFilter := mapListingFilterToRepo(serviceFilter)
 
 	// Search for similar listings

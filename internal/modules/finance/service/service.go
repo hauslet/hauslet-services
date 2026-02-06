@@ -20,6 +20,7 @@ type FinanceServiceImpl struct {
 	transactionRepo     repository.TransactionRepository
 	disbursementRepo    repository.DisbursementRepository
 	disputeRepo         repository.DisputeRepository
+	penaltyDebtRepo     repository.PenaltyDebtRepository
 	reconciliationRepo  repository.ReconciliationRepository
 	bookingPartyQuerier BookingPartyQuerier
 	adminProvider       AdminProvider
@@ -36,6 +37,7 @@ func NewFinanceService(
 	transactionRepo repository.TransactionRepository,
 	disbursementRepo repository.DisbursementRepository,
 	disputeRepo repository.DisputeRepository,
+	penaltyDebtRepo repository.PenaltyDebtRepository,
 	reconciliationRepo repository.ReconciliationRepository,
 	bookingPartyQuerier BookingPartyQuerier,
 	adminProvider AdminProvider,
@@ -50,6 +52,7 @@ func NewFinanceService(
 		transactionRepo:     transactionRepo,
 		disbursementRepo:    disbursementRepo,
 		disputeRepo:         disputeRepo,
+		penaltyDebtRepo:     penaltyDebtRepo,
 		reconciliationRepo:  reconciliationRepo,
 		bookingPartyQuerier: bookingPartyQuerier,
 		adminProvider:       adminProvider,
@@ -85,6 +88,7 @@ type PayoutServiceImpl struct {
 	ledgerRepo       repository.LedgerRepository
 	transactionRepo  repository.TransactionRepository
 	disbursementRepo repository.DisbursementRepository
+	penaltyDebtRepo  repository.PenaltyDebtRepository
 	payoutDetailRepo paymentsRepository.PayoutDetailRepository
 	bookingQuerier   BookingQuerier
 	notificationSvc  *notification.NotificationService
@@ -102,6 +106,7 @@ func NewPayoutService(
 	ledgerRepo repository.LedgerRepository,
 	transactionRepo repository.TransactionRepository,
 	disbursementRepo repository.DisbursementRepository,
+	penaltyDebtRepo repository.PenaltyDebtRepository,
 	payoutDetailRepo paymentsRepository.PayoutDetailRepository,
 	bookingQuerier BookingQuerier,
 	notificationSvc *notification.NotificationService,
@@ -117,6 +122,7 @@ func NewPayoutService(
 		ledgerRepo:       ledgerRepo,
 		transactionRepo:  transactionRepo,
 		disbursementRepo: disbursementRepo,
+		penaltyDebtRepo:  penaltyDebtRepo,
 		payoutDetailRepo: payoutDetailRepo,
 		bookingQuerier:   bookingQuerier,
 		notificationSvc:  notificationSvc,

@@ -18,6 +18,7 @@ enum FinanceTransactionType {
   refund
   payout
   commission
+  penalty
 }
 
 enum FinanceTransactionStatus {
@@ -312,4 +313,3 @@ type ReconciliationReport {
   createdAt: Time!
   updatedAt: Time!
 }
-

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hauslet/internal/modules/finance/domain"
 	"hauslet/internal/modules/finance/repository/schema"
@@ -603,6 +604,169 @@ func (s *FinanceServiceImpl) RecordPayout(
 		"host_wallet", hostWallet.ID,
 	)
 	return transaction, nil
+}
+
+// DeductPenalty withdraws penalty amount from host wallet.
+func (s *FinanceServiceImpl) DeductPenalty(
+	ctx context.Context,
+	hostID uuid.UUID,
+	amount int64,
+	bookingID uuid.UUID,
+	currency string,
+) error {
+	if err := validateAmount(amount); err != nil {
+		return err
+	}
+	if hostID == uuid.Nil {
+		return errors.New("hostID cannot be nil")
+	}
+	if bookingID == uuid.Nil {
+		return errors.New("bookingID cannot be nil")
+	}
+	if currency == "" {
+		currency = s.platformConfig.Currency.Code
+	}
+
+	// Generate idempotency reference
+	reference := generateTimestampReference(domain.TransactionTypePenalty, bookingID, amount)
+
+	// Get host available wallet
+	hostWallet, err := s.GetOrCreateWallet(ctx, domain.OwnerTypeUser, hostID, domain.WalletTypeHostAvailable, currency)
+	if err != nil {
+		return fmt.Errorf("failed to get host wallet: %w", err)
+	}
+
+	// Get platform fee wallet
+	platformID := uuid.NewSHA1(uuid.NameSpaceDNS, []byte("hauslet"))
+	feeWallet, err := s.GetOrCreateWallet(ctx, domain.OwnerTypePlatform, platformID, domain.WalletTypePlatformFee, currency)
+	if err != nil {
+		return fmt.Errorf("failed to get platform fee wallet: %w", err)
+	}
+
+	// Check if host has sufficient balance
+	if hostWallet.Balance < amount {
+		s.log.Warn("[AUDIT] insufficient_balance",
+			"wallet_id", hostWallet.ID,
+			"balance", hostWallet.Balance,
+			"required", amount,
+			"currency", currency,
+			"operation", "penalty",
+			"booking_id", bookingID,
+			"host_id", hostID,
+		)
+		if err := s.ensurePenaltyDebt(ctx, hostID, bookingID, amount, currency); err != nil && s.log != nil {
+			s.log.Warn("failed to record penalty debt", "error", err, "booking_id", bookingID, "host_id", hostID)
+		}
+		return domain.ErrInsufficientBalance
+	}
+
+	// Record transaction in database transaction
+	var transaction *domain.Transaction
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Create transaction-aware repositories
+		txRepo := s.transactionRepo.WithTx(tx)
+		ledgerRepo := s.ledgerRepo.WithTx(tx)
+		walletRepo := s.walletRepo.WithTx(tx)
+
+		// Create transaction record
+		transaction = &domain.Transaction{
+			ID:           uuid.New(),
+			Type:         domain.TransactionTypePenalty,
+			Status:       domain.TransactionStatusPending,
+			ResourceType: domain.ResourceTypeBooking,
+			ResourceID:   bookingID,
+			Amount:       amount,
+			Currency:     currency,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+
+		txSchema := domain.MapTransactionToSchema(transaction)
+		if err := txRepo.Create(ctx, txSchema); err != nil {
+			return fmt.Errorf("failed to create transaction: %w", err)
+		}
+
+		// Create ledger entries (double-entry: host debit → platform fee credit)
+		entries := buildDoubleEntry(
+			transaction.ID,
+			reference,
+			hostWallet.ID,
+			feeWallet.ID,
+			amount,
+			currency,
+			domain.ResourceTypeBooking,
+			bookingID,
+			fmt.Sprintf("Host cancellation penalty for booking %s", bookingID),
+		)
+
+		if err := validateDoubleEntry(entries); err != nil {
+			return err
+		}
+
+		entrySchemas := make([]*schema.LedgerEntry, len(entries))
+		for i, entry := range entries {
+			entrySchemas[i] = domain.MapLedgerEntryToSchema(entry)
+		}
+
+		if err := ledgerRepo.CreateEntries(ctx, entrySchemas); err != nil {
+			return fmt.Errorf("failed to create ledger entries: %w", err)
+		}
+
+		// Update wallet balances
+		lockedHost, err := walletRepo.GetByIDForUpdate(ctx, hostWallet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock host wallet: %w", err)
+		}
+		if lockedHost.Balance < amount {
+			return domain.ErrInsufficientBalance
+		}
+		if err := walletRepo.UpdateBalance(ctx, hostWallet.ID, lockedHost.Balance-amount); err != nil {
+			return fmt.Errorf("failed to update host balance: %w", err)
+		}
+
+		lockedFeeWallet, err := walletRepo.GetByIDForUpdate(ctx, feeWallet.ID)
+		if err != nil {
+			return fmt.Errorf("failed to lock fee wallet: %w", err)
+		}
+		if err := walletRepo.UpdateBalance(ctx, feeWallet.ID, lockedFeeWallet.Balance+amount); err != nil {
+			return fmt.Errorf("failed to update fee wallet balance: %w", err)
+		}
+
+		// Mark transaction as completed
+		transaction.MarkCompleted()
+		if err := txRepo.UpdateStatus(ctx, transaction.ID, transaction.Status.String(), nil); err != nil {
+			return fmt.Errorf("failed to update transaction status: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		if errors.Is(err, domain.ErrInsufficientBalance) {
+			if debtErr := s.ensurePenaltyDebt(ctx, hostID, bookingID, amount, currency); debtErr != nil && s.log != nil {
+				s.log.Warn("failed to record penalty debt", "error", debtErr, "booking_id", bookingID, "host_id", hostID)
+			}
+		}
+		s.log.Error("[AUDIT] penalty_failed",
+			"booking_id", bookingID,
+			"host_id", hostID,
+			"amount", amount,
+			"currency", currency,
+			"error", err,
+		)
+		return err
+	}
+
+	s.log.Info("[AUDIT] penalty_completed",
+		"transaction_id", transaction.ID,
+		"booking_id", bookingID,
+		"host_id", hostID,
+		"amount", amount,
+		"currency", currency,
+		"platform_fee_wallet", feeWallet.ID,
+	)
+
+	return nil
 }
 
 // SettleCancelledBooking settles remaining escrow funds after a booking cancellation.

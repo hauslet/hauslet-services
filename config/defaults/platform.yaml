@@ -60,6 +60,32 @@ platform:
         notice_period_days: 30               # Guest must give 30 days notice to terminate lease
         cancellation_charge_days: 30         # Host is paid for the next 30 days upon cancellation
 
+  host_cancellation:
+    # Penalty tiers (in minor units - kobo)
+    penalties:
+      - count: 1
+        amount: 0           # First cancellation: warning only
+        suspension_days: 0
+      - count: 2
+        amount: 500000      # ₦5,000
+        suspension_days: 0
+      - count: 3
+        amount: 1000000     # ₦10,000
+        suspension_days: 7
+      - count: 4
+        amount: 1500000     # ₦15,000
+        suspension_days: 14
+        requires_review: true
+
+    # Rolling window for counting cancellations
+    window_days: 30
+
+    # Grace period for new hosts (first 90 days, no penalties)
+    new_host_grace_days: 90
+
+    # Notify host X hours before suspension ends
+    suspension_ending_notice_hours: 24
+
   auto_accept:
     default_enabled: true           # Default auto-accept setting for new shortlet listings
     min_notice_hours: 6             # Minimum hours before check-in required for auto-accept

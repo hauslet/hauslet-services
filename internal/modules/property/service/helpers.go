@@ -96,6 +96,7 @@ type ListingFilter struct {
 	CreatedAfter       *time.Time
 	CreatedBefore      *time.Time
 	IncludeDeleted     bool
+	ExcludeSuspended   bool
 	SortBy             ListingSortBy
 	SortOrder          SortOrder
 	City               *string
@@ -189,6 +190,7 @@ func mapListingFilterToRepo(filter ListingFilter) repository.ListingFilter {
 		MinPrice:           filter.MinPrice,
 		MaxPrice:           filter.MaxPrice,
 		IncludeDeleted:     filter.IncludeDeleted,
+		ExcludeSuspended:   filter.ExcludeSuspended,
 		CreatedAfter:       filter.CreatedAfter,
 		CreatedBefore:      filter.CreatedBefore,
 		PublishedAfter:     filter.PublishedAfter,

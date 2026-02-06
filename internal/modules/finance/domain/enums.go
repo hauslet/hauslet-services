@@ -27,6 +27,7 @@ const (
 	TransactionTypeRefund                 TransactionType = "refund"                  // Refund to guest
 	TransactionTypePayout                 TransactionType = "payout"                  // Payout to host
 	TransactionTypeCommission             TransactionType = "commission"              // Platform fee deduction
+	TransactionTypePenalty                TransactionType = "penalty"                 // Host cancellation penalty
 	TransactionTypeReversal               TransactionType = "reversal"                // Dispute reversal
 	TransactionTypeCancellationSettlement TransactionType = "cancellation_settlement" // Cancelled booking fund distribution
 )
@@ -50,6 +51,14 @@ const (
 	DisbursementStatusCompleted  DisbursementStatus = "completed"  // Successfully transferred
 	DisbursementStatusFailed     DisbursementStatus = "failed"     // Transfer failed
 	DisbursementStatusCancelled  DisbursementStatus = "cancelled"  // Cancelled by admin/system
+)
+
+// PenaltyDebtStatus defines the status of an unpaid penalty
+type PenaltyDebtStatus string
+
+const (
+	PenaltyDebtStatusPending PenaltyDebtStatus = "pending"
+	PenaltyDebtStatusSettled PenaltyDebtStatus = "settled"
 )
 
 // ResourceType defines what resource a transaction is associated with
@@ -123,6 +132,10 @@ func (t TransactionStatus) String() string {
 
 func (d DisbursementStatus) String() string {
 	return string(d)
+}
+
+func (p PenaltyDebtStatus) String() string {
+	return string(p)
 }
 
 func (r ResourceType) String() string {

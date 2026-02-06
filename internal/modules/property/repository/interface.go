@@ -41,6 +41,8 @@ type ListingRepository interface {
 	ListingExists(ctx context.Context, id uuid.UUID) (bool, error)
 	GetListingsByIDs(ctx context.Context, ids []uuid.UUID, preloadMedia bool) ([]schema.Listing, error)
 	GetListingsByPropertyIDs(ctx context.Context, propertyIDs []uuid.UUID) ([]schema.Listing, error)
+	FindExpiredSuspensions(ctx context.Context, now time.Time) ([]schema.Listing, error)
+	FindSuspensionsEndingSoon(ctx context.Context, from, to time.Time) ([]schema.Listing, error)
 	AddListingMedia(ctx context.Context, listingID uuid.UUID, media []schema.ListingMedia) error
 	DeleteListingMedia(ctx context.Context, listingID uuid.UUID, mediaIDs []uuid.UUID) error
 	UpdateListingMedia(ctx context.Context, listingID uuid.UUID, mediaID uuid.UUID, updates map[string]any) error
