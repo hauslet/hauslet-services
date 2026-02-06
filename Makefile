@@ -37,6 +37,10 @@ $(BIN_DIR):
 run-api:
 	$(GO) run ./cmd/api
 
+.PHONY: run-api-quick
+run-api-quick:
+	$(GO) run ./cmd/api --no-migrate
+
 .PHONY: run-worker
 run-worker:
 	$(GO) run ./cmd/worker

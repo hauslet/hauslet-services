@@ -91,6 +91,7 @@ import (
 	"hauslet/internal/platform/storage"
 	"hauslet/internal/platform/xchange"
 	"log/slog"
+	"os"
 	"time"
 
 	authhttp "hauslet/internal/modules/auth/port/http"
@@ -916,6 +917,14 @@ func (c *Container) buildAISupport(ctx context.Context, msgRepo messagingreposit
 	if aiCfg.ProjectID == "" || aiCfg.AgentID == "" {
 		c.Logger.Info("vertex ai disabled (missing configuration)", "project_id", aiCfg.ProjectID, "agent_id", aiCfg.AgentID)
 		return nil, nil
+	}
+
+	// Check if credentials file exists
+	if aiCfg.CredentialsPath != "" {
+		if _, err := os.Stat(aiCfg.CredentialsPath); os.IsNotExist(err) {
+			c.Logger.Warn("vertex ai disabled (credentials file not found)", "path", aiCfg.CredentialsPath)
+			return nil, nil
+		}
 	}
 
 	vertexCfg := c.Config.Services.Messaging

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"hauslet/cmd/api/server"
 	"hauslet/cmd/api/setup"
 	"hauslet/config"
@@ -27,6 +28,10 @@ import (
 // @in header
 // @name Authorization
 func main() {
+	// Parse command-line flags
+	noMigrate := flag.Bool("no-migrate", false, "Skip database migrations on startup")
+	flag.Parse()
+
 	cfg := config.Load()
 	log := logger.NewLogger()
 	log.Info("🚀 Starting Hauslet server", "mode", cfg.App.Env)
@@ -42,9 +47,13 @@ func main() {
 	defer infra.CloseDB()
 	defer infra.CloseCache()
 
-	if err := setup.RunMigrations(infra.DB, log); err != nil {
-		log.Error("failed to run migrations", "error", err)
-		return
+	if *noMigrate {
+		log.Info("⏭️  Skipping migrations (--no-migrate flag set)")
+	} else {
+		if err := setup.RunMigrations(infra.DB, log); err != nil {
+			log.Error("failed to run migrations", "error", err)
+			return
+		}
 	}
 
 	queueClient, err := setup.InitQueue(initCtx, cfg, log)
