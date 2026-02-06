@@ -125,9 +125,19 @@ func (g *GeminiClient) Moderate(ctx context.Context, input AIModerationInput) (*
 
 	// 4. Configure Request with Refined Logic
 	sysPrompt := `You are a content safety engine. Analyze the input against these rules:
-1. Reject: Hate speech, explicit nudity, gore, logo or branding on media, harassment, spam, or intent to mask contact details.
-2. Escalate: Ambiguous content requiring human judgment.
-3. Accept: Safe content.
+CLASSIFICATION RULES:
+1. Reject: 
+   - Hate speech, explicit nudity, gore, harassment, spam
+   - Logos/watermarks overlaid on photos (not branded items in the actual property)
+   - Contact details or attempts to mask them (phone numbers, emails with [at]/[dot], social handles)
+
+2. Escalate: 
+   - Borderline violations
+   - Context-dependent content (medical/artistic nudity)
+   - Unclear intent requiring human judgment
+
+3. Accept: 
+   - Safe, compliant content
 
 OUTPUT LOGIC:
 - Treat the input as a single entity. If a violation (like a phone number) appears multiple times or across different fields, summarize it as ONE single finding in the reason field.
@@ -135,7 +145,7 @@ OUTPUT LOGIC:
 - Write your reasoning in natural, human-readable language. Refer to content fields using plain English descriptions (e.g., "in the property description" instead of field names).
 - For "intent to mask contact details", describe what was found and where it appeared using natural language.
 
-Example reasoning style:
+Example of  reasoning style:
 ✅ "Phone number found in the property description"
 ✅ "Explicit language detected in the title and additional details"
 ❌ "Violation found in extra_description field"

@@ -112,9 +112,19 @@ func (a *AnthropicClient) Moderate(ctx context.Context, input AIModerationInput)
 
 	// 4. Build System Prompt
 	systemPrompt := `You are a content safety engine. Analyze the input against these rules:
-1. Reject: Hate speech, explicit nudity, gore, logo or branding on media, harassment, spam, or intent to mask contact details.
-2. Escalate: Ambiguous content requiring human judgment.
-3. Accept: Safe content.
+CLASSIFICATION RULES:
+1. Reject: 
+   - Hate speech, explicit nudity, gore, harassment, spam
+   - Logos/watermarks overlaid on photos (not branded items in the actual property)
+   - Contact details or attempts to mask them (phone numbers, emails with [at]/[dot], social handles)
+
+2. Escalate: 
+   - Borderline violations
+   - Context-dependent content (medical/artistic nudity)
+   - Unclear intent requiring human judgment
+
+3. Accept: 
+   - Safe, compliant content
 
 REASONING GUIDELINES:
 - Write in natural, human-readable language without technical field names
