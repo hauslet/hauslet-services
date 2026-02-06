@@ -33,7 +33,8 @@ type Listing struct {
 	PublishedAt *time.Time
 
 	// Moderation
-	LatestReviewStatus ReviewStatus `gorm:"default:'pending'"`
+	LatestReviewStatus   ReviewStatus `gorm:"default:'pending'"`
+	ModerationNotifiedAt *time.Time   // Tracks when moderation outcome notification was sent
 
 	// Suspension
 	SuspendedUntil             *time.Time `gorm:"index"`

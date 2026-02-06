@@ -34,6 +34,9 @@ type ModerationService interface {
 
 type PropertyHooks interface {
 	OnModerationCompleted(ctx context.Context, aggregate AggregatedModeration) error
+	// OnMediaModerationCompleted is called when an individual media item's moderation completes.
+	// This allows tracking which media has been moderated to avoid re-moderating unchanged media.
+	OnMediaModerationCompleted(ctx context.Context, targetID uuid.UUID, mediaKey string, status domain.ModerationStatus) error
 }
 
 type ProfileHooks interface {

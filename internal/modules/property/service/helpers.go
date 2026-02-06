@@ -499,7 +499,27 @@ func minInt(a, b, c int) int {
 	return min(a, min(b, c))
 }
 
+// UnpublishModerationOptions configures what content to re-moderate during unpublish.
+type UnpublishModerationOptions struct {
+	// IncludeMedia indicates whether to enqueue media moderation.
+	// If false, only text content is re-moderated (suitable for text-only updates).
+	IncludeMedia bool
+}
+
 func (s *ServiceImpl) unpublishAndEnqueueModeration(ctx context.Context, existing *domain.Listing) error {
+	// Default: text-only moderation (legacy behavior for text updates)
+	return s.unpublishAndEnqueueModerationWithOptions(ctx, existing, UnpublishModerationOptions{
+		IncludeMedia: false,
+	})
+}
+
+func (s *ServiceImpl) unpublishAndEnqueueModerationWithMedia(ctx context.Context, existing *domain.Listing) error {
+	return s.unpublishAndEnqueueModerationWithOptions(ctx, existing, UnpublishModerationOptions{
+		IncludeMedia: true,
+	})
+}
+
+func (s *ServiceImpl) unpublishAndEnqueueModerationWithOptions(ctx context.Context, existing *domain.Listing, opts UnpublishModerationOptions) error {
 	if existing == nil || existing.ID == uuid.Nil {
 		return domain.ErrInvalidListingID
 	}
@@ -590,28 +610,53 @@ func (s *ServiceImpl) unpublishAndEnqueueModeration(ctx context.Context, existin
 		return nil
 	}
 
-	// Enqueue text moderation
+	// Enqueue text moderation (always happens)
 	if err := s.moderationHooks.EnqueueAIModeration(ctx, listing.ID, "listing_text", listingPayloadStr); err != nil {
 		return fmt.Errorf("failed to enqueue text moderation: %w", err)
 	}
+	s.log.Info("enqueued text moderation for listing", "listing_id", listing.ID)
 
-	// Enqueue media moderation
-	for _, media := range listing.Media {
-		if media.Key == "" {
-			continue
+	// Enqueue media moderation only if requested
+	if opts.IncludeMedia {
+		mediaModCount := 0
+		schemaMedia, err := s.repo.ListListingMedia(ctx, listing.ID)
+		if err != nil {
+			s.log.Error("failed to list media for moderation check", "listing_id", listing.ID, "error", err)
+			return err
 		}
-		var contentType string
-		switch media.Type {
-		case domain.MediaTypeImage:
-			contentType = "listing_image"
-		case domain.MediaTypeVideo:
-			contentType = "listing_video"
-		default:
-			continue
+
+		for _, media := range schemaMedia {
+			if media.Key == "" || !media.Uploaded {
+				continue
+			}
+
+			// Skip media that was already moderated after its last upload
+			// Media needs moderation if: LastModeratedAt is nil OR UploadedAt is after LastModeratedAt
+			needsModeration := media.LastModeratedAt == nil || media.UploadedAt.After(*media.LastModeratedAt)
+			if !needsModeration {
+				s.log.Debug("skipping already moderated media",
+					"media_id", media.ID,
+					"last_moderated_at", media.LastModeratedAt,
+					"uploaded_at", media.UploadedAt)
+				continue
+			}
+
+			var contentType string
+			switch media.Type {
+			case schema.MediaTypeImage:
+				contentType = "listing_image"
+			case schema.MediaTypeVideo:
+				contentType = "listing_video"
+			default:
+				continue
+			}
+
+			if err := s.moderationHooks.EnqueueAIModeration(ctx, listing.ID, contentType, media.Key); err != nil {
+				return fmt.Errorf("failed to enqueue moderation for media %s: %w", media.ID, err)
+			}
+			mediaModCount++
 		}
-		if err := s.moderationHooks.EnqueueAIModeration(ctx, listing.ID, contentType, media.Key); err != nil {
-			return fmt.Errorf("failed to enqueue moderation for media %s: %w", media.ID, err)
-		}
+		s.log.Info("enqueued media moderation for listing", "listing_id", listing.ID, "count", mediaModCount)
 	}
 
 	return nil

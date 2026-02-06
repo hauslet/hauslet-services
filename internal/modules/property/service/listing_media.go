@@ -126,7 +126,7 @@ func (s *ServiceImpl) UploadListingMedia(ctx context.Context,
 
 	// Auto-unpublish if listing is live (media addition is material).
 	if listing.Published && listing.Status == domain.StatusActive {
-		if err := s.unpublishAndEnqueueModeration(ctx, listing); err != nil {
+		if err := s.unpublishAndEnqueueModerationWithMedia(ctx, listing); err != nil {
 			return nil, err
 		}
 	}
@@ -175,7 +175,7 @@ func (s *ServiceImpl) UpdateListingMedia(ctx context.Context,
 
 	// Auto-unpublish if listing is live (media change is material).
 	if listing.Published && listing.Status == domain.StatusActive {
-		if err := s.unpublishAndEnqueueModeration(ctx, listing); err != nil {
+		if err := s.unpublishAndEnqueueModerationWithMedia(ctx, listing); err != nil {
 			return err
 		}
 	}
@@ -227,7 +227,7 @@ func (s *ServiceImpl) DeleteListingMedia(ctx context.Context,
 
 	// Auto-unpublish if listing is live (media removal is material).
 	if listing.Published && listing.Status == domain.StatusActive {
-		if err := s.unpublishAndEnqueueModeration(ctx, listing); err != nil {
+		if err := s.unpublishAndEnqueueModerationWithMedia(ctx, listing); err != nil {
 			return err
 		}
 	}
@@ -400,7 +400,7 @@ func (s *ServiceImpl) FinalizeListingMedia(ctx context.Context, data domain.Fina
 
 	// Auto-unpublish if listing is live (finalizing media is material).
 	if listing.Published && listing.Status == domain.StatusActive {
-		if err := s.unpublishAndEnqueueModeration(ctx, listing); err != nil {
+		if err := s.unpublishAndEnqueueModerationWithMedia(ctx, listing); err != nil {
 			return err
 		}
 	}

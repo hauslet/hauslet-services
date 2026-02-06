@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	businessservice "hauslet/internal/modules/business/service"
+	moderationdomain "hauslet/internal/modules/moderation/domain"
 	moderationservice "hauslet/internal/modules/moderation/service"
 	"hauslet/internal/modules/property/domain"
 	"hauslet/internal/modules/property/notification"
@@ -84,39 +85,65 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 		return domain.ErrPropertyNotFound
 	}
 
-	ownerProfileName, ownerProfileEmail := a.resolveOwnerContact(ctx, listing)
-
 	aggDomain := domain.MapModerationAggToDomain(aggregate)
-
 	moderationStatus := aggDomain.FinalStatus()
-	switch moderationStatus {
-	case domain.ModerationStatusAccepted:
-		// Notify owner of acceptance.
-		if ownerProfileEmail != "" && a.notifier != nil {
-			err := a.notifier.SendListingAcceptedNotification(ctx, listing.Title, ownerProfileName, ownerProfileEmail)
-			if err != nil {
-				a.log.Error("failed to send listing accepted notification", "email", ownerProfileEmail, "error", err)
-			}
-		}
 
-	case domain.ModerationStatusRejected:
-		// Notify owner of rejection with reasons.
-		if ownerProfileEmail != "" && a.notifier != nil {
-			err := a.notifier.SendListingRejectedNotification(ctx,
-				listing.Title, ownerProfileName, ownerProfileEmail, aggDomain.Reasons)
-			if err != nil {
-				a.log.Error("failed to send listing rejected notification", "email", ownerProfileEmail, "error", err)
+	// Check if notification was already sent for this moderation cycle.
+	// A new moderation cycle starts when status changes to "under_review" (tracked by StatusChangedAt).
+	// Only send notification if:
+	// 1. ModerationNotifiedAt is nil (never notified), OR
+	// 2. StatusChangedAt is after ModerationNotifiedAt (new moderation cycle started)
+	shouldNotify := a.shouldSendNotification(listing, moderationStatus)
+
+	if shouldNotify {
+		ownerProfileName, ownerProfileEmail := a.resolveOwnerContact(ctx, listing)
+
+		switch moderationStatus {
+		case domain.ModerationStatusAccepted:
+			// Notify owner of acceptance.
+			if ownerProfileEmail != "" && a.notifier != nil {
+				if err := a.notifier.SendListingAcceptedNotification(ctx, listing.Title, ownerProfileName, ownerProfileEmail); err != nil {
+					a.log.Error("failed to send listing accepted notification", "email", ownerProfileEmail, "error", err)
+				} else {
+					a.log.Info("sent listing accepted notification", "listing_id", listing.ID, "email", ownerProfileEmail)
+				}
 			}
+
+		case domain.ModerationStatusRejected:
+			// Notify owner of rejection with reasons.
+			if ownerProfileEmail != "" && a.notifier != nil {
+				if err := a.notifier.SendListingRejectedNotification(ctx, listing.Title, ownerProfileName, ownerProfileEmail, aggDomain.Reasons); err != nil {
+					a.log.Error("failed to send listing rejected notification", "email", ownerProfileEmail, "error", err)
+				} else {
+					a.log.Info("sent listing rejected notification", "listing_id", listing.ID, "email", ownerProfileEmail, "reasons", aggDomain.Reasons)
+				}
+			}
+		case domain.ModerationStatusEscalated:
+			// Escalation would be handled in moderation service directly
+			// Silent on the user side, log only.
+			a.log.Info("listing escalated for human review", "listing_id", listing.ID)
+		default:
+			a.log.Warn("listing reached unknown moderation status", "listing_id", listing.ID, "status", moderationStatus)
 		}
-	case domain.ModerationStatusEscalated:
-		// Escalation would be handled in moderation service directly
-		// Silent on the user side, log only.
-		a.log.Info("listing escalated for human review", "listing_id", listing.ID)
-	default:
-		a.log.Warn("listing reached unknown moderation status", "listing_id", listing.ID, "status", moderationStatus)
+	} else {
+		a.log.Info("skipping duplicate notification for moderation cycle",
+			"listing_id", listing.ID,
+			"status", moderationStatus,
+			"status_changed_at", listing.StatusChangedAt,
+			"moderation_notified_at", listing.ModerationNotifiedAt)
 	}
 
 	updates := a.buildListingUpdates(aggDomain)
+
+	// Track that we've sent a notification for this moderation cycle (terminal states only)
+	if shouldNotify && (moderationStatus == domain.ModerationStatusAccepted || moderationStatus == domain.ModerationStatusRejected) {
+		now := a.nowFunc()
+		if updates == nil {
+			updates = make(map[string]any)
+		}
+		updates["moderation_notified_at"] = now
+	}
+
 	if aggDomain.FinalStatus() == domain.ModerationStatusAccepted && a.embedding != nil {
 		if embUpdates := a.generateEmbeddingUpdates(ctx, listing, property); len(embUpdates) > 0 {
 			if updates == nil {
@@ -136,6 +163,87 @@ func (a *ModerationPropertyAdapter) OnModerationCompleted(ctx context.Context,
 
 	// Invalidate cache to ensure subsequent reads get the updated status
 	a.invalidateListingCache(ctx, listing.ID, listing.Slug, property.PublicID)
+
+	return nil
+}
+
+// shouldSendNotification determines if a notification should be sent for the current moderation outcome.
+// It prevents duplicate notifications within the same moderation cycle.
+func (a *ModerationPropertyAdapter) shouldSendNotification(listing *schema.Listing, status domain.ModerationStatus) bool {
+	// Only terminal states should trigger notifications
+	if status != domain.ModerationStatusAccepted && status != domain.ModerationStatusRejected {
+		return false
+	}
+
+	// If we've never notified, we should notify
+	if listing.ModerationNotifiedAt == nil {
+		return true
+	}
+
+	// If StatusChangedAt is nil, we can't determine the cycle, so don't notify again
+	if listing.StatusChangedAt == nil {
+		a.log.Warn("status_changed_at is nil, cannot determine moderation cycle", "listing_id", listing.ID)
+		return false
+	}
+
+	// If the moderation cycle started after the last notification, this is a new cycle
+	// StatusChangedAt is set when listing enters "under_review" status
+	return listing.StatusChangedAt.After(*listing.ModerationNotifiedAt)
+}
+
+// OnMediaModerationCompleted updates the LastModeratedAt timestamp on a media item
+// when its moderation completes. This enables skipping already-moderated media
+// during subsequent moderation cycles.
+func (a *ModerationPropertyAdapter) OnMediaModerationCompleted(ctx context.Context,
+	targetID uuid.UUID, mediaKey string, status moderationdomain.ModerationStatus) error {
+	if targetID == uuid.Nil || mediaKey == "" {
+		return nil
+	}
+
+	// Only mark as moderated for terminal states (accepted/rejected)
+	if status != moderationdomain.ModerationStatusAccepted && status != moderationdomain.ModerationStatusRejected {
+		return nil
+	}
+
+	// Find media by key
+	media, err := a.repo.ListListingMedia(ctx, targetID)
+	if err != nil {
+		a.log.Error("failed to list media for moderation tracking", "listing_id", targetID, "error", err)
+		return err
+	}
+
+	var targetMedia *schema.ListingMedia
+	for i := range media {
+		if media[i].Key == mediaKey {
+			targetMedia = &media[i]
+			break
+		}
+	}
+
+	if targetMedia == nil {
+		a.log.Debug("media not found for moderation tracking",
+			"listing_id", targetID,
+			"media_key", mediaKey)
+		return nil
+	}
+
+	// Update LastModeratedAt timestamp
+	now := a.nowFunc()
+	if err := a.repo.UpdateListingMedia(ctx, targetID, targetMedia.ID, map[string]any{
+		"last_moderated_at": now,
+	}); err != nil {
+		a.log.Error("failed to update media moderation timestamp",
+			"listing_id", targetID,
+			"media_id", targetMedia.ID,
+			"error", err)
+		return err
+	}
+
+	a.log.Debug("updated media moderation timestamp",
+		"listing_id", targetID,
+		"media_id", targetMedia.ID,
+		"media_key", mediaKey,
+		"status", status)
 
 	return nil
 }

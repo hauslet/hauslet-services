@@ -63,6 +63,9 @@ type ListingMedia struct {
 	EmbeddingVersion     *string          `gorm:"type:varchar(50)"`
 	EmbeddingGeneratedAt *time.Time
 
+	// Moderation tracking
+	LastModeratedAt *time.Time `gorm:"index"` // Tracks when this media was last moderated
+
 	UrlGeneratedAt time.Time `gorm:"index"`
 	Uploaded       bool      `gorm:"default:false;index"`
 	UploadedAt     time.Time `gorm:"index"`

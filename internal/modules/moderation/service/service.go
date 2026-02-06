@@ -181,6 +181,14 @@ func (s *ModerationServiceImpl) HandleAIJob(ctx context.Context, job moderationj
 		return nil, err
 	}
 
+	// For listing media, notify the hook so it can track moderation timestamp
+	if s.propertyHooks != nil && isListingMediaContent(job.ContentType) {
+		if err := s.propertyHooks.OnMediaModerationCompleted(ctx, job.TargetID, job.Payload, domain.ModerationStatus(result.Status)); err != nil {
+			s.log.Error("failed to update media moderation timestamp", "target_id", job.TargetID, "media_key", job.Payload, "error", err)
+			// Non-fatal error - log but continue
+		}
+	}
+
 	// Aggregate moderation state for the target and, if terminal, notify property hooks.
 	aggregate, err := s.repo.AggregateByTarget(ctx, record.ContentID)
 	if err != nil {
@@ -365,4 +373,10 @@ func containsReviewContent(contentTypes []domain.ContentType) bool {
 		}
 	}
 	return false
+}
+
+// isListingMediaContent checks if a job content type is listing media (image or video).
+func isListingMediaContent(contentType moderationjobs.ContentType) bool {
+	return contentType == moderationjobs.ContentTypeListingImage ||
+		contentType == moderationjobs.ContentTypeListingVideo
 }
