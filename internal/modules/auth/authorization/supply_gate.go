@@ -22,6 +22,7 @@ const (
 	SupplyActionCreateBusiness SupplyAction = "create_business"
 	SupplyActionPublishListing SupplyAction = "publish_listing"
 	SupplyActionCreateViewing  SupplyAction = "create_viewing"
+	SupplyActionManageBookings SupplyAction = "manage_bookings"
 )
 
 // SupplyOptions carries action-specific attributes for supply checks.

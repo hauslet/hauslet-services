@@ -339,6 +339,15 @@ type ComplexityRoot struct {
 		Version            func(childComplexity int) int
 	}
 
+	CancellationPenaltyPreview struct {
+		CancellationCount    func(childComplexity int) int
+		IsNewHostGracePeriod func(childComplexity int) int
+		PenaltyAmount        func(childComplexity int) int
+		RequiresReview       func(childComplexity int) int
+		SuspensionDays       func(childComplexity int) int
+		WarningMessage       func(childComplexity int) int
+	}
+
 	CompleteBookingPayload struct {
 		AuthorizationURL      func(childComplexity int) int
 		Booking               func(childComplexity int) int
@@ -1232,6 +1241,7 @@ type ComplexityRoot struct {
 		MyDisputes                     func(childComplexity int, limit *int, offset *int) int
 		MyEarnings                     func(childComplexity int) int
 		MyFinanceTransactions          func(childComplexity int, typeArg *domain6.TransactionType, status *domain6.TransactionStatus, limit *int, offset *int) int
+		MyHostBookings                 func(childComplexity int, status *domain7.BookingStatus, limit *int, offset *int) int
 		MyIndividualListings           func(childComplexity int, filter *model.ListingFilterInput, first *int, after *string) int
 		MyInteractionHistory           func(childComplexity int, limit *int) int
 		MyInvitations                  func(childComplexity int, email string) int
@@ -1254,6 +1264,7 @@ type ComplexityRoot struct {
 		PaymentMethod                  func(childComplexity int, id uuid.UUID) int
 		PaymentMethods                 func(childComplexity int, userID uuid.UUID) int
 		PayoutDetail                   func(childComplexity int, id uuid.UUID) int
+		PreviewHostCancellationPenalty func(childComplexity int, bookingID uuid.UUID) int
 		PreviewPricing                 func(childComplexity int, listingID uuid.UUID, month time.Time) int
 		PricingRule                    func(childComplexity int, id uuid.UUID) int
 		PricingRulesForListing         func(childComplexity int, listingID uuid.UUID, activeOnly *bool) int
@@ -1933,6 +1944,8 @@ type QueryResolver interface {
 	BookingByReference(ctx context.Context, reference string) (*domain7.Booking, error)
 	MyBookings(ctx context.Context, limit *int, offset *int) ([]*domain7.Booking, error)
 	ListingBookings(ctx context.Context, listingID uuid.UUID, status *domain7.BookingStatus, limit *int, offset *int) ([]*domain7.Booking, error)
+	PreviewHostCancellationPenalty(ctx context.Context, bookingID uuid.UUID) (*model.CancellationPenaltyPreview, error)
+	MyHostBookings(ctx context.Context, status *domain7.BookingStatus, limit *int, offset *int) ([]*domain7.Booking, error)
 	CalendarEvent(ctx context.Context, id uuid.UUID) (*domain8.CalendarEvent, error)
 	ListingEvents(ctx context.Context, listingID uuid.UUID, startTime time.Time, endTime time.Time, eventTypes []domain8.EventType) ([]*domain8.CalendarEvent, error)
 	UpcomingListingEvents(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain8.CalendarEvent, error)
@@ -3162,6 +3175,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CalendarEvent.Version(childComplexity), true
+
+	case "CancellationPenaltyPreview.cancellationCount":
+		if e.complexity.CancellationPenaltyPreview.CancellationCount == nil {
+			break
+		}
+
+		return e.complexity.CancellationPenaltyPreview.CancellationCount(childComplexity), true
+	case "CancellationPenaltyPreview.isNewHostGracePeriod":
+		if e.complexity.CancellationPenaltyPreview.IsNewHostGracePeriod == nil {
+			break
+		}
+
+		return e.complexity.CancellationPenaltyPreview.IsNewHostGracePeriod(childComplexity), true
+	case "CancellationPenaltyPreview.penaltyAmount":
+		if e.complexity.CancellationPenaltyPreview.PenaltyAmount == nil {
+			break
+		}
+
+		return e.complexity.CancellationPenaltyPreview.PenaltyAmount(childComplexity), true
+	case "CancellationPenaltyPreview.requiresReview":
+		if e.complexity.CancellationPenaltyPreview.RequiresReview == nil {
+			break
+		}
+
+		return e.complexity.CancellationPenaltyPreview.RequiresReview(childComplexity), true
+	case "CancellationPenaltyPreview.suspensionDays":
+		if e.complexity.CancellationPenaltyPreview.SuspensionDays == nil {
+			break
+		}
+
+		return e.complexity.CancellationPenaltyPreview.SuspensionDays(childComplexity), true
+	case "CancellationPenaltyPreview.warningMessage":
+		if e.complexity.CancellationPenaltyPreview.WarningMessage == nil {
+			break
+		}
+
+		return e.complexity.CancellationPenaltyPreview.WarningMessage(childComplexity), true
 
 	case "CompleteBookingPayload.authorizationUrl":
 		if e.complexity.CompleteBookingPayload.AuthorizationURL == nil {
@@ -8319,6 +8369,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyFinanceTransactions(childComplexity, args["type"].(*domain6.TransactionType), args["status"].(*domain6.TransactionStatus), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.myHostBookings":
+		if e.complexity.Query.MyHostBookings == nil {
+			break
+		}
+
+		args, err := ec.field_Query_myHostBookings_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MyHostBookings(childComplexity, args["status"].(*domain7.BookingStatus), args["limit"].(*int), args["offset"].(*int)), true
 	case "Query.myIndividualListings":
 		if e.complexity.Query.MyIndividualListings == nil {
 			break
@@ -8531,6 +8592,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.PayoutDetail(childComplexity, args["id"].(uuid.UUID)), true
+	case "Query.previewHostCancellationPenalty":
+		if e.complexity.Query.PreviewHostCancellationPenalty == nil {
+			break
+		}
+
+		args, err := ec.field_Query_previewHostCancellationPenalty_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.PreviewHostCancellationPenalty(childComplexity, args["bookingId"].(uuid.UUID)), true
 	case "Query.previewPricing":
 		if e.complexity.Query.PreviewPricing == nil {
 			break
@@ -12018,9 +12090,7 @@ extend type Subscription {
   typingIndicator(conversationId: UUID!): TypingIndicator!
 }
 `, BuiltIn: false},
-	{Name: "../../modules/business/port/graphql/schema.graphqls", Input: `# internal/modules/business/port/graphql/schema.graphqls
-
-# ===========================
+	{Name: "../../modules/business/port/graphql/schema.graphqls", Input: `# ===========================
 # ENUMS
 # ===========================
 
@@ -12272,8 +12342,7 @@ extend type Mutation {
   revokeInvitation(invitationID: UUID!): Boolean!
 }
 `, BuiltIn: false},
-	{Name: "../../modules/booking/port/graphql/schema.graphqls", Input: `# internal/modules/booking/port/graphql/schema.graphqls
-
+	{Name: "../../modules/booking/port/graphql/schema.graphqls", Input: `
 enum BookingStatus {
   draft
   pending_host_approval
@@ -12476,6 +12545,24 @@ type CompleteBookingPayload {
   requiresAuthorization: Boolean!
 }
 
+"""
+Preview of the penalty that would apply if the host cancels a booking.
+"""
+type CancellationPenaltyPreview {
+  """Number of cancellations including this one in the rolling window."""
+  cancellationCount: Int!
+  """Penalty amount in minor units (e.g., kobo)."""
+  penaltyAmount: Int!
+  """Number of days listings would be suspended (0 if no suspension)."""
+  suspensionDays: Int!
+  """Whether the host is in their new-host grace period (no penalties)."""
+  isNewHostGracePeriod: Boolean!
+  """Whether this cancellation triggers a manual review requirement."""
+  requiresReview: Boolean!
+  """Human-readable warning message explaining the consequences."""
+  warningMessage: String!
+}
+
 extend type Query {
   # Get pricing and availability quote without creating a booking
   quoteBooking(
@@ -12500,6 +12587,21 @@ extend type Query {
   # List bookings for a specific listing (owner/host view)
   listingBookings(
     listingId: UUID!
+    status: BookingStatus
+    limit: Int
+    offset: Int
+  ): [Booking!]!
+
+  """
+  Preview the penalty that would apply if the host cancels this booking.
+  Only accessible to the host of the booking.
+  """
+  previewHostCancellationPenalty(bookingId: UUID!): CancellationPenaltyPreview!
+
+  """
+  List all bookings for listings owned by the authenticated host.
+  """
+  myHostBookings(
     status: BookingStatus
     limit: Int
     offset: Int
@@ -16716,6 +16818,27 @@ func (ec *executionContext) field_Query_myFinanceTransactions_args(ctx context.C
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_myHostBookings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "status", ec.unmarshalOBookingStatus2ᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBookingStatus)
+	if err != nil {
+		return nil, err
+	}
+	args["status"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_myIndividualListings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -16959,6 +17082,17 @@ func (ec *executionContext) field_Query_payoutDetail_args(ctx context.Context, r
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_previewHostCancellationPenalty_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "bookingId", ec.unmarshalNUUID2githubᚗcomᚋgoogleᚋuuidᚐUUID)
+	if err != nil {
+		return nil, err
+	}
+	args["bookingId"] = arg0
 	return args, nil
 }
 
@@ -22750,6 +22884,180 @@ func (ec *executionContext) fieldContext_CalendarEvent_deletedAt(_ context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CancellationPenaltyPreview_cancellationCount(ctx context.Context, field graphql.CollectedField, obj *model.CancellationPenaltyPreview) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CancellationPenaltyPreview_cancellationCount,
+		func(ctx context.Context) (any, error) {
+			return obj.CancellationCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CancellationPenaltyPreview_cancellationCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CancellationPenaltyPreview",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CancellationPenaltyPreview_penaltyAmount(ctx context.Context, field graphql.CollectedField, obj *model.CancellationPenaltyPreview) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CancellationPenaltyPreview_penaltyAmount,
+		func(ctx context.Context) (any, error) {
+			return obj.PenaltyAmount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CancellationPenaltyPreview_penaltyAmount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CancellationPenaltyPreview",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CancellationPenaltyPreview_suspensionDays(ctx context.Context, field graphql.CollectedField, obj *model.CancellationPenaltyPreview) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CancellationPenaltyPreview_suspensionDays,
+		func(ctx context.Context) (any, error) {
+			return obj.SuspensionDays, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CancellationPenaltyPreview_suspensionDays(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CancellationPenaltyPreview",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CancellationPenaltyPreview_isNewHostGracePeriod(ctx context.Context, field graphql.CollectedField, obj *model.CancellationPenaltyPreview) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CancellationPenaltyPreview_isNewHostGracePeriod,
+		func(ctx context.Context) (any, error) {
+			return obj.IsNewHostGracePeriod, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CancellationPenaltyPreview_isNewHostGracePeriod(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CancellationPenaltyPreview",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CancellationPenaltyPreview_requiresReview(ctx context.Context, field graphql.CollectedField, obj *model.CancellationPenaltyPreview) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CancellationPenaltyPreview_requiresReview,
+		func(ctx context.Context) (any, error) {
+			return obj.RequiresReview, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CancellationPenaltyPreview_requiresReview(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CancellationPenaltyPreview",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CancellationPenaltyPreview_warningMessage(ctx context.Context, field graphql.CollectedField, obj *model.CancellationPenaltyPreview) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CancellationPenaltyPreview_warningMessage,
+		func(ctx context.Context) (any, error) {
+			return obj.WarningMessage, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CancellationPenaltyPreview_warningMessage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CancellationPenaltyPreview",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -49219,6 +49527,184 @@ func (ec *executionContext) fieldContext_Query_listingBookings(ctx context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_previewHostCancellationPenalty(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_previewHostCancellationPenalty,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().PreviewHostCancellationPenalty(ctx, fc.Args["bookingId"].(uuid.UUID))
+		},
+		nil,
+		ec.marshalNCancellationPenaltyPreview2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCancellationPenaltyPreview,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_previewHostCancellationPenalty(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cancellationCount":
+				return ec.fieldContext_CancellationPenaltyPreview_cancellationCount(ctx, field)
+			case "penaltyAmount":
+				return ec.fieldContext_CancellationPenaltyPreview_penaltyAmount(ctx, field)
+			case "suspensionDays":
+				return ec.fieldContext_CancellationPenaltyPreview_suspensionDays(ctx, field)
+			case "isNewHostGracePeriod":
+				return ec.fieldContext_CancellationPenaltyPreview_isNewHostGracePeriod(ctx, field)
+			case "requiresReview":
+				return ec.fieldContext_CancellationPenaltyPreview_requiresReview(ctx, field)
+			case "warningMessage":
+				return ec.fieldContext_CancellationPenaltyPreview_warningMessage(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CancellationPenaltyPreview", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_previewHostCancellationPenalty_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myHostBookings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myHostBookings,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().MyHostBookings(ctx, fc.Args["status"].(*domain7.BookingStatus), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
+		},
+		nil,
+		ec.marshalNBooking2ᚕᚖhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐBookingᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myHostBookings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Booking_id(ctx, field)
+			case "bookingReference":
+				return ec.fieldContext_Booking_bookingReference(ctx, field)
+			case "listingId":
+				return ec.fieldContext_Booking_listingId(ctx, field)
+			case "listing":
+				return ec.fieldContext_Booking_listing(ctx, field)
+			case "calendarEventId":
+				return ec.fieldContext_Booking_calendarEventId(ctx, field)
+			case "cleaningEventId":
+				return ec.fieldContext_Booking_cleaningEventId(ctx, field)
+			case "guestId":
+				return ec.fieldContext_Booking_guestId(ctx, field)
+			case "guestName":
+				return ec.fieldContext_Booking_guestName(ctx, field)
+			case "guestEmail":
+				return ec.fieldContext_Booking_guestEmail(ctx, field)
+			case "guestPhone":
+				return ec.fieldContext_Booking_guestPhone(ctx, field)
+			case "guestCount":
+				return ec.fieldContext_Booking_guestCount(ctx, field)
+			case "status":
+				return ec.fieldContext_Booking_status(ctx, field)
+			case "bookingType":
+				return ec.fieldContext_Booking_bookingType(ctx, field)
+			case "checkIn":
+				return ec.fieldContext_Booking_checkIn(ctx, field)
+			case "checkOut":
+				return ec.fieldContext_Booking_checkOut(ctx, field)
+			case "checkInTime":
+				return ec.fieldContext_Booking_checkInTime(ctx, field)
+			case "checkOutTime":
+				return ec.fieldContext_Booking_checkOutTime(ctx, field)
+			case "holdExpiresAt":
+				return ec.fieldContext_Booking_holdExpiresAt(ctx, field)
+			case "paymentDueAt":
+				return ec.fieldContext_Booking_paymentDueAt(ctx, field)
+			case "activeAt":
+				return ec.fieldContext_Booking_activeAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Booking_completedAt(ctx, field)
+			case "archivedAt":
+				return ec.fieldContext_Booking_archivedAt(ctx, field)
+			case "paymentReference":
+				return ec.fieldContext_Booking_paymentReference(ctx, field)
+			case "lastPaymentId":
+				return ec.fieldContext_Booking_lastPaymentId(ctx, field)
+			case "refundAmount":
+				return ec.fieldContext_Booking_refundAmount(ctx, field)
+			case "refundInitiatedAt":
+				return ec.fieldContext_Booking_refundInitiatedAt(ctx, field)
+			case "refundProcessedAt":
+				return ec.fieldContext_Booking_refundProcessedAt(ctx, field)
+			case "refundReason":
+				return ec.fieldContext_Booking_refundReason(ctx, field)
+			case "refundReference":
+				return ec.fieldContext_Booking_refundReference(ctx, field)
+			case "cancelledBy":
+				return ec.fieldContext_Booking_cancelledBy(ctx, field)
+			case "refundBreakdown":
+				return ec.fieldContext_Booking_refundBreakdown(ctx, field)
+			case "specialRequests":
+				return ec.fieldContext_Booking_specialRequests(ctx, field)
+			case "priceBreakdown":
+				return ec.fieldContext_Booking_priceBreakdown(ctx, field)
+			case "totalPrice":
+				return ec.fieldContext_Booking_totalPrice(ctx, field)
+			case "currency":
+				return ec.fieldContext_Booking_currency(ctx, field)
+			case "confirmedAt":
+				return ec.fieldContext_Booking_confirmedAt(ctx, field)
+			case "cancelledAt":
+				return ec.fieldContext_Booking_cancelledAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Booking_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Booking_updatedAt(ctx, field)
+			case "deletedAt":
+				return ec.fieldContext_Booking_deletedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myHostBookings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_calendarEvent(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -71626,6 +72112,70 @@ func (ec *executionContext) _CalendarEvent(ctx context.Context, sel ast.Selectio
 	return out
 }
 
+var cancellationPenaltyPreviewImplementors = []string{"CancellationPenaltyPreview"}
+
+func (ec *executionContext) _CancellationPenaltyPreview(ctx context.Context, sel ast.SelectionSet, obj *model.CancellationPenaltyPreview) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cancellationPenaltyPreviewImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CancellationPenaltyPreview")
+		case "cancellationCount":
+			out.Values[i] = ec._CancellationPenaltyPreview_cancellationCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "penaltyAmount":
+			out.Values[i] = ec._CancellationPenaltyPreview_penaltyAmount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suspensionDays":
+			out.Values[i] = ec._CancellationPenaltyPreview_suspensionDays(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isNewHostGracePeriod":
+			out.Values[i] = ec._CancellationPenaltyPreview_isNewHostGracePeriod(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "requiresReview":
+			out.Values[i] = ec._CancellationPenaltyPreview_requiresReview(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "warningMessage":
+			out.Values[i] = ec._CancellationPenaltyPreview_warningMessage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var completeBookingPayloadImplementors = []string{"CompleteBookingPayload"}
 
 func (ec *executionContext) _CompleteBookingPayload(ctx context.Context, sel ast.SelectionSet, obj *graphql4.CompleteBookingPayload) graphql.Marshaler {
@@ -79059,6 +79609,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "previewHostCancellationPenalty":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_previewHostCancellationPenalty(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myHostBookings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myHostBookings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "calendarEvent":
 			field := field
 
@@ -85258,6 +85852,20 @@ func (ec *executionContext) unmarshalNCancelBookingInput2hausletᚋinternalᚋmo
 func (ec *executionContext) unmarshalNCancelShowingInput2hausletᚋinternalᚋmodulesᚋcalendarᚋportᚋgraphqlᚐCancelShowingInput(ctx context.Context, v any) (graphql5.CancelShowingInput, error) {
 	res, err := ec.unmarshalInputCancelShowingInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCancellationPenaltyPreview2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCancellationPenaltyPreview(ctx context.Context, sel ast.SelectionSet, v model.CancellationPenaltyPreview) graphql.Marshaler {
+	return ec._CancellationPenaltyPreview(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCancellationPenaltyPreview2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐCancellationPenaltyPreview(ctx context.Context, sel ast.SelectionSet, v *model.CancellationPenaltyPreview) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CancellationPenaltyPreview(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNCompleteBookingPayload2hausletᚋinternalᚋmodulesᚋbookingᚋportᚋgraphqlᚐCompleteBookingPayload(ctx context.Context, sel ast.SelectionSet, v graphql4.CompleteBookingPayload) graphql.Marshaler {

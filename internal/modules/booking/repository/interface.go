@@ -27,6 +27,7 @@ type BookingRepository interface {
 	UpdateStatus(ctx context.Context, id uuid.UUID, status schema.BookingStatus, confirmedAt, cancelledAt *time.Time) error
 	ListBookingsForGuest(ctx context.Context, guestID uuid.UUID, limit, offset int) ([]*schema.Booking, error)
 	ListBookingsForListing(ctx context.Context, listingID uuid.UUID, limit, offset int) ([]*schema.Booking, error)
+	ListBookingsForHost(ctx context.Context, hostID uuid.UUID, status *schema.BookingStatus, limit, offset int) ([]*schema.Booking, error)
 	FindExpiredHolds(ctx context.Context, expiredBefore time.Time) ([]*schema.Booking, error)
 
 	// FindBookingsReadyForPayout finds completed bookings ready for host payout

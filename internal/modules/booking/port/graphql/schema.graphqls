@@ -1,4 +1,3 @@
-# internal/modules/booking/port/graphql/schema.graphqls
 
 enum BookingStatus {
   draft
@@ -254,6 +253,15 @@ extend type Query {
   Only accessible to the host of the booking.
   """
   previewHostCancellationPenalty(bookingId: UUID!): CancellationPenaltyPreview!
+
+  """
+  List all bookings for listings owned by the authenticated host.
+  """
+  myHostBookings(
+    status: BookingStatus
+    limit: Int
+    offset: Int
+  ): [Booking!]!
 }
 
 extend type Mutation {

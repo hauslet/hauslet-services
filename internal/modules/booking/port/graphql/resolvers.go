@@ -142,6 +142,35 @@ func (r *Resolver) ListingBookings(ctx context.Context, listingID uuid.UUID, sta
 	return bookings, nil
 }
 
+// MyHostBookings lists bookings for listings owned by the authenticated host
+func (r *Resolver) MyHostBookings(ctx context.Context, status *domain.BookingStatus, limit *int, offset *int) ([]*domain.Booking, error) {
+	userID, err := viewer.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	l := 20
+	if limit != nil && *limit > 0 {
+		l = *limit
+	}
+
+	o := 0
+	if offset != nil && *offset > 0 {
+		o = *offset
+	}
+
+	bookings, err := r.bookingService.ListBookingsForHost(ctx, userID, status, l, o)
+	if err != nil {
+		r.log.Error("failed to list host bookings", "host_id", userID, "error", err)
+		return nil, err
+	}
+
+	for i := range bookings {
+		r.bookingService.LocalizeBooking(ctx, bookings[i])
+	}
+	return bookings, nil
+}
+
 // Listing resolves the listing for a booking
 func (r *Resolver) Listing(ctx context.Context, obj *domain.Booking) (*propertydomain.Listing, error) {
 	loaders := loaders.For(ctx)

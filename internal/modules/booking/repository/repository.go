@@ -86,6 +86,26 @@ func (r *BookingRepositoryImpl) ListBookingsForListing(ctx context.Context, list
 	return bookings, nil
 }
 
+func (r *BookingRepositoryImpl) ListBookingsForHost(ctx context.Context, hostID uuid.UUID, status *schema.BookingStatus, limit, offset int) ([]*schema.Booking, error) {
+	var bookings []*schema.Booking
+	query := r.db.WithContext(ctx).
+		Joins("JOIN listings ON listings.id = bookings.listing_id").
+		Where("listings.owner_id = ?", hostID)
+
+	if status != nil {
+		query = query.Where("bookings.status = ?", *status)
+	}
+
+	if err := query.
+		Order("bookings.check_in_time DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&bookings).Error; err != nil {
+		return nil, err
+	}
+	return bookings, nil
+}
+
 func (r *BookingRepositoryImpl) FindExpiredHolds(ctx context.Context, expiredBefore time.Time) ([]*schema.Booking, error) {
 	var bookings []*schema.Booking
 	if err := r.db.WithContext(ctx).

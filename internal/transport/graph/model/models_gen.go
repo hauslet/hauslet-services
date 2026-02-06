@@ -33,6 +33,22 @@ type BookingSettingsInput struct {
 	PreBookingMessage *string                 `json:"preBookingMessage,omitempty"`
 }
 
+// Preview of the penalty that would apply if the host cancels a booking.
+type CancellationPenaltyPreview struct {
+	// Number of cancellations including this one in the rolling window.
+	CancellationCount int `json:"cancellationCount"`
+	// Penalty amount in minor units (e.g., kobo).
+	PenaltyAmount int `json:"penaltyAmount"`
+	// Number of days listings would be suspended (0 if no suspension).
+	SuspensionDays int `json:"suspensionDays"`
+	// Whether the host is in their new-host grace period (no penalties).
+	IsNewHostGracePeriod bool `json:"isNewHostGracePeriod"`
+	// Whether this cancellation triggers a manual review requirement.
+	RequiresReview bool `json:"requiresReview"`
+	// Human-readable warning message explaining the consequences.
+	WarningMessage string `json:"warningMessage"`
+}
+
 type CreateListingInput struct {
 	OwnerType        domain.OwnerType            `json:"ownerType"`
 	BusinessID       *uuid.UUID                  `json:"businessID,omitempty"`

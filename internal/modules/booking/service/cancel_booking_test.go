@@ -53,6 +53,9 @@ func (m *MockBookingRepo) ListBookingsForGuest(_ context.Context, _ uuid.UUID, _
 func (m *MockBookingRepo) ListBookingsForListing(_ context.Context, _ uuid.UUID, _, _ int) ([]*schema.Booking, error) {
 	return nil, nil
 }
+func (m *MockBookingRepo) ListBookingsForHost(_ context.Context, _ uuid.UUID, _ *schema.BookingStatus, _, _ int) ([]*schema.Booking, error) {
+	return nil, nil
+}
 func (m *MockBookingRepo) FindExpiredHolds(_ context.Context, _ time.Time) ([]*schema.Booking, error) {
 	return nil, nil
 }

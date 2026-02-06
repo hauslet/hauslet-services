@@ -17,6 +17,7 @@ help:
 	@echo "  make test          # go test ./..."
 	@echo "  make compose-up    # docker-compose up -d"
 	@echo "  make compose-down  # docker-compose down"
+	@echo "  make gql-gen       # Generate GraphQL code"
 	@echo "  make scaffold MODULE=name # Scaffold internal/MODULE structure"
 	@echo ""
 	@echo "Database:"

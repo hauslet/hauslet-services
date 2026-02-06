@@ -1335,6 +1335,30 @@ func (r *queryResolver) ListingBookings(ctx context.Context, listingID uuid.UUID
 	return r.BookingResolver.ListingBookings(ctx, listingID, status, limit, offset)
 }
 
+// PreviewHostCancellationPenalty is the resolver for the previewHostCancellationPenalty field.
+func (r *queryResolver) PreviewHostCancellationPenalty(ctx context.Context, bookingID uuid.UUID) (*model.CancellationPenaltyPreview, error) {
+	res, err := r.BookingResolver.PreviewHostCancellationPenalty(ctx, bookingID)
+	if err != nil {
+		return nil, err
+	}
+	if res == nil {
+		return nil, nil
+	}
+	return &model.CancellationPenaltyPreview{
+		CancellationCount:    res.CancellationCount,
+		PenaltyAmount:        res.PenaltyAmount,
+		SuspensionDays:       res.SuspensionDays,
+		IsNewHostGracePeriod: res.IsNewHostGracePeriod,
+		RequiresReview:       res.RequiresReview,
+		WarningMessage:       res.WarningMessage,
+	}, nil
+}
+
+// MyHostBookings is the resolver for the myHostBookings field.
+func (r *queryResolver) MyHostBookings(ctx context.Context, status *domain5.BookingStatus, limit *int, offset *int) ([]*domain5.Booking, error) {
+	return r.BookingResolver.MyHostBookings(ctx, status, limit, offset)
+}
+
 // CalendarEvent is the resolver for the calendarEvent field.
 func (r *queryResolver) CalendarEvent(ctx context.Context, id uuid.UUID) (*calendardomain.CalendarEvent, error) {
 	return r.CalendarResolver.CalendarEvent(ctx, id)

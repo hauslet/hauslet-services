@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"hauslet/config"
+	"hauslet/internal/modules/auth/authorization"
 	"hauslet/internal/modules/booking/domain"
 	"hauslet/internal/modules/booking/notification"
 	"hauslet/internal/modules/booking/repository"
@@ -52,6 +53,7 @@ type BookingService interface {
 	// List methods
 	ListBookingsForGuest(ctx context.Context, guestID uuid.UUID, limit, offset int) ([]*domain.Booking, error)
 	ListBookingsForListing(ctx context.Context, listingID uuid.UUID, requestorID uuid.UUID, status *domain.BookingStatus, limit, offset int) ([]*domain.Booking, error)
+	ListBookingsForHost(ctx context.Context, hostID uuid.UUID, status *domain.BookingStatus, limit, offset int) ([]*domain.Booking, error)
 
 	// Payment lifecycle methods
 	HandlePaymentSuccess(ctx context.Context, bookingID uuid.UUID, paymentID uuid.UUID) error
@@ -242,6 +244,7 @@ type BookingServiceImpl struct {
 	platformConfig config.PlatformYAMLConfig
 	log            *slog.Logger
 	fx             xchange.XChange
+	supplyGate     authorization.SupplyGate
 }
 
 func NewBookingService(
@@ -260,6 +263,7 @@ func NewBookingService(
 	platformConfig config.PlatformYAMLConfig,
 	log *slog.Logger,
 	fx xchange.XChange,
+	supplyGate authorization.SupplyGate,
 ) BookingService {
 	return &BookingServiceImpl{
 		repo:           repo,
@@ -277,5 +281,6 @@ func NewBookingService(
 		platformConfig: platformConfig,
 		log:            log,
 		fx:             fx,
+		supplyGate:     supplyGate,
 	}
 }

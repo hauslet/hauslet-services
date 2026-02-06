@@ -814,6 +814,7 @@ func (c *Container) initBooking() error {
 		c.Config.YAML.Platform,
 		c.Logger,
 		c.FXClient,
+		c.SupplyGate,
 	)
 
 	return nil

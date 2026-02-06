@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"hauslet/internal/modules/auth/authorization"
 	"hauslet/internal/modules/booking/domain"
+	"hauslet/internal/modules/booking/repository/schema"
 
 	"github.com/google/uuid"
 )
@@ -100,6 +103,36 @@ func (s *BookingServiceImpl) ListBookingsForListing(ctx context.Context, listing
 			continue
 		}
 		bookings = append(bookings, booking)
+	}
+
+	return bookings, nil
+}
+
+func (s *BookingServiceImpl) ListBookingsForHost(ctx context.Context, hostID uuid.UUID, status *domain.BookingStatus, limit, offset int) ([]*domain.Booking, error) {
+	if s.supplyGate == nil {
+		return nil, domain.ErrUnauthorized // or internal error, but gate is required
+	}
+
+	// Use Supply Gate to verify host eligibility
+	if err := s.supplyGate.Authorize(ctx, hostID, authorization.SupplyActionManageBookings, nil); err != nil {
+		return nil, fmt.Errorf("unauthorized to manage bookings: %w", err)
+	}
+
+	// Map domain status to schema status if provided
+	var schemaStatus *schema.BookingStatus
+	if status != nil {
+		st := schema.BookingStatus(*status)
+		schemaStatus = &st
+	}
+
+	schemaBookings, err := s.repo.ListBookingsForHost(ctx, hostID, schemaStatus, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	bookings := make([]*domain.Booking, 0, len(schemaBookings))
+	for _, sb := range schemaBookings {
+		bookings = append(bookings, domain.MapBookingFromSchema(sb))
 	}
 
 	return bookings, nil

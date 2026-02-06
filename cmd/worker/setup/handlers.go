@@ -358,6 +358,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 				cfg.YAML.Platform,
 				log,
 				nil, // fx not needed for worker
+				nil, // supply gate not needed for worker
 			)
 			if hasBookingExpiry {
 				h := bookingHandler.NewBookingExpiryCheckHandler(bookingSvc, log, qCfg["booking_expiry"])
@@ -413,6 +414,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			cfg.YAML.Platform,
 			log,
 			nil, // fx not needed for worker
+			nil, // supply gate not needed for worker
 		)
 
 		h := bookingHandler.NewBookingCheckInOutHandler(bookingSvc, log, qCfg["booking_checkin_out"])
@@ -478,6 +480,7 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 			cfg.YAML.Platform,
 			log,
 			nil, // fx not needed for worker
+			nil, // supply gate not needed for worker
 		)
 		bookingHooksAdapter := bookinghooks.NewBookingHooksAdapter(bookingSvc)
 
