@@ -227,7 +227,7 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 
 	// Settle remaining escrow funds (distribute non-refunded amount to host/platform)
 	// This handles cases where guest gets partial or zero refund based on cancellation policy
-	if booking.LastPaymentID != nil && s.financeHooks != nil && refundBreakdown != nil {
+	if booking.LastPaymentID != nil && s.financeHooks != nil && refundBreakdown != nil && refundBreakdown.NonRefundedAmount > 0 {
 		currencyMinorUnit := int64(100)
 		hostAmount := int64(refundBreakdown.HostRetainedAmount * float64(currencyMinorUnit))
 		platformAmount := int64(refundBreakdown.PlatformRetained * float64(currencyMinorUnit))

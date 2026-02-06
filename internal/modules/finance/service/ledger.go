@@ -824,16 +824,9 @@ func (s *FinanceServiceImpl) SettleCancelledBooking(
 			hostAmount += platformAmount
 			platformAmount = 0
 		}
-	} else if totalRequired < remainingBalance {
-		s.log.Info("[AUDIT] settlement_amount_mismatch_overflow",
-			"booking_id", bookingID,
-			"remaining", remainingBalance,
-			"required", totalRequired,
-			"action", "excess_to_platform",
-		)
-		// Give excess to platform
-		platformAmount += (remainingBalance - totalRequired)
 	}
+	// Removed logic that auto-sweeps excess funds to platform.
+	// Excess funds must remain in escrow for refund processing.
 
 	// Use finalised amounts
 	commission := platformAmount
