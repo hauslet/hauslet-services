@@ -20,22 +20,29 @@ type ProviderFactory interface {
 
 // DefaultProviderFactory implements ProviderFactory with currency-based routing
 type DefaultProviderFactory struct {
-	paystackAdapter *PaystackAdapter
-	stripeAdapter   *StripeAdapter
+	paystackAdapter    *PaystackAdapter
+	flutterwaveAdapter *FlutterwaveAdapter
 }
 
 // NewProviderFactory creates a new provider factory with configured adapters
 func NewProviderFactory(cfg config.PaymentConfig, cb breaker.CircuitBreaker) *DefaultProviderFactory {
+	fw := NewFlutterwaveAdapter(cfg.FlutterwaveWebhookSecret, "", cb).
+		WithOAuthCredentials(cfg.FlutterwaveOAuthClientID, cfg.FlutterwaveOAuthSecret)
+
+	if cfg.FlutterwaveBaseURL != "" {
+		fw = fw.WithBaseURL(cfg.FlutterwaveBaseURL)
+	}
+
 	return &DefaultProviderFactory{
-		paystackAdapter: NewPaystackAdapter(cfg.PaystackSecretKey, cb),
-		stripeAdapter:   NewStripeAdapter(cfg.StripeSecretKey, cfg.StripeWebhookSecret, cb),
+		paystackAdapter:    NewPaystackAdapter(cfg.PaystackSecretKey, cb),
+		flutterwaveAdapter: fw,
 	}
 }
 
 // GetTransactionClient returns the appropriate transaction client based on currency
 // Currency routing:
 // - NGN → Paystack
-// - USD, GHS → Stripe
+// - USD, GHS → Flutterwave
 func (f *DefaultProviderFactory) GetTransactionClient(currency Currency) (TransactionClient, error) {
 	if !currency.IsValid() {
 		return nil, ErrInvalidCurrency
@@ -45,7 +52,7 @@ func (f *DefaultProviderFactory) GetTransactionClient(currency Currency) (Transa
 	case NGN:
 		return f.paystackAdapter, nil
 	case USD, GHS:
-		return f.stripeAdapter, nil
+		return f.flutterwaveAdapter, nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrNoProvider, currency)
 	}
@@ -54,7 +61,7 @@ func (f *DefaultProviderFactory) GetTransactionClient(currency Currency) (Transa
 // GetPayoutClient returns the appropriate payout client based on currency
 // Currency routing:
 // - NGN → Paystack
-// - USD, GHS → Stripe
+// - USD, GHS → Flutterwave
 func (f *DefaultProviderFactory) GetPayoutClient(currency Currency) (PayoutClient, error) {
 	if !currency.IsValid() {
 		return nil, ErrInvalidCurrency
@@ -64,20 +71,20 @@ func (f *DefaultProviderFactory) GetPayoutClient(currency Currency) (PayoutClien
 	case NGN:
 		return f.paystackAdapter, nil
 	case USD, GHS:
-		return f.stripeAdapter, nil
+		return f.flutterwaveAdapter, nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrNoProvider, currency)
 	}
 }
 
 // GetWebhookHandler returns the webhook handler for a specific provider
-// Provider names: "paystack", "stripe"
+// Provider names: "paystack", "flutterwave"
 func (f *DefaultProviderFactory) GetWebhookHandler(provider string) (WebhookHandler, error) {
 	switch provider {
 	case "paystack":
 		return f.paystackAdapter, nil
-	case "stripe":
-		return f.stripeAdapter, nil
+	case "flutterwave":
+		return f.flutterwaveAdapter, nil
 	default:
 		return nil, fmt.Errorf("unknown provider: %s", provider)
 	}
@@ -88,7 +95,7 @@ func (f *DefaultProviderFactory) GetPaystackAdapter() *PaystackAdapter {
 	return f.paystackAdapter
 }
 
-// GetStripeAdapter returns the Stripe adapter (for direct access if needed)
-func (f *DefaultProviderFactory) GetStripeAdapter() *StripeAdapter {
-	return f.stripeAdapter
+// GetFlutterwaveAdapter returns the Flutterwave adapter (for direct access if needed)
+func (f *DefaultProviderFactory) GetFlutterwaveAdapter() *FlutterwaveAdapter {
+	return f.flutterwaveAdapter
 }

@@ -10,8 +10,8 @@ type Currency string
 
 const (
 	NGN Currency = "NGN" // Nigerian Naira (Paystack)
-	USD Currency = "USD" // US Dollar (Stripe)
-	GHS Currency = "GHS" // Ghanaian Cedi (Stripe)
+	USD Currency = "USD" // US Dollar (Flutterwave)
+	GHS Currency = "GHS" // Ghanaian Cedi (Flutterwave)
 )
 
 // Bank represents a payout bank supported by a provider.
@@ -118,7 +118,7 @@ type PaymentResponse struct {
 	// Redirect flow (Paystack standard checkout)
 	RedirectURL string // URL to redirect user for payment
 
-	// Action required flow (Stripe 3DS, Paystack OTP)
+	// Action required flow (Flutterwave redirect, Paystack OTP)
 	RequiresAction bool                   // Whether additional user action is needed
 	ActionPayload  map[string]interface{} // Provider-specific instruction data
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hauslet/internal/modules/booking/domain"
 	calendardomain "hauslet/internal/modules/calendar/domain"
@@ -34,6 +35,18 @@ func (s *BookingServiceImpl) QuoteBooking(
 	// Get listing constraints
 	constraints, err := s.listingHooks.GetListingConstraints(ctx, listingID)
 	if err != nil {
+		if errors.Is(err, domain.ErrListingSuspended) || errors.Is(err, domain.ErrListingUnavailable) {
+			reason := err.Error()
+			return &domain.BookingQuote{
+				ListingID:            listingID,
+				CheckIn:              checkIn,
+				CheckOut:             checkOut,
+				GuestCount:           guestCount,
+				Available:            false,
+				Currency:             "NGN",
+				UnavailabilityReason: &reason,
+			}, nil
+		}
 		return nil, err
 	}
 

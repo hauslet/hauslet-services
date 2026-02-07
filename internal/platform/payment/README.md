@@ -1,33 +1,36 @@
 # Payment Platform Abstraction
 
-A unified payment provider abstraction layer that supports **Paystack** (NGN) and **Stripe** (USD/GHS).
+A unified payment provider abstraction layer that supports **Paystack** (NGN) and **Flutterwave** (USD/GHS).
 
 ## Architecture
 
-```
+```txt
 internal/platform/payment/
-├── interface.go          # Core interfaces (TransactionClient, PayoutClient, WebhookHandler)
-├── dto.go                # Unified domain models (Currency, PaymentRequest, PaymentResponse, etc.)
-├── client.go             # High-level wrapper with delegation pattern
-├── factory.go            # Provider selection based on currency
-├── helpers.go            # Utility functions (amount conversion, validation)
-├── errors.go             # Custom error types
-├── paystack_adapter.go   # Paystack implementation (NGN)
-├── stripe_adapter.go     # Stripe implementation (USD, GHS)
-├── example_usage.go      # Usage examples (DO NOT IMPORT)
-└── README.md             # This file
+├── interface.go              # Core interfaces (TransactionClient, PayoutClient, WebhookHandler)
+├── dto.go                    # Unified domain models (Currency, PaymentRequest, PaymentResponse, etc.)
+├── client.go                 # High-level wrapper with delegation pattern
+├── factory.go                # Provider selection based on currency
+├── helpers.go                # Utility functions (amount conversion, validation)
+├── errors.go                 # Custom error types
+├── paystack_adapter.go       # Paystack implementation (NGN)
+├── flutterwave_adapter.go    # Flutterwave v4 implementation (USD, GHS)
+├── example_usage.go          # Usage examples (DO NOT IMPORT)
+└── README.md                 # This file
 ```
 
 ## Key Features
 
 ### 1. **Provider Abstraction**
+
 Your business logic stays provider-agnostic. Just specify currency:
+
 - **NGN** → Automatically routes to Paystack
-- **USD, GHS** → Automatically routes to Stripe
+- **USD, GHS** → Automatically routes to Flutterwave
 
 ### 2. **Unified Interfaces**
 
 #### TransactionClient (Guest Payments)
+
 ```go
 Initialize()           // Create checkout URL or Payment Intent
 ChargeAuthorization()  // Charge saved card (one-click payment)
@@ -36,6 +39,7 @@ Refund()              // Process refund
 ```
 
 #### PayoutClient (Host Disbursements)
+
 ```go
 ValidateAccount()     // Verify bank account
 CreateRecipient()     // Register beneficiary
@@ -44,12 +48,14 @@ VerifyTransfer()      // Check transfer status
 ```
 
 #### WebhookHandler (Event Processing)
+
 ```go
 VerifySignature()     // Validate webhook authenticity
 ParseEvent()          // Convert to unified event structure
 ```
 
 ### 3. **Normalized Data Models**
+
 - `PaymentRequest` / `PaymentResponse` - Transaction operations
 - `PayoutRequest` / `PayoutResponse` - Disbursement operations
 - `UnifiedEvent` - Webhook events from any provider
@@ -86,7 +92,7 @@ resp, err := paymentClient.Initialize(ctx, payment.PaymentRequest{
 })
 
 // NGN → Paystack: redirect to resp.RedirectURL
-// USD/GHS → Stripe: use resp.ActionPayload["client_secret"]
+// USD/GHS → Flutterwave: redirect to resp.RedirectURL
 ```
 
 ### 3. Process Payout
@@ -130,9 +136,9 @@ The client uses your existing config at `config.Services.Payment`:
 // .env file
 PAYSTACK_SECRET_KEY=sk_test_...
 PAYSTACK_PUBLIC_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-STRIPE_PUBLISHABLE_KEY=pk_test_...
+FLUTTERWAVE_WEBHOOK_SECRET=your-flutterwave-webhook-secret
+FLUTTERWAVE_OAUTH_CLIENT_ID=your-flutterwave-oauth-client-id
+FLUTTERWAVE_OAUTH_SECRET=your-flutterwave-oauth-secret
 ```
 
 Already configured in [config/config.go:106-112](../../config/config.go#L106-L112)
@@ -142,8 +148,8 @@ Already configured in [config/config.go:106-112](../../config/config.go#L106-L11
 | Currency | Provider | Use Case |
 |----------|----------|----------|
 | NGN | Paystack | Nigerian market |
-| USD | Stripe | International |
-| GHS | Stripe | Ghanaian market |
+| USD | Flutterwave | International |
+| GHS | Flutterwave | Ghanaian market |
 
 ## Helper Functions
 
@@ -161,7 +167,7 @@ err := payment.ValidateReference("BKG-12345")
 
 // Status normalization (automatic)
 status := payment.NormalizeStatus("success", "paystack")      // StatusSuccess
-status := payment.NormalizeStatus("succeeded", "stripe")      // StatusSuccess
+status := payment.NormalizeStatus("successful", "flutterwave")  // StatusSuccess
 ```
 
 ## Error Handling
@@ -186,7 +192,7 @@ ErrNoProvider              // No provider for currency
 
 This platform layer will be used by your upcoming `internal/modules/payment` (transaction) module:
 
-```
+```txt
 ┌─────────────────┐
 │ Booking Module  │
 └────────┬────────┘
@@ -205,7 +211,7 @@ This platform layer will be used by your upcoming `internal/modules/payment` (tr
     ┌────┴────┐
     ▼         ▼
 ┌─────────┐ ┌──────┐
-│Paystack │ │Stripe│
+│Paystack │ │Flutterwave│
 └─────────┘ └──────┘
 ```
 
@@ -231,7 +237,7 @@ adapter := payment.NewPaystackAdapter(secretKey).
 ## API Documentation
 
 - [Paystack API Docs](https://paystack.com/docs/api/)
-- [Stripe API Docs](https://stripe.com/docs/api)
+- [Flutterwave API Docs](https://developer.flutterwave.com/reference)
 
 ## Notes
 
@@ -240,4 +246,4 @@ adapter := payment.NewPaystackAdapter(secretKey).
 - References must be **unique** per transaction
 - Store recipient codes in database for reuse
 - Always verify webhooks before processing
-- Handle both redirect (Paystack) and client-side (Stripe) flows
+- Handle redirect flows for both Paystack and Flutterwave

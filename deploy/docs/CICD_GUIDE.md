@@ -70,7 +70,7 @@ PROJECT_ID=hauslet-prod ./configure-secrets.sh
 
 You'll be prompted for:
 - Database passwords
-- API keys (Stripe, Paystack, Gemini, etc.)
+- API keys (Flutterwave, Paystack, Gemini, etc.)
 - OAuth secrets
 - Encryption keys
 

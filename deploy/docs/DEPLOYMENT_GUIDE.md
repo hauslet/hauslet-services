@@ -174,9 +174,9 @@ echo -n "your-resend-key" | gcloud secrets create RESEND_API_KEY --data-file=-
 # Payment providers
 echo -n "your-paystack-secret" | gcloud secrets create PAYSTACK_SECRET_KEY --data-file=-
 echo -n "your-paystack-public" | gcloud secrets create PAYSTACK_PUBLIC_KEY --data-file=-
-echo -n "your-stripe-secret" | gcloud secrets create STRIPE_SECRET_KEY --data-file=-
-echo -n "your-stripe-publishable" | gcloud secrets create STRIPE_PUBLISHABLE_KEY --data-file=-
-echo -n "your-stripe-webhook-secret" | gcloud secrets create STRIPE_WEBHOOK_SECRET --data-file=-
+echo -n "your-flutterwave-webhook-secret" | gcloud secrets create FLUTTERWAVE_WEBHOOK_SECRET --data-file=-
+echo -n "your-flutterwave-oauth-client-id" | gcloud secrets create FLUTTERWAVE_OAUTH_CLIENT_ID --data-file=-
+echo -n "your-flutterwave-oauth-secret" | gcloud secrets create FLUTTERWAVE_OAUTH_SECRET --data-file=-
 
 # Storage (Cloudflare R2)
 echo -n "your-r2-account-id" | gcloud secrets create R2_ACCOUNT_ID --data-file=-

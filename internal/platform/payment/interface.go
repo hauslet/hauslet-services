@@ -5,13 +5,13 @@ import "context"
 // TransactionClient handles guest-side payment operations (collecting money)
 type TransactionClient interface {
 	// Initialize generates a checkout link or client secret for first-time payment
-	// Returns payment response with redirect URL (Paystack) or action payload (Stripe)
+	// Returns payment response with redirect URL (Paystack/Flutterwave)
 	Initialize(ctx context.Context, req PaymentRequest) (*PaymentResponse, error)
 
 	// AuthorizePayment verifies a payment method without capturing funds
 	// Returns an authorization token/code for deferred charges
 	// Paystack: zero-amount or minimal charge authorization
-	// Stripe: SetupIntent / PaymentMethod
+	// Flutterwave: customer creation + minimal charge → redirect
 	AuthorizePayment(ctx context.Context, req AuthorizationRequest) (*AuthorizationResponse, error)
 
 	// ChargeAuthorization charges a saved card token (one-click payments)

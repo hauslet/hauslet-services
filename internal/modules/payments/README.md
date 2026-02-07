@@ -56,7 +56,7 @@ Following your requirements:
 | South Africa (ZA) | ZAR, USD |
 | Others | USD (default) |
 
-**Note**: Currently only Paystack is implemented. Stripe support will be added later.
+**Note**: Currently Paystack and Flutterwave are implemented.
 
 ## Features
 
@@ -517,7 +517,6 @@ ERROR payment processing failed for payment=PAY-12345: provider unavailable
 7. ⬜ Add payment analytics
 
 ### Future Enhancements
-- Stripe integration (for international payments)
 - Subscription/recurring payments
 - Payment splitting (for co-hosts)
 - Dispute management

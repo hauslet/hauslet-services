@@ -123,11 +123,12 @@ type CalendarConfig struct {
 }
 
 type PaymentConfig struct {
-	PaystackSecretKey    string
-	PaystackPublicKey    string
-	StripeSecretKey      string
-	StripeWebhookSecret  string
-	StripePublishableKey string
+	PaystackSecretKey        string
+	PaystackPublicKey        string
+	FlutterwaveWebhookSecret string
+	FlutterwaveOAuthClientID string
+	FlutterwaveOAuthSecret   string
+	FlutterwaveBaseURL       string // optional: override sandbox/live base URL
 }
 
 type FXConfig struct {

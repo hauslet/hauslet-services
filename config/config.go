@@ -95,11 +95,12 @@ func Load() *GlobalConfig {
 				},
 				// Calendar config moved to YAML (cfg.YAML.Calendar)
 				Payment: PaymentConfig{
-					PaystackSecretKey:    must("PAYSTACK_SECRET_KEY"),
-					PaystackPublicKey:    must("PAYSTACK_PUBLIC_KEY"),
-					StripeSecretKey:      must("STRIPE_SECRET_KEY"),
-					StripeWebhookSecret:  must("STRIPE_WEBHOOK_SECRET"),
-					StripePublishableKey: must("STRIPE_PUBLISHABLE_KEY"),
+					PaystackSecretKey:        must("PAYSTACK_SECRET_KEY"),
+					PaystackPublicKey:        must("PAYSTACK_PUBLIC_KEY"),
+					FlutterwaveWebhookSecret: must("FLUTTERWAVE_WEBHOOK_SECRET"),
+					FlutterwaveOAuthClientID: must("FLUTTERWAVE_OAUTH_CLIENT_ID"),
+					FlutterwaveOAuthSecret:   must("FLUTTERWAVE_OAUTH_SECRET"),
+					FlutterwaveBaseURL:       def("FLUTTERWAVE_BASE_URL", ""),
 				},
 				FX: FXConfig{
 					APIKey:  must("FX_API_KEY"),

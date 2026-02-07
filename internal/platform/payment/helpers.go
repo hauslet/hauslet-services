@@ -62,13 +62,13 @@ func NormalizeStatus(providerStatus string, provider string) TransactionStatus {
 			return StatusFailed
 		}
 
-	case "stripe":
+	case "flutterwave":
 		switch status {
-		case "succeeded":
+		case "successful", "success":
 			return StatusSuccess
-		case "failed", "canceled":
+		case "failed", "cancelled":
 			return StatusFailed
-		case "pending", "processing", "requires_action", "requires_payment_method":
+		case "pending", "processing", "requires_redirect":
 			return StatusPending
 		default:
 			return StatusFailed
@@ -96,13 +96,13 @@ func NormalizeTransferStatus(providerStatus string, provider string) TransferSta
 			return TransferFailed
 		}
 
-	case "stripe":
+	case "flutterwave":
 		switch status {
-		case "paid":
+		case "successful", "success":
 			return TransferSuccess
-		case "failed", "canceled":
+		case "failed", "cancelled":
 			return TransferFailed
-		case "pending", "in_transit":
+		case "pending", "new", "processing":
 			return TransferPending
 		default:
 			return TransferFailed

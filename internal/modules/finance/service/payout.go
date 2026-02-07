@@ -395,7 +395,7 @@ func (s *PayoutServiceImpl) processSinglePayout(
 		defaultProvider := "paystack"
 		switch strings.ToUpper(currency) {
 		case "USD", "GHS":
-			defaultProvider = "stripe"
+			defaultProvider = "flutterwave"
 		}
 
 		provider := strings.ToLower(strings.TrimSpace(s.platformConfig.Payouts.DisbursementProvider))
@@ -403,7 +403,7 @@ func (s *PayoutServiceImpl) processSinglePayout(
 			provider = defaultProvider
 		} else {
 			switch provider {
-			case "paystack", "stripe":
+			case "paystack", "flutterwave":
 				if provider != defaultProvider {
 					if s.log != nil {
 						s.log.Warn("disbursement provider does not match currency; using default",

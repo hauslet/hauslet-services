@@ -809,7 +809,7 @@ terraform apply tfplan
 echo -n "your-db-password" | gcloud secrets create DB_PASSWORD --data-file=-
 echo -n "your-jwt-secret" | gcloud secrets create JWT_SECRET --data-file=-
 echo -n "your-paystack-key" | gcloud secrets create PAYSTACK_SECRET_KEY --data-file=-
-echo -n "your-stripe-key" | gcloud secrets create STRIPE_SECRET_KEY --data-file=-
+echo -n "your-flutterwave-webhook-secret" | gcloud secrets create FLUTTERWAVE_WEBHOOK_SECRET --data-file=-
 echo -n "your-gemini-key" | gcloud secrets create GEMINI_API_KEY --data-file=-
 echo -n "your-anthropic-key" | gcloud secrets create ANTHROPIC_API_KEY --data-file=-
 echo -n "your-resend-key" | gcloud secrets create RESEND_API_KEY --data-file=-
@@ -822,7 +822,7 @@ export REDIS_HOST=$(terraform output -raw redis_host)
 echo -n "$REDIS_HOST" | gcloud secrets create REDIS_HOST --data-file=-
 
 # Grant service accounts access to secrets
-for SECRET in DB_PASSWORD JWT_SECRET PAYSTACK_SECRET_KEY STRIPE_SECRET_KEY \
+for SECRET in DB_PASSWORD JWT_SECRET PAYSTACK_SECRET_KEY FLUTTERWAVE_WEBHOOK_SECRET \
   GEMINI_API_KEY ANTHROPIC_API_KEY RESEND_API_KEY R2_SECRET_ACCESS_KEY \
   OAUTH_GOOGLE_CLIENT_SECRET ENCRYPTION_KEY REDIS_HOST; do
 

@@ -176,8 +176,12 @@ func (m *MockListingHooks) GetListingOwner(ctx context.Context, listingID uuid.U
 	args := m.Called(ctx, listingID)
 	return args.Get(0).(uuid.UUID), args.Error(1)
 }
-func (m *MockListingHooks) GetListingConstraints(_ context.Context, _ uuid.UUID) (*ListingConstraints, error) {
-	return nil, nil
+func (m *MockListingHooks) GetListingConstraints(ctx context.Context, listingID uuid.UUID) (*ListingConstraints, error) {
+	args := m.Called(ctx, listingID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*ListingConstraints), args.Error(1)
 }
 
 type MockProfileProvider struct{}

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"hauslet/internal/modules/calendar/service"
 	"hauslet/internal/modules/property/repository"
+	"hauslet/internal/modules/property/repository/schema"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -30,6 +32,17 @@ func (a *PropertyHooksAdapter) CanUseCalendar(ctx context.Context, listingID uui
 	if listing == nil {
 		return false, fmt.Errorf("listing not found")
 	}
+
+	if listing.Status == schema.StatusSuspended {
+		return false, nil
+	}
+	if listing.SuspendedUntil != nil && listing.SuspendedUntil.After(time.Now()) {
+		return false, nil
+	}
+	if !listing.Published || listing.Status != schema.StatusActive {
+		return false, nil
+	}
+
 	return listing.HasCalendar, nil
 }
 

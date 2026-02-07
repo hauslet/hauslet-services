@@ -3,10 +3,12 @@ package hooks
 import (
 	"context"
 	"fmt"
+	bookingdomain "hauslet/internal/modules/booking/domain"
 	"hauslet/internal/modules/booking/service"
 	"hauslet/internal/modules/property/repository"
 	"hauslet/internal/modules/property/repository/schema"
 	"slices"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -41,8 +43,8 @@ func (a *PropertyHooksAdapter) GetListingConstraints(ctx context.Context, listin
 	if err != nil {
 		return nil, err
 	}
-	if listing == nil {
-		return nil, fmt.Errorf("listing not found")
+	if err := listingBookingEligibilityError(listing); err != nil {
+		return nil, err
 	}
 
 	// Extract shortlet details
@@ -119,6 +121,30 @@ func (a *PropertyHooksAdapter) GetListingConstraints(ctx context.Context, listin
 	}
 
 	return constraints, nil
+}
+
+func listingBookingEligibilityError(listing *schema.Listing) error {
+	if listing == nil {
+		return fmt.Errorf("listing not found")
+	}
+
+	now := time.Now()
+	if listing.Status == schema.StatusSuspended {
+		return bookingdomain.ErrListingSuspended
+	}
+	if listing.SuspendedUntil != nil && listing.SuspendedUntil.After(now) {
+		return bookingdomain.ErrListingSuspended
+	}
+
+	if !listing.Published || listing.Status != schema.StatusActive {
+		return bookingdomain.ErrListingUnavailable
+	}
+
+	if listing.ListingType != schema.ListingShortLet || listing.ShortletDetails == nil {
+		return bookingdomain.ErrListingUnavailable
+	}
+
+	return nil
 }
 
 // extractRefundPolicy extracts the refund policy type from rule groups.

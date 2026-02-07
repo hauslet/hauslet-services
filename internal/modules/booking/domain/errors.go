@@ -5,6 +5,8 @@ import "errors"
 var (
 	ErrBookingNotFound              = errors.New("booking not found")
 	ErrDatesUnavailable             = errors.New("dates not available")
+	ErrListingUnavailable           = errors.New("listing is unavailable for booking")
+	ErrListingSuspended             = errors.New("listing is temporarily suspended from bookings")
 	ErrMinimumStayNotMet            = errors.New("booking does not meet minimum stay requirement")
 	ErrMaximumStayExceeded          = errors.New("booking exceeds maximum stay limit")
 	ErrGuestProfileNotFound         = errors.New("guest profile not found")

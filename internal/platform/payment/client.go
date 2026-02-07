@@ -123,7 +123,7 @@ func (c *Client) ListBanks(ctx context.Context, currency Currency, country strin
 // ============================================================================
 
 // VerifyWebhookSignature validates a webhook signature from a provider
-// Provider should be "paystack" or "stripe"
+// Provider should be "paystack" or "flutterwave"
 func (c *Client) VerifyWebhookSignature(provider, headerSignature string, payload []byte) (bool, error) {
 	handler, err := c.factory.GetWebhookHandler(provider)
 	if err != nil {
@@ -133,7 +133,7 @@ func (c *Client) VerifyWebhookSignature(provider, headerSignature string, payloa
 }
 
 // ParseWebhookEvent converts a webhook payload to a unified event structure
-// Provider should be "paystack" or "stripe"
+// Provider should be "paystack" or "flutterwave"
 func (c *Client) ParseWebhookEvent(provider string, payload []byte) (*UnifiedEvent, error) {
 	handler, err := c.factory.GetWebhookHandler(provider)
 	if err != nil {

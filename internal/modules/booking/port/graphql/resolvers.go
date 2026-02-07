@@ -434,6 +434,10 @@ func (r *Resolver) translateBookingError(err error) error {
 	}
 
 	switch {
+	case errors.Is(err, domain.ErrListingSuspended):
+		return gqlerror.Errorf("This listing is temporarily suspended from bookings")
+	case errors.Is(err, domain.ErrListingUnavailable):
+		return gqlerror.Errorf("This listing is currently unavailable for booking")
 	case errors.Is(err, domain.ErrGuestIDVerificationRequired):
 		return gqlerror.Errorf("ID verification is required before booking this listing")
 	case errors.Is(err, domain.ErrGuestProfilePhotoRequired):
