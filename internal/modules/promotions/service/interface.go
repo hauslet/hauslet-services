@@ -45,6 +45,9 @@ type PromotionService interface {
 	// GetActivePromotion gets the active promotion for a listing
 	GetActivePromotion(ctx context.Context, listingID uuid.UUID) (*domain.ListingPromotion, error)
 
+	// GetActivePromotions batch fetches active promotions for multiple listings
+	GetActivePromotions(ctx context.Context, listingIDs []uuid.UUID) (map[uuid.UUID]*domain.ListingPromotion, error)
+
 	// ExpirePromotions expires all promotions that have passed their expiry date (cron job)
 	ExpirePromotions(ctx context.Context) error
 

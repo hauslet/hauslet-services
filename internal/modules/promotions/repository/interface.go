@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"hauslet/internal/modules/promotions/repository/schema"
+
+	"github.com/google/uuid"
 )
 
 // ListingPromotionRepository defines the interface for listing promotion data access
@@ -18,6 +19,9 @@ type ListingPromotionRepository interface {
 
 	// GetActiveByListing retrieves the active promotion for a listing
 	GetActiveByListing(ctx context.Context, listingID uuid.UUID) (*schema.ListingPromotion, error)
+
+	// GetActiveByListingIDs batch retrieves active promotions for multiple listings
+	GetActiveByListingIDs(ctx context.Context, listingIDs []uuid.UUID) ([]*schema.ListingPromotion, error)
 
 	// ListByOwner lists promotions owned by a user
 	ListByOwner(ctx context.Context, ownerID uuid.UUID, limit, offset int) ([]*schema.ListingPromotion, error)

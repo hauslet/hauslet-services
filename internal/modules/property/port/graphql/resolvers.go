@@ -286,7 +286,7 @@ func (r *Resolver) MyIndividualListings(ctx context.Context, filter *model.Listi
 func (r *Resolver) CreateListing(ctx context.Context, input model.CreateListingInput) (*domain.Listing, error) {
 	userID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("invalid user ID in myIndividualListings", "user_id", userID)
+		r.log.Error("invalid user ID in createListing", "user_id", userID)
 		return nil, err
 	}
 
@@ -330,7 +330,7 @@ func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.
 
 	requesterID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("invalid user ID in myIndividualListings", "user_id", requesterID)
+		r.log.Error("invalid user ID in updateListing", "user_id", requesterID)
 		return nil, err
 	}
 
@@ -407,7 +407,7 @@ func (r *Resolver) UpdateListing(ctx context.Context, id uuid.UUID, input model.
 func (r *Resolver) DeleteListing(ctx context.Context, id uuid.UUID, hard *bool) (bool, error) {
 	requesterID, err := viewer.GetUserIDFromContext(ctx)
 	if err != nil {
-		r.log.Error("invalid user ID in myIndividualListings", "user_id", requesterID)
+		r.log.Error("invalid user ID in deleteListing", "user_id", requesterID)
 		return false, err
 	}
 

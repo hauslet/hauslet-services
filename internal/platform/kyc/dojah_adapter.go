@@ -21,15 +21,6 @@ const (
 	DojahWebhookIP = "20.112.64.208"
 )
 
-// Ensure these are defined in your common package, or uncomment here if standalone
-/*
-const (
-    DocumentNIN DocumentType = "NIN"
-    DocumentBVN DocumentType = "BVN"
-    DocumentVIN DocumentType = "VIN"
-)
-*/
-
 // DojahAdapter implements KYCProvider for Dojah
 type DojahAdapter struct {
 	appID         string
@@ -187,7 +178,7 @@ func (d *DojahAdapter) verifyGovtData(ctx context.Context, req VerificationReque
 		return nil, fmt.Errorf("failed to parse lookup response: %w", err)
 	}
 
-	success := lookupResp.Entity != nil && len(lookupResp.Entity) > 0
+	success := len(lookupResp.Entity) > 0
 	status := StatusRejected
 	if success {
 		status = StatusApproved

@@ -17,6 +17,7 @@ type RankingScore {
   promotionBoost: Float!
   recencyScore: Float!
   locationScore: Float
+  textMatchScore: Float
   personalizedScore: Float
 }
 

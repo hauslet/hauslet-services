@@ -1270,6 +1270,7 @@ type ComplexityRoot struct {
 		PromotionBoost    func(childComplexity int) int
 		RecencyScore      func(childComplexity int) int
 		SemanticScore     func(childComplexity int) int
+		TextMatchScore    func(childComplexity int) int
 	}
 
 	RatingDistribution struct {
@@ -8604,6 +8605,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RankingScore.SemanticScore(childComplexity), true
+	case "RankingScore.textMatchScore":
+		if e.complexity.RankingScore.TextMatchScore == nil {
+			break
+		}
+
+		return e.complexity.RankingScore.TextMatchScore(childComplexity), true
 
 	case "RatingDistribution.fiveStar":
 		if e.complexity.RatingDistribution.FiveStar == nil {
@@ -10116,6 +10123,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateSubscriptionInput,
 		ec.unmarshalInputCreateWishlistInput,
 		ec.unmarshalInputCustomFeeInput,
+		ec.unmarshalInputDiscountInput,
 		ec.unmarshalInputDiscoverySearchFilterInput,
 		ec.unmarshalInputFeedOptionsInput,
 		ec.unmarshalInputFileDisputeInput,
@@ -10153,6 +10161,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputServiceChargeInput,
 		ec.unmarshalInputShortletDetailInput,
 		ec.unmarshalInputShortletFilterInput,
+		ec.unmarshalInputShowingAvailabilityInput,
 		ec.unmarshalInputStayLimitsInput,
 		ec.unmarshalInputTrackInteractionInput,
 		ec.unmarshalInputTravelCompanionInput,
@@ -11017,6 +11026,7 @@ input UpdateListingInput {
 input ShortletDetailInput {
   nightlyRate: Float!
   fees: [CustomFeeInput!]!
+  discounts: [DiscountInput!]
   
   stayLimits: StayLimitsInput!
   bookingSettings: BookingSettingsInput!
@@ -11041,6 +11051,8 @@ input RentalDetailInput {
   rentalPricePeriod: PaymentPeriod!
   
   fees: [CustomFeeInput!]!
+  discounts: [DiscountInput!]
+  showingAvailability: [ShowingAvailabilityInput!]
 
   minRentalPeriod: Int!
   maxRentalPeriod: Int
@@ -11059,6 +11071,8 @@ input SaleDetailInput {
   yearRenovated: Int
 
   fees: [CustomFeeInput!]!
+  discounts: [DiscountInput!]
+  showingAvailability: [ShowingAvailabilityInput!]
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -11068,6 +11082,7 @@ input SaleDetailInput {
 input UpdateShortletDetailInput {
   nightlyRate: Float
   fees: [CustomFeeInput!]
+  discounts: [DiscountInput!]
 
   stayLimits: StayLimitsInput
   bookingSettings: BookingSettingsInput
@@ -11092,6 +11107,8 @@ input UpdateRentalDetailInput {
   rentalPricePeriod: PaymentPeriod
 
   fees: [CustomFeeInput!]
+  discounts: [DiscountInput!]
+  showingAvailability: [ShowingAvailabilityInput!]
 
   minRentalPeriod: Int
   maxRentalPeriod: Int
@@ -11110,6 +11127,8 @@ input UpdateSaleDetailInput {
   yearRenovated: Int
 
   fees: [CustomFeeInput!]
+  discounts: [DiscountInput!]
+  showingAvailability: [ShowingAvailabilityInput!]
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -11144,6 +11163,21 @@ input CustomFeeInput {
   category: FeeCategory!
   isRefundable: Boolean
   isOptional: Boolean
+}
+
+input DiscountInput {
+  name: String!
+  type: DiscountType!
+  percentage: Float!
+  minNights: Int
+  active: Boolean!
+}
+
+input ShowingAvailabilityInput {
+  dayOfWeek: String!
+  startTime: String!
+  endTime: String!
+  timezone: String!
 }
 
 input StayLimitsInput {
@@ -13804,6 +13838,7 @@ type RankingScore {
   promotionBoost: Float!
   recencyScore: Float!
   locationScore: Float
+  textMatchScore: Float
   personalizedScore: Float
 }
 
@@ -52761,6 +52796,8 @@ func (ec *executionContext) fieldContext_RankedListing_score(_ context.Context, 
 				return ec.fieldContext_RankingScore_recencyScore(ctx, field)
 			case "locationScore":
 				return ec.fieldContext_RankingScore_locationScore(ctx, field)
+			case "textMatchScore":
+				return ec.fieldContext_RankingScore_textMatchScore(ctx, field)
 			case "personalizedScore":
 				return ec.fieldContext_RankingScore_personalizedScore(ctx, field)
 			}
@@ -52971,6 +53008,35 @@ func (ec *executionContext) _RankingScore_locationScore(ctx context.Context, fie
 }
 
 func (ec *executionContext) fieldContext_RankingScore_locationScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankingScore",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankingScore_textMatchScore(ctx context.Context, field graphql.CollectedField, obj *domain14.RankingScore) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankingScore_textMatchScore,
+		func(ctx context.Context) (any, error) {
+			return obj.TextMatchScore, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankingScore_textMatchScore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "RankingScore",
 		Field:      field,
@@ -63576,6 +63642,61 @@ func (ec *executionContext) unmarshalInputCustomFeeInput(ctx context.Context, ob
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputDiscountInput(ctx context.Context, obj any) (model.DiscountInput, error) {
+	var it model.DiscountInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "type", "percentage", "minNights", "active"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "type":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("type"))
+			data, err := ec.unmarshalNDiscountType2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐDiscountType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Type = data
+		case "percentage":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("percentage"))
+			data, err := ec.unmarshalNFloat2float64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Percentage = data
+		case "minNights":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minNights"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.MinNights = data
+		case "active":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("active"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Active = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDiscoverySearchFilterInput(ctx context.Context, obj any) (model.DiscoverySearchFilterInput, error) {
 	var it model.DiscoverySearchFilterInput
 	asMap := map[string]any{}
@@ -64767,7 +64888,7 @@ func (ec *executionContext) unmarshalInputRentalDetailInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"rentalPrice", "rentalPricePeriod", "fees", "minRentalPeriod", "maxRentalPeriod", "rentalAvailabilityFrom", "rentalTerms", "rentalRules"}
+	fieldsInOrder := [...]string{"rentalPrice", "rentalPricePeriod", "fees", "discounts", "showingAvailability", "minRentalPeriod", "maxRentalPeriod", "rentalAvailabilityFrom", "rentalTerms", "rentalRules"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -64795,6 +64916,20 @@ func (ec *executionContext) unmarshalInputRentalDetailInput(ctx context.Context,
 				return it, err
 			}
 			it.Fees = data
+		case "discounts":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discounts"))
+			data, err := ec.unmarshalODiscountInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscountInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Discounts = data
+		case "showingAvailability":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showingAvailability"))
+			data, err := ec.unmarshalOShowingAvailabilityInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShowingAvailabilityInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowingAvailability = data
 		case "minRentalPeriod":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minRentalPeriod"))
 			data, err := ec.unmarshalNInt2int(ctx, v)
@@ -65255,7 +65390,7 @@ func (ec *executionContext) unmarshalInputSaleDetailInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"salePrice", "ownershipTitle", "paymentPlan", "yearBuilt", "yearRenovated", "fees", "saleTerms", "saleAvailabilityFrom"}
+	fieldsInOrder := [...]string{"salePrice", "ownershipTitle", "paymentPlan", "yearBuilt", "yearRenovated", "fees", "discounts", "showingAvailability", "saleTerms", "saleAvailabilityFrom"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -65304,6 +65439,20 @@ func (ec *executionContext) unmarshalInputSaleDetailInput(ctx context.Context, o
 				return it, err
 			}
 			it.Fees = data
+		case "discounts":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discounts"))
+			data, err := ec.unmarshalODiscountInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscountInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Discounts = data
+		case "showingAvailability":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showingAvailability"))
+			data, err := ec.unmarshalOShowingAvailabilityInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShowingAvailabilityInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowingAvailability = data
 		case "saleTerms":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("saleTerms"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -65557,7 +65706,7 @@ func (ec *executionContext) unmarshalInputShortletDetailInput(ctx context.Contex
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"nightlyRate", "fees", "stayLimits", "bookingSettings", "advanceBooking", "maxGuests", "baseGuestCount", "checkInTime", "checkOutTime", "accommodationType", "autoGenerateCalendar", "rules", "amenitiesHighlights"}
+	fieldsInOrder := [...]string{"nightlyRate", "fees", "discounts", "stayLimits", "bookingSettings", "advanceBooking", "maxGuests", "baseGuestCount", "checkInTime", "checkOutTime", "accommodationType", "autoGenerateCalendar", "rules", "amenitiesHighlights"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -65578,6 +65727,13 @@ func (ec *executionContext) unmarshalInputShortletDetailInput(ctx context.Contex
 				return it, err
 			}
 			it.Fees = data
+		case "discounts":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discounts"))
+			data, err := ec.unmarshalODiscountInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscountInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Discounts = data
 		case "stayLimits":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("stayLimits"))
 			data, err := ec.unmarshalNStayLimitsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐStayLimitsInput(ctx, v)
@@ -65766,6 +65922,54 @@ func (ec *executionContext) unmarshalInputShortletFilterInput(ctx context.Contex
 				return it, err
 			}
 			it.AccommodationTypes = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputShowingAvailabilityInput(ctx context.Context, obj any) (model.ShowingAvailabilityInput, error) {
+	var it model.ShowingAvailabilityInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"dayOfWeek", "startTime", "endTime", "timezone"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "dayOfWeek":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("dayOfWeek"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DayOfWeek = data
+		case "startTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startTime"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StartTime = data
+		case "endTime":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endTime"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EndTime = data
+		case "timezone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("timezone"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Timezone = data
 		}
 	}
 
@@ -66729,7 +66933,7 @@ func (ec *executionContext) unmarshalInputUpdateRentalDetailInput(ctx context.Co
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"rentalPrice", "rentalPricePeriod", "fees", "minRentalPeriod", "maxRentalPeriod", "rentalAvailabilityFrom", "rentalTerms", "rentalRules"}
+	fieldsInOrder := [...]string{"rentalPrice", "rentalPricePeriod", "fees", "discounts", "showingAvailability", "minRentalPeriod", "maxRentalPeriod", "rentalAvailabilityFrom", "rentalTerms", "rentalRules"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -66757,6 +66961,20 @@ func (ec *executionContext) unmarshalInputUpdateRentalDetailInput(ctx context.Co
 				return it, err
 			}
 			it.Fees = data
+		case "discounts":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discounts"))
+			data, err := ec.unmarshalODiscountInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscountInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Discounts = data
+		case "showingAvailability":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showingAvailability"))
+			data, err := ec.unmarshalOShowingAvailabilityInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShowingAvailabilityInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowingAvailability = data
 		case "minRentalPeriod":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("minRentalPeriod"))
 			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
@@ -66888,7 +67106,7 @@ func (ec *executionContext) unmarshalInputUpdateSaleDetailInput(ctx context.Cont
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"salePrice", "ownershipTitle", "paymentPlan", "yearBuilt", "yearRenovated", "fees", "saleTerms", "saleAvailabilityFrom"}
+	fieldsInOrder := [...]string{"salePrice", "ownershipTitle", "paymentPlan", "yearBuilt", "yearRenovated", "fees", "discounts", "showingAvailability", "saleTerms", "saleAvailabilityFrom"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -66937,6 +67155,20 @@ func (ec *executionContext) unmarshalInputUpdateSaleDetailInput(ctx context.Cont
 				return it, err
 			}
 			it.Fees = data
+		case "discounts":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discounts"))
+			data, err := ec.unmarshalODiscountInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscountInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Discounts = data
+		case "showingAvailability":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("showingAvailability"))
+			data, err := ec.unmarshalOShowingAvailabilityInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShowingAvailabilityInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShowingAvailability = data
 		case "saleTerms":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("saleTerms"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -66964,7 +67196,7 @@ func (ec *executionContext) unmarshalInputUpdateShortletDetailInput(ctx context.
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"nightlyRate", "fees", "stayLimits", "bookingSettings", "advanceBooking", "maxGuests", "baseGuestCount", "checkInTime", "checkOutTime", "accommodationType", "autoGenerateCalendar", "rules", "amenitiesHighlights"}
+	fieldsInOrder := [...]string{"nightlyRate", "fees", "discounts", "stayLimits", "bookingSettings", "advanceBooking", "maxGuests", "baseGuestCount", "checkInTime", "checkOutTime", "accommodationType", "autoGenerateCalendar", "rules", "amenitiesHighlights"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -66985,6 +67217,13 @@ func (ec *executionContext) unmarshalInputUpdateShortletDetailInput(ctx context.
 				return it, err
 			}
 			it.Fees = data
+		case "discounts":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("discounts"))
+			data, err := ec.unmarshalODiscountInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscountInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Discounts = data
 		case "stayLimits":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("stayLimits"))
 			data, err := ec.unmarshalOStayLimitsInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐStayLimitsInput(ctx, v)
@@ -77618,6 +77857,8 @@ func (ec *executionContext) _RankingScore(ctx context.Context, sel ast.Selection
 			}
 		case "locationScore":
 			out.Values[i] = ec._RankingScore_locationScore(ctx, field, obj)
+		case "textMatchScore":
+			out.Values[i] = ec._RankingScore_textMatchScore(ctx, field, obj)
 		case "personalizedScore":
 			out.Values[i] = ec._RankingScore_personalizedScore(ctx, field, obj)
 		default:
@@ -82189,6 +82430,11 @@ func (ec *executionContext) marshalNDiscount2ᚕhausletᚋinternalᚋmodulesᚋp
 	return ret
 }
 
+func (ec *executionContext) unmarshalNDiscountInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscountInput(ctx context.Context, v any) (*model.DiscountInput, error) {
+	res, err := ec.unmarshalInputDiscountInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNDiscountSnapshot2hausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐDiscountSnapshot(ctx context.Context, sel ast.SelectionSet, v domain7.DiscountSnapshot) graphql.Marshaler {
 	return ec._DiscountSnapshot(ctx, sel, &v)
 }
@@ -84934,6 +85180,11 @@ func (ec *executionContext) marshalNShowingAvailability2hausletᚋinternalᚋmod
 	return ec._ShowingAvailability(ctx, sel, &v)
 }
 
+func (ec *executionContext) unmarshalNShowingAvailabilityInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShowingAvailabilityInput(ctx context.Context, v any) (*model.ShowingAvailabilityInput, error) {
+	res, err := ec.unmarshalInputShowingAvailabilityInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNStayLimits2hausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐStayLimits(ctx context.Context, sel ast.SelectionSet, v domain11.StayLimits) graphql.Marshaler {
 	return ec._StayLimits(ctx, sel, &v)
 }
@@ -86302,6 +86553,24 @@ func (ec *executionContext) marshalODisbursementStatus2ᚖhausletᚋinternalᚋm
 	_ = ctx
 	res := graphql.MarshalString(string(*v))
 	return res
+}
+
+func (ec *executionContext) unmarshalODiscountInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscountInputᚄ(ctx context.Context, v any) ([]*model.DiscountInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.DiscountInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNDiscountInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDiscountInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalODiscountSnapshot2ᚕhausletᚋinternalᚋmodulesᚋbookingᚋdomainᚐDiscountSnapshotᚄ(ctx context.Context, sel ast.SelectionSet, v []domain7.DiscountSnapshot) graphql.Marshaler {
@@ -88025,6 +88294,24 @@ func (ec *executionContext) marshalOShowingAvailability2ᚕhausletᚋinternalᚋ
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalOShowingAvailabilityInput2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShowingAvailabilityInputᚄ(ctx context.Context, v any) ([]*model.ShowingAvailabilityInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*model.ShowingAvailabilityInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNShowingAvailabilityInput2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐShowingAvailabilityInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
 }
 
 func (ec *executionContext) marshalOShowingDetail2ᚖhausletᚋinternalᚋmodulesᚋcalendarᚋdomainᚐShowingDetail(ctx context.Context, sel ast.SelectionSet, v *domain8.ShowingDetail) graphql.Marshaler {

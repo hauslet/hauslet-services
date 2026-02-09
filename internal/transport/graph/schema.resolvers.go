@@ -313,7 +313,6 @@ func (r *listingResolver) OwnerProfile(ctx context.Context, obj *domain.Listing)
 }
 
 // Property is the resolver for the property field.
-// Property is the resolver for the property field.
 func (r *listingResolver) Property(ctx context.Context, obj *domain.Listing) (*domain.Property, error) {
 	return r.PropertyResolver.ListingProperty(ctx, obj)
 }

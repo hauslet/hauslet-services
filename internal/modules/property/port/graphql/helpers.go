@@ -49,7 +49,6 @@ func sanitizeListingForViewer(ctx context.Context, l *domain.Listing, userID uui
 	clone.CreatedBy = nil
 	clone.UpdatedBy = nil
 	clone.ChangeReason = ""
-	clone.ChangeReason = ""
 	return &clone
 }
 
@@ -325,7 +324,7 @@ func mapShortletInputToDomain(input *model.ShortletDetailInput) *domain.Shortlet
 	return &domain.ShortletDetail{
 		NightlyRate: input.NightlyRate,
 		Fees:        mapCustomFeeInputs(input.Fees),
-		Discounts:   []domain.Discount{}, // Empty for now
+		Discounts:   mapDiscountInputs(input.Discounts),
 		BookingSettings: domain.BookingSettings{
 			ApprovalMethod:    input.BookingSettings.ApprovalMethod,
 			GuestRequirements: mapGuestRequirementsInput(input.BookingSettings.GuestRequirements),
@@ -355,13 +354,14 @@ func mapRentalInputToDomain(input *model.RentalDetailInput) *domain.RentalDetail
 	return &domain.RentalDetail{
 		RentalPrice:            input.RentalPrice,
 		RentalPricePeriod:      domain.PaymentPeriod(input.RentalPricePeriod),
-		Discounts:              []domain.Discount{}, // Empty for now
+		Discounts:              mapDiscountInputs(input.Discounts),
 		Fees:                   mapCustomFeeInputs(input.Fees),
 		MinRentalPeriod:        input.MinRentalPeriod,
 		MaxRentalPeriod:        input.MaxRentalPeriod,
 		RentalAvailabilityFrom: input.RentalAvailabilityFrom,
 		RentalTerms:            stringOrDefault(input.RentalTerms, ""),
 		RentalRules:            mapRuleGroupInputs(input.RentalRules),
+		ShowingAvailability:    mapShowingAvailabilityInputs(input.ShowingAvailability),
 	}
 }
 
@@ -374,12 +374,13 @@ func mapSaleInputToDomain(input *model.SaleDetailInput) *domain.SaleDetail {
 		SalePrice:            input.SalePrice,
 		OwnershipTitle:       input.OwnershipTitle,
 		PaymentPlan:          boolOrDefault(input.PaymentPlan, false),
-		Discounts:            []domain.Discount{}, // Empty for now
+		Discounts:            mapDiscountInputs(input.Discounts),
 		YearBuilt:            intOrDefault(input.YearBuilt, 0),
 		YearRenovated:        intOrDefault(input.YearRenovated, 0),
 		Fees:                 mapCustomFeeInputs(input.Fees),
 		SaleTerms:            stringOrDefault(input.SaleTerms, ""),
 		SaleAvailabilityFrom: input.SaleAvailabilityFrom,
+		ShowingAvailability:  mapShowingAvailabilityInputs(input.ShowingAvailability),
 	}
 }
 
@@ -394,6 +395,9 @@ func mapUpdateShortletInputToDomain(input *model.UpdateShortletDetailInput) map[
 	}
 	if input.Fees != nil {
 		updates["fees"] = mapCustomFeeInputs(input.Fees)
+	}
+	if input.Discounts != nil {
+		updates["discounts"] = mapDiscountInputs(input.Discounts)
 	}
 
 	// Nest StayLimits
@@ -474,6 +478,12 @@ func mapUpdateRentalInputToDomain(input *model.UpdateRentalDetailInput) map[stri
 	if input.RentalRules != nil {
 		updates["rental_rules"] = mapRuleGroupInputs(input.RentalRules)
 	}
+	if input.Discounts != nil {
+		updates["discounts"] = mapDiscountInputs(input.Discounts)
+	}
+	if input.ShowingAvailability != nil {
+		updates["showing_availability"] = mapShowingAvailabilityInputs(input.ShowingAvailability)
+	}
 	return updates
 }
 
@@ -505,6 +515,12 @@ func mapUpdateSaleInputToDomain(input *model.UpdateSaleDetailInput) map[string]a
 	}
 	if input.SaleAvailabilityFrom != nil {
 		updates["sale_availability_from"] = *input.SaleAvailabilityFrom
+	}
+	if input.Discounts != nil {
+		updates["discounts"] = mapDiscountInputs(input.Discounts)
+	}
+	if input.ShowingAvailability != nil {
+		updates["showing_availability"] = mapShowingAvailabilityInputs(input.ShowingAvailability)
 	}
 	return updates
 }
@@ -592,6 +608,47 @@ func mapCustomFeeInputs(inputs []*model.CustomFeeInput) []domain.CustomFee {
 		}
 	}
 	return fees
+}
+
+// Helper for Discounts
+func mapDiscountInputs(inputs []*model.DiscountInput) []domain.Discount {
+	if len(inputs) == 0 {
+		return []domain.Discount{}
+	}
+	discounts := make([]domain.Discount, len(inputs))
+	for i, input := range inputs {
+		if input == nil {
+			continue
+		}
+		discounts[i] = domain.Discount{
+			Name:       input.Name,
+			Type:       domain.DiscountType(input.Type),
+			Percentage: input.Percentage,
+			MinNights:  input.MinNights,
+			Active:     input.Active,
+		}
+	}
+	return discounts
+}
+
+// Helper for Showing Availability
+func mapShowingAvailabilityInputs(inputs []*model.ShowingAvailabilityInput) []domain.ShowingAvailability {
+	if len(inputs) == 0 {
+		return []domain.ShowingAvailability{}
+	}
+	availability := make([]domain.ShowingAvailability, len(inputs))
+	for i, input := range inputs {
+		if input == nil {
+			continue
+		}
+		availability[i] = domain.ShowingAvailability{
+			DayOfWeek: input.DayOfWeek,
+			StartTime: input.StartTime,
+			EndTime:   input.EndTime,
+			Timezone:  input.Timezone,
+		}
+	}
+	return availability
 }
 
 func mapGuestRequirementsInput(input *model.GuestRequirementsInput) domain.GuestRequirements {

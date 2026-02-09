@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"hauslet/config"
 	paymentDomain "hauslet/internal/modules/payments/domain"
 	paymentService "hauslet/internal/modules/payments/service"
@@ -15,6 +13,9 @@ import (
 	"hauslet/internal/modules/promotions/repository"
 	"hauslet/internal/modules/promotions/repository/schema"
 	"hauslet/internal/platform/payment"
+
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // PromotionServiceImpl implements PromotionService
@@ -362,6 +363,29 @@ func (s *PromotionServiceImpl) GetActivePromotion(ctx context.Context, listingID
 	}
 
 	return promotion, nil
+}
+
+// GetActivePromotions batch fetches active promotions for multiple listings
+func (s *PromotionServiceImpl) GetActivePromotions(ctx context.Context, listingIDs []uuid.UUID) (map[uuid.UUID]*domain.ListingPromotion, error) {
+	if len(listingIDs) == 0 {
+		return make(map[uuid.UUID]*domain.ListingPromotion), nil
+	}
+
+	promoSchemas, err := s.promoRepo.GetActiveByListingIDs(ctx, listingIDs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to batch get active promotions: %w", err)
+	}
+
+	result := make(map[uuid.UUID]*domain.ListingPromotion, len(promoSchemas))
+	for _, ps := range promoSchemas {
+		promo, err := schema.MapListingPromotionFromSchema(ps)
+		if err != nil {
+			continue
+		}
+		result[promo.ListingID] = promo
+	}
+
+	return result, nil
 }
 
 // ExpirePromotions expires all promotions that have passed their expiry date (cron job)

@@ -206,43 +206,49 @@ func (s *ServiceImpl) buildModerationPayload(listing *domain.Listing, property *
 
 	switch listing.ListingType {
 	case domain.ListingRent:
-		payload["rental_terms"] = listing.RentalDetails.RentalTerms
-		for i, rule := range listing.RentalDetails.RentalRules {
-			if rule.Category == domain.RuleCustom {
-				payload[fmt.Sprintf("rental_rule_custom_%d", i)] = rule.Rules
+		if listing.RentalDetails != nil {
+			payload["rental_terms"] = listing.RentalDetails.RentalTerms
+			for i, rule := range listing.RentalDetails.RentalRules {
+				if rule.Category == domain.RuleCustom {
+					payload[fmt.Sprintf("rental_rule_custom_%d", i)] = rule.Rules
+				}
 			}
-		}
-		for i, fee := range listing.RentalDetails.Fees {
-			payload[fmt.Sprintf("rental_fee_name_%d", i)] = fee.Name
-			payload[fmt.Sprintf("rental_fee_category_%d", i)] = fee.Category
-		}
-		for i, discount := range listing.RentalDetails.Discounts {
-			payload[fmt.Sprintf("rental_discount_name_%d", i)] = discount.Name
+			for i, fee := range listing.RentalDetails.Fees {
+				payload[fmt.Sprintf("rental_fee_name_%d", i)] = fee.Name
+				payload[fmt.Sprintf("rental_fee_category_%d", i)] = fee.Category
+			}
+			for i, discount := range listing.RentalDetails.Discounts {
+				payload[fmt.Sprintf("rental_discount_name_%d", i)] = discount.Name
+			}
 		}
 
 	case domain.ListingSale:
-		payload["sale_ownership_title"] = listing.SaleDetails.OwnershipTitle
-		payload["sale_terms"] = listing.SaleDetails.SaleTerms
-		for i, fee := range listing.SaleDetails.Fees {
-			payload[fmt.Sprintf("sale_fee_name_%d", i)] = fee.Name
-			payload[fmt.Sprintf("sale_fee_category_%d", i)] = fee.Category
-		}
-		for i, discount := range listing.SaleDetails.Discounts {
-			payload[fmt.Sprintf("sale_discount_name_%d", i)] = discount.Name
+		if listing.SaleDetails != nil {
+			payload["sale_ownership_title"] = listing.SaleDetails.OwnershipTitle
+			payload["sale_terms"] = listing.SaleDetails.SaleTerms
+			for i, fee := range listing.SaleDetails.Fees {
+				payload[fmt.Sprintf("sale_fee_name_%d", i)] = fee.Name
+				payload[fmt.Sprintf("sale_fee_category_%d", i)] = fee.Category
+			}
+			for i, discount := range listing.SaleDetails.Discounts {
+				payload[fmt.Sprintf("sale_discount_name_%d", i)] = discount.Name
+			}
 		}
 
 	case domain.ListingShortLet:
-		for i, rule := range listing.ShortletDetails.Rules {
-			if rule.Category == domain.RuleCustom {
-				payload[fmt.Sprintf("shortlet_rule_custom_%d", i)] = rule.Rules
+		if listing.ShortletDetails != nil {
+			for i, rule := range listing.ShortletDetails.Rules {
+				if rule.Category == domain.RuleCustom {
+					payload[fmt.Sprintf("shortlet_rule_custom_%d", i)] = rule.Rules
+				}
 			}
-		}
-		for i, fee := range listing.ShortletDetails.Fees {
-			payload[fmt.Sprintf("shortlet_fee_name_%d", i)] = fee.Name
-			payload[fmt.Sprintf("shortlet_fee_category_%d", i)] = fee.Category
-		}
-		for i, discount := range listing.ShortletDetails.Discounts {
-			payload[fmt.Sprintf("shortlet_discount_name_%d", i)] = discount.Name
+			for i, fee := range listing.ShortletDetails.Fees {
+				payload[fmt.Sprintf("shortlet_fee_name_%d", i)] = fee.Name
+				payload[fmt.Sprintf("shortlet_fee_category_%d", i)] = fee.Category
+			}
+			for i, discount := range listing.ShortletDetails.Discounts {
+				payload[fmt.Sprintf("shortlet_discount_name_%d", i)] = discount.Name
+			}
 		}
 	default:
 		return "", fmt.Errorf("unknown listing type: %s", listing.ListingType)

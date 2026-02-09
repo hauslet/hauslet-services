@@ -96,6 +96,14 @@ type CustomFeeInput struct {
 	IsOptional   *bool               `json:"isOptional,omitempty"`
 }
 
+type DiscountInput struct {
+	Name       string              `json:"name"`
+	Type       domain.DiscountType `json:"type"`
+	Percentage float64             `json:"percentage"`
+	MinNights  *int                `json:"minNights,omitempty"`
+	Active     bool                `json:"active"`
+}
+
 type DiscoverySearchFilterInput struct {
 	Query              *string                    `json:"query,omitempty"`
 	Location           *LocationFilterInput       `json:"location,omitempty"`
@@ -259,14 +267,16 @@ type RankingConfigInput struct {
 }
 
 type RentalDetailInput struct {
-	RentalPrice            float64              `json:"rentalPrice"`
-	RentalPricePeriod      domain.PaymentPeriod `json:"rentalPricePeriod"`
-	Fees                   []*CustomFeeInput    `json:"fees"`
-	MinRentalPeriod        int                  `json:"minRentalPeriod"`
-	MaxRentalPeriod        *int                 `json:"maxRentalPeriod,omitempty"`
-	RentalAvailabilityFrom *time.Time           `json:"rentalAvailabilityFrom,omitempty"`
-	RentalTerms            *string              `json:"rentalTerms,omitempty"`
-	RentalRules            []*domain.RuleGroup  `json:"rentalRules,omitempty"`
+	RentalPrice            float64                     `json:"rentalPrice"`
+	RentalPricePeriod      domain.PaymentPeriod        `json:"rentalPricePeriod"`
+	Fees                   []*CustomFeeInput           `json:"fees"`
+	Discounts              []*DiscountInput            `json:"discounts,omitempty"`
+	ShowingAvailability    []*ShowingAvailabilityInput `json:"showingAvailability,omitempty"`
+	MinRentalPeriod        int                         `json:"minRentalPeriod"`
+	MaxRentalPeriod        *int                        `json:"maxRentalPeriod,omitempty"`
+	RentalAvailabilityFrom *time.Time                  `json:"rentalAvailabilityFrom,omitempty"`
+	RentalTerms            *string                     `json:"rentalTerms,omitempty"`
+	RentalRules            []*domain.RuleGroup         `json:"rentalRules,omitempty"`
 }
 
 type RentalFilterInput struct {
@@ -280,14 +290,16 @@ type RentalFilterInput struct {
 }
 
 type SaleDetailInput struct {
-	SalePrice            float64           `json:"salePrice"`
-	OwnershipTitle       string            `json:"ownershipTitle"`
-	PaymentPlan          *bool             `json:"paymentPlan,omitempty"`
-	YearBuilt            *int              `json:"yearBuilt,omitempty"`
-	YearRenovated        *int              `json:"yearRenovated,omitempty"`
-	Fees                 []*CustomFeeInput `json:"fees"`
-	SaleTerms            *string           `json:"saleTerms,omitempty"`
-	SaleAvailabilityFrom *time.Time        `json:"saleAvailabilityFrom,omitempty"`
+	SalePrice            float64                     `json:"salePrice"`
+	OwnershipTitle       string                      `json:"ownershipTitle"`
+	PaymentPlan          *bool                       `json:"paymentPlan,omitempty"`
+	YearBuilt            *int                        `json:"yearBuilt,omitempty"`
+	YearRenovated        *int                        `json:"yearRenovated,omitempty"`
+	Fees                 []*CustomFeeInput           `json:"fees"`
+	Discounts            []*DiscountInput            `json:"discounts,omitempty"`
+	ShowingAvailability  []*ShowingAvailabilityInput `json:"showingAvailability,omitempty"`
+	SaleTerms            *string                     `json:"saleTerms,omitempty"`
+	SaleAvailabilityFrom *time.Time                  `json:"saleAvailabilityFrom,omitempty"`
 }
 
 type SaleFilterInput struct {
@@ -326,6 +338,7 @@ type SendMessageInput struct {
 type ShortletDetailInput struct {
 	NightlyRate          float64                  `json:"nightlyRate"`
 	Fees                 []*CustomFeeInput        `json:"fees"`
+	Discounts            []*DiscountInput         `json:"discounts,omitempty"`
 	StayLimits           *StayLimitsInput         `json:"stayLimits"`
 	BookingSettings      *BookingSettingsInput    `json:"bookingSettings"`
 	AdvanceBooking       *AdvanceBookingInput     `json:"advanceBooking,omitempty"`
@@ -353,6 +366,13 @@ type ShortletFilterInput struct {
 	CheckOutTimeAfter  *string                    `json:"checkOutTimeAfter,omitempty"`
 	CheckOutTimeBefore *string                    `json:"checkOutTimeBefore,omitempty"`
 	AccommodationTypes []domain.AccommodationType `json:"accommodationTypes,omitempty"`
+}
+
+type ShowingAvailabilityInput struct {
+	DayOfWeek string `json:"dayOfWeek"`
+	StartTime string `json:"startTime"`
+	EndTime   string `json:"endTime"`
+	Timezone  string `json:"timezone"`
 }
 
 type StayLimitsInput struct {
@@ -418,30 +438,35 @@ type UpdateListingPropertyInput struct {
 }
 
 type UpdateRentalDetailInput struct {
-	RentalPrice            *float64              `json:"rentalPrice,omitempty"`
-	RentalPricePeriod      *domain.PaymentPeriod `json:"rentalPricePeriod,omitempty"`
-	Fees                   []*CustomFeeInput     `json:"fees,omitempty"`
-	MinRentalPeriod        *int                  `json:"minRentalPeriod,omitempty"`
-	MaxRentalPeriod        *int                  `json:"maxRentalPeriod,omitempty"`
-	RentalAvailabilityFrom *time.Time            `json:"rentalAvailabilityFrom,omitempty"`
-	RentalTerms            *string               `json:"rentalTerms,omitempty"`
-	RentalRules            []*domain.RuleGroup   `json:"rentalRules,omitempty"`
+	RentalPrice            *float64                    `json:"rentalPrice,omitempty"`
+	RentalPricePeriod      *domain.PaymentPeriod       `json:"rentalPricePeriod,omitempty"`
+	Fees                   []*CustomFeeInput           `json:"fees,omitempty"`
+	Discounts              []*DiscountInput            `json:"discounts,omitempty"`
+	ShowingAvailability    []*ShowingAvailabilityInput `json:"showingAvailability,omitempty"`
+	MinRentalPeriod        *int                        `json:"minRentalPeriod,omitempty"`
+	MaxRentalPeriod        *int                        `json:"maxRentalPeriod,omitempty"`
+	RentalAvailabilityFrom *time.Time                  `json:"rentalAvailabilityFrom,omitempty"`
+	RentalTerms            *string                     `json:"rentalTerms,omitempty"`
+	RentalRules            []*domain.RuleGroup         `json:"rentalRules,omitempty"`
 }
 
 type UpdateSaleDetailInput struct {
-	SalePrice            *float64          `json:"salePrice,omitempty"`
-	OwnershipTitle       *string           `json:"ownershipTitle,omitempty"`
-	PaymentPlan          *bool             `json:"paymentPlan,omitempty"`
-	YearBuilt            *int              `json:"yearBuilt,omitempty"`
-	YearRenovated        *int              `json:"yearRenovated,omitempty"`
-	Fees                 []*CustomFeeInput `json:"fees,omitempty"`
-	SaleTerms            *string           `json:"saleTerms,omitempty"`
-	SaleAvailabilityFrom *time.Time        `json:"saleAvailabilityFrom,omitempty"`
+	SalePrice            *float64                    `json:"salePrice,omitempty"`
+	OwnershipTitle       *string                     `json:"ownershipTitle,omitempty"`
+	PaymentPlan          *bool                       `json:"paymentPlan,omitempty"`
+	YearBuilt            *int                        `json:"yearBuilt,omitempty"`
+	YearRenovated        *int                        `json:"yearRenovated,omitempty"`
+	Fees                 []*CustomFeeInput           `json:"fees,omitempty"`
+	Discounts            []*DiscountInput            `json:"discounts,omitempty"`
+	ShowingAvailability  []*ShowingAvailabilityInput `json:"showingAvailability,omitempty"`
+	SaleTerms            *string                     `json:"saleTerms,omitempty"`
+	SaleAvailabilityFrom *time.Time                  `json:"saleAvailabilityFrom,omitempty"`
 }
 
 type UpdateShortletDetailInput struct {
 	NightlyRate          *float64                  `json:"nightlyRate,omitempty"`
 	Fees                 []*CustomFeeInput         `json:"fees,omitempty"`
+	Discounts            []*DiscountInput          `json:"discounts,omitempty"`
 	StayLimits           *StayLimitsInput          `json:"stayLimits,omitempty"`
 	BookingSettings      *BookingSettingsInput     `json:"bookingSettings,omitempty"`
 	AdvanceBooking       *AdvanceBookingInput      `json:"advanceBooking,omitempty"`

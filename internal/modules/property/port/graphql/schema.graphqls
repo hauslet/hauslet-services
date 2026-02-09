@@ -525,6 +525,7 @@ input UpdateListingInput {
 input ShortletDetailInput {
   nightlyRate: Float!
   fees: [CustomFeeInput!]!
+  discounts: [DiscountInput!]
   
   stayLimits: StayLimitsInput!
   bookingSettings: BookingSettingsInput!
@@ -549,6 +550,8 @@ input RentalDetailInput {
   rentalPricePeriod: PaymentPeriod!
   
   fees: [CustomFeeInput!]!
+  discounts: [DiscountInput!]
+  showingAvailability: [ShowingAvailabilityInput!]
 
   minRentalPeriod: Int!
   maxRentalPeriod: Int
@@ -567,6 +570,8 @@ input SaleDetailInput {
   yearRenovated: Int
 
   fees: [CustomFeeInput!]!
+  discounts: [DiscountInput!]
+  showingAvailability: [ShowingAvailabilityInput!]
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -576,6 +581,7 @@ input SaleDetailInput {
 input UpdateShortletDetailInput {
   nightlyRate: Float
   fees: [CustomFeeInput!]
+  discounts: [DiscountInput!]
 
   stayLimits: StayLimitsInput
   bookingSettings: BookingSettingsInput
@@ -600,6 +606,8 @@ input UpdateRentalDetailInput {
   rentalPricePeriod: PaymentPeriod
 
   fees: [CustomFeeInput!]
+  discounts: [DiscountInput!]
+  showingAvailability: [ShowingAvailabilityInput!]
 
   minRentalPeriod: Int
   maxRentalPeriod: Int
@@ -618,6 +626,8 @@ input UpdateSaleDetailInput {
   yearRenovated: Int
 
   fees: [CustomFeeInput!]
+  discounts: [DiscountInput!]
+  showingAvailability: [ShowingAvailabilityInput!]
 
   saleTerms: String
   saleAvailabilityFrom: Time
@@ -652,6 +662,21 @@ input CustomFeeInput {
   category: FeeCategory!
   isRefundable: Boolean
   isOptional: Boolean
+}
+
+input DiscountInput {
+  name: String!
+  type: DiscountType!
+  percentage: Float!
+  minNights: Int
+  active: Boolean!
+}
+
+input ShowingAvailabilityInput {
+  dayOfWeek: String!
+  startTime: String!
+  endTime: String!
+  timezone: String!
 }
 
 input StayLimitsInput {

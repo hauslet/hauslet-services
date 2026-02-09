@@ -107,7 +107,8 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter SearchFilter, o
 	rankedListings := s.rankListings(propertyResults, promotions, *rankingConfig, filter.Location)
 
 	// 4. Apply limit after ranking
-	totalCount := len(rankedListings)
+	// TotalCount reflects the number of candidate results found before truncation
+	totalCount := len(propertyResults)
 	if len(rankedListings) > options.Limit {
 		rankedListings = rankedListings[:options.Limit]
 	}

@@ -52,13 +52,13 @@ func (r *Resolver) HomeFeed(
 	options *graphmodel.FeedOptionsInput,
 ) ([]*domain.HomeFeedSection, error) {
 	// Get user ID from context if authenticated
-	userID, err := viewer.GetUserIDFromContext(ctx)
-	if err != nil {
-		r.log.Warn("unauthenticated user accessing home feed", "error", err)
+	var userID *uuid.UUID
+	if uid, err := viewer.GetUserIDFromContext(ctx); err == nil {
+		userID = &uid
 	}
 
 	serviceOptions := mapToFeedOptions(options)
-	sections, err := r.discoverySvc.GetHomeFeed(ctx, &userID, serviceOptions)
+	sections, err := r.discoverySvc.GetHomeFeed(ctx, userID, serviceOptions)
 	if err != nil {
 		r.log.Error("home feed query failed", "error", err)
 		return nil, err

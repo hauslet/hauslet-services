@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"hauslet/internal/modules/promotions/repository/schema"
+
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"hauslet/internal/modules/promotions/repository/schema"
 )
 
 // ListingPromotionRepo implements ListingPromotionRepository using GORM
@@ -57,6 +58,24 @@ func (r *ListingPromotionRepo) GetActiveByListing(ctx context.Context, listingID
 	}
 
 	return &promo, nil
+}
+
+// GetActiveByListingIDs batch retrieves active promotions for multiple listings
+func (r *ListingPromotionRepo) GetActiveByListingIDs(ctx context.Context, listingIDs []uuid.UUID) ([]*schema.ListingPromotion, error) {
+	if len(listingIDs) == 0 {
+		return nil, nil
+	}
+
+	var promos []*schema.ListingPromotion
+	err := r.db.WithContext(ctx).
+		Where("listing_id IN ? AND status = ? AND deleted_at IS NULL", listingIDs, "active").
+		Find(&promos).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to batch get active promotions: %w", err)
+	}
+
+	return promos, nil
 }
 
 // ListByOwner lists promotions owned by a user

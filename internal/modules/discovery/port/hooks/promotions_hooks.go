@@ -43,17 +43,26 @@ func (a *PromotionDiscoveryAdapter) GetActivePromotionForListing(ctx context.Con
 
 // GetActivePromotionForListings batch fetches active promotions for multiple listings
 func (a *PromotionDiscoveryAdapter) GetActivePromotionForListings(ctx context.Context, listingIDs []uuid.UUID) (map[uuid.UUID]*discoveryservice.PromotionInfo, error) {
-	result := make(map[uuid.UUID]*discoveryservice.PromotionInfo)
+	if len(listingIDs) == 0 {
+		return make(map[uuid.UUID]*discoveryservice.PromotionInfo), nil
+	}
 
-	// Note: This loops through each listing. Can be optimized later with a batch method in PromotionService
-	for _, listingID := range listingIDs {
-		promo, err := a.GetActivePromotionForListing(ctx, listingID)
-		if err != nil {
-			// Log error but continue with other listings
+	// Use batch method to avoid N+1 queries
+	promos, err := a.promotionSvc.GetActivePromotions(ctx, listingIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[uuid.UUID]*discoveryservice.PromotionInfo, len(promos))
+	for listingID, promo := range promos {
+		if promo == nil || promo.ExpiresAt == nil {
 			continue
 		}
-		if promo != nil {
-			result[listingID] = promo
+		result[listingID] = &discoveryservice.PromotionInfo{
+			PromotionID:     promo.ID,
+			PromotionType:   string(promo.Type),
+			BoostMultiplier: promo.BoostMultiplier,
+			ExpiresAt:       *promo.ExpiresAt,
 		}
 	}
 
