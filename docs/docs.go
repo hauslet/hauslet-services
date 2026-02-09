@@ -315,315 +315,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/listings/{id}/media": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Generate presigned upload URLs for listing media",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "listings"
-                ],
-                "summary": "Upload listing media",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Listing ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Media upload details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.UploadMediaRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.UploadMediaResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete one or more media items from a listing",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "listings"
-                ],
-                "summary": "Delete listing media",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Listing ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Media delete details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.DeleteMediaRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/listings/{id}/media/finalize": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Mark media as uploaded and trigger thumbnail generation",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "listings"
-                ],
-                "summary": "Finalize listing media",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Listing ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Media finalization details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.FinalizeMediaRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/listings/{id}/media/{mediaId}": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update metadata for a specific media item",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "listings"
-                ],
-                "summary": "Update listing media",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Listing ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Media ID",
-                        "name": "mediaId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Media update details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.UpdateMediaRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.SuccessResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/auth/2fa/resend": {
             "post": {
                 "description": "Resends the verification code for pending 2FA login",
@@ -1340,6 +1031,315 @@ const docTemplate = `{
                 }
             }
         },
+        "/listings/{id}/media": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generate presigned upload URLs for listing media",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "listings"
+                ],
+                "summary": "Upload listing media",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Listing ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Media upload details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.UploadMediaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.UploadMediaResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete one or more media items from a listing",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "listings"
+                ],
+                "summary": "Delete listing media",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Listing ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Media delete details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.DeleteMediaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/listings/{id}/media/finalize": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mark media as uploaded and trigger thumbnail generation",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "listings"
+                ],
+                "summary": "Finalize listing media",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Listing ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Media finalization details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.FinalizeMediaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/listings/{id}/media/{mediaId}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update metadata for a specific media item",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "listings"
+                ],
+                "summary": "Update listing media",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Listing ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Media ID",
+                        "name": "mediaId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Media update details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.UpdateMediaRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_property_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/me": {
             "get": {
                 "security": [
@@ -1719,6 +1719,643 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/address": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submits address proof documents for manual review",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Submit address verification",
+                "parameters": [
+                    {
+                        "description": "Address verification request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_verification_port_http.SubmitAddressHTTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_service.SubmitVerificationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/business": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submits business registration documents. For Nigerian businesses, automated CAC lookup is attempted first.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Submit business verification",
+                "parameters": [
+                    {
+                        "description": "Business verification request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_verification_port_http.SubmitBusinessHTTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_service.SubmitVerificationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/evidence/{evidenceID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves evidence metadata by ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Get evidence",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Evidence ID",
+                        "name": "evidenceID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_domain.Evidence"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/evidence/{evidenceID}/url": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generates a presigned URL to download evidence",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Generate evidence download URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Evidence ID",
+                        "name": "evidenceID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "URL response",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/identity": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submits identity documents for automated KYC verification via Dojah/Veriff",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Submit identity verification",
+                "parameters": [
+                    {
+                        "description": "Identity verification request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_verification_port_http.SubmitIdentityHTTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_service.SubmitVerificationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/listing": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Submits listing proof documents for manual review",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Submit listing verification",
+                "parameters": [
+                    {
+                        "description": "Listing verification request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_verification_port_http.SubmitListingHTTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_service.SubmitVerificationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/phone/otp": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sends an OTP code to the phone number associated with the session",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Generate phone OTP",
+                "parameters": [
+                    {
+                        "description": "OTP generation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_verification_port_http.GenerateOTPHTTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_service.GeneratePhoneOTPResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/phone/verify": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Verifies the OTP code submitted by the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Verify phone OTP",
+                "parameters": [
+                    {
+                        "description": "OTP verification request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_verification_port_http.VerifyOTPHTTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_service.VerifyPhoneOTPResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/sessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves the current user's verification session for a given type",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Get verification session by type",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Verification type (identity, phone, address, business, listing)",
+                        "name": "type",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationSession"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new verification session of the specified type",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Create verification session",
+                "parameters": [
+                    {
+                        "description": "Session creation request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_verification_port_http.CreateSessionHTTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationSession"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/sessions/{sessionID}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a verification session by its ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "Get verification session",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "sessionID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationSession"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/sessions/{sessionID}/attempts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all verification attempts for a session",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "List verification attempts",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "sessionID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationAttempt"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                }
+            }
+        },
+        "/verification/sessions/{sessionID}/evidence": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all uploaded evidence items for a verification session",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "verification"
+                ],
+                "summary": "List session evidence",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID",
+                        "name": "sessionID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/hauslet_internal_modules_verification_domain.Evidence"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object"
                         }
                     }
                 }
@@ -2124,6 +2761,796 @@ const docTemplate = `{
                 }
             }
         },
+        "hauslet_internal_modules_verification_domain.Address": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "description": "ISO 3166-1 alpha-2",
+                    "type": "string"
+                },
+                "line1": {
+                    "type": "string"
+                },
+                "line2": {
+                    "type": "string"
+                },
+                "postalCode": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.AddressData": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "description": "ISO 3166-1 alpha-2",
+                    "type": "string"
+                },
+                "document_type": {
+                    "description": "utility_bill, bank_statement, lease, etc.",
+                    "type": "string"
+                },
+                "full_address": {
+                    "type": "string"
+                },
+                "issue_date": {
+                    "type": "string"
+                },
+                "match_score": {
+                    "description": "Confidence score from verification service",
+                    "type": "number"
+                },
+                "postal_code": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.ApplicantInfo": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.Address"
+                },
+                "dateOfBirth": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firstName": {
+                    "type": "string"
+                },
+                "lastName": {
+                    "type": "string"
+                },
+                "nationality": {
+                    "description": "ISO 3166-1 alpha-2 country code",
+                    "type": "string"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.AttemptStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "processing",
+                "success",
+                "failed"
+            ],
+            "x-enum-comments": {
+                "AttemptFailed": "Provider returned failure",
+                "AttemptPending": "Queued for submission",
+                "AttemptProcessing": "Submitted to provider",
+                "AttemptSuccess": "Provider returned success"
+            },
+            "x-enum-descriptions": [
+                "Queued for submission",
+                "Submitted to provider",
+                "Provider returned success",
+                "Provider returned failure"
+            ],
+            "x-enum-varnames": [
+                "AttemptPending",
+                "AttemptProcessing",
+                "AttemptSuccess",
+                "AttemptFailed"
+            ]
+        },
+        "hauslet_internal_modules_verification_domain.BusinessData": {
+            "type": "object",
+            "properties": {
+                "beneficial_owners": {
+                    "description": "Names",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "business_address": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.Address"
+                },
+                "business_name": {
+                    "type": "string"
+                },
+                "business_type": {
+                    "description": "llc, corporation, sole_proprietorship, etc.",
+                    "type": "string"
+                },
+                "country": {
+                    "description": "ISO 3166-1 alpha-2",
+                    "type": "string"
+                },
+                "directors": {
+                    "description": "Names",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "incorporation_date": {
+                    "type": "string"
+                },
+                "owner_user_id": {
+                    "description": "Ownership/Directors",
+                    "type": "string"
+                },
+                "registration_number": {
+                    "type": "string"
+                },
+                "tax_id": {
+                    "type": "string"
+                },
+                "verification_provider": {
+                    "type": "string"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.DocumentInfo": {
+            "type": "object",
+            "properties": {
+                "expiryDate": {
+                    "type": "string"
+                },
+                "issueDate": {
+                    "type": "string"
+                },
+                "issuingCountry": {
+                    "description": "ISO 3166-1 alpha-2",
+                    "type": "string"
+                },
+                "number": {
+                    "description": "Document number (if applicable)",
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.DocumentType"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.DocumentType": {
+            "type": "string",
+            "enum": [
+                "passport",
+                "national_id",
+                "drivers_license",
+                "residence_permit",
+                "voters_card",
+                "NIN",
+                "BVN",
+                "VIN",
+                "CAC"
+            ],
+            "x-enum-comments": {
+                "DocumentBVN": "Bank Verification Number",
+                "DocumentCAC": "Corporate Affairs Commission (Business)",
+                "DocumentNIN": "National Identification Number",
+                "DocumentVIN": "Voter Identification Number"
+            },
+            "x-enum-descriptions": [
+                "",
+                "",
+                "",
+                "",
+                "",
+                "National Identification Number",
+                "Bank Verification Number",
+                "Voter Identification Number",
+                "Corporate Affairs Commission (Business)"
+            ],
+            "x-enum-varnames": [
+                "DocumentPassport",
+                "DocumentNationalID",
+                "DocumentDriversLicense",
+                "DocumentResidencePermit",
+                "DocumentVotersCard",
+                "DocumentNIN",
+                "DocumentBVN",
+                "DocumentVIN",
+                "DocumentCAC"
+            ]
+        },
+        "hauslet_internal_modules_verification_domain.Evidence": {
+            "type": "object",
+            "properties": {
+                "attemptID": {
+                    "description": "Optional: which attempt this evidence belongs to",
+                    "type": "string"
+                },
+                "createdAt": {
+                    "description": "Lifecycle",
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "description": "Soft delete for compliance",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.EvidenceMetadata"
+                },
+                "sessionID": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.EvidenceType"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "verified": {
+                    "description": "Verification",
+                    "type": "boolean"
+                },
+                "verifiedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.EvidenceMetadata": {
+            "type": "object",
+            "properties": {
+                "evidenceID": {
+                    "type": "string"
+                },
+                "hash": {
+                    "type": "string"
+                },
+                "mimeType": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "type": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.EvidenceType"
+                },
+                "uploadedAt": {
+                    "type": "string"
+                },
+                "uploadedByIP": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.EvidenceType": {
+            "type": "string",
+            "enum": [
+                "document_front",
+                "document_back",
+                "selfie",
+                "liveness_video",
+                "address_utility_bill",
+                "address_bank_statement",
+                "address_lease",
+                "address_other",
+                "business_registration",
+                "business_tax_id",
+                "business_license",
+                "business_address",
+                "phone_otp",
+                "title_deed",
+                "property_tax_receipt",
+                "geo_tagged_photo"
+            ],
+            "x-enum-varnames": [
+                "EvidenceDocumentFront",
+                "EvidenceDocumentBack",
+                "EvidenceSelfie",
+                "EvidenceLiveness",
+                "EvidenceAddressUtilityBill",
+                "EvidenceAddressBankStatement",
+                "EvidenceAddressLease",
+                "EvidenceAddressOther",
+                "EvidenceBusinessRegistration",
+                "EvidenceBusinessTaxID",
+                "EvidenceBusinessLicense",
+                "EvidenceBusinessAddress",
+                "EvidencePhoneOTP",
+                "EvidenceTitleDeed",
+                "EvidencePropertyTax",
+                "EvidenceGeoTaggedPhoto"
+            ]
+        },
+        "hauslet_internal_modules_verification_domain.IdentityData": {
+            "type": "object",
+            "properties": {
+                "applicant_info": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.ApplicantInfo"
+                },
+                "document_info": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.DocumentInfo"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.ListingData": {
+            "type": "object",
+            "properties": {
+                "listing_id": {
+                    "type": "string"
+                },
+                "proof_type": {
+                    "description": "title_deed, utility_bill, geo_tag, etc.",
+                    "type": "string"
+                },
+                "property_id": {
+                    "type": "string"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.PhoneData": {
+            "type": "object",
+            "properties": {
+                "country_code": {
+                    "description": "ISO 3166-1 alpha-2",
+                    "type": "string"
+                },
+                "max_otp_attempts": {
+                    "description": "Maximum allowed attempts",
+                    "type": "integer"
+                },
+                "otp_attempts": {
+                    "description": "Number of failed OTP verification attempts",
+                    "type": "integer"
+                },
+                "otp_expires_at": {
+                    "type": "string"
+                },
+                "otp_generated_at": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "description": "E.164 format",
+                    "type": "string"
+                },
+                "sms_provider": {
+                    "description": "Which SMS provider was used",
+                    "type": "string"
+                },
+                "verified_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.RejectionReason": {
+            "type": "string",
+            "enum": [
+                "document_expired",
+                "document_invalid",
+                "document_unreadable",
+                "photo_mismatch",
+                "liveness_failed",
+                "under_age",
+                "sanctioned_country",
+                "duplicate_account",
+                "provider_error",
+                "other"
+            ],
+            "x-enum-varnames": [
+                "RejectionDocumentExpired",
+                "RejectionDocumentInvalid",
+                "RejectionDocumentUnreadable",
+                "RejectionPhotoMismatch",
+                "RejectionLivenessFailed",
+                "RejectionUnderAge",
+                "RejectionSanctionedCountry",
+                "RejectionDuplicateAccount",
+                "RejectionProviderError",
+                "RejectionOther"
+            ]
+        },
+        "hauslet_internal_modules_verification_domain.SessionStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "in_progress",
+                "approved",
+                "rejected",
+                "expired"
+            ],
+            "x-enum-comments": {
+                "SessionApproved": "Verification passed",
+                "SessionExpired": "Session timeout",
+                "SessionInProgress": "KYC submission in flight",
+                "SessionPending": "Initial state",
+                "SessionRejected": "Verification failed"
+            },
+            "x-enum-descriptions": [
+                "Initial state",
+                "KYC submission in flight",
+                "Verification passed",
+                "Verification failed",
+                "Session timeout"
+            ],
+            "x-enum-varnames": [
+                "SessionPending",
+                "SessionInProgress",
+                "SessionApproved",
+                "SessionRejected",
+                "SessionExpired"
+            ]
+        },
+        "hauslet_internal_modules_verification_domain.TargetType": {
+            "type": "string",
+            "enum": [
+                "user",
+                "listing"
+            ],
+            "x-enum-varnames": [
+                "TargetUser",
+                "TargetListing"
+            ]
+        },
+        "hauslet_internal_modules_verification_domain.VerificationAttempt": {
+            "type": "object",
+            "properties": {
+                "completedAt": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "description": "Metadata",
+                    "type": "string"
+                },
+                "evidenceIDs": {
+                    "description": "References to uploaded evidence",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "processingTime": {
+                    "description": "How long provider took",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/time.Duration"
+                        }
+                    ]
+                },
+                "providerName": {
+                    "description": "\"dojah\" or \"veriff\"",
+                    "type": "string"
+                },
+                "providerSessionID": {
+                    "description": "Provider tracking",
+                    "type": "string"
+                },
+                "result": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationResult"
+                },
+                "sessionID": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.AttemptStatus"
+                },
+                "submittedAt": {
+                    "description": "Timing",
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "webhookReceived": {
+                    "type": "boolean"
+                },
+                "webhookReceivedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.VerificationData": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.AddressData"
+                },
+                "business": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.BusinessData"
+                },
+                "identity": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.IdentityData"
+                },
+                "listing": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.ListingData"
+                },
+                "phone": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.PhoneData"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.VerificationResult": {
+            "type": "object",
+            "properties": {
+                "processedAt": {
+                    "type": "string"
+                },
+                "providerName": {
+                    "type": "string"
+                },
+                "providerRefID": {
+                    "type": "string"
+                },
+                "rawResponse": {
+                    "description": "Provider's raw response",
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "rejectionNotes": {
+                    "type": "string"
+                },
+                "rejectionReason": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.RejectionReason"
+                },
+                "score": {
+                    "description": "Confidence score (0-100)",
+                    "type": "number",
+                    "format": "float64"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.VerificationSession": {
+            "type": "object",
+            "properties": {
+                "approvedAt": {
+                    "description": "Resolution",
+                    "type": "string"
+                },
+                "attemptsUsed": {
+                    "type": "integer"
+                },
+                "completedAt": {
+                    "type": "string"
+                },
+                "country": {
+                    "description": "ISO 3166-1 alpha-2",
+                    "type": "string"
+                },
+                "createdAt": {
+                    "description": "Metadata",
+                    "type": "string"
+                },
+                "data": {
+                    "description": "Type-specific data (union type - only one populated based on Type)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationData"
+                        }
+                    ]
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "ipaddress": {
+                    "description": "Client context",
+                    "type": "string"
+                },
+                "lastAttemptAt": {
+                    "type": "string"
+                },
+                "maxAttempts": {
+                    "description": "Attempts tracking",
+                    "type": "integer"
+                },
+                "rejectedAt": {
+                    "type": "string"
+                },
+                "rejectionNotes": {
+                    "type": "string"
+                },
+                "rejectionReason": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.RejectionReason"
+                },
+                "status": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.SessionStatus"
+                },
+                "targetID": {
+                    "description": "ID of the entity being verified (if different from UserID)",
+                    "type": "string"
+                },
+                "targetType": {
+                    "description": "user, listing",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_domain.TargetType"
+                        }
+                    ]
+                },
+                "tier": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationTier"
+                },
+                "type": {
+                    "description": "identity, phone, address, business",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationType"
+                        }
+                    ]
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "userAgent": {
+                    "type": "string"
+                },
+                "userID": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_domain.VerificationTier": {
+            "type": "string",
+            "enum": [
+                "basic",
+                "standard",
+                "enhanced"
+            ],
+            "x-enum-comments": {
+                "TierBasic": "Document + selfie",
+                "TierEnhanced": "Standard + address verification",
+                "TierStandard": "Basic + liveness check"
+            },
+            "x-enum-descriptions": [
+                "Document + selfie",
+                "Basic + liveness check",
+                "Standard + address verification"
+            ],
+            "x-enum-varnames": [
+                "TierBasic",
+                "TierStandard",
+                "TierEnhanced"
+            ]
+        },
+        "hauslet_internal_modules_verification_domain.VerificationType": {
+            "type": "string",
+            "enum": [
+                "identity",
+                "phone",
+                "address",
+                "business",
+                "listing"
+            ],
+            "x-enum-comments": {
+                "VerificationAddress": "Physical address verification",
+                "VerificationBusiness": "Business/entity verification",
+                "VerificationIdentity": "KYC/ID verification",
+                "VerificationListing": "Listing verification",
+                "VerificationPhone": "Phone number + OTP verification"
+            },
+            "x-enum-descriptions": [
+                "KYC/ID verification",
+                "Phone number + OTP verification",
+                "Physical address verification",
+                "Business/entity verification",
+                "Listing verification"
+            ],
+            "x-enum-varnames": [
+                "VerificationIdentity",
+                "VerificationPhone",
+                "VerificationAddress",
+                "VerificationBusiness",
+                "VerificationListing"
+            ]
+        },
+        "hauslet_internal_modules_verification_service.GeneratePhoneOTPResponse": {
+            "type": "object",
+            "properties": {
+                "expiresAt": {
+                    "description": "ISO 8601 timestamp",
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "otpsent": {
+                    "type": "boolean"
+                },
+                "session": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationSession"
+                },
+                "smsprovider": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_service.SubmitVerificationResponse": {
+            "type": "object",
+            "properties": {
+                "attempt": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationAttempt"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "providerName": {
+                    "type": "string"
+                },
+                "session": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationSession"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "hauslet_internal_modules_verification_service.VerifyPhoneOTPResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "remaining": {
+                    "description": "Remaining attempts",
+                    "type": "integer"
+                },
+                "session": {
+                    "$ref": "#/definitions/hauslet_internal_modules_verification_domain.VerificationSession"
+                },
+                "verified": {
+                    "type": "boolean"
+                }
+            }
+        },
         "internal_modules_auth_port_http.ForgotPasswordRequest": {
             "type": "object",
             "properties": {
@@ -2230,6 +3657,172 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "internal_modules_verification_port_http.CreateSessionHTTPRequest": {
+            "type": "object",
+            "properties": {
+                "country": {
+                    "type": "string"
+                },
+                "data": {
+                    "description": "Verification data (type-specific)",
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "target_id": {
+                    "type": "string"
+                },
+                "tier": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "user_agent": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_modules_verification_port_http.GenerateOTPHTTPRequest": {
+            "type": "object",
+            "properties": {
+                "ip_address": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_modules_verification_port_http.SubmitAddressHTTPRequest": {
+            "type": "object",
+            "properties": {
+                "document_type": {
+                    "description": "utility_bill, bank_statement, lease",
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "proof_document": {
+                    "description": "base64",
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_modules_verification_port_http.SubmitBusinessHTTPRequest": {
+            "type": "object",
+            "properties": {
+                "business_license_document": {
+                    "description": "base64",
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "registration_document": {
+                    "description": "base64",
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                },
+                "tax_id_document": {
+                    "description": "base64",
+                    "type": "string"
+                }
+            }
+        },
+        "internal_modules_verification_port_http.SubmitIdentityHTTPRequest": {
+            "type": "object",
+            "properties": {
+                "document_image": {
+                    "description": "base64",
+                    "type": "string"
+                },
+                "document_number": {
+                    "type": "string"
+                },
+                "document_type": {
+                    "description": "passport, drivers_license, national_id, etc.",
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "selfie_image": {
+                    "description": "base64",
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_modules_verification_port_http.SubmitListingHTTPRequest": {
+            "type": "object",
+            "properties": {
+                "document_type": {
+                    "description": "title_deed, property_tax, geo_tagged_photo",
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "proof_document": {
+                    "description": "base64",
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_modules_verification_port_http.VerifyOTPHTTPRequest": {
+            "type": "object",
+            "properties": {
+                "ip_address": {
+                    "type": "string"
+                },
+                "otp_code": {
+                    "type": "string"
+                },
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "time.Duration": {
+            "type": "integer",
+            "format": "int64",
+            "enum": [
+                -9223372036854775808,
+                9223372036854775807,
+                1,
+                1000,
+                1000000,
+                1000000000,
+                60000000000,
+                3600000000000
+            ],
+            "x-enum-varnames": [
+                "minDuration",
+                "maxDuration",
+                "Nanosecond",
+                "Microsecond",
+                "Millisecond",
+                "Second",
+                "Minute",
+                "Hour"
+            ]
         },
         "token.User": {
             "type": "object",

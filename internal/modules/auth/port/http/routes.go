@@ -39,7 +39,7 @@ func NewHTTPHandler(ctx context.Context, authService service.AuthService, log *s
 func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	// Mount go-pkgz/auth's built-in authentication routes with metadata capture
 	// Provides:
-	//   - POST /auth/login              (password authentication with user+passwd fields)
+	//   - POST /auth/password/login              (password authentication with user+passwd fields)
 	//   - GET  /auth/google/login       (Google OAuth initiation)
 	//   - GET  /auth/google/callback    (Google OAuth callback)
 	//   - GET  /auth/logout             (logout and clear session)

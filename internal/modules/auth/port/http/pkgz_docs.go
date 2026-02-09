@@ -26,7 +26,7 @@ var (
 // @Success 200 {object} token.User
 // @Failure 400 {object} domain.ErrorResponse
 // @Failure 401 {object} domain.ErrorResponse
-// @Router /auth/login [post]
+// @Router /auth/password/login [post]
 func _() {}
 
 // @Summary Get Current User (Auth Library)

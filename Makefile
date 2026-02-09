@@ -19,6 +19,7 @@ help:
 	@echo "  make compose-down  # docker-compose down"
 	@echo "  make gql-gen       # Generate GraphQL code"
 	@echo "  make scaffold MODULE=name # Scaffold internal/MODULE structure"
+	@echo "  make swagger       # Generate Swagger docs"
 	@echo ""
 	@echo "Database:"
 	@echo "  make migrate       # Run database migrations (export DATABASE_URL first)"

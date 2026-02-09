@@ -267,6 +267,579 @@ definitions:
       total:
         type: integer
     type: object
+  hauslet_internal_modules_verification_domain.Address:
+    properties:
+      city:
+        type: string
+      country:
+        description: ISO 3166-1 alpha-2
+        type: string
+      line1:
+        type: string
+      line2:
+        type: string
+      postalCode:
+        type: string
+      state:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.AddressData:
+    properties:
+      city:
+        type: string
+      country:
+        description: ISO 3166-1 alpha-2
+        type: string
+      document_type:
+        description: utility_bill, bank_statement, lease, etc.
+        type: string
+      full_address:
+        type: string
+      issue_date:
+        type: string
+      match_score:
+        description: Confidence score from verification service
+        type: number
+      postal_code:
+        type: string
+      state:
+        type: string
+      street:
+        type: string
+      verified_at:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.ApplicantInfo:
+    properties:
+      address:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.Address'
+      dateOfBirth:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      nationality:
+        description: ISO 3166-1 alpha-2 country code
+        type: string
+      phoneNumber:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.AttemptStatus:
+    enum:
+    - pending
+    - processing
+    - success
+    - failed
+    type: string
+    x-enum-comments:
+      AttemptFailed: Provider returned failure
+      AttemptPending: Queued for submission
+      AttemptProcessing: Submitted to provider
+      AttemptSuccess: Provider returned success
+    x-enum-descriptions:
+    - Queued for submission
+    - Submitted to provider
+    - Provider returned success
+    - Provider returned failure
+    x-enum-varnames:
+    - AttemptPending
+    - AttemptProcessing
+    - AttemptSuccess
+    - AttemptFailed
+  hauslet_internal_modules_verification_domain.BusinessData:
+    properties:
+      beneficial_owners:
+        description: Names
+        items:
+          type: string
+        type: array
+      business_address:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.Address'
+      business_name:
+        type: string
+      business_type:
+        description: llc, corporation, sole_proprietorship, etc.
+        type: string
+      country:
+        description: ISO 3166-1 alpha-2
+        type: string
+      directors:
+        description: Names
+        items:
+          type: string
+        type: array
+      incorporation_date:
+        type: string
+      owner_user_id:
+        description: Ownership/Directors
+        type: string
+      registration_number:
+        type: string
+      tax_id:
+        type: string
+      verification_provider:
+        type: string
+      verified_at:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.DocumentInfo:
+    properties:
+      expiryDate:
+        type: string
+      issueDate:
+        type: string
+      issuingCountry:
+        description: ISO 3166-1 alpha-2
+        type: string
+      number:
+        description: Document number (if applicable)
+        type: string
+      type:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.DocumentType'
+    type: object
+  hauslet_internal_modules_verification_domain.DocumentType:
+    enum:
+    - passport
+    - national_id
+    - drivers_license
+    - residence_permit
+    - voters_card
+    - NIN
+    - BVN
+    - VIN
+    - CAC
+    type: string
+    x-enum-comments:
+      DocumentBVN: Bank Verification Number
+      DocumentCAC: Corporate Affairs Commission (Business)
+      DocumentNIN: National Identification Number
+      DocumentVIN: Voter Identification Number
+    x-enum-descriptions:
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - National Identification Number
+    - Bank Verification Number
+    - Voter Identification Number
+    - Corporate Affairs Commission (Business)
+    x-enum-varnames:
+    - DocumentPassport
+    - DocumentNationalID
+    - DocumentDriversLicense
+    - DocumentResidencePermit
+    - DocumentVotersCard
+    - DocumentNIN
+    - DocumentBVN
+    - DocumentVIN
+    - DocumentCAC
+  hauslet_internal_modules_verification_domain.Evidence:
+    properties:
+      attemptID:
+        description: 'Optional: which attempt this evidence belongs to'
+        type: string
+      createdAt:
+        description: Lifecycle
+        type: string
+      deletedAt:
+        description: Soft delete for compliance
+        type: string
+      id:
+        type: string
+      metadata:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.EvidenceMetadata'
+      sessionID:
+        type: string
+      type:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.EvidenceType'
+      updatedAt:
+        type: string
+      verified:
+        description: Verification
+        type: boolean
+      verifiedAt:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.EvidenceMetadata:
+    properties:
+      evidenceID:
+        type: string
+      hash:
+        type: string
+      mimeType:
+        type: string
+      size:
+        format: int64
+        type: integer
+      type:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.EvidenceType'
+      uploadedAt:
+        type: string
+      uploadedByIP:
+        type: string
+      url:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.EvidenceType:
+    enum:
+    - document_front
+    - document_back
+    - selfie
+    - liveness_video
+    - address_utility_bill
+    - address_bank_statement
+    - address_lease
+    - address_other
+    - business_registration
+    - business_tax_id
+    - business_license
+    - business_address
+    - phone_otp
+    - title_deed
+    - property_tax_receipt
+    - geo_tagged_photo
+    type: string
+    x-enum-varnames:
+    - EvidenceDocumentFront
+    - EvidenceDocumentBack
+    - EvidenceSelfie
+    - EvidenceLiveness
+    - EvidenceAddressUtilityBill
+    - EvidenceAddressBankStatement
+    - EvidenceAddressLease
+    - EvidenceAddressOther
+    - EvidenceBusinessRegistration
+    - EvidenceBusinessTaxID
+    - EvidenceBusinessLicense
+    - EvidenceBusinessAddress
+    - EvidencePhoneOTP
+    - EvidenceTitleDeed
+    - EvidencePropertyTax
+    - EvidenceGeoTaggedPhoto
+  hauslet_internal_modules_verification_domain.IdentityData:
+    properties:
+      applicant_info:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.ApplicantInfo'
+      document_info:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.DocumentInfo'
+    type: object
+  hauslet_internal_modules_verification_domain.ListingData:
+    properties:
+      listing_id:
+        type: string
+      proof_type:
+        description: title_deed, utility_bill, geo_tag, etc.
+        type: string
+      property_id:
+        type: string
+      verified_at:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.PhoneData:
+    properties:
+      country_code:
+        description: ISO 3166-1 alpha-2
+        type: string
+      max_otp_attempts:
+        description: Maximum allowed attempts
+        type: integer
+      otp_attempts:
+        description: Number of failed OTP verification attempts
+        type: integer
+      otp_expires_at:
+        type: string
+      otp_generated_at:
+        type: string
+      phone_number:
+        description: E.164 format
+        type: string
+      sms_provider:
+        description: Which SMS provider was used
+        type: string
+      verified_at:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.RejectionReason:
+    enum:
+    - document_expired
+    - document_invalid
+    - document_unreadable
+    - photo_mismatch
+    - liveness_failed
+    - under_age
+    - sanctioned_country
+    - duplicate_account
+    - provider_error
+    - other
+    type: string
+    x-enum-varnames:
+    - RejectionDocumentExpired
+    - RejectionDocumentInvalid
+    - RejectionDocumentUnreadable
+    - RejectionPhotoMismatch
+    - RejectionLivenessFailed
+    - RejectionUnderAge
+    - RejectionSanctionedCountry
+    - RejectionDuplicateAccount
+    - RejectionProviderError
+    - RejectionOther
+  hauslet_internal_modules_verification_domain.SessionStatus:
+    enum:
+    - pending
+    - in_progress
+    - approved
+    - rejected
+    - expired
+    type: string
+    x-enum-comments:
+      SessionApproved: Verification passed
+      SessionExpired: Session timeout
+      SessionInProgress: KYC submission in flight
+      SessionPending: Initial state
+      SessionRejected: Verification failed
+    x-enum-descriptions:
+    - Initial state
+    - KYC submission in flight
+    - Verification passed
+    - Verification failed
+    - Session timeout
+    x-enum-varnames:
+    - SessionPending
+    - SessionInProgress
+    - SessionApproved
+    - SessionRejected
+    - SessionExpired
+  hauslet_internal_modules_verification_domain.TargetType:
+    enum:
+    - user
+    - listing
+    type: string
+    x-enum-varnames:
+    - TargetUser
+    - TargetListing
+  hauslet_internal_modules_verification_domain.VerificationAttempt:
+    properties:
+      completedAt:
+        type: string
+      createdAt:
+        description: Metadata
+        type: string
+      evidenceIDs:
+        description: References to uploaded evidence
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      processingTime:
+        allOf:
+        - $ref: '#/definitions/time.Duration'
+        description: How long provider took
+      providerName:
+        description: '"dojah" or "veriff"'
+        type: string
+      providerSessionID:
+        description: Provider tracking
+        type: string
+      result:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationResult'
+      sessionID:
+        type: string
+      status:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.AttemptStatus'
+      submittedAt:
+        description: Timing
+        type: string
+      updatedAt:
+        type: string
+      webhookReceived:
+        type: boolean
+      webhookReceivedAt:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.VerificationData:
+    properties:
+      address:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.AddressData'
+      business:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.BusinessData'
+      identity:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.IdentityData'
+      listing:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.ListingData'
+      phone:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.PhoneData'
+    type: object
+  hauslet_internal_modules_verification_domain.VerificationResult:
+    properties:
+      processedAt:
+        type: string
+      providerName:
+        type: string
+      providerRefID:
+        type: string
+      rawResponse:
+        additionalProperties: {}
+        description: Provider's raw response
+        type: object
+      rejectionNotes:
+        type: string
+      rejectionReason:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.RejectionReason'
+      score:
+        description: Confidence score (0-100)
+        format: float64
+        type: number
+      success:
+        type: boolean
+    type: object
+  hauslet_internal_modules_verification_domain.VerificationSession:
+    properties:
+      approvedAt:
+        description: Resolution
+        type: string
+      attemptsUsed:
+        type: integer
+      completedAt:
+        type: string
+      country:
+        description: ISO 3166-1 alpha-2
+        type: string
+      createdAt:
+        description: Metadata
+        type: string
+      data:
+        allOf:
+        - $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationData'
+        description: Type-specific data (union type - only one populated based on
+          Type)
+      expiresAt:
+        type: string
+      id:
+        type: string
+      ipaddress:
+        description: Client context
+        type: string
+      lastAttemptAt:
+        type: string
+      maxAttempts:
+        description: Attempts tracking
+        type: integer
+      rejectedAt:
+        type: string
+      rejectionNotes:
+        type: string
+      rejectionReason:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.RejectionReason'
+      status:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.SessionStatus'
+      targetID:
+        description: ID of the entity being verified (if different from UserID)
+        type: string
+      targetType:
+        allOf:
+        - $ref: '#/definitions/hauslet_internal_modules_verification_domain.TargetType'
+        description: user, listing
+      tier:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationTier'
+      type:
+        allOf:
+        - $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationType'
+        description: identity, phone, address, business
+      updatedAt:
+        type: string
+      userAgent:
+        type: string
+      userID:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_domain.VerificationTier:
+    enum:
+    - basic
+    - standard
+    - enhanced
+    type: string
+    x-enum-comments:
+      TierBasic: Document + selfie
+      TierEnhanced: Standard + address verification
+      TierStandard: Basic + liveness check
+    x-enum-descriptions:
+    - Document + selfie
+    - Basic + liveness check
+    - Standard + address verification
+    x-enum-varnames:
+    - TierBasic
+    - TierStandard
+    - TierEnhanced
+  hauslet_internal_modules_verification_domain.VerificationType:
+    enum:
+    - identity
+    - phone
+    - address
+    - business
+    - listing
+    type: string
+    x-enum-comments:
+      VerificationAddress: Physical address verification
+      VerificationBusiness: Business/entity verification
+      VerificationIdentity: KYC/ID verification
+      VerificationListing: Listing verification
+      VerificationPhone: Phone number + OTP verification
+    x-enum-descriptions:
+    - KYC/ID verification
+    - Phone number + OTP verification
+    - Physical address verification
+    - Business/entity verification
+    - Listing verification
+    x-enum-varnames:
+    - VerificationIdentity
+    - VerificationPhone
+    - VerificationAddress
+    - VerificationBusiness
+    - VerificationListing
+  hauslet_internal_modules_verification_service.GeneratePhoneOTPResponse:
+    properties:
+      expiresAt:
+        description: ISO 8601 timestamp
+        type: string
+      message:
+        type: string
+      otpsent:
+        type: boolean
+      session:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationSession'
+      smsprovider:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_service.SubmitVerificationResponse:
+    properties:
+      attempt:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationAttempt'
+      message:
+        type: string
+      providerName:
+        type: string
+      session:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationSession'
+      status:
+        type: string
+    type: object
+  hauslet_internal_modules_verification_service.VerifyPhoneOTPResponse:
+    properties:
+      message:
+        type: string
+      remaining:
+        description: Remaining attempts
+        type: integer
+      session:
+        $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationSession'
+      verified:
+        type: boolean
+    type: object
   internal_modules_auth_port_http.ForgotPasswordRequest:
     properties:
       email:
@@ -336,6 +909,123 @@ definitions:
       url:
         type: string
     type: object
+  internal_modules_verification_port_http.CreateSessionHTTPRequest:
+    properties:
+      country:
+        type: string
+      data:
+        description: Verification data (type-specific)
+        items:
+          type: integer
+        type: array
+      ip_address:
+        type: string
+      target_id:
+        type: string
+      tier:
+        type: string
+      type:
+        type: string
+      user_agent:
+        type: string
+    type: object
+  internal_modules_verification_port_http.GenerateOTPHTTPRequest:
+    properties:
+      ip_address:
+        type: string
+      session_id:
+        type: string
+    type: object
+  internal_modules_verification_port_http.SubmitAddressHTTPRequest:
+    properties:
+      document_type:
+        description: utility_bill, bank_statement, lease
+        type: string
+      ip_address:
+        type: string
+      proof_document:
+        description: base64
+        type: string
+      session_id:
+        type: string
+    type: object
+  internal_modules_verification_port_http.SubmitBusinessHTTPRequest:
+    properties:
+      business_license_document:
+        description: base64
+        type: string
+      ip_address:
+        type: string
+      registration_document:
+        description: base64
+        type: string
+      session_id:
+        type: string
+      tax_id_document:
+        description: base64
+        type: string
+    type: object
+  internal_modules_verification_port_http.SubmitIdentityHTTPRequest:
+    properties:
+      document_image:
+        description: base64
+        type: string
+      document_number:
+        type: string
+      document_type:
+        description: passport, drivers_license, national_id, etc.
+        type: string
+      ip_address:
+        type: string
+      selfie_image:
+        description: base64
+        type: string
+      session_id:
+        type: string
+    type: object
+  internal_modules_verification_port_http.SubmitListingHTTPRequest:
+    properties:
+      document_type:
+        description: title_deed, property_tax, geo_tagged_photo
+        type: string
+      ip_address:
+        type: string
+      proof_document:
+        description: base64
+        type: string
+      session_id:
+        type: string
+    type: object
+  internal_modules_verification_port_http.VerifyOTPHTTPRequest:
+    properties:
+      ip_address:
+        type: string
+      otp_code:
+        type: string
+      session_id:
+        type: string
+    type: object
+  time.Duration:
+    enum:
+    - -9223372036854775808
+    - 9223372036854775807
+    - 1
+    - 1000
+    - 1000000
+    - 1000000000
+    - 60000000000
+    - 3600000000000
+    format: int64
+    type: integer
+    x-enum-varnames:
+    - minDuration
+    - maxDuration
+    - Nanosecond
+    - Microsecond
+    - Millisecond
+    - Second
+    - Minute
+    - Hour
   token.User:
     properties:
       attrs:
@@ -554,206 +1244,6 @@ paths:
       summary: Verify 2FA code
       tags:
       - 2FA
-  /api/listings/{id}/media:
-    delete:
-      consumes:
-      - application/json
-      description: Delete one or more media items from a listing
-      parameters:
-      - description: Listing ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Media delete details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/hauslet_internal_modules_property_domain.DeleteMediaRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.SuccessResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Delete listing media
-      tags:
-      - listings
-    post:
-      consumes:
-      - application/json
-      description: Generate presigned upload URLs for listing media
-      parameters:
-      - description: Listing ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Media upload details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/hauslet_internal_modules_property_domain.UploadMediaRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.UploadMediaResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Upload listing media
-      tags:
-      - listings
-  /api/listings/{id}/media/{mediaId}:
-    patch:
-      consumes:
-      - application/json
-      description: Update metadata for a specific media item
-      parameters:
-      - description: Listing ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Media ID
-        in: path
-        name: mediaId
-        required: true
-        type: string
-      - description: Media update details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/hauslet_internal_modules_property_domain.UpdateMediaRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.SuccessResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update listing media
-      tags:
-      - listings
-  /api/listings/{id}/media/finalize:
-    post:
-      consumes:
-      - application/json
-      description: Mark media as uploaded and trigger thumbnail generation
-      parameters:
-      - description: Listing ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Media finalization details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/hauslet_internal_modules_property_domain.FinalizeMediaRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.SuccessResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Finalize listing media
-      tags:
-      - listings
   /auth/{provider}/callback:
     get:
       description: Callback endpoint for OAuth providers. Handled automatically, but
@@ -1227,6 +1717,206 @@ paths:
       summary: Change password
       tags:
       - user
+  /listings/{id}/media:
+    delete:
+      consumes:
+      - application/json
+      description: Delete one or more media items from a listing
+      parameters:
+      - description: Listing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media delete details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.DeleteMediaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete listing media
+      tags:
+      - listings
+    post:
+      consumes:
+      - application/json
+      description: Generate presigned upload URLs for listing media
+      parameters:
+      - description: Listing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media upload details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.UploadMediaRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.UploadMediaResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload listing media
+      tags:
+      - listings
+  /listings/{id}/media/{mediaId}:
+    patch:
+      consumes:
+      - application/json
+      description: Update metadata for a specific media item
+      parameters:
+      - description: Listing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media ID
+        in: path
+        name: mediaId
+        required: true
+        type: string
+      - description: Media update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.UpdateMediaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update listing media
+      tags:
+      - listings
+  /listings/{id}/media/finalize:
+    post:
+      consumes:
+      - application/json
+      description: Mark media as uploaded and trigger thumbnail generation
+      parameters:
+      - description: Listing ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Media finalization details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_property_domain.FinalizeMediaRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_property_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Finalize listing media
+      tags:
+      - listings
   /me:
     get:
       description: Returns the authenticated user's information
@@ -1472,6 +2162,408 @@ paths:
       summary: Generate attachment upload URL
       tags:
       - messaging
+  /verification/address:
+    post:
+      consumes:
+      - application/json
+      description: Submits address proof documents for manual review
+      parameters:
+      - description: Address verification request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_verification_port_http.SubmitAddressHTTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_service.SubmitVerificationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Submit address verification
+      tags:
+      - verification
+  /verification/business:
+    post:
+      consumes:
+      - application/json
+      description: Submits business registration documents. For Nigerian businesses,
+        automated CAC lookup is attempted first.
+      parameters:
+      - description: Business verification request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_verification_port_http.SubmitBusinessHTTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_service.SubmitVerificationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Submit business verification
+      tags:
+      - verification
+  /verification/evidence/{evidenceID}:
+    get:
+      description: Retrieves evidence metadata by ID
+      parameters:
+      - description: Evidence ID
+        in: path
+        name: evidenceID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_domain.Evidence'
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get evidence
+      tags:
+      - verification
+  /verification/evidence/{evidenceID}/url:
+    get:
+      description: Generates a presigned URL to download evidence
+      parameters:
+      - description: Evidence ID
+        in: path
+        name: evidenceID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: URL response
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate evidence download URL
+      tags:
+      - verification
+  /verification/identity:
+    post:
+      consumes:
+      - application/json
+      description: Submits identity documents for automated KYC verification via Dojah/Veriff
+      parameters:
+      - description: Identity verification request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_verification_port_http.SubmitIdentityHTTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_service.SubmitVerificationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Submit identity verification
+      tags:
+      - verification
+  /verification/listing:
+    post:
+      consumes:
+      - application/json
+      description: Submits listing proof documents for manual review
+      parameters:
+      - description: Listing verification request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_verification_port_http.SubmitListingHTTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_service.SubmitVerificationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Submit listing verification
+      tags:
+      - verification
+  /verification/phone/otp:
+    post:
+      consumes:
+      - application/json
+      description: Sends an OTP code to the phone number associated with the session
+      parameters:
+      - description: OTP generation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_verification_port_http.GenerateOTPHTTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_service.GeneratePhoneOTPResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate phone OTP
+      tags:
+      - verification
+  /verification/phone/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the OTP code submitted by the user
+      parameters:
+      - description: OTP verification request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_verification_port_http.VerifyOTPHTTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_service.VerifyPhoneOTPResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Verify phone OTP
+      tags:
+      - verification
+  /verification/sessions:
+    get:
+      description: Retrieves the current user's verification session for a given type
+      parameters:
+      - description: Verification type (identity, phone, address, business, listing)
+        in: query
+        name: type
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationSession'
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get verification session by type
+      tags:
+      - verification
+    post:
+      consumes:
+      - application/json
+      description: Creates a new verification session of the specified type
+      parameters:
+      - description: Session creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_verification_port_http.CreateSessionHTTPRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationSession'
+        "400":
+          description: Bad Request
+          schema:
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create verification session
+      tags:
+      - verification
+  /verification/sessions/{sessionID}:
+    get:
+      description: Retrieves a verification session by its ID
+      parameters:
+      - description: Session ID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationSession'
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get verification session
+      tags:
+      - verification
+  /verification/sessions/{sessionID}/attempts:
+    get:
+      description: Returns all verification attempts for a session
+      parameters:
+      - description: Session ID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hauslet_internal_modules_verification_domain.VerificationAttempt'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List verification attempts
+      tags:
+      - verification
+  /verification/sessions/{sessionID}/evidence:
+    get:
+      description: Returns all uploaded evidence items for a verification session
+      parameters:
+      - description: Session ID
+        in: path
+        name: sessionID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/hauslet_internal_modules_verification_domain.Evidence'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List session evidence
+      tags:
+      - verification
 securityDefinitions:
   BearerAuth:
     in: header

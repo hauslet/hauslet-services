@@ -23,7 +23,7 @@ import (
 // @Failure 403 {object} domain.ErrorResponse
 // @Failure 404 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
-// @Router /api/listings/{id}/media [post]
+// @Router /listings/{id}/media [post]
 // @Security BearerAuth
 func (h *HTTPHandler) UploadListingMedia(w http.ResponseWriter, r *http.Request) {
 	// Extract listing ID from URL
@@ -112,7 +112,7 @@ func (h *HTTPHandler) UploadListingMedia(w http.ResponseWriter, r *http.Request)
 // @Failure 403 {object} domain.ErrorResponse
 // @Failure 404 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
-// @Router /api/listings/{id}/media/{mediaId} [patch]
+// @Router /listings/{id}/media/{mediaId} [patch]
 // @Security BearerAuth
 func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request) {
 	// Extract listing ID from URL
@@ -212,7 +212,7 @@ func (h *HTTPHandler) UpdateListingMedia(w http.ResponseWriter, r *http.Request)
 // @Failure 403 {object} domain.ErrorResponse
 // @Failure 404 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
-// @Router /api/listings/{id}/media [delete]
+// @Router /listings/{id}/media [delete]
 // @Security BearerAuth
 func (h *HTTPHandler) DeleteListingMedia(w http.ResponseWriter, r *http.Request) {
 	// Extract listing ID from URL
@@ -303,7 +303,7 @@ func (h *HTTPHandler) DeleteListingMedia(w http.ResponseWriter, r *http.Request)
 // @Failure 403 {object} domain.ErrorResponse
 // @Failure 404 {object} domain.ErrorResponse
 // @Failure 500 {object} domain.ErrorResponse
-// @Router /api/listings/{id}/media/finalize [post]
+// @Router /listings/{id}/media/finalize [post]
 // @Security BearerAuth
 func (h *HTTPHandler) FinalizeListingMedia(w http.ResponseWriter, r *http.Request) {
 	// Extract listing ID from URL

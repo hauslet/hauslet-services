@@ -22,8 +22,8 @@ func sanitizeListingForViewer(ctx context.Context, l *domain.Listing, userID uui
 		return nil
 	}
 
-	// Draft listings only visible to owner/admin/business members
-	if l.Status == domain.StatusDraft {
+	// Unpublished listings (drafts, under review, etc.) satisfy this check
+	if !l.Published {
 		if userID == l.OwnerID {
 			return l
 		}
@@ -35,7 +35,7 @@ func sanitizeListingForViewer(ctx context.Context, l *domain.Listing, userID uui
 			}
 		}
 
-		// Otherwise drafts stay hidden
+		// Otherwise unpublished listings stay hidden
 		return nil
 	}
 

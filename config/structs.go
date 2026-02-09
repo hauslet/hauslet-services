@@ -25,6 +25,7 @@ type AppConfig struct {
 }
 
 type AuthConfig struct {
+	Env                string
 	JWTSecret          string
 	EncryptAuthCodeKey []byte
 	GoogleClientID     string

@@ -34,6 +34,7 @@ func Load() *GlobalConfig {
 				Server: def("SERVER_URL", "http://localhost:3000"),
 			},
 			Auth: AuthConfig{
+				Env:                must("APP_ENV"),
 				JWTSecret:          must("JWT_SECRET"),
 				EncryptAuthCodeKey: mustKey("ENCRYPTION_KEY"),
 				GoogleClientID:     must("GOOGLE_CLIENT_ID"),

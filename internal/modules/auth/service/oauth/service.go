@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"hauslet/config"
@@ -121,6 +122,11 @@ type Dependencies struct {
 func NewService(deps Dependencies) *auth.Service {
 	claims := newClaimsEnricher(deps)
 
+	sameSite := http.SameSiteLaxMode
+	if deps.Config.CookieDomain == "" || deps.Config.Env == "development" {
+		sameSite = http.SameSiteNoneMode
+	}
+
 	options := auth.Opts{
 		Logger: newSlogAdapter(deps.Log),
 		SecretReader: token.SecretFunc(func(id string) (string, error) {
@@ -135,6 +141,7 @@ func NewService(deps Dependencies) *auth.Service {
 		AvatarStore:       avatar.NewLocalFS(deps.Config.AvatarStorePath),
 		SendJWTHeader:     false,
 		DisableXSRF:       deps.Config.DisableXSRF,
+		SameSiteCookie:    sameSite,
 		XSRFIgnoreMethods: []string{"GET"},
 		Validator:         NewValidator(deps.Repository, deps.Log),
 		JWTCookieDomain:   deps.Config.CookieDomain,
