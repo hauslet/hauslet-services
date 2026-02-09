@@ -179,18 +179,34 @@ func (d *DojahAdapter) verifyGovtData(ctx context.Context, req VerificationReque
 		return nil, err
 	}
 
-	// Generic lookup response wrapper
+	// Parse the rich entity response for data extraction
 	var lookupResp struct {
-		Entity any `json:"entity"`
+		Entity map[string]any `json:"entity"`
 	}
 	if err := json.Unmarshal(respData, &lookupResp); err != nil {
 		return nil, fmt.Errorf("failed to parse lookup response: %w", err)
 	}
 
-	success := lookupResp.Entity != nil
+	success := lookupResp.Entity != nil && len(lookupResp.Entity) > 0
 	status := StatusRejected
 	if success {
 		status = StatusApproved
+	}
+
+	// Extract structured data from Dojah entity response
+	extractedData := d.extractGovtData(lookupResp.Entity)
+
+	// Cross-validate name if provided in the request
+	var failureReason *string
+	var failureCode *FailureCode
+	if success && (req.FirstName != "" || req.LastName != "") {
+		if mismatch := d.crossValidateName(extractedData, req.FirstName, req.LastName); mismatch != "" {
+			status = StatusRejected
+			success = false
+			failureReason = &mismatch
+			code := FailureFaceMismatch // Reuse as "data mismatch"
+			failureCode = &code
+		}
 	}
 
 	return &VerificationResponse{
@@ -200,6 +216,117 @@ func (d *DojahAdapter) verifyGovtData(ctx context.Context, req VerificationReque
 		Status:        status,
 		EstimatedCost: d.getCostForCountry(req.Country),
 		Message:       "Govt data lookup completed",
+		ExtractedData: extractedData,
+		FailureReason: failureReason,
+		FailureCode:   failureCode,
+	}, nil
+}
+
+// extractGovtData extracts structured identity data from the Dojah entity response.
+// Works across NIN, BVN, VIN, and DL lookup responses.
+func (d *DojahAdapter) extractGovtData(entity map[string]any) map[string]string {
+	if entity == nil {
+		return nil
+	}
+
+	extracted := make(map[string]string)
+	fieldMap := map[string][]string{
+		"first_name":    {"first_name", "firstName"},
+		"last_name":     {"last_name", "lastName"},
+		"middle_name":   {"middle_name", "middleName"},
+		"date_of_birth": {"date_of_birth", "dateOfBirth"},
+		"gender":        {"gender"},
+		"phone_number":  {"phone_number", "phone_number1", "phoneNumber"},
+		"email":         {"email"},
+		"address":       {"residence_address_line_1", "residential_address", "address"},
+		"state":         {"residence_state", "state_of_residence", "state"},
+		"lga":           {"residence_lga", "lga_of_residence", "lga"},
+		"nationality":   {"nationality"},
+		"photo":         {"photo", "image"},
+		"nin":           {"nin"},
+		"bvn":           {"bvn"},
+	}
+
+	for canonical, keys := range fieldMap {
+		for _, key := range keys {
+			if val, ok := entity[key]; ok && val != nil {
+				if strVal, ok := val.(string); ok && strVal != "" {
+					extracted[canonical] = strVal
+					break
+				}
+			}
+		}
+	}
+
+	return extracted
+}
+
+// crossValidateName checks if the extracted name matches the expected name from the request.
+func (d *DojahAdapter) crossValidateName(extracted map[string]string, expectedFirst, expectedLast string) string {
+	if len(extracted) == 0 {
+		return ""
+	}
+
+	firstName := strings.ToUpper(strings.TrimSpace(extracted["first_name"]))
+	lastName := strings.ToUpper(strings.TrimSpace(extracted["last_name"]))
+	expFirst := strings.ToUpper(strings.TrimSpace(expectedFirst))
+	expLast := strings.ToUpper(strings.TrimSpace(expectedLast))
+
+	if expFirst != "" && firstName != "" && firstName != expFirst {
+		return fmt.Sprintf("First name mismatch: expected %s, got %s", expFirst, firstName)
+	}
+	if expLast != "" && lastName != "" && lastName != expLast {
+		return fmt.Sprintf("Last name mismatch: expected %s, got %s", expLast, lastName)
+	}
+
+	return ""
+}
+
+// VerifyBusiness performs a CAC (Corporate Affairs Commission) lookup for Nigerian businesses
+func (d *DojahAdapter) VerifyBusiness(ctx context.Context, rcNumber, companyType string) (*BusinessVerificationResponse, error) {
+	if rcNumber == "" {
+		return nil, fmt.Errorf("rc_number is required for CAC lookup")
+	}
+	if companyType == "" {
+		companyType = "BUSINESS_NAME"
+	}
+
+	endpoint := fmt.Sprintf("/api/v1/kyc/cac/advance?rc_number=%s&company_type=%s", rcNumber, companyType)
+
+	respData, err := d.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("CAC lookup failed: %w", err)
+	}
+
+	var cacResp struct {
+		Entity *CACEntity `json:"entity"`
+	}
+	if err := json.Unmarshal(respData, &cacResp); err != nil {
+		return nil, fmt.Errorf("failed to parse CAC response: %w", err)
+	}
+
+	if cacResp.Entity == nil {
+		return &BusinessVerificationResponse{
+			Found:   false,
+			Message: "Business not found in CAC registry",
+		}, nil
+	}
+
+	e := cacResp.Entity
+	return &BusinessVerificationResponse{
+		Found:              true,
+		CompanyName:        e.CompanyName,
+		RCNumber:           e.RCNumber,
+		CompanyType:        e.TypeOfCompany,
+		Address:            e.Address,
+		Status:             e.Status,
+		DateOfRegistration: e.DateOfRegistration,
+		State:              e.State,
+		City:               e.City,
+		LGA:                e.LGA,
+		Email:              e.Email,
+		Affiliates:         e.Affiliates,
+		Message:            "CAC lookup completed successfully",
 	}, nil
 }
 

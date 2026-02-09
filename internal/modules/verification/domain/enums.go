@@ -110,6 +110,7 @@ const (
 	DocumentNIN        DocumentType = "NIN" // National Identification Number
 	DocumentBVN        DocumentType = "BVN" // Bank Verification Number
 	DocumentVIN        DocumentType = "VIN" // Voter Identification Number
+	DocumentCAC        DocumentType = "CAC" // Corporate Affairs Commission (Business)
 )
 
 func (d DocumentType) String() string {
@@ -119,7 +120,7 @@ func (d DocumentType) String() string {
 func (d DocumentType) IsValid() bool {
 	switch d {
 	case DocumentPassport, DocumentNationalID, DocumentDriversLicense, DocumentResidencePermit,
-		DocumentVotersCard, DocumentNIN, DocumentBVN, DocumentVIN:
+		DocumentVotersCard, DocumentNIN, DocumentBVN, DocumentVIN, DocumentCAC:
 		return true
 	}
 	return false

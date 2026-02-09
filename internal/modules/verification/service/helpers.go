@@ -209,22 +209,6 @@ func (s *verificationService) mapFailureCodeToRejectionReason(code kyc.FailureCo
 	}
 }
 
-func (s *verificationService) generateOTPCode() (string, error) {
-	// Define the maximum value (exclusive) for a 6-digit number: 1,000,000
-	// This gives us a range of 0 to 999999
-	max := big.NewInt(1000000)
-
-	// Generate a cryptographically secure random integer
-	n, err := rand.Int(rand.Reader, max)
-	if err != nil {
-		// In production, this usually indicates a system-level issue (entropy exhaustion)
-		return "", fmt.Errorf("failed to generate secure random number: %w", err)
-	}
-
-	// Format as 6 digits with leading zeros (e.g., "004123")
-	return fmt.Sprintf("%06d", n.Int64()), nil
-}
-
 func (s *verificationService) mapAddressDocTypeToEvidence(docType string) domain.EvidenceType {
 	switch docType {
 	case "utility_bill":

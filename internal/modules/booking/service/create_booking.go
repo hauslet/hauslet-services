@@ -16,6 +16,19 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		s.log.Info(" creating booking", "listing_id", listingID, "guest_id", guestID)
 	}
 
+	ownerID, err := s.listingHooks.GetListingOwner(ctx, listingID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Prevent hosts from booking their own listings
+	if ownerID == guestID {
+		if s.log != nil {
+			s.log.Warn("host attempted to book own listing", "listing_id", listingID, "user_id", guestID)
+		}
+		return nil, domain.ErrCannotBookOwnListing
+	}
+
 	guest, err := s.resolveGuestInfo(ctx, guestID)
 	if err != nil {
 		return nil, err
@@ -51,15 +64,20 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		return nil, domain.ErrDatesUnavailable
 	}
 
+	// Default to manual approval (safe)
 	autoAcceptBookings := false
-	if constraints != nil {
-		autoAcceptBookings = constraints.AutoAcceptBookings
-	}
+
+	// Calendar config takes precedence
 	if calendarConfig != nil {
 		autoAcceptBookings = calendarConfig.InstantBooking
-		if constraints != nil {
-			constraints.AutoAcceptBookings = autoAcceptBookings
-		}
+	} else if constraints != nil {
+		// Fallback to constraints
+		autoAcceptBookings = constraints.AutoAcceptBookings
+	}
+
+	// Sync back to constraints for downstream use
+	if constraints != nil {
+		constraints.AutoAcceptBookings = autoAcceptBookings
 	}
 
 	bufferDuration := cleaningBufferDuration(calendarConfig)
@@ -73,22 +91,12 @@ func (s *BookingServiceImpl) CreateBooking(ctx context.Context, listingID uuid.U
 		}
 	}
 
-	ownerID, err := s.listingHooks.GetListingOwner(ctx, listingID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Prevent hosts from booking their own listings
-	if ownerID == guestID {
-		if s.log != nil {
-			s.log.Warn("host attempted to book own listing", "listing_id", listingID, "user_id", guestID)
-		}
-		return nil, domain.ErrCannotBookOwnListing
-	}
-
 	var priceSnapshot *domain.PriceBreakdownSnapshot
 	var total float64
-	currency := constraints.Currency
+	currency := ""
+	if constraints != nil {
+		currency = constraints.Currency
+	}
 
 	if s.pricing != nil {
 		// Use scheduled times for pricing to ensure consistency with listing's check-in/out times

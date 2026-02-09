@@ -108,3 +108,14 @@ func (c *Client) HealthCheck(ctx context.Context) map[string]error {
 
 	return results
 }
+
+// VerifyBusiness performs a KYB lookup using the appropriate provider for the country.
+// Currently, only Dojah supports business verification (Nigerian CAC lookup).
+func (c *Client) VerifyBusiness(ctx context.Context, country, registrationNumber, businessType string) (*BusinessVerificationResponse, error) {
+	provider, err := c.factory.GetProvider(country)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get provider for country %s: %w", country, err)
+	}
+
+	return provider.VerifyBusiness(ctx, registrationNumber, businessType)
+}

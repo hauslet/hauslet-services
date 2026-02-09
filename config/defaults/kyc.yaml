@@ -1,0 +1,22 @@
+kyc:
+  costs:
+    dojah:
+      NG: 0.15
+      GH: 0.50
+      KE: 0.50
+      ZA: 0.50
+      UG: 0.50
+      RW: 0.50
+      UK: 1.00
+      US: 1.00
+      default: 1.00
+    veriff:
+      US: 2.50
+      GB: 2.50
+      CA: 2.50
+      AU: 2.50
+      DE: 2.00
+      FR: 2.00
+      ES: 2.00
+      IT: 2.00
+      default: 3.00

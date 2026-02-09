@@ -330,7 +330,7 @@ type RentalDetail struct {
 	RentalRules []RuleGroup `json:"rental_rules,omitempty"`
 
 	// Showing availability windows for viewings
-	ShowingAvailability *[]ShowingAvailability `json:"showing_availability,omitempty"`
+	ShowingAvailability []ShowingAvailability `json:"showing_availability,omitempty"`
 }
 
 // SaleDetail represents property sale specific details
@@ -349,7 +349,7 @@ type SaleDetail struct {
 	SaleAvailabilityFrom *time.Time `json:"sale_availability_from,omitempty"`
 
 	// Showing availability windows for viewings
-	ShowingAvailability *[]ShowingAvailability `json:"showing_availability,omitempty"`
+	ShowingAvailability []ShowingAvailability `json:"showing_availability,omitempty"`
 }
 
 // ListingMedia represents media attached to a listing

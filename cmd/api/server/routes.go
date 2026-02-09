@@ -100,6 +100,17 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		container.VerificationWebhookHTTP.SetupRoutes(r)
 	}
 
+	// Setup verification REST endpoints with optional rate limiting in production
+	if cfg.App.Env == "production" {
+		r.Group(func(r chi.Router) {
+			container.VerificationHTTP.SetupRoutesWithRateLimiting(r, container.AuthSvc, container.RateLimiter)
+		})
+	} else {
+		r.Group(func(r chi.Router) {
+			container.VerificationHTTP.SetupRoutes(r, container.AuthSvc)
+		})
+	}
+
 	// Setup GraphQL routes
 	graph.SetupGraphQL(r,
 		container.AuthSvc,
@@ -121,7 +132,6 @@ func setupRoutes(r chi.Router, container *Container, cfg *config.GlobalConfig) {
 		container.InteractionTracker,
 		container.InteractionReader,
 		container.DiscoverySvc,
-		container.VerificationSvc,
 		container.MessagingSvc,
 		container.BusinessMW.Auth.WithTenantSlug,
 		container.FXClient,

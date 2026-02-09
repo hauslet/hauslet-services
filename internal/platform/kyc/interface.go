@@ -29,6 +29,11 @@ type KYCProvider interface {
 
 	// EstimateCost returns estimated cost for verification in this country
 	EstimateCost(country string) (float64, error)
+
+	// VerifyBusiness performs a business/KYB verification lookup.
+	// Currently supported by Dojah for Nigerian businesses (CAC lookup).
+	// Returns nil response if not supported by the provider.
+	VerifyBusiness(ctx context.Context, registrationNumber, businessType string) (*BusinessVerificationResponse, error)
 }
 
 // ProviderFactory creates and routes to appropriate KYC providers

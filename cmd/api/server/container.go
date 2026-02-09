@@ -178,6 +178,7 @@ type Container struct {
 	ReviewHTTP              *reviewhttp.AdminHandler
 	PaymentWebhookHTTP      *paymentshttp.WebhookHandler
 	VerificationWebhookHTTP *verificationhttp.WebhookHandler
+	VerificationHTTP        *verificationhttp.HTTPHandler
 
 	// Middleware
 	BusinessMW *businessmiddleware.Middleware
@@ -1137,6 +1138,9 @@ func (c *Container) initHTTPHandlers(ctx context.Context) error {
 		c.VerificationSvc,
 		c.Logger,
 	)
+
+	// Initialize verification REST handler
+	c.VerificationHTTP = verificationhttp.NewHTTPHandler(ctx, c.VerificationSvc, c.Logger)
 
 	return nil
 }

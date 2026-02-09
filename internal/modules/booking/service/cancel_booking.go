@@ -53,6 +53,21 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 				s.log.Error("failed to calculate host cancellation penalty", "error", err)
 			}
 		} else {
+			if penaltyResult.SuspensionDays > 0 {
+				windowDays := s.platformConfig.HostCancellation.WindowDays
+				if windowDays <= 0 {
+					windowDays = 30
+				}
+				if err := s.hostPenaltySvc.ApplySuspension(ctx, ownerID, penaltyResult.SuspensionDays,
+					fmt.Sprintf("Automatic suspension after %d cancellations in %d days", penaltyResult.CancellationCount, windowDays),
+				); err != nil {
+					if s.log != nil {
+						s.log.Error("failed to apply listing suspension", "error", err)
+					}
+					return nil, fmt.Errorf("failed to apply listing suspension: %w", err)
+				}
+			}
+
 			if penaltyResult.PenaltyAmount > 0 && s.financeHooks != nil {
 				if err := s.financeHooks.DeductPenalty(ctx, ownerID, penaltyResult.PenaltyAmount, booking.ID, booking.Currency); err != nil {
 					if errors.Is(err, financedomain.ErrInsufficientBalance) {
@@ -91,18 +106,6 @@ func (s *BookingServiceImpl) CancelBooking(ctx context.Context, bookingID uuid.U
 			}); err != nil {
 				if s.log != nil {
 					s.log.Error("failed to record host cancellation", "error", err)
-				}
-			}
-
-			if penaltyResult.SuspensionDays > 0 {
-				windowDays := s.platformConfig.HostCancellation.WindowDays
-				if windowDays <= 0 {
-					windowDays = 30
-				}
-				if err := s.hostPenaltySvc.ApplySuspension(ctx, ownerID, penaltyResult.SuspensionDays,
-					fmt.Sprintf("Automatic suspension after %d cancellations in %d days", penaltyResult.CancellationCount, windowDays),
-				); err != nil && s.log != nil {
-					s.log.Error("failed to apply listing suspension", "error", err)
 				}
 			}
 		}

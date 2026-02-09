@@ -587,7 +587,7 @@ func MapRentalDetailFromSchema(schemaDetail *schema.RentalDetail) *RentalDetail 
 				Timezone:  slot.Timezone,
 			}
 		}
-		detail.ShowingAvailability = &availability
+		detail.ShowingAvailability = availability
 	}
 
 	return detail
@@ -614,9 +614,9 @@ func MapRentalDetailToSchema(domainDetail *RentalDetail) *schema.RentalDetail {
 	detail.RentalRules = MapRuleGroupsToSchema(domainDetail.RentalRules)
 
 	// Map showing availability
-	if domainDetail.ShowingAvailability != nil && len(*domainDetail.ShowingAvailability) > 0 {
-		availability := make([]schema.ShowingAvailability, len(*domainDetail.ShowingAvailability))
-		for i, slot := range *domainDetail.ShowingAvailability {
+	if len(domainDetail.ShowingAvailability) > 0 {
+		availability := make([]schema.ShowingAvailability, len(domainDetail.ShowingAvailability))
+		for i, slot := range domainDetail.ShowingAvailability {
 			availability[i] = schema.ShowingAvailability{
 				DayOfWeek: slot.DayOfWeek,
 				StartTime: slot.StartTime,
@@ -659,7 +659,7 @@ func MapSaleDetailFromSchema(schemaDetail *schema.SaleDetail) *SaleDetail {
 				Timezone:  slot.Timezone,
 			}
 		}
-		detail.ShowingAvailability = &availability
+		detail.ShowingAvailability = availability
 	}
 
 	return detail
@@ -684,9 +684,9 @@ func MapSaleDetailToSchema(domainDetail *SaleDetail) *schema.SaleDetail {
 	}
 
 	// Map showing availability
-	if domainDetail.ShowingAvailability != nil && len(*domainDetail.ShowingAvailability) > 0 {
-		availability := make([]schema.ShowingAvailability, len(*domainDetail.ShowingAvailability))
-		for i, slot := range *domainDetail.ShowingAvailability {
+	if len(domainDetail.ShowingAvailability) > 0 {
+		availability := make([]schema.ShowingAvailability, len(domainDetail.ShowingAvailability))
+		for i, slot := range domainDetail.ShowingAvailability {
 			availability[i] = schema.ShowingAvailability{
 				DayOfWeek: slot.DayOfWeek,
 				StartTime: slot.StartTime,

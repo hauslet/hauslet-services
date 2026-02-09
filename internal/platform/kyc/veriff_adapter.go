@@ -276,6 +276,11 @@ func (v *VeriffAdapter) EstimateCost(country string) (float64, error) {
 	return v.getCostForCountry(country), nil
 }
 
+// VerifyBusiness is not supported by Veriff — returns nil
+func (v *VeriffAdapter) VerifyBusiness(ctx context.Context, registrationNumber, businessType string) (*BusinessVerificationResponse, error) {
+	return nil, fmt.Errorf("business verification not supported by Veriff provider")
+}
+
 // Helper: makeRequest handles HTTP requests to Veriff API
 func (v *VeriffAdapter) makeRequest(ctx context.Context, method, path string, body any) ([]byte, error) {
 	var reqBodyBytes []byte

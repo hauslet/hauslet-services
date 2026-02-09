@@ -214,7 +214,7 @@ func (a *CalendarHooksAdapter) GetShowingAvailability(ctx context.Context, listi
 
 	// Check rental details
 	if listing.RentalDetails != nil && listing.RentalDetails.ShowingAvailability != nil {
-		for _, slot := range *listing.RentalDetails.ShowingAvailability {
+		for _, slot := range listing.RentalDetails.ShowingAvailability {
 			availability = append(availability, calendarservice.ShowingAvailability{
 				DayOfWeek: slot.DayOfWeek,
 				StartTime: slot.StartTime,
@@ -226,7 +226,7 @@ func (a *CalendarHooksAdapter) GetShowingAvailability(ctx context.Context, listi
 
 	// Check sale details
 	if listing.SaleDetails != nil && listing.SaleDetails.ShowingAvailability != nil {
-		for _, slot := range *listing.SaleDetails.ShowingAvailability {
+		for _, slot := range listing.SaleDetails.ShowingAvailability {
 			availability = append(availability, calendarservice.ShowingAvailability{
 				DayOfWeek: slot.DayOfWeek,
 				StartTime: slot.StartTime,
@@ -359,7 +359,7 @@ func (a *CalendarHooksRepoAdapter) GetShowingAvailability(ctx context.Context, l
 
 	// Check rental details
 	if listing.RentalDetails != nil && listing.RentalDetails.ShowingAvailability != nil {
-		for _, slot := range *listing.RentalDetails.ShowingAvailability {
+		for _, slot := range listing.RentalDetails.ShowingAvailability {
 			availability = append(availability, calendarservice.ShowingAvailability{
 				DayOfWeek: slot.DayOfWeek,
 				StartTime: slot.StartTime,
@@ -371,7 +371,7 @@ func (a *CalendarHooksRepoAdapter) GetShowingAvailability(ctx context.Context, l
 
 	// Check sale details
 	if listing.SaleDetails != nil && listing.SaleDetails.ShowingAvailability != nil {
-		for _, slot := range *listing.SaleDetails.ShowingAvailability {
+		for _, slot := range listing.SaleDetails.ShowingAvailability {
 			availability = append(availability, calendarservice.ShowingAvailability{
 				DayOfWeek: slot.DayOfWeek,
 				StartTime: slot.StartTime,

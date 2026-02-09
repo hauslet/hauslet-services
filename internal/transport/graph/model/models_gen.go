@@ -5,10 +5,9 @@ package model
 import (
 	"bytes"
 	"fmt"
-	domain2 "hauslet/internal/modules/discovery/domain"
-	domain3 "hauslet/internal/modules/messaging/domain"
+	domain1 "hauslet/internal/modules/discovery/domain"
+	domain2 "hauslet/internal/modules/messaging/domain"
 	"hauslet/internal/modules/property/domain"
-	domain1 "hauslet/internal/modules/verification/domain"
 	"io"
 	"strconv"
 	"time"
@@ -88,12 +87,6 @@ type CreateListingPropertyInput struct {
 	FeaturesCommercial []*domain.AmenityGroup    `json:"featuresCommercial,omitempty"`
 }
 
-type CreateListingVerificationInput struct {
-	ListingID uuid.UUID                `json:"listingId"`
-	Tier      domain1.VerificationTier `json:"tier"`
-	Country   string                   `json:"country"`
-}
-
 type CustomFeeInput struct {
 	Name         string              `json:"name"`
 	Amount       float64             `json:"amount"`
@@ -125,7 +118,7 @@ type DiscoverySearchFilterInput struct {
 type FeedOptionsInput struct {
 	Location          *LocationFilterInput      `json:"location,omitempty"`
 	Limit             *int                      `json:"limit,omitempty"`
-	SectionsToInclude []domain2.FeedSectionType `json:"sectionsToInclude,omitempty"`
+	SectionsToInclude []domain1.FeedSectionType `json:"sectionsToInclude,omitempty"`
 }
 
 type GenerateListingDescriptionInput struct {
@@ -324,7 +317,7 @@ type SendMessageAttachmentInput struct {
 
 type SendMessageInput struct {
 	ConversationID uuid.UUID                     `json:"conversationId"`
-	Type           domain3.MessageType           `json:"type"`
+	Type           domain2.MessageType           `json:"type"`
 	Content        string                        `json:"content"`
 	Attachments    []*SendMessageAttachmentInput `json:"attachments,omitempty"`
 	Metadata       map[string]any                `json:"metadata,omitempty"`
@@ -365,12 +358,6 @@ type ShortletFilterInput struct {
 type StayLimitsInput struct {
 	MinNights int  `json:"minNights"`
 	MaxNights *int `json:"maxNights,omitempty"`
-}
-
-type SubmitListingVerificationInput struct {
-	SessionID     uuid.UUID `json:"sessionId"`
-	ProofDocument string    `json:"proofDocument"`
-	DocumentType  string    `json:"documentType"`
 }
 
 type Subscription struct {

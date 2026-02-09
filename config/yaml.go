@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 
@@ -16,6 +17,7 @@ type ServiceConfig struct {
 	Platform  PlatformYAMLConfig  `yaml:"platform"`
 	Promotion PromotionYAMLConfig `yaml:"promotion"`
 	RateLimit RateLimitYAMLConfig `yaml:"ratelimit"`
+	KYC       KYCYAMLConfig       `yaml:"kyc"`
 }
 
 // CalendarYAMLConfig defines calendar service settings
@@ -202,6 +204,17 @@ type LeadsRateLimitTier struct {
 	PerListingEmail int64 `yaml:"per_listing_email"`
 	PerListingIP    int64 `yaml:"per_listing_ip"`
 	PerUser         int64 `yaml:"per_user"`
+}
+
+// KYCYAMLConfig defines KYC/KYB verification cost and provider settings
+type KYCYAMLConfig struct {
+	Costs KYCCostConfig `yaml:"costs"`
+}
+
+// KYCCostConfig defines per-country verification cost estimates (in USD)
+type KYCCostConfig struct {
+	Dojah  map[string]float64 `yaml:"dojah"`  // Country code → cost
+	Veriff map[string]float64 `yaml:"veriff"` // Country code → cost
 }
 
 // LoadYAMLConfig loads service configuration from YAML files
@@ -462,9 +475,7 @@ func mergePromotionConfig(dst, src *PromotionYAMLConfig) {
 		if dst.ListingPromotions == nil {
 			dst.ListingPromotions = make(map[string]ListingPromotionConfig)
 		}
-		for k, v := range src.ListingPromotions {
-			dst.ListingPromotions[k] = v
-		}
+		maps.Copy(dst.ListingPromotions, src.ListingPromotions)
 	}
 
 	// Subscription Plans
@@ -472,9 +483,7 @@ func mergePromotionConfig(dst, src *PromotionYAMLConfig) {
 		if dst.SubscriptionPlans == nil {
 			dst.SubscriptionPlans = make(map[string]SubscriptionPlanConfig)
 		}
-		for k, v := range src.SubscriptionPlans {
-			dst.SubscriptionPlans[k] = v
-		}
+		maps.Copy(dst.SubscriptionPlans, src.SubscriptionPlans)
 	}
 
 	// Addons
@@ -482,9 +491,7 @@ func mergePromotionConfig(dst, src *PromotionYAMLConfig) {
 		if dst.Addons == nil {
 			dst.Addons = make(map[string]AddonConfig)
 		}
-		for k, v := range src.Addons {
-			dst.Addons[k] = v
-		}
+		maps.Copy(dst.Addons, src.Addons)
 	}
 
 	// Billing

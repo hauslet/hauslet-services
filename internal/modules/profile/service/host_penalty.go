@@ -218,6 +218,7 @@ func (s *HostPenaltyServiceImpl) ApplySuspension(ctx context.Context, hostID uui
 		IncludeDeleted: false,
 	}
 
+	var errs []error
 	page := propertyrepo.Pagination{Limit: 200, Offset: 0}
 	for {
 		result, err := s.listingRepo.ListListings(ctx, filter, page)
@@ -243,10 +244,15 @@ func (s *HostPenaltyServiceImpl) ApplySuspension(ctx context.Context, hostID uui
 				if s.log != nil {
 					s.log.Warn("failed to suspend listing", "listing_id", listing.ID, "error", err)
 				}
+				errs = append(errs, fmt.Errorf("listing %s: %w", listing.ID, err))
 			}
 		}
 
 		page.Offset += page.Limit
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
 	}
 
 	return nil

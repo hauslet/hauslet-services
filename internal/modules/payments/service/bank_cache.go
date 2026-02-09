@@ -20,37 +20,6 @@ func (s *PaymentServiceImpl) bankCacheEnabled() bool {
 	return s != nil && s.cache != nil
 }
 
-func bankListCacheKey(currency payment.Currency, country string) string {
-	cur := strings.ToLower(strings.TrimSpace(currency.String()))
-	if cur == "" {
-		cur = "unknown"
-	}
-	region := strings.ToLower(strings.TrimSpace(country))
-	if region == "" {
-		region = "all"
-	}
-	return fmt.Sprintf("payments:banks:%s:%s", cur, region)
-}
-
-func normalizeBankCode(code string) string {
-	return strings.ToLower(strings.TrimSpace(code))
-}
-
-func buildBankNameCache(banks []payment.Bank) bankNameCache {
-	names := make(bankNameCache, len(banks))
-	for _, bank := range banks {
-		if bank.IsDeleted || !bank.Active {
-			continue
-		}
-		code := normalizeBankCode(bank.Code)
-		if code == "" || bank.Name == "" {
-			continue
-		}
-		names[code] = bank.Name
-	}
-	return names
-}
-
 func (s *PaymentServiceImpl) getCachedBankNames(ctx context.Context, key string) (bankNameCache, bool) {
 	if !s.bankCacheEnabled() {
 		return nil, false
@@ -91,4 +60,35 @@ func (s *PaymentServiceImpl) setCachedBankNames(ctx context.Context, key string,
 	if err := s.cache.Set(ctx, key, bytes, bankListCacheTTL).Err(); err != nil && s.log != nil {
 		s.log.Warn("bank cache set failed", "key", key, "error", err)
 	}
+}
+
+func bankListCacheKey(currency payment.Currency, country string) string {
+	cur := strings.ToLower(strings.TrimSpace(currency.String()))
+	if cur == "" {
+		cur = "unknown"
+	}
+	region := strings.ToLower(strings.TrimSpace(country))
+	if region == "" {
+		region = "all"
+	}
+	return fmt.Sprintf("payments:banks:%s:%s", cur, region)
+}
+
+func normalizeBankCode(code string) string {
+	return strings.ToLower(strings.TrimSpace(code))
+}
+
+func buildBankNameCache(banks []payment.Bank) bankNameCache {
+	names := make(bankNameCache, len(banks))
+	for _, bank := range banks {
+		if bank.IsDeleted || !bank.Active {
+			continue
+		}
+		code := normalizeBankCode(bank.Code)
+		if code == "" || bank.Name == "" {
+			continue
+		}
+		names[code] = bank.Name
+	}
+	return names
 }
