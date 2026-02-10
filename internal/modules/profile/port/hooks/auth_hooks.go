@@ -50,6 +50,33 @@ func (a *AuthHooksAdapter) GetProfileAvatarURL(ctx context.Context, userID strin
 	return &url, nil
 }
 
+// GetProfileVerificationLevel returns the user's effective profile verification level.
+func (a *AuthHooksAdapter) GetProfileVerificationLevel(ctx context.Context, userID string) (string, error) {
+	profile, err := a.svc.GetProfileByUserID(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	if profile == nil {
+		return "", nil
+	}
+
+	level := strings.ToLower(strings.TrimSpace(profile.VerificationLevel))
+	if level != "" {
+		return level, nil
+	}
+
+	switch {
+	case profile.IDVerified && profile.PhoneVerified:
+		return "trusted", nil
+	case profile.IDVerified:
+		return "identity", nil
+	case profile.PhoneVerified:
+		return "basic", nil
+	default:
+		return "", nil
+	}
+}
+
 // keyToURL converts an object key to a CDN-backed URL.
 func (a *AuthHooksAdapter) keyToURL(key string) string {
 	if key == "" {

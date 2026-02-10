@@ -59,13 +59,20 @@ func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	showVerifiedBadge, err := h.authService.ShouldShowVerifiedBadge(r.Context(), userID)
+	if err != nil {
+		h.log.Warn("Failed to compute verified badge visibility", "user_id", userID, "error", err)
+		showVerifiedBadge = false
+	}
+
 	// Return user profile
 	response := domain.UserResponse{
-		ID:        user.ID.String(),
-		Email:     user.PrimaryEmail,
-		Name:      user.Name,
-		Role:      string(user.Role),
-		AvatarURL: user.AvatarURL,
+		ID:                user.ID.String(),
+		Email:             user.PrimaryEmail,
+		Name:              user.Name,
+		Role:              string(user.Role),
+		AvatarURL:         user.AvatarURL,
+		ShowVerifiedBadge: showVerifiedBadge,
 	}
 
 	h.sendSuccess(w, response, http.StatusOK)
@@ -154,13 +161,20 @@ func (h *HTTPHandler) UpdateCurrentUser(w http.ResponseWriter, r *http.Request) 
 
 	h.log.Info("User profile updated", "user_id", userID)
 
+	showVerifiedBadge, err := h.authService.ShouldShowVerifiedBadge(r.Context(), userID)
+	if err != nil {
+		h.log.Warn("Failed to compute verified badge visibility", "user_id", userID, "error", err)
+		showVerifiedBadge = false
+	}
+
 	// Return updated user
 	response := domain.UserResponse{
-		ID:        user.ID.String(),
-		Email:     user.PrimaryEmail,
-		Name:      user.Name,
-		Role:      string(user.Role),
-		AvatarURL: user.AvatarURL,
+		ID:                user.ID.String(),
+		Email:             user.PrimaryEmail,
+		Name:              user.Name,
+		Role:              string(user.Role),
+		AvatarURL:         user.AvatarURL,
+		ShowVerifiedBadge: showVerifiedBadge,
 	}
 
 	h.sendSuccess(w, response, http.StatusOK)

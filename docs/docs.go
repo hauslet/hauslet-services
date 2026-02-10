@@ -532,7 +532,27 @@ const docTemplate = `{
                 }
             }
         },
-        "/auth/login": {
+        "/auth/logout": {
+            "get": {
+                "description": "Logout and clear the session cookie/token.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/login": {
             "post": {
                 "description": "Authenticate using email/username and password.",
                 "consumes": [
@@ -585,26 +605,6 @@ const docTemplate = `{
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/logout": {
-            "get": {
-                "description": "Logout and clear the session cookie/token.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Logout",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
                         }
                     }
                 }
@@ -2560,6 +2560,9 @@ const docTemplate = `{
                 },
                 "role": {
                     "type": "string"
+                },
+                "show_verified_badge": {
+                    "type": "boolean"
                 }
             }
         },

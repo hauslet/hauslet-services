@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"hauslet/internal/modules/auth/domain"
 	"hauslet/internal/modules/auth/repository/schema"
@@ -37,6 +38,27 @@ func (s *AuthServiceImpl) GetUserByEmail(ctx context.Context, email string) (*do
 	user := domain.MapUserFromSchema(schemaUser)
 	s.enrichUserAvatar(ctx, user)
 	return user, nil
+}
+
+func (s *AuthServiceImpl) ShouldShowVerifiedBadge(ctx context.Context, userID string) (bool, error) {
+	if strings.TrimSpace(userID) == "" {
+		return false, errors.New("user id is required")
+	}
+	if s.profileHooks == nil {
+		return false, nil
+	}
+
+	level, err := s.profileHooks.GetProfileVerificationLevel(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "identity", "trusted":
+		return true, nil
+	default:
+		return false, nil
+	}
 }
 
 // SAFEGUARD: Cannot change role of root user
@@ -108,4 +130,5 @@ func (s *AuthServiceImpl) enrichUserAvatar(ctx context.Context, user *domain.Use
 	if avatar != nil {
 		user.AvatarURL = avatar
 	}
+	
 }

@@ -72,11 +72,12 @@ type ChangeRoleResponse struct {
 
 // UserResponse represents a user profile response
 type UserResponse struct {
-	ID        string  `json:"id"`
-	Email     string  `json:"email"`
-	Name      string  `json:"name"`
-	Role      string  `json:"role"`
-	AvatarURL *string `json:"avatar_url,omitempty"`
+	ID                string  `json:"id"`
+	Email             string  `json:"email"`
+	Name              string  `json:"name"`
+	Role              string  `json:"role"`
+	AvatarURL         *string `json:"avatar_url,omitempty"`
+	ShowVerifiedBadge bool    `json:"show_verified_badge"`
 }
 
 // UpdateUserRequest represents a user profile update request

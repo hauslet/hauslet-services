@@ -21,6 +21,7 @@ type AuthService interface {
 	// User management
 	GetUser(ctx context.Context, userID string) (*domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+	ShouldShowVerifiedBadge(ctx context.Context, userID string) (bool, error)
 	UpdateUser(ctx context.Context, user *domain.User) error
 	DeactivateUser(ctx context.Context, userID string) error
 	ListUsers(ctx context.Context, limit, offset int) ([]domain.User, error)
@@ -124,11 +125,11 @@ func NewAuthService(cfg *config.AuthConfig,
 	redisClient redis.RedisClient,
 	profileHooks ProfileHooks) AuthService {
 	return &AuthServiceImpl{
-		cfg:        cfg,
-		repository: repository,
-		log:        log,
-		notifier:   notifier,
-		redisClient: redisClient,
+		cfg:              cfg,
+		repository:       repository,
+		log:              log,
+		notifier:         notifier,
+		redisClient:      redisClient,
 		requestMetadata:  NewRequestMetadataStore(),
 		linkStateManager: NewLinkStateManager(cfg.EncryptAuthCodeKey, redisClient),
 		profileHooks:     profileHooks,
@@ -149,4 +150,6 @@ type ProfileHooks interface {
 	CreateDefaultProfile(ctx context.Context, userID, email, name string, birthDate *time.Time) error
 	// GetProfileAvatarURL returns the fully-qualified avatar URL for a user, if set
 	GetProfileAvatarURL(ctx context.Context, userID string) (*string, error)
+	// GetProfileVerificationLevel returns the user's effective profile verification level.
+	GetProfileVerificationLevel(ctx context.Context, userID string) (string, error)
 }
