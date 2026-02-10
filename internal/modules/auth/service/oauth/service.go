@@ -123,8 +123,11 @@ func NewService(deps Dependencies) *auth.Service {
 	claims := newClaimsEnricher(deps)
 
 	sameSite := http.SameSiteLaxMode
+	secureCookie := false
+
 	if deps.Config.CookieDomain == "" || deps.Config.Env == "development" {
 		sameSite = http.SameSiteNoneMode
+		secureCookie = true
 	}
 
 	options := auth.Opts{
@@ -142,6 +145,7 @@ func NewService(deps Dependencies) *auth.Service {
 		SendJWTHeader:     false,
 		DisableXSRF:       deps.Config.DisableXSRF,
 		SameSiteCookie:    sameSite,
+		SecureCookies:     secureCookie,
 		XSRFIgnoreMethods: []string{"GET"},
 		Validator:         NewValidator(deps.Repository, deps.Log),
 		JWTCookieDomain:   deps.Config.CookieDomain,
