@@ -1,5 +1,13 @@
 basePath: /
 definitions:
+  hauslet_internal_modules_auth_domain.AddPasswordRequest:
+    properties:
+      password:
+        minLength: 8
+        type: string
+    required:
+    - password
+    type: object
   hauslet_internal_modules_auth_domain.BackupCodesResult:
     properties:
       codes:
@@ -1990,6 +1998,46 @@ paths:
       security:
       - BearerAuth: []
       summary: Update current user profile
+      tags:
+      - user
+  /me/add-password:
+    post:
+      consumes:
+      - application/json
+      description: Allows an OAuth-only user to add password-based authentication
+      parameters:
+      - description: Password to set
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/hauslet_internal_modules_auth_domain.AddPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.UserIdentityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "409":
+          description: Password identity already exists
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add password to account
       tags:
       - user
   /me/identities:

@@ -49,6 +49,11 @@ type ErrorResponse struct {
 	Field   string `json:"field,omitempty"`
 }
 
+// AddPasswordRequest represents a request to add password authentication to an OAuth-only account
+type AddPasswordRequest struct {
+	Password string `json:"password" validate:"required,min=8"`
+}
+
 // ChangePasswordRequest represents a password change request
 type ChangePasswordRequest struct {
 	OldPassword string `json:"old_password" validate:"required"`

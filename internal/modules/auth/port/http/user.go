@@ -252,6 +252,72 @@ func (h *HTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	h.sendSuccess(w, response, http.StatusOK)
 }
 
+// AddPassword adds password authentication to an OAuth-only account
+// @Summary Add password to account
+// @Description Allows an OAuth-only user to add password-based authentication
+// @Tags user
+// @Accept json
+// @Produce json
+// @Param request body domain.AddPasswordRequest true "Password to set"
+// @Success 201 {object} domain.UserIdentityResponse
+// @Failure 400 {object} domain.ErrorResponse
+// @Failure 401 {object} domain.ErrorResponse
+// @Failure 409 {object} domain.ErrorResponse "Password identity already exists"
+// @Failure 500 {object} domain.ErrorResponse
+// @Router /me/add-password [post]
+// @Security BearerAuth
+func (h *HTTPHandler) AddPassword(w http.ResponseWriter, r *http.Request) {
+	userID := authmiddleware.GetUserID(r)
+	if userID == "" {
+		h.sendError(w, "Unauthorized", http.StatusUnauthorized, "")
+		return
+	}
+
+	userinfo, err := token.GetUserInfo(r)
+	if err != nil || userinfo.Email == "" {
+		h.log.Error("failed to get user email from claims", "user_id", userID)
+		h.sendError(w, "Unable to determine account email", http.StatusBadRequest, "")
+		return
+	}
+	email := userinfo.Email
+
+	var req domain.AddPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		if valErr, ok := err.(*domain.ValidationError); ok {
+			h.sendError(w, valErr.Message, http.StatusBadRequest, valErr.Field)
+			return
+		}
+		h.sendError(w, err.Error(), http.StatusBadRequest, "")
+		return
+	}
+
+	identity, err := h.authService.LinkPasswordIdentity(r.Context(), userID, email, req.Password)
+	if err != nil {
+		h.log.Error("Failed to add password for user", "user_id", userID, "error", err)
+
+		if err.Error() == "password identity already exists for this user" {
+			h.sendError(w, "Password authentication is already set up for this account", http.StatusConflict, "")
+			return
+		}
+		h.sendError(w, "Failed to add password", http.StatusInternalServerError, "")
+		return
+	}
+
+	h.log.Info("Password added for OAuth user", "user_id", userID)
+
+	h.sendSuccess(w, domain.UserIdentityResponse{
+		ID:            identity.ID.String(),
+		Provider:      identity.Provider,
+		Email:         identity.Email,
+		EmailVerified: identity.EmailVerified,
+	}, http.StatusCreated)
+}
+
 // GetUserIdentities lists all authentication methods for the current user
 // @Summary Get user identities
 // @Description List all authentication methods (OAuth providers and password) linked to the user

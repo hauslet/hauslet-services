@@ -69,6 +69,14 @@ func (r *UpdateUserRequest) Validate() error {
 	return nil
 }
 
+// Validate validates an add password request
+func (r *AddPasswordRequest) Validate() error {
+	if err := validatePassword(r.Password); err != nil {
+		return NewValidationError("password", err.Error())
+	}
+	return nil
+}
+
 // ValidateChangePassword validates a password change request
 func (r *ChangePasswordRequest) Validate() error {
 	if r.OldPassword == "" {

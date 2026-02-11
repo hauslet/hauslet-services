@@ -81,6 +81,7 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 		r.Get("/me", h.GetCurrentUser)
 		r.Put("/me", h.UpdateCurrentUser)
 		r.Post("/me/change-password", h.ChangePassword)
+		r.Post("/me/add-password", h.AddPassword)
 
 		// Identity management (OAuth providers, password)
 		r.Get("/me/identities", h.GetUserIdentities)
@@ -158,6 +159,10 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, limiter ratelimi
 		// Password change: Strict rate limiting (security-sensitive)
 		r.With(middleware.RateLimitIP(limiter, 5, time.Hour)).
 			Post("/me/change-password", h.ChangePassword)
+
+		// Add password: Strict rate limiting (security-sensitive, one-time action)
+		r.With(middleware.RateLimitIP(limiter, 3, time.Hour)).
+			Post("/me/add-password", h.AddPassword)
 
 		// Profile updates: Moderate rate limiting
 		r.With(middleware.RateLimitIP(limiter, 20, time.Minute)).

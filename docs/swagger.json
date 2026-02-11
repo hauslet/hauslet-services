@@ -1440,6 +1440,69 @@
                 }
             }
         },
+        "/me/add-password": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows an OAuth-only user to add password-based authentication",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "user"
+                ],
+                "summary": "Add password to account",
+                "parameters": [
+                    {
+                        "description": "Password to set",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.AddPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.UserIdentityResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Password identity already exists",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/me/identities": {
             "get": {
                 "security": [
@@ -2364,6 +2427,18 @@
         }
     },
     "definitions": {
+        "hauslet_internal_modules_auth_domain.AddPasswordRequest": {
+            "type": "object",
+            "required": [
+                "password"
+            ],
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                }
+            }
+        },
         "hauslet_internal_modules_auth_domain.BackupCodesResult": {
             "type": "object",
             "properties": {
