@@ -17,7 +17,7 @@ func CORSMiddleware(cfg *config.AppConfig) func(http.Handler) http.Handler {
 				allowed = append(allowed,
 					"https://dev-client.hauslet.com",
 					"https://hauslet-test-client.onrender.com",
-					"https://hauslet-client-admin-d0o5zwbj4-hauslet.vercel.app",
+					"https://hauslet-client-admin.vercel.app",
 				)
 			}
 			return allowed
