@@ -82,5 +82,7 @@ func main() {
 		infra.RateLimiter,
 		infra.CircuitBreaker,
 	)
+
+	// Handle server lifecycle
 	setup.HandleServerLifecycle(srv, log)
 }
