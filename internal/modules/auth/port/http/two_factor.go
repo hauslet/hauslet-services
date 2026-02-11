@@ -28,6 +28,7 @@ type Verify2FARequest struct {
 
 // Get2FAStatus returns the current 2FA status
 // @Summary Get 2FA status
+// @ID TwoFaStatusRetrieve
 // @Description Returns whether 2FA is enabled and which method
 // @Tags 2FA
 // @Security BearerAuth
@@ -53,6 +54,7 @@ func (h *HTTPHandler) Get2FAStatus(w http.ResponseWriter, r *http.Request) {
 
 // InitiateSetup2FA starts the 2FA setup process
 // @Summary Initiate 2FA setup
+// @ID TwoFaSetupCreate
 // @Description Starts 2FA setup with the selected method
 // @Tags 2FA
 // @Security BearerAuth
@@ -97,6 +99,7 @@ func (h *HTTPHandler) InitiateSetup2FA(w http.ResponseWriter, r *http.Request) {
 
 // CompleteSetup2FA completes 2FA setup by verifying the code
 // @Summary Complete 2FA setup
+// @ID TwoFaSetupCompleteCreate
 // @Description Verifies the code and enables 2FA
 // @Tags 2FA
 // @Security BearerAuth
@@ -135,6 +138,7 @@ func (h *HTTPHandler) CompleteSetup2FA(w http.ResponseWriter, r *http.Request) {
 
 // Send2FACode sends a 2FA verification code (for Email/SMS methods)
 // @Summary Send 2FA code
+// @ID TwoFaSendCodeCreate
 // @Description Sends a new verification code for Email/SMS 2FA
 // @Tags 2FA
 // @Security BearerAuth
@@ -159,6 +163,7 @@ func (h *HTTPHandler) Send2FACode(w http.ResponseWriter, r *http.Request) {
 
 // Verify2FACode verifies a 2FA code during login
 // @Summary Verify 2FA code
+// @ID TwoFaVerifyCodeCreate
 // @Description Verifies the 2FA code to complete login
 // @Tags 2FA
 // @Accept json
@@ -198,6 +203,7 @@ func (h *HTTPHandler) Verify2FACode(w http.ResponseWriter, r *http.Request) {
 
 // Disable2FA disables 2FA for the user
 // @Summary Disable 2FA
+// @ID TwoFaDisableCreate
 // @Description Disables 2FA after verifying current code
 // @Tags 2FA
 // @Security BearerAuth
@@ -235,6 +241,7 @@ func (h *HTTPHandler) Disable2FA(w http.ResponseWriter, r *http.Request) {
 
 // RegenerateBackupCodes generates new backup codes
 // @Summary Regenerate backup codes
+// @ID TwoFaBackupCodesCreate
 // @Description Generates new backup codes after verifying current 2FA code
 // @Tags 2FA
 // @Security BearerAuth
@@ -273,6 +280,7 @@ func (h *HTTPHandler) RegenerateBackupCodes(w http.ResponseWriter, r *http.Reque
 
 // Verify2FALogin completes 2FA verification during login
 // @Summary Complete 2FA login
+// @ID TwoFaVerifyCreate
 // @Description Verifies the 2FA code and issues a full JWT token
 // @Tags 2FA
 // @Accept json
@@ -345,6 +353,7 @@ func (h *HTTPHandler) Verify2FALogin(w http.ResponseWriter, r *http.Request) {
 
 // Resend2FACode resends the 2FA code for pending login (public endpoint)
 // @Summary Resend 2FA code
+// @ID TwoFaResendCreate
 // @Description Resends the verification code for pending 2FA login
 // @Tags 2FA
 // @Accept json

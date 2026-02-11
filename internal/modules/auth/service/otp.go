@@ -15,6 +15,10 @@ const (
 	PasswordlessOTPExpiration = 10 * time.Minute
 )
 
+func normalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
 // GenerateEmailOTP generates a 6-digit OTP code and stores it in Redis
 func (s *AuthServiceImpl) GenerateEmailOTP(ctx context.Context, email string) (string, error) {
 	// Generate a secure random 6-digit code
@@ -23,20 +27,23 @@ func (s *AuthServiceImpl) GenerateEmailOTP(ctx context.Context, email string) (s
 		return "", fmt.Errorf("failed to generate OTP: %w", err)
 	}
 
+	normalizedEmail := normalizeEmail(email)
+
 	// Store in Redis with 10-minute expiration
-	key := OTPKeyPrefix + email
+	key := OTPKeyPrefix + normalizedEmail
 	err = s.redisClient.Set(ctx, key, code, OTPExpiration).Err()
 	if err != nil {
 		return "", fmt.Errorf("failed to store OTP in Redis: %w", err)
 	}
 
-	s.log.Info("generated OTP", "email", email, "expires_in", OTPExpiration)
+	s.log.Info("generated OTP", "email", normalizedEmail, "expires_in", OTPExpiration)
 	return code, nil
 }
 
 // VerifyEmailOTP verifies the provided OTP code against the stored value
 func (s *AuthServiceImpl) VerifyEmailOTP(ctx context.Context, email, code string) error {
-	key := OTPKeyPrefix + email
+	normalizedEmail := normalizeEmail(email)
+	key := OTPKeyPrefix + normalizedEmail
 
 	// Get stored OTP from Redis
 	storedCode, err := s.redisClient.Get(ctx, key).Result()
@@ -50,19 +57,20 @@ func (s *AuthServiceImpl) VerifyEmailOTP(ctx context.Context, email, code string
 		return fmt.Errorf("invalid OTP code")
 	}
 
-	s.log.Info("OTP verified successfully", "email", email)
+	s.log.Info("OTP verified successfully", "email", normalizedEmail)
 	return nil
 }
 
 // DeleteEmailOTP removes the OTP from Redis after successful verification
 func (s *AuthServiceImpl) DeleteEmailOTP(ctx context.Context, email string) error {
-	key := OTPKeyPrefix + email
+	normalizedEmail := normalizeEmail(email)
+	key := OTPKeyPrefix + normalizedEmail
 	err := s.redisClient.Del(ctx, key).Err()
 	if err != nil {
 		return fmt.Errorf("failed to delete OTP from Redis: %w", err)
 	}
 
-	s.log.Info("deleted OTP", "email", email)
+	s.log.Info("deleted OTP", "email", normalizedEmail)
 	return nil
 }
 
@@ -140,8 +148,7 @@ func (s *AuthServiceImpl) GeneratePasswordlessOTP(ctx context.Context, email str
 		return "", fmt.Errorf("failed to generate passwordless OTP: %w", err)
 	}
 
-	// Normalize email to lowercase for consistent key lookup
-	normalizedEmail := strings.ToLower(strings.TrimSpace(email))
+	normalizedEmail := normalizeEmail(email)
 	key := PasswordlessOTPKeyPrefix + normalizedEmail
 	if err := s.redisClient.Set(ctx, key, code, PasswordlessOTPExpiration).Err(); err != nil {
 		return "", fmt.Errorf("failed to store passwordless OTP in Redis: %w", err)
@@ -153,8 +160,7 @@ func (s *AuthServiceImpl) GeneratePasswordlessOTP(ctx context.Context, email str
 
 // VerifyPasswordlessOTP verifies the provided OTP code for passwordless login.
 func (s *AuthServiceImpl) VerifyPasswordlessOTP(ctx context.Context, email, code string) error {
-	// Normalize email to lowercase for consistent key lookup
-	normalizedEmail := strings.ToLower(strings.TrimSpace(email))
+	normalizedEmail := normalizeEmail(email)
 	key := PasswordlessOTPKeyPrefix + normalizedEmail
 
 	storedCode, err := s.redisClient.Get(ctx, key).Result()
@@ -172,8 +178,7 @@ func (s *AuthServiceImpl) VerifyPasswordlessOTP(ctx context.Context, email, code
 
 // DeletePasswordlessOTP removes the passwordless OTP from Redis after successful verification.
 func (s *AuthServiceImpl) DeletePasswordlessOTP(ctx context.Context, email string) error {
-	// Normalize email to lowercase for consistent key lookup
-	normalizedEmail := strings.ToLower(strings.TrimSpace(email))
+	normalizedEmail := normalizeEmail(email)
 	key := PasswordlessOTPKeyPrefix + normalizedEmail
 	if err := s.redisClient.Del(ctx, key).Err(); err != nil {
 		return fmt.Errorf("failed to delete passwordless OTP: %w", err)

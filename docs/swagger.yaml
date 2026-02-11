@@ -888,6 +888,8 @@ definitions:
         type: string
       email:
         type: string
+      login_after_verify:
+        type: boolean
     type: object
   internal_modules_messaging_port_http.GenerateUploadURLRequest:
     properties:
@@ -1069,6 +1071,7 @@ paths:
       consumes:
       - application/json
       description: Generates new backup codes after verifying current 2FA code
+      operationId: TwoFaBackupCodesCreate
       parameters:
       - description: Current 2FA code
         in: body
@@ -1097,6 +1100,7 @@ paths:
       consumes:
       - application/json
       description: Disables 2FA after verifying current code
+      operationId: TwoFaDisableCreate
       parameters:
       - description: Current 2FA code
         in: body
@@ -1125,6 +1129,7 @@ paths:
   /2fa/send-code:
     post:
       description: Sends a new verification code for Email/SMS 2FA
+      operationId: TwoFaSendCodeCreate
       produces:
       - application/json
       responses:
@@ -1148,6 +1153,7 @@ paths:
       consumes:
       - application/json
       description: Starts 2FA setup with the selected method
+      operationId: TwoFaSetupCreate
       parameters:
       - description: Setup request
         in: body
@@ -1176,6 +1182,7 @@ paths:
       consumes:
       - application/json
       description: Verifies the code and enables 2FA
+      operationId: TwoFaSetupCompleteCreate
       parameters:
       - description: Verification code
         in: body
@@ -1202,6 +1209,7 @@ paths:
   /2fa/status:
     get:
       description: Returns whether 2FA is enabled and which method
+      operationId: TwoFaStatusRetrieve
       produces:
       - application/json
       responses:
@@ -1223,6 +1231,7 @@ paths:
       consumes:
       - application/json
       description: Verifies the 2FA code to complete login
+      operationId: TwoFaVerifyCodeCreate
       parameters:
       - description: Verification code
         in: body
@@ -1288,6 +1297,7 @@ paths:
       consumes:
       - application/json
       description: Resends the verification code for pending 2FA login
+      operationId: TwoFaResendCreate
       parameters:
       - description: Temp token
         in: body
@@ -1318,6 +1328,7 @@ paths:
       consumes:
       - application/json
       description: Verifies the 2FA code and issues a full JWT token
+      operationId: TwoFaVerifyCreate
       parameters:
       - description: Temp token and verification code
         in: body
@@ -1650,8 +1661,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
+            additionalProperties: true
             type: object
         "400":
           description: Bad Request

@@ -42,6 +42,7 @@ const docTemplate = `{
                     "2FA"
                 ],
                 "summary": "Regenerate backup codes",
+                "operationId": "TwoFaBackupCodesCreate",
                 "parameters": [
                     {
                         "description": "Current 2FA code",
@@ -87,6 +88,7 @@ const docTemplate = `{
                     "2FA"
                 ],
                 "summary": "Disable 2FA",
+                "operationId": "TwoFaDisableCreate",
                 "parameters": [
                     {
                         "description": "Current 2FA code",
@@ -132,6 +134,7 @@ const docTemplate = `{
                     "2FA"
                 ],
                 "summary": "Send 2FA code",
+                "operationId": "TwoFaSendCodeCreate",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -169,6 +172,7 @@ const docTemplate = `{
                     "2FA"
                 ],
                 "summary": "Initiate 2FA setup",
+                "operationId": "TwoFaSetupCreate",
                 "parameters": [
                     {
                         "description": "Setup request",
@@ -214,6 +218,7 @@ const docTemplate = `{
                     "2FA"
                 ],
                 "summary": "Complete 2FA setup",
+                "operationId": "TwoFaSetupCompleteCreate",
                 "parameters": [
                     {
                         "description": "Verification code",
@@ -256,6 +261,7 @@ const docTemplate = `{
                     "2FA"
                 ],
                 "summary": "Get 2FA status",
+                "operationId": "TwoFaStatusRetrieve",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -285,6 +291,7 @@ const docTemplate = `{
                     "2FA"
                 ],
                 "summary": "Verify 2FA code",
+                "operationId": "TwoFaVerifyCodeCreate",
                 "parameters": [
                     {
                         "description": "Verification code",
@@ -328,6 +335,7 @@ const docTemplate = `{
                     "2FA"
                 ],
                 "summary": "Resend 2FA code",
+                "operationId": "TwoFaResendCreate",
                 "parameters": [
                     {
                         "description": "Temp token",
@@ -374,6 +382,7 @@ const docTemplate = `{
                     "2FA"
                 ],
                 "summary": "Complete 2FA login",
+                "operationId": "TwoFaVerifyCreate",
                 "parameters": [
                     {
                         "description": "Temp token and verification code",
@@ -874,9 +883,7 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "additionalProperties": true
                         }
                     },
                     "400": {
@@ -3624,6 +3631,9 @@ const docTemplate = `{
                 },
                 "email": {
                     "type": "string"
+                },
+                "login_after_verify": {
+                    "type": "boolean"
                 }
             }
         },
