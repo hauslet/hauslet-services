@@ -65,7 +65,7 @@ func (h *HTTPHandler) Register(w http.ResponseWriter, r *http.Request) {
 		ID:      user.ID.String(),
 		Email:   user.PrimaryEmail,
 		Name:    user.Name,
-		Message: "Registration successful. Please verify your email to activate your account.",
+		Message: "Registered successfully. Check your email to verify.",
 	}
 
 	h.sendSuccess(w, response, http.StatusCreated)

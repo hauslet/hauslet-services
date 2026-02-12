@@ -91,4 +91,6 @@ terraform.rc
 debug
 __debug_bin
 
-CLAUDE.mdAGENTS.md
+CLAUDE.md
+AGENTS.md
+docs/INTERVIEW_PREP.md

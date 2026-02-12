@@ -125,7 +125,10 @@ func NewService(deps Dependencies) *auth.Service {
 	sameSite := http.SameSiteLaxMode
 	secureCookie := false
 
-	if deps.Config.CookieDomain == "" || deps.Config.Env == "development" {
+	if deps.Config.Env == "development" {
+		sameSite = http.SameSiteLaxMode
+		secureCookie = false
+	} else if deps.Config.CookieDomain == "" {
 		sameSite = http.SameSiteNoneMode
 		secureCookie = true
 	}
