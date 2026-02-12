@@ -15,6 +15,7 @@ func CORSMiddleware(cfg *config.AppConfig) func(http.Handler) http.Handler {
 			allowed := []string{cfg.Client}
 			if cfg.Env != "production" {
 				allowed = append(allowed,
+					"http://localhost:3000",
 					"https://dev-client.hauslet.com",
 					"https://hauslet-test-client.onrender.com",
 					"https://hauslet-client-admin.vercel.app",
