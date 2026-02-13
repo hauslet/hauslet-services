@@ -13,9 +13,14 @@ type ForgotPasswordRequest struct {
 	Email string `json:"email"`
 }
 
+// VerifyResetOTPRequest payload
+type VerifyResetOTPRequest struct {
+	Email string `json:"email"`
+	OTP   string `json:"otp"`
+}
+
 // ResetPasswordRequest payload
 type ResetPasswordRequest struct {
-	Email       string `json:"email"`
 	Token       string `json:"token"`
 	NewPassword string `json:"new_password"`
 }
@@ -54,9 +59,48 @@ func (h *HTTPHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	}, http.StatusOK)
 }
 
+// VerifyResetOTP handles OTP verification for password reset
+// @Summary Verify password reset OTP
+// @Description Validate the OTP sent via email and return a short-lived reset token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body VerifyResetOTPRequest true "OTP verification details"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} domain.ErrorResponse
+// @Router /auth/verify-reset-otp [post]
+func (h *HTTPHandler) VerifyResetOTP(w http.ResponseWriter, r *http.Request) {
+	var req VerifyResetOTPRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.log.Error("Failed to decode verify reset OTP request", "error", err)
+		h.sendError(w, "Invalid request body", http.StatusBadRequest, "")
+		return
+	}
+
+	if req.Email == "" {
+		h.sendError(w, "Email is required", http.StatusBadRequest, "email")
+		return
+	}
+	if req.OTP == "" {
+		h.sendError(w, "OTP is required", http.StatusBadRequest, "otp")
+		return
+	}
+
+	resetToken, err := h.authService.VerifyResetOTP(r.Context(), req.Email, req.OTP)
+	if err != nil {
+		h.log.Warn("Verify reset OTP failed", "email", req.Email, "error", err)
+		h.sendError(w, "Invalid or expired OTP", http.StatusBadRequest, "")
+		return
+	}
+
+	h.sendSuccess(w, map[string]string{
+		"token": resetToken,
+	}, http.StatusOK)
+}
+
 // ResetPassword handles completing the password reset
 // @Summary Reset password
-// @Description Reset user password using the token sent via email
+// @Description Reset user password using the signed token from OTP verification
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -73,10 +117,6 @@ func (h *HTTPHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Email == "" {
-		h.sendError(w, "Email is required", http.StatusBadRequest, "email")
-		return
-	}
 	if req.Token == "" {
 		h.sendError(w, "Token is required", http.StatusBadRequest, "token")
 		return
@@ -86,9 +126,9 @@ func (h *HTTPHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.authService.ResetPassword(r.Context(), req.Email, req.Token, req.NewPassword); err != nil {
-		h.log.Warn("Reset password failed", "email", req.Email, "error", err)
-		h.sendError(w, "Invalid token or request", http.StatusBadRequest, "")
+	if err := h.authService.ResetPassword(r.Context(), req.Token, req.NewPassword); err != nil {
+		h.log.Warn("Reset password failed", "error", err)
+		h.sendError(w, "Invalid or expired token", http.StatusBadRequest, "")
 		return
 	}
 

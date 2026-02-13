@@ -32,7 +32,8 @@ type AuthService interface {
 	UpdateIdentityVerified(ctx context.Context, email string) error
 	InitiateIdentityLinking(userID, provider, redirectURI string) (string, error)
 	RequestPasswordReset(ctx context.Context, email string) error
-	ResetPassword(ctx context.Context, email, token, newPassword string) error
+	VerifyResetOTP(ctx context.Context, email, otp string) (string, error)
+	ResetPassword(ctx context.Context, token, newPassword string) error
 
 	// Session management
 	GetUserSessions(ctx context.Context, userID string) ([]domain.Session, error)

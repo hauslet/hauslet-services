@@ -39,9 +39,10 @@ func NewHTTPHandler(ctx context.Context, authService service.AuthService, log *s
 func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	// Mount go-pkgz/auth's built-in authentication routes with metadata capture
 	// Provides:
-	//   - POST /auth/password/login              (password authentication with user+passwd fields)
+	//   - POST /auth/password/login     (password authentication with user+passwd fields)
 	//   - GET  /auth/google/login       (Google OAuth initiation)
 	//   - GET  /auth/google/callback    (Google OAuth callback)
+	//   - GET /auth/email/login         (Email Passwordless login)
 	//   - GET  /auth/logout             (logout and clear session)
 	authRoutes, avatarRoutes := h.authService.OAuthService().Handlers()
 
@@ -56,6 +57,7 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	// Custom registration endpoint (go-pkgz/auth doesn't provide registration)
 	r.Post("/auth/register", h.Register)
 	r.Post("/auth/forgot-password", h.ForgotPassword)
+	r.Post("/auth/verify-reset-otp", h.VerifyResetOTP)
 	r.Post("/auth/reset-password", h.ResetPassword)
 
 	// Email verification endpoints (public)
@@ -132,6 +134,9 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, limiter ratelimi
 
 	r.With(middleware.RateLimitIP(limiter, 5, 15*time.Minute)).
 		Post("/auth/forgot-password", h.ForgotPassword)
+
+	r.With(middleware.RateLimitIP(limiter, 5, 15*time.Minute)).
+		Post("/auth/verify-reset-otp", h.VerifyResetOTP)
 
 	r.With(middleware.RateLimitIP(limiter, 5, 15*time.Minute)).
 		Post("/auth/reset-password", h.ResetPassword)
