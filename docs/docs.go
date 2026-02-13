@@ -781,7 +781,7 @@ const docTemplate = `{
         },
         "/auth/reset-password": {
             "post": {
-                "description": "Reset user password using the token sent via email",
+                "description": "Reset user password using the signed token from OTP verification",
                 "consumes": [
                     "application/json"
                 ],
@@ -900,6 +900,49 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verify-reset-otp": {
+            "post": {
+                "description": "Validate the OTP sent via email and return a short-lived reset token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Verify password reset OTP",
+                "parameters": [
+                    {
+                        "description": "OTP verification details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_auth_port_http.VerifyResetOTPRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse"
                         }
@@ -3666,9 +3709,6 @@ const docTemplate = `{
         "internal_modules_auth_port_http.ResetPasswordRequest": {
             "type": "object",
             "properties": {
-                "email": {
-                    "type": "string"
-                },
                 "new_password": {
                     "type": "string"
                 },
@@ -3709,6 +3749,17 @@ const docTemplate = `{
                 },
                 "login_after_verify": {
                     "type": "boolean"
+                }
+            }
+        },
+        "internal_modules_auth_port_http.VerifyResetOTPRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "otp": {
+                    "type": "string"
                 }
             }
         },

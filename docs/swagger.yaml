@@ -869,8 +869,6 @@ definitions:
     type: object
   internal_modules_auth_port_http.ResetPasswordRequest:
     properties:
-      email:
-        type: string
       new_password:
         type: string
       token:
@@ -898,6 +896,13 @@ definitions:
         type: string
       login_after_verify:
         type: boolean
+    type: object
+  internal_modules_auth_port_http.VerifyResetOTPRequest:
+    properties:
+      email:
+        type: string
+      otp:
+        type: string
     type: object
   internal_modules_messaging_port_http.GenerateUploadURLRequest:
     properties:
@@ -1606,7 +1611,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Reset user password using the token sent via email
+      description: Reset user password using the signed token from OTP verification
       parameters:
       - description: Reset details
         in: body
@@ -1684,6 +1689,35 @@ paths:
           schema:
             $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
       summary: Verify email address
+      tags:
+      - auth
+  /auth/verify-reset-otp:
+    post:
+      consumes:
+      - application/json
+      description: Validate the OTP sent via email and return a short-lived reset
+        token
+      parameters:
+      - description: OTP verification details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/internal_modules_auth_port_http.VerifyResetOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/hauslet_internal_modules_auth_domain.ErrorResponse'
+      summary: Verify password reset OTP
       tags:
       - auth
   /avatar/{user_hash}:
