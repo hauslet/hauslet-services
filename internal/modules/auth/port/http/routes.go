@@ -46,8 +46,12 @@ func (h *HTTPHandler) SetupRoutes(r chi.Router) {
 	//   - GET  /auth/logout             (logout and clear session)
 	authRoutes, avatarRoutes := h.authService.OAuthService().Handlers()
 
-	// Wrap auth routes with metadata capture middleware
+	// Wrap auth routes with metadata capture and 2FA redirect interception.
+	// Intercept2FARedirect modifies the OAuth callback's 307 redirect to include
+	// 2FA query params (temp_token, method, email) so the client can show the
+	// OTP modal immediately without an extra /me round-trip.
 	r.Group(func(r chi.Router) {
+		r.Use(authmiddleware.Intercept2FARedirect)
 		r.Use(authmiddleware.CaptureAuthMetadata(h.authService))
 		r.Mount("/auth", authRoutes)
 	})
@@ -112,8 +116,9 @@ func (h *HTTPHandler) SetupRoutesWithRateLimiting(r chi.Router, limiter ratelimi
 	// Mount go-pkgz/auth's built-in routes with metadata capture
 	authRoutes, avatarRoutes := h.authService.OAuthService().Handlers()
 
-	// Wrap auth routes with metadata capture middleware
+	// Wrap auth routes with metadata capture and 2FA redirect interception
 	r.Group(func(r chi.Router) {
+		r.Use(authmiddleware.Intercept2FARedirect)
 		r.Use(authmiddleware.CaptureAuthMetadata(h.authService))
 		r.Mount("/auth", authRoutes)
 	})
