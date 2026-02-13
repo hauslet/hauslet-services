@@ -16,27 +16,10 @@ import (
 // @Produce json
 // @Success 200 {object} domain.UserResponse
 // @Failure 401 {object} domain.ErrorResponse
-// @Failure 403 {object} map[string]interface{} "2FA Required"
 // @Failure 500 {object} domain.ErrorResponse
 // @Router /me [get]
 // @Security BearerAuth
 func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
-	// Check for 2FA pending state which allows partial access (but blocks profile access)
-	if user, err := token.GetUserInfo(r); err == nil {
-		if user.StrAttr("login_state") == "2fa_pending" {
-			// Return 403 Forbidden with details needed for frontend to show 2FA input
-			response := map[string]any{
-				"requires_2fa": true,
-				"temp_token":   user.StrAttr("2fa_temp_token"),
-				"method":       user.StrAttr("2fa_method"),
-				"messsage":     "Two-factor authentication required",
-			}
-			h.log.Info("Blocking access to /me - 2FA required", "user_id", user.ID)
-			h.sendSuccess(w, response, http.StatusForbidden)
-			return
-		}
-	}
-
 	// Extract user from JWT claims (set by auth middleware)
 	userID := authmiddleware.GetUserID(r)
 	if userID == "" {
