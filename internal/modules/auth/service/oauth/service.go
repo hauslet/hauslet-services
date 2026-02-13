@@ -125,10 +125,10 @@ func NewService(deps Dependencies) *auth.Service {
 	sameSite := http.SameSiteLaxMode
 	secureCookie := false
 
-	if deps.Config.Env == "development" {
-		sameSite = http.SameSiteLaxMode
-		secureCookie = false
-	} else if deps.Config.CookieDomain == "" {
+	// In non-production environments, allow cross-site cookie usage so local
+	// frontends (e.g. localhost:3000) can talk to the remote dev/staging API.
+	// Production keeps Lax for tighter security.
+	if deps.Config.Env != "production" {
 		sameSite = http.SameSiteNoneMode
 		secureCookie = true
 	}
