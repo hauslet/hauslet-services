@@ -13,9 +13,7 @@ var (
 
 func Load() *GlobalConfig {
 	once.Do(func() {
-		if err := godotenv.Load(); err != nil {
-			panic("Failed to load ENV variables: " + err.Error())
-		}
+		_ = godotenv.Load()
 
 		// Load YAML service configurations
 		yamlCfg, err := LoadYAMLConfig()
