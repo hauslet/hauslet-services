@@ -67,6 +67,64 @@ var rateLimitScript = redis.NewScript(`
   return {1, current, limit - current, ttl}
 `)
 
+// Multi-key atomic check-and-increment.
+// KEYS[i]        = redis key for key i
+// ARGV[2i-1]     = limit for key i
+// ARGV[2i]       = window (seconds) for key i
+//
+// Returns on denied: {0, failed_index, c1, r1, t1, ..., ci, ri, ti}
+// Returns on allowed: {1, c1, r1, t1, ..., cn, rn, tn}
+var multiRateLimitScript = redis.NewScript(`
+  local n = #KEYS
+  local currents = {}
+
+  -- First pass: read all keys, fail fast without touching anything
+  for i = 1, n do
+    local limit  = tonumber(ARGV[(i-1)*2 + 1])
+    local window = tonumber(ARGV[(i-1)*2 + 2])
+    local val    = redis.call("GET", KEYS[i])
+    local current = val and tonumber(val) or 0
+    currents[i] = current
+
+    if current >= limit then
+      -- Build denied result with state for keys 1..i (nothing was modified)
+      local result = {0, i}
+      for j = 1, i - 1 do
+        local jlimit  = tonumber(ARGV[(j-1)*2 + 1])
+        local jwindow = tonumber(ARGV[(j-1)*2 + 2])
+        local jttl = redis.call("TTL", KEYS[j])
+        if jttl < 0 then jttl = jwindow end
+        result[#result+1] = currents[j]
+        result[#result+1] = jlimit - currents[j]
+        result[#result+1] = jttl
+      end
+      local ttl = redis.call("TTL", KEYS[i])
+      if ttl < 0 then ttl = window end
+      result[#result+1] = current
+      result[#result+1] = 0
+      result[#result+1] = ttl
+      return result
+    end
+  end
+
+  -- All passed: now increment everything
+  local result = {1}
+  for i = 1, n do
+    local limit  = tonumber(ARGV[(i-1)*2 + 1])
+    local window = tonumber(ARGV[(i-1)*2 + 2])
+    local current = redis.call("INCR", KEYS[i])
+    if current == 1 then
+      redis.call("EXPIRE", KEYS[i], window)
+    end
+    local ttl = redis.call("TTL", KEYS[i])
+    if ttl < 0 then ttl = window end
+    result[#result+1] = current
+    result[#result+1] = limit - current
+    result[#result+1] = ttl
+  end
+  return result
+`)
+
 //
 // =======================
 // READ-ONLY (BEST EFFORT)
@@ -157,22 +215,82 @@ func (rl *RedisLimiter) CheckAndIncrementMultiple(
 	ctx context.Context,
 	keys ...LimitKey,
 ) ([]*CheckResult, error) {
-
-	results := make([]*CheckResult, 0, len(keys))
-
-	for _, key := range keys {
-		res, err := rl.CheckAndIncrement(ctx, key)
-		if err != nil {
-			return results, err
-		}
-
-		results = append(results, res)
-
-		if !res.Allowed {
-			return results, nil
-		}
+	if len(keys) == 0 {
+		return nil, nil
 	}
 
+	redisKeys := make([]string, len(keys))
+	args := make([]any, len(keys)*2)
+	for i, key := range keys {
+		redisKeys[i] = key.RedisKey()
+		args[i*2] = key.Limit
+		args[i*2+1] = int64(key.Window.Seconds())
+	}
+
+	res, err := multiRateLimitScript.Run(ctx, rl.redis, redisKeys, args...).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	values, ok := res.([]any)
+	if !ok || len(values) < 1 {
+		return nil, fmt.Errorf("unexpected multi-key script result: %v", res)
+	}
+
+	if toInt64(values[0]) == 0 {
+		// Denied. values = {0, failed_index, c1, r1, t1, ..., ci, ri, ti}
+		if len(values) < 2 {
+			return nil, fmt.Errorf("truncated denied result: %v", res)
+		}
+		failedIdx := int(toInt64(values[1])) // 1-indexed
+		results := make([]*CheckResult, failedIdx)
+
+		for i := 0; i < failedIdx; i++ {
+			offset := 2 + i*3
+			if len(values) < offset+3 {
+				return nil, fmt.Errorf("truncated denied result at key %d: %v", i+1, res)
+			}
+			key := keys[i]
+			isAllowed := i < failedIdx-1
+			current := toInt64(values[offset])
+			remaining := max(toInt64(values[offset+1]), 0)
+			ttl := time.Duration(max(toInt64(values[offset+2]), 0)) * time.Second
+
+			var retryAt *time.Time
+			if !isAllowed && ttl > 0 {
+				t := time.Now().Add(ttl)
+				retryAt = &t
+			}
+
+			results[i] = &CheckResult{
+				Allowed:   isAllowed,
+				Key:       key,
+				Current:   current,
+				Limit:     key.Limit,
+				Remaining: remaining,
+				RetryAt:   retryAt,
+				Window:    key.Window,
+			}
+		}
+		return results, nil
+	}
+
+	// All allowed. values = {1, c1, r1, t1, ..., cn, rn, tn}
+	results := make([]*CheckResult, len(keys))
+	for i, key := range keys {
+		offset := 1 + i*3
+		if len(values) < offset+3 {
+			return nil, fmt.Errorf("truncated allowed result at key %d: %v", i+1, res)
+		}
+		results[i] = &CheckResult{
+			Allowed:   true,
+			Key:       key,
+			Current:   toInt64(values[offset]),
+			Limit:     key.Limit,
+			Remaining: max(toInt64(values[offset+1]), 0),
+			Window:    key.Window,
+		}
+	}
 	return results, nil
 }
 

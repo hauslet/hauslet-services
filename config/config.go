@@ -1,6 +1,3 @@
-// Package config loads application configuration from environment variables.
-// SECURITY: Never commit . env files or hardcode secrets in this file.
-// Use . env.example for documentation of required variables.
 package config
 
 import (
@@ -16,13 +13,15 @@ var (
 
 func Load() *GlobalConfig {
 	once.Do(func() {
-		_ = godotenv.Load()
+		if err := godotenv.Load(); err != nil {
+			panic("Failed to load ENV variables: " + err.Error())
+		}
 
 		// Load YAML service configurations
 		yamlCfg, err := LoadYAMLConfig()
 		if err != nil {
-			must := func() { panic("Failed to load YAML config: " + err.Error()) }
-			must()
+			panic("Failed to load YAML config: " + err.Error())
+
 		}
 
 		cfg = &GlobalConfig{
