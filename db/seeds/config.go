@@ -19,12 +19,13 @@ type SeedConfig struct {
 	AdminEmails []string
 
 	// Feature flags
-	SeedMedia      bool // Whether to generate media records
-	SeedReviews    bool // Whether to generate reviews
-	SeedBookings   bool // Whether to generate bookings
-	SeedFinance    bool // Whether to seed finance/wallets
-	SeedPastData   bool // Whether to include historical data
-	SeedFutureData bool // Whether to include future bookings
+	SeedMedia       bool   // Whether to generate media records
+	SeedReviews     bool   // Whether to generate reviews
+	SeedBookings    bool   // Whether to generate bookings
+	SeedFinance     bool   // Whether to seed finance/wallets
+	SeedPastData    bool   // Whether to include historical data
+	SeedFutureData  bool   // Whether to include future bookings
+	ListingOwnerIDs string // Optional CSV list of owner UUIDs to target for property/listing seeds
 
 	// Ratios and distributions
 	ShortletRatio float64 // Percentage of listings that are shortlets
@@ -50,12 +51,13 @@ func DefaultConfig() *SeedConfig {
 			"support@hauslet.com",
 		},
 
-		SeedMedia:      getEnvBool("SEED_MEDIA", true),
-		SeedReviews:    getEnvBool("SEED_REVIEWS", true),
-		SeedBookings:   getEnvBool("SEED_BOOKINGS", true),
-		SeedFinance:    getEnvBool("SEED_FINANCE", true),
-		SeedPastData:   getEnvBool("SEED_PAST_DATA", true),
-		SeedFutureData: getEnvBool("SEED_FUTURE_DATA", true),
+		SeedMedia:       getEnvBool("SEED_MEDIA", true),
+		SeedReviews:     getEnvBool("SEED_REVIEWS", true),
+		SeedBookings:    getEnvBool("SEED_BOOKINGS", true),
+		SeedFinance:     getEnvBool("SEED_FINANCE", true),
+		SeedPastData:    getEnvBool("SEED_PAST_DATA", true),
+		SeedFutureData:  getEnvBool("SEED_FUTURE_DATA", true),
+		ListingOwnerIDs: getEnv("SEED_LISTING_OWNER_IDS", ""),
 
 		ShortletRatio: 0.40, // 40% shortlets
 		RentRatio:     0.35, // 35% rentals
@@ -77,12 +79,13 @@ func TestConfig() *SeedConfig {
 
 		AdminEmails: []string{"admin@hauslet.com"},
 
-		SeedMedia:      false,
-		SeedReviews:    true,
-		SeedBookings:   true,
-		SeedFinance:    true,
-		SeedPastData:   false,
-		SeedFutureData: true,
+		SeedMedia:       false,
+		SeedReviews:     true,
+		SeedBookings:    true,
+		SeedFinance:     true,
+		SeedPastData:    false,
+		SeedFutureData:  true,
+		ListingOwnerIDs: getEnv("SEED_LISTING_OWNER_IDS", ""),
 
 		ShortletRatio: 0.50,
 		RentRatio:     0.30,

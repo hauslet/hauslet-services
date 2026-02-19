@@ -14,7 +14,9 @@ func BuildListingMediaURLs(media []domain.ListingMedia, cdnHost string) []domain
 	for i, m := range media {
 		out[i] = m
 		if host != "" {
-			if m.URL == "" && m.Key != "" {
+			if m.URL == "" && (strings.HasPrefix(m.Key, "http://") || strings.HasPrefix(m.Key, "https://")) {
+				out[i].URL = m.Key
+			} else if m.URL == "" && m.Key != "" {
 				out[i].URL = fmt.Sprintf("%s/%s", host, strings.TrimPrefix(m.Key, "/"))
 			} else if m.URL != "" && !strings.HasPrefix(m.URL, "http") {
 				out[i].URL = fmt.Sprintf("%s/%s", host, strings.TrimPrefix(m.URL, "/"))
@@ -23,7 +25,9 @@ func BuildListingMediaURLs(media []domain.ListingMedia, cdnHost string) []domain
 				thumbs := make(domain.ThumbnailMap, len(m.Thumbnails))
 				for name, t := range m.Thumbnails {
 					thumb := t
-					if t.URL == "" && t.Key != "" {
+					if t.URL == "" && (strings.HasPrefix(t.Key, "http://") || strings.HasPrefix(t.Key, "https://")) {
+						thumb.URL = t.Key
+					} else if t.URL == "" && t.Key != "" {
 						thumb.URL = fmt.Sprintf("%s/%s", host, strings.TrimPrefix(t.Key, "/"))
 					} else if t.URL != "" && !strings.HasPrefix(t.URL, "http") {
 						thumb.URL = fmt.Sprintf("%s/%s", host, strings.TrimPrefix(t.URL, "/"))

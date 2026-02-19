@@ -56,7 +56,8 @@ func sanitizePropertyForViewer(ctx context.Context, p *domain.Property, userID u
 	if p == nil {
 		return nil
 	}
-	// Hide address fields for non-owners while letting owners or their business members see full details.
+	// Hide exact address fields for non-owners while letting owners or their
+	// business members see full details.
 	if userID == p.OwnerID {
 		return p
 	}
@@ -67,8 +68,6 @@ func sanitizePropertyForViewer(ctx context.Context, p *domain.Property, userID u
 	clone := *p
 	clone.UnitNumber = ""
 	clone.Address = ""
-	clone.City = ""
-	clone.State = ""
 	clone.PostalCode = ""
 	return &clone
 }

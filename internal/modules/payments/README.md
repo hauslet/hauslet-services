@@ -61,6 +61,7 @@ Following your requirements:
 ## Features
 
 ### ✅ Payment Processing
+
 - Initialize new payments (checkout URL)
 - Charge saved payment methods (one-click)
 - Payment verification
@@ -68,12 +69,14 @@ Following your requirements:
 - Multi-currency support
 
 ### ✅ Refund Management
+
 - Full and partial refunds
 - Refund tracking
 - Automatic status updates
 - Email notifications
 
 ### ✅ Payment Methods
+
 - Save card details (authorization codes)
 - List saved methods
 - Set default payment method
@@ -81,6 +84,7 @@ Following your requirements:
 - Card details masking
 
 ### ✅ Payout Details
+
 - Add bank account details
 - Verify bank accounts with Paystack
 - Manage multiple accounts
@@ -88,6 +92,7 @@ Following your requirements:
 - Account validation
 
 ### ✅ Payout Processing
+
 - Transfer to bank accounts
 - Payout verification
 - Status tracking
@@ -96,18 +101,21 @@ Following your requirements:
 > **Note**: This module handles the *external movement* of funds (Payouts). Internal allocation to wallets (Settlement) is handled by the **Finance** module.
 
 ### ✅ Transaction Ledger
+
 - Complete transaction history
 - Payment/Refund/Payout tracking
 - Status monitoring
 - Error logging
 
 ### ✅ Notifications
+
 - Payment receipt emails
 - Refund confirmation emails
 - Payout notification emails
 - HTML email templates
 
 ### ✅ Integration
+
 - GraphQL API
 - Webhook handlers (Paystack)
 - Cross-module hooks
@@ -116,6 +124,7 @@ Following your requirements:
 ## Dependencies
 
 ### Platform Modules
+
 ```go
 import (
     "hauslet/internal/platform/payment"  // Payment provider abstraction
@@ -126,17 +135,20 @@ import (
 ```
 
 ### External Modules
+
 - None currently (designed for future booking/business integration)
 
 ## Database Schema
 
 ### Tables Created
+
 1. **payments** - Payment records
 2. **transactions** - Transaction ledger
 3. **payment_methods** - Saved payment methods
 4. **payout_details** - Bank account details
 
 ### Indexes
+
 - Payment reference (unique)
 - Payment status
 - User payment methods
@@ -401,6 +413,7 @@ r.Post("/webhooks/paystack", webhookHandler.HandlePaystackWebhook)
 ```
 
 ### Supported Events
+
 - `charge.success` - Payment succeeded
 - `transfer.success` - Payout succeeded
 - `transfer.failed` - Payout failed
@@ -463,16 +476,19 @@ if err != nil {
 ## Testing
 
 ### Repository Tests
+
 ```bash
 go test ./internal/modules/payments/repository/...
 ```
 
 ### Service Tests
+
 ```bash
 go test ./internal/modules/payments/service/...
 ```
 
 ### Integration Tests
+
 ```bash
 go test ./internal/modules/payments/... -tags=integration
 ```
@@ -494,11 +510,13 @@ db.AutoMigrate(
 ## Monitoring & Logging
 
 ### Log Levels
+
 - **INFO**: Normal operations (payment created, verified, etc.)
 - **WARN**: Non-critical issues (email send failed, etc.)
 - **ERROR**: Critical failures (database errors, provider failures)
 
 ### Example Logs
+
 ```
 INFO creating payment: amount=100000, currency=NGN, payer=uuid
 INFO payment created successfully: id=uuid, status=pending
@@ -508,6 +526,7 @@ ERROR payment processing failed for payment=PAY-12345: provider unavailable
 ## Next Steps
 
 ### Required for Production
+
 1. ✅ Implement database migrations
 2. ✅ Add comprehensive tests
 3. ✅ Configure Paystack credentials
@@ -517,6 +536,7 @@ ERROR payment processing failed for payment=PAY-12345: provider unavailable
 7. ⬜ Add payment analytics
 
 ### Future Enhancements
+
 - Subscription/recurring payments
 - Payment splitting (for co-hosts)
 - Dispute management

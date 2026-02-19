@@ -26,44 +26,46 @@ func main() {
 	case "test":
 		cfg := TestConfig()
 		seedConfig = &seeders.SeedConfig{
-			UserCount:      cfg.UserCount,
-			BusinessCount:  cfg.BusinessCount,
-			PropertyCount:  cfg.PropertyCount,
-			ListingCount:   cfg.ListingCount,
-			BookingCount:   cfg.BookingCount,
-			ReviewCount:    cfg.ReviewCount,
-			AdminEmails:    cfg.AdminEmails,
-			SeedMedia:      cfg.SeedMedia,
-			SeedReviews:    cfg.SeedReviews,
-			SeedBookings:   cfg.SeedBookings,
-			SeedFinance:    cfg.SeedFinance,
-			SeedPastData:   cfg.SeedPastData,
-			SeedFutureData: cfg.SeedFutureData,
-			ShortletRatio:  cfg.ShortletRatio,
-			RentRatio:      cfg.RentRatio,
-			SaleRatio:      cfg.SaleRatio,
-			DatabaseURL:    cfg.DatabaseURL,
+			UserCount:       cfg.UserCount,
+			BusinessCount:   cfg.BusinessCount,
+			PropertyCount:   cfg.PropertyCount,
+			ListingCount:    cfg.ListingCount,
+			BookingCount:    cfg.BookingCount,
+			ReviewCount:     cfg.ReviewCount,
+			AdminEmails:     cfg.AdminEmails,
+			SeedMedia:       cfg.SeedMedia,
+			SeedReviews:     cfg.SeedReviews,
+			SeedBookings:    cfg.SeedBookings,
+			SeedFinance:     cfg.SeedFinance,
+			SeedPastData:    cfg.SeedPastData,
+			SeedFutureData:  cfg.SeedFutureData,
+			ListingOwnerIDs: cfg.ListingOwnerIDs,
+			ShortletRatio:   cfg.ShortletRatio,
+			RentRatio:       cfg.RentRatio,
+			SaleRatio:       cfg.SaleRatio,
+			DatabaseURL:     cfg.DatabaseURL,
 		}
 	default:
 		cfg := DefaultConfig()
 		seedConfig = &seeders.SeedConfig{
-			UserCount:      cfg.UserCount,
-			BusinessCount:  cfg.BusinessCount,
-			PropertyCount:  cfg.PropertyCount,
-			ListingCount:   cfg.ListingCount,
-			BookingCount:   cfg.BookingCount,
-			ReviewCount:    cfg.ReviewCount,
-			AdminEmails:    cfg.AdminEmails,
-			SeedMedia:      cfg.SeedMedia,
-			SeedReviews:    cfg.SeedReviews,
-			SeedBookings:   cfg.SeedBookings,
-			SeedFinance:    cfg.SeedFinance,
-			SeedPastData:   cfg.SeedPastData,
-			SeedFutureData: cfg.SeedFutureData,
-			ShortletRatio:  cfg.ShortletRatio,
-			RentRatio:      cfg.RentRatio,
-			SaleRatio:      cfg.SaleRatio,
-			DatabaseURL:    cfg.DatabaseURL,
+			UserCount:       cfg.UserCount,
+			BusinessCount:   cfg.BusinessCount,
+			PropertyCount:   cfg.PropertyCount,
+			ListingCount:    cfg.ListingCount,
+			BookingCount:    cfg.BookingCount,
+			ReviewCount:     cfg.ReviewCount,
+			AdminEmails:     cfg.AdminEmails,
+			SeedMedia:       cfg.SeedMedia,
+			SeedReviews:     cfg.SeedReviews,
+			SeedBookings:    cfg.SeedBookings,
+			SeedFinance:     cfg.SeedFinance,
+			SeedPastData:    cfg.SeedPastData,
+			SeedFutureData:  cfg.SeedFutureData,
+			ListingOwnerIDs: cfg.ListingOwnerIDs,
+			ShortletRatio:   cfg.ShortletRatio,
+			RentRatio:       cfg.RentRatio,
+			SaleRatio:       cfg.SaleRatio,
+			DatabaseURL:     cfg.DatabaseURL,
 		}
 	}
 
@@ -259,5 +261,3 @@ func printSummary(db *gorm.DB) {
 		fmt.Printf("  - %s: %d\n", cp.name, count)
 	}
 }
-
-
