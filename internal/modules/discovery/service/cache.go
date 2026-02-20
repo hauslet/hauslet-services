@@ -4,7 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
+
+	"hauslet/internal/modules/discovery/domain"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -12,6 +16,7 @@ import (
 
 const (
 	shortletPreviewCacheTTL = 15 * time.Minute
+	homeFeedSectionCacheTTL = 2 * time.Minute
 )
 
 func (s *ServiceImpl) cacheEnabled() bool {
@@ -69,4 +74,48 @@ func shortletPreviewCacheKey(
 		nights,
 		startDate.Format("2006-01-02"),
 	)
+}
+
+func homeFeedSectionCacheKey(
+	sectionType domain.FeedSectionType,
+	options FeedOptions,
+	userID *uuid.UUID,
+) string {
+	userKey := "anon"
+	if userID != nil {
+		userKey = userID.String()
+	}
+
+	return fmt.Sprintf(
+		"discovery:home:section:v1:%s:limit:%d:city:%s:state:%s:loc:%s:user:%s",
+		sectionType.String(),
+		options.Limit,
+		normalizeCacheText(options.City),
+		normalizeCacheText(options.State),
+		locationCacheKey(options.Location),
+		userKey,
+	)
+}
+
+func normalizeCacheText(value *string) string {
+	if value == nil {
+		return "_"
+	}
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return "_"
+	}
+	return strings.ToLower(trimmed)
+}
+
+func locationCacheKey(location *LocationFilter) string {
+	if location == nil {
+		return "_"
+	}
+
+	return strings.Join([]string{
+		strconv.FormatFloat(location.Latitude, 'f', 6, 64),
+		strconv.FormatFloat(location.Longitude, 'f', 6, 64),
+		strconv.FormatFloat(location.RadiusKm, 'f', 3, 64),
+	}, ",")
 }

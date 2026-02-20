@@ -22,6 +22,7 @@ type ServiceImpl struct {
 	bookingHooks   BookingDiscoveryHooks
 	cache          platformredis.RedisClient
 	rankingConfig  domain.RankingConfig
+	homeFeedGroup  singleflight.Group
 	previewGroup   singleflight.Group
 	log            *slog.Logger
 }

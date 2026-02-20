@@ -28,7 +28,15 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 
 	// 1. Featured section
 	if shouldIncludeSection(options, domain.FeedSectionFeatured) {
-		featuredSection, err := s.buildFeaturedSection(ctx, options.Limit)
+		featuredSection, err := s.getOrBuildHomeFeedSection(
+			ctx,
+			userID,
+			options,
+			domain.FeedSectionFeatured,
+			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+				return s.buildFeaturedSection(innerCtx, options.Limit)
+			},
+		)
 		if err != nil {
 			s.log.Warn("failed to build featured section", "error", err)
 		} else if featuredSection != nil {
@@ -38,7 +46,15 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 
 	// 2. Premium section
 	if shouldIncludeSection(options, domain.FeedSectionPremium) {
-		premiumSection, err := s.buildPremiumSection(ctx, options.Limit)
+		premiumSection, err := s.getOrBuildHomeFeedSection(
+			ctx,
+			userID,
+			options,
+			domain.FeedSectionPremium,
+			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+				return s.buildPremiumSection(innerCtx, options.Limit)
+			},
+		)
 		if err != nil {
 			s.log.Warn("failed to build premium section", "error", err)
 		} else if premiumSection != nil {
@@ -48,7 +64,15 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 
 	// 3. Recent section
 	if shouldIncludeSection(options, domain.FeedSectionRecent) {
-		recentSection, err := s.buildRecentSection(ctx, options.Limit)
+		recentSection, err := s.getOrBuildHomeFeedSection(
+			ctx,
+			userID,
+			options,
+			domain.FeedSectionRecent,
+			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+				return s.buildRecentSection(innerCtx, options.Limit)
+			},
+		)
 		if err != nil {
 			s.log.Warn("failed to build recent section", "error", err)
 		} else if recentSection != nil {
@@ -58,7 +82,15 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 
 	// 4. Near you section
 	if shouldIncludeSection(options, domain.FeedSectionNearYou) {
-		nearYouSection, err := s.buildNearYouSection(ctx, options)
+		nearYouSection, err := s.getOrBuildHomeFeedSection(
+			ctx,
+			userID,
+			options,
+			domain.FeedSectionNearYou,
+			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+				return s.buildNearYouSection(innerCtx, options)
+			},
+		)
 		if err != nil {
 			s.log.Warn("failed to build near_you section", "error", err)
 		} else if nearYouSection != nil {
@@ -68,12 +100,20 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 
 	// 5. Rentals in <city>, <state>
 	if shouldIncludeSection(options, domain.FeedSectionRentalsArea) {
-		rentalsSection, err := s.buildListingTypeAreaSection(
+		rentalsSection, err := s.getOrBuildHomeFeedSection(
 			ctx,
+			userID,
 			options,
-			propertydomain.ListingRent,
 			domain.FeedSectionRentalsArea,
-			"Rentals",
+			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+				return s.buildListingTypeAreaSection(
+					innerCtx,
+					options,
+					propertydomain.ListingRent,
+					domain.FeedSectionRentalsArea,
+					"Rentals",
+				)
+			},
 		)
 		if err != nil {
 			s.log.Warn("failed to build rentals_in_area section", "error", err)
@@ -84,12 +124,20 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 
 	// 6. Shortlets in <city>, <state>
 	if shouldIncludeSection(options, domain.FeedSectionShortletsArea) {
-		shortletsSection, err := s.buildListingTypeAreaSection(
+		shortletsSection, err := s.getOrBuildHomeFeedSection(
 			ctx,
+			userID,
 			options,
-			propertydomain.ListingShortLet,
 			domain.FeedSectionShortletsArea,
-			"Shortlets",
+			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+				return s.buildListingTypeAreaSection(
+					innerCtx,
+					options,
+					propertydomain.ListingShortLet,
+					domain.FeedSectionShortletsArea,
+					"Shortlets",
+				)
+			},
 		)
 		if err != nil {
 			s.log.Warn("failed to build shortlets_in_area section", "error", err)
@@ -100,12 +148,20 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 
 	// 7. For Sale in <city>, <state>
 	if shouldIncludeSection(options, domain.FeedSectionForSaleArea) {
-		forSaleSection, err := s.buildListingTypeAreaSection(
+		forSaleSection, err := s.getOrBuildHomeFeedSection(
 			ctx,
+			userID,
 			options,
-			propertydomain.ListingSale,
 			domain.FeedSectionForSaleArea,
-			"For Sale",
+			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+				return s.buildListingTypeAreaSection(
+					innerCtx,
+					options,
+					propertydomain.ListingSale,
+					domain.FeedSectionForSaleArea,
+					"For Sale",
+				)
+			},
 		)
 		if err != nil {
 			s.log.Warn("failed to build for_sale_in_area section", "error", err)
@@ -120,6 +176,68 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 	}
 
 	return sections, nil
+}
+
+type homeFeedSectionCacheValue struct {
+	Found   bool                   `json:"found"`
+	Section domain.HomeFeedSection `json:"section,omitempty"`
+}
+
+func (s *ServiceImpl) getOrBuildHomeFeedSection(
+	ctx context.Context,
+	userID *uuid.UUID,
+	options FeedOptions,
+	sectionType domain.FeedSectionType,
+	build func(context.Context) (*domain.HomeFeedSection, error),
+) (*domain.HomeFeedSection, error) {
+	cacheKey := homeFeedSectionCacheKey(sectionType, options, userID)
+	var cached homeFeedSectionCacheValue
+	if ok, err := s.getCachedValue(ctx, cacheKey, &cached); err == nil && ok {
+		if !cached.Found {
+			return nil, nil
+		}
+		section := cached.Section
+		return &section, nil
+	} else if err != nil && s.log != nil {
+		s.log.Warn("home feed section cache read failed", "section", sectionType, "error", err)
+	}
+
+	computed, err, _ := s.homeFeedGroup.Do(cacheKey, func() (any, error) {
+		var innerCached homeFeedSectionCacheValue
+		if ok, err := s.getCachedValue(ctx, cacheKey, &innerCached); err == nil && ok {
+			return innerCached, nil
+		} else if err != nil && s.log != nil {
+			s.log.Warn("home feed section cache read failed", "section", sectionType, "error", err)
+		}
+
+		section, err := build(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		payload := homeFeedSectionCacheValue{Found: section != nil}
+		if section != nil {
+			payload.Section = *section
+		}
+
+		s.setCachedValue(ctx, cacheKey, homeFeedSectionCacheTTL, payload)
+		return payload, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	payload, ok := computed.(homeFeedSectionCacheValue)
+	if !ok {
+		return nil, fmt.Errorf("unexpected home feed section cache value type %T", computed)
+	}
+
+	if !payload.Found {
+		return nil, nil
+	}
+
+	section := payload.Section
+	return &section, nil
 }
 
 // buildFeaturedSection builds the featured listings section.
