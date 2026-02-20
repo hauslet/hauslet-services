@@ -3,6 +3,7 @@ package graphql
 import (
 	"context"
 	"log/slog"
+	"strings"
 
 	"hauslet/internal/modules/discovery/domain"
 	"hauslet/internal/modules/discovery/service"
@@ -208,6 +209,8 @@ func mapToFeedOptions(input *graphmodel.FeedOptionsInput) service.FeedOptions {
 				RadiusKm:  input.Location.RadiusKm,
 			}
 		}
+		options.City = sanitizeOptionalString(input.City)
+		options.State = sanitizeOptionalString(input.State)
 		if input.Limit != nil {
 			options.Limit = *input.Limit
 		}
@@ -217,6 +220,17 @@ func mapToFeedOptions(input *graphmodel.FeedOptionsInput) service.FeedOptions {
 	}
 
 	return options
+}
+
+func sanitizeOptionalString(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 // getFloatOrDefault returns the float value if not nil, otherwise returns the default

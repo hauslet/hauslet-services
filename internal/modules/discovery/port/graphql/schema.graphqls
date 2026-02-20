@@ -33,6 +33,7 @@ type HomeFeedSection {
   title: String!
   listings: [RankedListing!]!
   totalCount: Int!
+  searchData: Map
 }
 
 type SearchResult {
@@ -52,6 +53,9 @@ enum FeedSectionType {
   recent
   recommended
   near_you
+  rentals_in_area
+  shortlets_in_area
+  for_sale_in_area
 }
 
 # ===========================
@@ -109,6 +113,8 @@ input RankingConfigInput {
 
 input FeedOptionsInput {
   location: LocationFilterInput
+  city: String
+  state: String
   limit: Int
   sectionsToInclude: [FeedSectionType!]
 }

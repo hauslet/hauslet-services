@@ -82,6 +82,8 @@ type SearchOptions struct {
 // FeedOptions controls home feed composition
 type FeedOptions struct {
 	Location          *LocationFilter          // Location for "near you" section
+	City              *string                  // Optional city context for location-aware home sections
+	State             *string                  // Optional state context for location-aware home sections
 	Limit             int                      // Default limit per section
 	SectionsToInclude []domain.FeedSectionType // Specific sections to include (empty = all)
 }

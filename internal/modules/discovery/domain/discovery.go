@@ -30,6 +30,7 @@ type HomeFeedSection struct {
 	Title       string          // Display title for the section
 	Listings    []RankedListing // Listings in this section
 	TotalCount  int             // Total count of listings in this section
+	SearchData  map[string]any  // Discover payload to replicate section listing data
 }
 
 // SearchHistory tracks user search queries for analytics and personalization
@@ -45,14 +46,14 @@ type SearchHistory struct {
 
 // UserPreferences stores user preferences for personalization (future)
 type UserPreferences struct {
-	ID                 uuid.UUID    // Preferences ID
-	UserID             uuid.UUID    // User ID
-	PreferredLocations []string     // Preferred cities/areas
-	PreferredTypes     []string     // Preferred property types
-	PriceRange         *PriceRange  // Preferred price range
-	BedroomRange       *IntRange    // Preferred bedroom count range
+	ID                 uuid.UUID     // Preferences ID
+	UserID             uuid.UUID     // User ID
+	PreferredLocations []string      // Preferred cities/areas
+	PreferredTypes     []string      // Preferred property types
+	PriceRange         *PriceRange   // Preferred price range
+	BedroomRange       *IntRange     // Preferred bedroom count range
 	SavedFilters       []SavedFilter // Saved search filters
-	UpdatedAt          time.Time    // Last update time
+	UpdatedAt          time.Time     // Last update time
 }
 
 // PriceRange represents a price range preference

@@ -515,6 +515,7 @@ type ComplexityRoot struct {
 
 	HomeFeedSection struct {
 		Listings    func(childComplexity int) int
+		SearchData  func(childComplexity int) int
 		SectionType func(childComplexity int) int
 		Title       func(childComplexity int) int
 		TotalCount  func(childComplexity int) int
@@ -3852,6 +3853,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.HomeFeedSection.Listings(childComplexity), true
+	case "HomeFeedSection.searchData":
+		if e.complexity.HomeFeedSection.SearchData == nil {
+			break
+		}
+
+		return e.complexity.HomeFeedSection.SearchData(childComplexity), true
 	case "HomeFeedSection.sectionType":
 		if e.complexity.HomeFeedSection.SectionType == nil {
 			break
@@ -13854,6 +13861,7 @@ type HomeFeedSection {
   title: String!
   listings: [RankedListing!]!
   totalCount: Int!
+  searchData: Map
 }
 
 type SearchResult {
@@ -13873,6 +13881,9 @@ enum FeedSectionType {
   recent
   recommended
   near_you
+  rentals_in_area
+  shortlets_in_area
+  for_sale_in_area
 }
 
 # ===========================
@@ -13930,6 +13941,8 @@ input RankingConfigInput {
 
 input FeedOptionsInput {
   location: LocationFilterInput
+  city: String
+  state: String
   limit: Int
   sectionsToInclude: [FeedSectionType!]
 }
@@ -26012,6 +26025,35 @@ func (ec *executionContext) fieldContext_HomeFeedSection_totalCount(_ context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _HomeFeedSection_searchData(ctx context.Context, field graphql.CollectedField, obj *domain14.HomeFeedSection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_HomeFeedSection_searchData,
+		func(ctx context.Context) (any, error) {
+			return obj.SearchData, nil
+		},
+		nil,
+		ec.marshalOMap2map,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_HomeFeedSection_searchData(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "HomeFeedSection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Map does not have child fields")
 		},
 	}
 	return fc, nil
@@ -52439,6 +52481,8 @@ func (ec *executionContext) fieldContext_Query_homeFeed(ctx context.Context, fie
 				return ec.fieldContext_HomeFeedSection_listings(ctx, field)
 			case "totalCount":
 				return ec.fieldContext_HomeFeedSection_totalCount(ctx, field)
+			case "searchData":
+				return ec.fieldContext_HomeFeedSection_searchData(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type HomeFeedSection", field.Name)
 		},
@@ -63836,7 +63880,7 @@ func (ec *executionContext) unmarshalInputFeedOptionsInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"location", "limit", "sectionsToInclude"}
+	fieldsInOrder := [...]string{"location", "city", "state", "limit", "sectionsToInclude"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -63850,6 +63894,20 @@ func (ec *executionContext) unmarshalInputFeedOptionsInput(ctx context.Context, 
 				return it, err
 			}
 			it.Location = data
+		case "city":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("city"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.City = data
+		case "state":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.State = data
 		case "limit":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
 			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
@@ -70310,6 +70368,8 @@ func (ec *executionContext) _HomeFeedSection(ctx context.Context, sel ast.Select
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "searchData":
+			out.Values[i] = ec._HomeFeedSection_searchData(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

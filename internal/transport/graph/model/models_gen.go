@@ -125,6 +125,8 @@ type DiscoverySearchFilterInput struct {
 
 type FeedOptionsInput struct {
 	Location          *LocationFilterInput      `json:"location,omitempty"`
+	City              *string                   `json:"city,omitempty"`
+	State             *string                   `json:"state,omitempty"`
 	Limit             *int                      `json:"limit,omitempty"`
 	SectionsToInclude []domain1.FeedSectionType `json:"sectionsToInclude,omitempty"`
 }
