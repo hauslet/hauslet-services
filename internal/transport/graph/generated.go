@@ -1258,6 +1258,7 @@ type ComplexityRoot struct {
 	}
 
 	RankedListing struct {
+		Data           func(childComplexity int) int
 		Listing        func(childComplexity int) int
 		PromotionBoost func(childComplexity int) int
 		Ranking        func(childComplexity int) int
@@ -8551,6 +8552,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Query.WishlistItems(childComplexity, args["wishlistId"].(uuid.UUID), args["limit"].(*int), args["offset"].(*int)), true
 
+	case "RankedListing.data":
+		if e.complexity.RankedListing.Data == nil {
+			break
+		}
+
+		return e.complexity.RankedListing.Data(childComplexity), true
 	case "RankedListing.listing":
 		if e.complexity.RankedListing.Listing == nil {
 			break
@@ -13837,6 +13844,7 @@ type RankedListing {
   score: RankingScore!
   ranking: Int!
   promotionBoost: PromotionBoostInfo
+  data: Map
 }
 
 type RankingScore {
@@ -25994,6 +26002,8 @@ func (ec *executionContext) fieldContext_HomeFeedSection_listings(_ context.Cont
 				return ec.fieldContext_RankedListing_ranking(ctx, field)
 			case "promotionBoost":
 				return ec.fieldContext_RankedListing_promotionBoost(ctx, field)
+			case "data":
+				return ec.fieldContext_RankedListing_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type RankedListing", field.Name)
 		},
@@ -52534,6 +52544,8 @@ func (ec *executionContext) fieldContext_Query_featuredListings(ctx context.Cont
 				return ec.fieldContext_RankedListing_ranking(ctx, field)
 			case "promotionBoost":
 				return ec.fieldContext_RankedListing_promotionBoost(ctx, field)
+			case "data":
+				return ec.fieldContext_RankedListing_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type RankedListing", field.Name)
 		},
@@ -52585,6 +52597,8 @@ func (ec *executionContext) fieldContext_Query_discoverSimilar(ctx context.Conte
 				return ec.fieldContext_RankedListing_ranking(ctx, field)
 			case "promotionBoost":
 				return ec.fieldContext_RankedListing_promotionBoost(ctx, field)
+			case "data":
+				return ec.fieldContext_RankedListing_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type RankedListing", field.Name)
 		},
@@ -52914,6 +52928,35 @@ func (ec *executionContext) fieldContext_RankedListing_promotionBoost(_ context.
 				return ec.fieldContext_PromotionBoostInfo_expiresAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type PromotionBoostInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RankedListing_data(ctx context.Context, field graphql.CollectedField, obj *domain14.RankedListing) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RankedListing_data,
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		ec.marshalOMap2map,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RankedListing_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RankedListing",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Map does not have child fields")
 		},
 	}
 	return fc, nil
@@ -56114,6 +56157,8 @@ func (ec *executionContext) fieldContext_SearchResult_listings(_ context.Context
 				return ec.fieldContext_RankedListing_ranking(ctx, field)
 			case "promotionBoost":
 				return ec.fieldContext_RankedListing_promotionBoost(ctx, field)
+			case "data":
+				return ec.fieldContext_RankedListing_data(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type RankedListing", field.Name)
 		},
@@ -77864,6 +77909,8 @@ func (ec *executionContext) _RankedListing(ctx context.Context, sel ast.Selectio
 			}
 		case "promotionBoost":
 			out.Values[i] = ec._RankedListing_promotionBoost(ctx, field, obj)
+		case "data":
+			out.Values[i] = ec._RankedListing_data(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

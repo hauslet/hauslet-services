@@ -129,10 +129,25 @@ type CalendarDiscoveryHooks interface {
 	GetUnavailableListingIDs(ctx context.Context, startTime, endTime time.Time) ([]uuid.UUID, error)
 }
 
+// BookingDiscoveryHooks defines quote capabilities discovery needs for shortlet previews.
+type BookingDiscoveryHooks interface {
+	// QuoteBooking returns booking availability and pricing for a proposed stay.
+	QuoteBooking(ctx context.Context, listingID uuid.UUID, checkIn, checkOut time.Time, guestCount int) (*ShortletQuote, error)
+}
+
 // PromotionInfo contains promotion details needed for ranking
 type PromotionInfo struct {
 	PromotionID     uuid.UUID
 	PromotionType   string  // "featured" or "premium"
 	BoostMultiplier float64 // Boost multiplier (10.0 for featured, 3.0 for premium)
 	ExpiresAt       time.Time
+}
+
+// ShortletQuote carries booking quote data needed for discovery preview payloads.
+type ShortletQuote struct {
+	Available  bool
+	CheckIn    time.Time
+	CheckOut   time.Time
+	TotalPrice float64
+	Currency   string
 }

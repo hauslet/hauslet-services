@@ -7,8 +7,10 @@ import (
 
 	"hauslet/internal/modules/discovery/domain"
 	"hauslet/internal/modules/discovery/repository"
+	platformredis "hauslet/internal/platform/redis"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/singleflight"
 )
 
 // ServiceImpl implements the DiscoveryService interface
@@ -17,7 +19,10 @@ type ServiceImpl struct {
 	propertyHooks  PropertyDiscoveryHooks
 	promotionHooks PromotionDiscoveryHooks
 	calendarHooks  CalendarDiscoveryHooks
+	bookingHooks   BookingDiscoveryHooks
+	cache          platformredis.RedisClient
 	rankingConfig  domain.RankingConfig
+	previewGroup   singleflight.Group
 	log            *slog.Logger
 }
 
@@ -27,6 +32,7 @@ func NewDiscoveryService(
 	propertyHooks PropertyDiscoveryHooks,
 	promotionHooks PromotionDiscoveryHooks,
 	calendarHooks CalendarDiscoveryHooks,
+	cache platformredis.RedisClient,
 	log *slog.Logger,
 ) *ServiceImpl {
 	return &ServiceImpl{
@@ -34,9 +40,16 @@ func NewDiscoveryService(
 		propertyHooks:  propertyHooks,
 		promotionHooks: promotionHooks,
 		calendarHooks:  calendarHooks,
+		bookingHooks:   nil,
+		cache:          cache,
 		rankingConfig:  domain.DefaultRankingConfig(),
 		log:            log,
 	}
+}
+
+// SetBookingHooks attaches optional booking hooks used for shortlet preview enrichment.
+func (s *ServiceImpl) SetBookingHooks(bookingHooks BookingDiscoveryHooks) {
+	s.bookingHooks = bookingHooks
 }
 
 // SearchListings performs semantic search with promotion-aware ranking

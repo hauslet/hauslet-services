@@ -603,6 +603,7 @@ func (c *Container) initDiscovery() error {
 		propertyHooks,
 		promotionHooks,
 		calendarHooks,
+		*c.Redis,
 		c.Logger,
 	)
 
@@ -817,6 +818,10 @@ func (c *Container) initBooking() error {
 		c.FXClient,
 		c.SupplyGate,
 	)
+
+	if discoveryImpl, ok := c.DiscoverySvc.(*discoveryservice.ServiceImpl); ok {
+		discoveryImpl.SetBookingHooks(discoveryhooks.NewBookingDiscoveryAdapter(c.BookingSvc))
+	}
 
 	return nil
 }

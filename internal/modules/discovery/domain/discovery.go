@@ -14,6 +14,7 @@ type RankedListing struct {
 	Score          RankingScore           // Detailed scoring breakdown
 	Ranking        int                    // Position in results (1-indexed)
 	PromotionBoost *PromotionBoostInfo    // Promotion details if promoted
+	Data           map[string]any         // Optional payload for section-specific listing metadata
 }
 
 // PromotionBoostInfo provides details about the promotion affecting this listing

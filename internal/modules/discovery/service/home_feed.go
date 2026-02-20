@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"hauslet/internal/modules/discovery/domain"
 	propertydomain "hauslet/internal/modules/property/domain"
@@ -12,6 +13,13 @@ import (
 )
 
 const defaultHomeSectionLimit = 10
+
+const (
+	defaultShortletPreviewGuests    = 2
+	defaultShortletPreviewNights    = 2
+	shortletPreviewLookAheadDays    = 45
+	shortletPreviewPayloadFieldName = "shortletPreview"
+)
 
 // GetHomeFeed returns a curated home feed with multiple sections.
 func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, options FeedOptions) ([]domain.HomeFeedSection, error) {
@@ -139,6 +147,7 @@ func (s *ServiceImpl) buildFeaturedSection(ctx context.Context, limit int) (*dom
 	}
 
 	rankedListings := s.rankListings(convertToScoredListings(listings, 1.0), promotions, s.rankingConfig, nil)
+	s.enrichShortletPreviewData(ctx, rankedListings)
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionFeatured,
@@ -173,6 +182,7 @@ func (s *ServiceImpl) buildPremiumSection(ctx context.Context, limit int) (*doma
 	}
 
 	rankedListings := s.rankListings(convertToScoredListings(listings, 1.0), promotions, s.rankingConfig, nil)
+	s.enrichShortletPreviewData(ctx, rankedListings)
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionPremium,
@@ -200,6 +210,7 @@ func (s *ServiceImpl) buildRecentSection(ctx context.Context, limit int) (*domai
 	}
 
 	rankedListings := s.rankListings(convertToScoredListings(recentListings, 1.0), promotions, s.rankingConfig, nil)
+	s.enrichShortletPreviewData(ctx, rankedListings)
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionRecent,
@@ -296,6 +307,7 @@ func (s *ServiceImpl) searchAndRankSection(
 	if len(rankedListings) > limit {
 		rankedListings = rankedListings[:limit]
 	}
+	s.enrichShortletPreviewData(ctx, rankedListings)
 
 	return rankedListings, nil
 }
@@ -404,6 +416,170 @@ func buildDiscoverSearchData(
 			"includePromoted": true,
 		},
 	}
+}
+
+type shortletPreviewCacheValue struct {
+	Found                 bool    `json:"found"`
+	GuestCountUsed        int     `json:"guest_count_used,omitempty"`
+	NightsUsed            int     `json:"nights_used,omitempty"`
+	NextAvailableCheckIn  string  `json:"next_available_check_in,omitempty"`
+	NextAvailableCheckOut string  `json:"next_available_check_out,omitempty"`
+	TotalPrice            float64 `json:"total_price,omitempty"`
+	Currency              string  `json:"currency,omitempty"`
+}
+
+func (v shortletPreviewCacheValue) toPayload() map[string]any {
+	if !v.Found {
+		return nil
+	}
+	return map[string]any{
+		"isPreview":             true,
+		"guestCountUsed":        v.GuestCountUsed,
+		"nightsUsed":            v.NightsUsed,
+		"nextAvailableCheckIn":  v.NextAvailableCheckIn,
+		"nextAvailableCheckOut": v.NextAvailableCheckOut,
+		"totalPrice":            v.TotalPrice,
+		"currency":              v.Currency,
+	}
+}
+
+func (s *ServiceImpl) enrichShortletPreviewData(ctx context.Context, rankedListings []domain.RankedListing) {
+	if s.bookingHooks == nil || len(rankedListings) == 0 {
+		return
+	}
+
+	for i := range rankedListings {
+		listing := rankedListings[i].Listing
+		if listing.ListingType != propertydomain.ListingShortLet || listing.ShortletDetails == nil {
+			continue
+		}
+
+		payload, err := s.buildShortletPreviewPayload(ctx, listing)
+		if err != nil {
+			s.log.Warn("failed to build shortlet preview data", "listingID", listing.ID, "error", err)
+			continue
+		}
+		if payload == nil {
+			continue
+		}
+
+		if rankedListings[i].Data == nil {
+			rankedListings[i].Data = make(map[string]any)
+		}
+		rankedListings[i].Data[shortletPreviewPayloadFieldName] = payload
+	}
+}
+
+func (s *ServiceImpl) buildShortletPreviewPayload(
+	ctx context.Context,
+	listing propertydomain.Listing,
+) (map[string]any, error) {
+	if listing.ShortletDetails == nil {
+		return nil, nil
+	}
+
+	guestCount := deriveShortletPreviewGuestCount(listing.ShortletDetails)
+	nights := deriveShortletPreviewNights(listing.ShortletDetails)
+	startDate := beginningOfUTCDate(time.Now())
+	cacheKey := shortletPreviewCacheKey(listing.ID, guestCount, nights, startDate)
+
+	var cached shortletPreviewCacheValue
+	if ok, err := s.getCachedValue(ctx, cacheKey, &cached); err == nil && ok {
+		return cached.toPayload(), nil
+	} else if err != nil && s.log != nil {
+		s.log.Warn("shortlet preview cache read failed", "listingID", listing.ID, "error", err)
+	}
+
+	computed, err, _ := s.previewGroup.Do(cacheKey, func() (any, error) {
+		var innerCached shortletPreviewCacheValue
+		if ok, err := s.getCachedValue(ctx, cacheKey, &innerCached); err == nil && ok {
+			return innerCached, nil
+		} else if err != nil && s.log != nil {
+			s.log.Warn("shortlet preview cache read failed", "listingID", listing.ID, "error", err)
+		}
+
+		result := shortletPreviewCacheValue{Found: false}
+		for dayOffset := 0; dayOffset <= shortletPreviewLookAheadDays; dayOffset++ {
+			checkIn := startDate.AddDate(0, 0, dayOffset)
+			checkOut := checkIn.AddDate(0, 0, nights)
+
+			quote, err := s.bookingHooks.QuoteBooking(ctx, listing.ID, checkIn, checkOut, guestCount)
+			if err != nil {
+				return nil, err
+			}
+			if quote == nil || !quote.Available {
+				continue
+			}
+
+			result = shortletPreviewCacheValue{
+				Found:                 true,
+				GuestCountUsed:        guestCount,
+				NightsUsed:            nights,
+				NextAvailableCheckIn:  quote.CheckIn.Format(time.RFC3339),
+				NextAvailableCheckOut: quote.CheckOut.Format(time.RFC3339),
+				TotalPrice:            quote.TotalPrice,
+				Currency:              quote.Currency,
+			}
+			break
+		}
+		s.setCachedValue(ctx, cacheKey, shortletPreviewCacheTTL, result)
+		return result, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result, ok := computed.(shortletPreviewCacheValue)
+	if !ok {
+		return nil, fmt.Errorf("unexpected shortlet preview cache value type %T", computed)
+	}
+
+	return result.toPayload(), nil
+}
+
+func deriveShortletPreviewGuestCount(details *propertydomain.ShortletDetail) int {
+	if details == nil {
+		return defaultShortletPreviewGuests
+	}
+
+	if details.BaseGuestCount != nil && *details.BaseGuestCount > 0 {
+		return *details.BaseGuestCount
+	}
+
+	if details.MaxGuests > 0 {
+		if details.MaxGuests < defaultShortletPreviewGuests {
+			return details.MaxGuests
+		}
+		return defaultShortletPreviewGuests
+	}
+
+	return 1
+}
+
+func deriveShortletPreviewNights(details *propertydomain.ShortletDetail) int {
+	nights := defaultShortletPreviewNights
+	if details == nil {
+		return nights
+	}
+
+	if details.StayLimits.MinNights > nights {
+		nights = details.StayLimits.MinNights
+	}
+
+	if details.StayLimits.MaxNights != nil && *details.StayLimits.MaxNights > 0 && nights > *details.StayLimits.MaxNights {
+		nights = *details.StayLimits.MaxNights
+	}
+
+	if nights < 1 {
+		nights = 1
+	}
+
+	return nights
+}
+
+func beginningOfUTCDate(value time.Time) time.Time {
+	utc := value.UTC()
+	return time.Date(utc.Year(), utc.Month(), utc.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 // shouldIncludeSection checks if a section should be included based on options.

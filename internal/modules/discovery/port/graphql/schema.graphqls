@@ -9,6 +9,7 @@ type RankedListing {
   score: RankingScore!
   ranking: Int!
   promotionBoost: PromotionBoostInfo
+  data: Map
 }
 
 type RankingScore {
