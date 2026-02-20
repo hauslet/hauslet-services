@@ -30,7 +30,7 @@ func (a *PropertyDiscoveryAdapter) GetListingByID(ctx context.Context, id uuid.U
 
 // GetListingsByIDs batch fetches listings by IDs
 func (a *PropertyDiscoveryAdapter) GetListingsByIDs(ctx context.Context, ids []uuid.UUID) ([]propertydomain.Listing, error) {
-	return a.propertySvc.GetListingsByIDs(ctx, ids, false)
+	return a.propertySvc.GetListingsByIDs(ctx, ids, true)
 }
 
 // SearchListingsWithEmbedding performs semantic search using embeddings
