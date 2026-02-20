@@ -222,9 +222,17 @@ func (r *GormRepository) ListListings(ctx context.Context, filter ListingFilter,
 
 	baseQuery := r.db.WithContext(ctx).Model(&schema.Listing{})
 	if !filter.IncludeDeleted {
-		baseQuery = baseQuery.Where("deleted_at IS NULL")
+		baseQuery = baseQuery.Where("listings.deleted_at IS NULL")
 	}
 	baseQuery = applyListingFilter(baseQuery, filter)
+
+	// When any property-level filters are present we must JOIN the properties
+	// table and apply those predicates. Without this, city/state/geo/etc. on
+	// ListingFilter are silently ignored.
+	if needsPropertyJoin(filter) {
+		baseQuery = baseQuery.Joins("JOIN properties ON properties.id = listings.property_id")
+		baseQuery = applyPropertyFiltersForListing(baseQuery, filter)
+	}
 
 	// Get total count
 	if err := baseQuery.Count(&totalCount).Error; err != nil {

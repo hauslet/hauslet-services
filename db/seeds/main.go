@@ -146,6 +146,12 @@ func main() {
 		})
 	}
 
+	if shouldSeed("promotions", moduleList) {
+		runSeeder("Promotions", func() error {
+			return seeders.SeedPromotions(context)
+		})
+	}
+
 	if seedConfig.SeedBookings && shouldSeed("booking", moduleList) {
 		runSeeder("Booking", func() error {
 			return seeders.SeedBooking(context)
@@ -210,6 +216,7 @@ func runSeeder(name string, seeder func() error) {
 func clearData(db *gorm.DB) error {
 	// Order matters due to foreign keys - delete children first
 	tables := []string{
+		"listing_promotions",
 		"listing_media",
 		"reviews",
 		"bookings",
@@ -223,6 +230,10 @@ func clearData(db *gorm.DB) error {
 		"businesses",
 		"transactions",
 		"wallets",
+		"search_histories",
+		"user_preferences",
+		"usage_trackings",
+		"agent_subscriptions",
 		"user_identities",
 		"users",
 	}
@@ -250,6 +261,8 @@ func printSummary(db *gorm.DB) {
 		{"Businesses", "businesses"},
 		{"Properties", "properties"},
 		{"Listings", "listings"},
+		{"Listing Media", "listing_media"},
+		{"Promotions", "listing_promotions"},
 		{"Bookings", "bookings"},
 		{"Reviews", "reviews"},
 		{"Transactions", "transactions"},

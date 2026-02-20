@@ -315,22 +315,16 @@ func chooseListingLifecycle(
 	status := propertySchema.StatusActive
 
 	switch {
-	case roll <= 45:
+	case roll <= 80:
 		status = propertySchema.StatusActive
-	case roll <= 58:
+	case roll <= 85:
 		status = propertySchema.StatusDraft
-	case roll <= 68:
-		status = propertySchema.StatusUnderReview
-	case roll <= 76:
-		status = propertySchema.StatusPendingVerification
-	case roll <= 84:
-		status = propertySchema.StatusInactive
 	case roll <= 90:
-		status = propertySchema.StatusRequiresUpdates
-	case roll <= 94:
-		status = propertySchema.StatusSuspended
-	case roll <= 97:
-		status = propertySchema.StatusArchived
+		status = propertySchema.StatusUnderReview
+	case roll <= 93:
+		status = propertySchema.StatusInactive
+	case roll <= 96:
+		status = propertySchema.StatusPendingVerification
 	default:
 		if listingType == propertySchema.ListingSale {
 			status = propertySchema.StatusSold

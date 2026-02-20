@@ -329,3 +329,61 @@ func applyListingSort(db *gorm.DB, sortBy ListingSortBy, sortOrder SortOrder) *g
 	orderClause := fmt.Sprintf("%s %s", sortBy, sortOrder)
 	return db.Order(orderClause)
 }
+
+// needsPropertyJoin returns true when any property-level filters are present
+// on the ListingFilter. In that case the caller must JOIN properties before
+// calling applyPropertyFiltersForListing.
+func needsPropertyJoin(f ListingFilter) bool {
+	return (f.City != nil && *f.City != "") ||
+		(f.State != nil && *f.State != "") ||
+		(f.Country != nil && *f.Country != "") ||
+		len(f.PropertyTypes) > 0 ||
+		len(f.Furnishings) > 0 ||
+		f.MinBedrooms != nil ||
+		f.MaxBedrooms != nil ||
+		f.MinBathrooms != nil ||
+		f.MaxBathrooms != nil ||
+		(f.Latitude != nil && f.Longitude != nil && f.RadiusMeters != nil && *f.RadiusMeters > 0) ||
+		f.PropertyExtension != nil
+}
+
+// applyPropertyFiltersForListing applies property-level predicates against the
+// already-joined properties table. The caller MUST have joined properties
+// before calling this.
+func applyPropertyFiltersForListing(db *gorm.DB, f ListingFilter) *gorm.DB {
+	if f.City != nil && *f.City != "" {
+		db = db.Where("LOWER(properties.city) = LOWER(?)", *f.City)
+	}
+	if f.State != nil && *f.State != "" {
+		db = db.Where("LOWER(properties.state) = LOWER(?)", *f.State)
+	}
+	if f.Country != nil && *f.Country != "" {
+		db = db.Where("properties.country = ?", *f.Country)
+	}
+	if len(f.PropertyTypes) > 0 {
+		db = db.Where("properties.property_type IN ?", f.PropertyTypes)
+	}
+	if len(f.Furnishings) > 0 {
+		db = db.Where("properties.furnishing_type IN ?", f.Furnishings)
+	}
+	if f.MinBedrooms != nil {
+		db = db.Where("properties.bedrooms >= ?", *f.MinBedrooms)
+	}
+	if f.MaxBedrooms != nil {
+		db = db.Where("properties.bedrooms <= ?", *f.MaxBedrooms)
+	}
+	if f.MinBathrooms != nil {
+		db = db.Where("properties.bathrooms >= ?", *f.MinBathrooms)
+	}
+	if f.MaxBathrooms != nil {
+		db = db.Where("properties.bathrooms <= ?", *f.MaxBathrooms)
+	}
+	if f.Latitude != nil && f.Longitude != nil && f.RadiusMeters != nil && *f.RadiusMeters > 0 {
+		db = db.Where("properties.location IS NOT NULL").
+			Where("ST_DWithin(properties.location, ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography, ?)", *f.Longitude, *f.Latitude, *f.RadiusMeters)
+	}
+	if f.PropertyExtension != nil {
+		db = applyPropertyExtensionFilter(db, f.PropertyExtension)
+	}
+	return db
+}

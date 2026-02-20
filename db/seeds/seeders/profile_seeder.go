@@ -104,19 +104,17 @@ func createProfileForUser(ctx *SeedContext, user authSchema.User) error {
 		AllowPersonalizedOffers:    utils.RandomBoolWithProbability(0.3),
 		EnablePerformanceAnalytics: utils.RandomBoolWithProbability(0.2),
 
-		PhoneVerified:     utils.RandomBoolWithProbability(0.5),
-		IDVerified:        utils.RandomBoolWithProbability(0.3),
-		VerificationLevel: "basic",
+		PhoneVerified:     true,
+		IDVerified:        true,
+		VerificationLevel: "identity",
 
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: time.Now(),
 	}
 
-	if profile.IDVerified {
-		verificationDate := utils.RandomPastDate(365)
-		profile.VerificationDate = &verificationDate
-		profile.VerificationLevel = "identity"
-	}
+	// All seed users are verified
+	verificationDate := utils.RandomPastDate(365)
+	profile.VerificationDate = &verificationDate
 
 	if err := ctx.DB.Create(&profile).Error; err != nil {
 		return fmt.Errorf("failed to create profile for user %s: %w", user.ID, err)
