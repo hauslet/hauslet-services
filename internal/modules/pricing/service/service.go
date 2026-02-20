@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hauslet/internal/modules/pricing/domain"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -70,7 +71,13 @@ func (s *PricingServiceImpl) CalculatePrice(ctx context.Context, listingID uuid.
 	// Apply length-of-stay discounts via rules and listing-level discounts
 	ruleDiscounts := s.calculateDiscounts(baseTotal, nights, rules)
 	listingDiscounts := s.calculateListingDiscounts(baseTotal, nights, listingPricing.Discounts)
+
+	// Apply lead-time-based discounts (early bird / last minute)
+	leadTimeDays := int(time.Until(checkInDate).Hours() / 24)
+	leadTimeDiscounts := s.calculateLeadTimeDiscounts(baseTotal, leadTimeDays, rules)
+
 	discounts := append(ruleDiscounts, listingDiscounts...)
+	discounts = append(discounts, leadTimeDiscounts...)
 
 	// Calculate subtotal after discounts
 	subtotal := baseTotal
@@ -492,6 +499,39 @@ func (s *PricingServiceImpl) calculateDiscounts(baseTotal float64, nights int, r
 					Type:   string(rule.ModifierType),
 				})
 			}
+		}
+	}
+
+	return discounts
+}
+
+// calculateLeadTimeDiscounts applies early_bird and last_minute rules based on
+// how far in advance the booking is being made relative to check-in.
+func (s *PricingServiceImpl) calculateLeadTimeDiscounts(baseTotal float64, leadTimeDays int, rules []*domain.PricingRule) []domain.Discount {
+	discounts := make([]domain.Discount, 0)
+
+	for _, rule := range rules {
+		if rule.RuleType != domain.RuleTypeEarlyBird && rule.RuleType != domain.RuleTypeLastMinute {
+			continue
+		}
+		if !rule.IsActive() || !rule.AppliesToLeadTime(leadTimeDays) {
+			continue
+		}
+
+		amount := 0.0
+		switch rule.ModifierType {
+		case domain.ModifierPercentage:
+			amount = baseTotal * (math.Abs(rule.ModifierValue) / 100)
+		case domain.ModifierFixed:
+			amount = math.Abs(rule.ModifierValue)
+		}
+
+		if amount > 0 {
+			discounts = append(discounts, domain.Discount{
+				Name:   rule.Name,
+				Amount: amount,
+				Type:   string(rule.ModifierType),
+			})
 		}
 	}
 
