@@ -40,9 +40,13 @@ func NewPostgres(cfg *config.DBConfig, env string) (*gorm.DB, error) {
 	}
 
 	// Set connection pool settings
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(100)
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	// Keep these conservative to avoid exhausting Cloud SQL's max_connections
+	// (shared across all service instances). A small Cloud SQL instance may
+	// only have 50-100 total slots.
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(25)
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 
 	return db, nil
 }
