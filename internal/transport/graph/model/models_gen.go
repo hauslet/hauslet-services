@@ -266,6 +266,7 @@ type RankingConfigInput struct {
 	PromotionWeight *float64 `json:"promotionWeight,omitempty"`
 	RecencyWeight   *float64 `json:"recencyWeight,omitempty"`
 	LocationWeight  *float64 `json:"locationWeight,omitempty"`
+	TextMatchWeight *float64 `json:"textMatchWeight,omitempty"`
 }
 
 type RentalDetailInput struct {

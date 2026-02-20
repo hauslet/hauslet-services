@@ -13945,6 +13945,7 @@ input RankingConfigInput {
   promotionWeight: Float
   recencyWeight: Float
   locationWeight: Float
+  textMatchWeight: Float
 }
 
 input FeedOptionsInput {
@@ -64916,7 +64917,7 @@ func (ec *executionContext) unmarshalInputRankingConfigInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"semanticWeight", "promotionWeight", "recencyWeight", "locationWeight"}
+	fieldsInOrder := [...]string{"semanticWeight", "promotionWeight", "recencyWeight", "locationWeight", "textMatchWeight"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -64951,6 +64952,13 @@ func (ec *executionContext) unmarshalInputRankingConfigInput(ctx context.Context
 				return it, err
 			}
 			it.LocationWeight = data
+		case "textMatchWeight":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("textMatchWeight"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TextMatchWeight = data
 		}
 	}
 

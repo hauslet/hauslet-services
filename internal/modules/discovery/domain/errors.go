@@ -10,9 +10,6 @@ var (
 	// ErrInvalidRankingConfig is returned when ranking configuration is invalid
 	ErrInvalidRankingConfig = errors.New("invalid ranking configuration")
 
-	// ErrNoResults is returned when no results are found
-	ErrNoResults = errors.New("no results found")
-
 	// ErrInvalidFeedSection is returned when feed section type is invalid
 	ErrInvalidFeedSection = errors.New("invalid feed section type")
 

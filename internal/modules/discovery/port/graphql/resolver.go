@@ -182,11 +182,13 @@ func mapToServiceOptions(input *graphmodel.SearchOptionsInput) service.SearchOpt
 			options.IncludePromoted = *input.IncludePromoted
 		}
 		if input.RankingConfig != nil {
+			defaults := domain.DefaultRankingConfig()
 			options.RankingConfig = &domain.RankingConfig{
-				SemanticWeight:        getFloatOrDefault(input.RankingConfig.SemanticWeight, 0.4),
-				PromotionWeight:       getFloatOrDefault(input.RankingConfig.PromotionWeight, 0.3),
-				RecencyWeight:         getFloatOrDefault(input.RankingConfig.RecencyWeight, 0.2),
-				LocationWeight:        getFloatOrDefault(input.RankingConfig.LocationWeight, 0.1),
+				SemanticWeight:        getFloatOrDefault(input.RankingConfig.SemanticWeight, defaults.SemanticWeight),
+				PromotionWeight:       getFloatOrDefault(input.RankingConfig.PromotionWeight, defaults.PromotionWeight),
+				RecencyWeight:         getFloatOrDefault(input.RankingConfig.RecencyWeight, defaults.RecencyWeight),
+				LocationWeight:        getFloatOrDefault(input.RankingConfig.LocationWeight, defaults.LocationWeight),
+				TextMatchWeight:       getFloatOrDefault(input.RankingConfig.TextMatchWeight, defaults.TextMatchWeight),
 				PersonalizationWeight: 0.0,
 			}
 		}

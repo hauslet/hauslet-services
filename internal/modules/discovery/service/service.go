@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/sync/singleflight"
 )
+
+const maxSearchLimit = 100
 
 // ServiceImpl implements the DiscoveryService interface
 type ServiceImpl struct {
@@ -62,6 +65,9 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter SearchFilter, o
 	if options.Limit == 0 {
 		options.Limit = 20 // Default limit
 	}
+	if options.Limit > maxSearchLimit {
+		options.Limit = maxSearchLimit
+	}
 
 	// Use default ranking config if not provided
 	rankingConfig := &s.rankingConfig
@@ -77,12 +83,9 @@ func (s *ServiceImpl) SearchListings(ctx context.Context, filter SearchFilter, o
 		excludedIDs, err = s.calendarHooks.GetUnavailableListingIDs(ctx, *filter.CheckIn, *filter.CheckOut)
 		if err != nil {
 			s.log.Error("failed to get unavailable listing IDs", "error", err)
-			// Decide: fail or continue?
-			// Continuing means we might show unavailable listings, which is bad UX but better than error.
-			// However user explicitly asked for dates. Failing is safer or return empty?
-			// Let's log and continue, but maybe return error if strict.
-			// For now, log warning and continue (potentially showing unavailable).
-			// Ideally we should return error or empty list if dates are critical.
+			// User explicitly provided dates — returning potentially unavailable
+			// listings is worse UX than an error.
+			return nil, fmt.Errorf("failed to check listing availability: %w", err)
 		}
 	}
 

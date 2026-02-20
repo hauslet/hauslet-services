@@ -81,8 +81,11 @@ func homeFeedSectionCacheKey(
 	options FeedOptions,
 	userID *uuid.UUID,
 ) string {
-	userKey := "anon"
-	if userID != nil {
+	// Only include userID for personalized sections to maximize cache hit rate.
+	// Non-personalized sections (featured, premium, recent, etc.) are the same
+	// for all users and should share a single cache entry.
+	userKey := "shared"
+	if sectionType == domain.FeedSectionRecommended && userID != nil {
 		userKey = userID.String()
 	}
 

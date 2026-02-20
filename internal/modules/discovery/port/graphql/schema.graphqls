@@ -110,6 +110,7 @@ input RankingConfigInput {
   promotionWeight: Float
   recencyWeight: Float
   locationWeight: Float
+  textMatchWeight: Float
 }
 
 input FeedOptionsInput {

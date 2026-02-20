@@ -3,16 +3,21 @@ package service
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"hauslet/internal/modules/discovery/domain"
 	propertydomain "hauslet/internal/modules/property/domain"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 const defaultHomeSectionLimit = 10
+const maxSectionLimit = 50
+const maxShortletPreviewConcurrency = 5
 
 const (
 	defaultShortletPreviewGuests    = 2
@@ -22,157 +27,93 @@ const (
 )
 
 // GetHomeFeed returns a curated home feed with multiple sections.
+// Sections are built concurrently for lower latency.
 func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, options FeedOptions) ([]domain.HomeFeedSection, error) {
 	options = normalizeFeedOptions(options)
-	sections := make([]domain.HomeFeedSection, 0)
+
+	type indexedSection struct {
+		order   int
+		section domain.HomeFeedSection
+	}
+
+	var (
+		mu      sync.Mutex
+		results []indexedSection
+	)
+
+	g, gCtx := errgroup.WithContext(ctx)
+
+	// addSection launches a concurrent section build if the section should be included.
+	addSection := func(order int, sectionType domain.FeedSectionType, build func(context.Context) (*domain.HomeFeedSection, error)) {
+		if !shouldIncludeSection(options, sectionType) {
+			return
+		}
+		g.Go(func() error {
+			section, err := s.getOrBuildHomeFeedSection(gCtx, userID, options, sectionType, build)
+			if err != nil {
+				s.log.Warn("failed to build section", "type", sectionType, "error", err)
+				return nil // Don't fail other sections
+			}
+			if section != nil {
+				mu.Lock()
+				results = append(results, indexedSection{order: order, section: *section})
+				mu.Unlock()
+			}
+			return nil
+		})
+	}
 
 	// 1. Featured section
-	if shouldIncludeSection(options, domain.FeedSectionFeatured) {
-		featuredSection, err := s.getOrBuildHomeFeedSection(
-			ctx,
-			userID,
-			options,
-			domain.FeedSectionFeatured,
-			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-				return s.buildFeaturedSection(innerCtx, options.Limit)
-			},
-		)
-		if err != nil {
-			s.log.Warn("failed to build featured section", "error", err)
-		} else if featuredSection != nil {
-			sections = append(sections, *featuredSection)
-		}
-	}
+	addSection(0, domain.FeedSectionFeatured, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildFeaturedSection(innerCtx, options.Limit)
+	})
 
 	// 2. Premium section
-	if shouldIncludeSection(options, domain.FeedSectionPremium) {
-		premiumSection, err := s.getOrBuildHomeFeedSection(
-			ctx,
-			userID,
-			options,
-			domain.FeedSectionPremium,
-			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-				return s.buildPremiumSection(innerCtx, options.Limit)
-			},
-		)
-		if err != nil {
-			s.log.Warn("failed to build premium section", "error", err)
-		} else if premiumSection != nil {
-			sections = append(sections, *premiumSection)
-		}
-	}
+	addSection(1, domain.FeedSectionPremium, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildPremiumSection(innerCtx, options.Limit)
+	})
 
 	// 3. Recent section
-	if shouldIncludeSection(options, domain.FeedSectionRecent) {
-		recentSection, err := s.getOrBuildHomeFeedSection(
-			ctx,
-			userID,
-			options,
-			domain.FeedSectionRecent,
-			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-				return s.buildRecentSection(innerCtx, options.Limit)
-			},
-		)
-		if err != nil {
-			s.log.Warn("failed to build recent section", "error", err)
-		} else if recentSection != nil {
-			sections = append(sections, *recentSection)
-		}
-	}
+	addSection(2, domain.FeedSectionRecent, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildRecentSection(innerCtx, options.Limit)
+	})
 
 	// 4. Near you section
-	if shouldIncludeSection(options, domain.FeedSectionNearYou) {
-		nearYouSection, err := s.getOrBuildHomeFeedSection(
-			ctx,
-			userID,
-			options,
-			domain.FeedSectionNearYou,
-			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-				return s.buildNearYouSection(innerCtx, options)
-			},
-		)
-		if err != nil {
-			s.log.Warn("failed to build near_you section", "error", err)
-		} else if nearYouSection != nil {
-			sections = append(sections, *nearYouSection)
-		}
-	}
+	addSection(3, domain.FeedSectionNearYou, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildNearYouSection(innerCtx, options)
+	})
 
 	// 5. Rentals in <city>, <state>
-	if shouldIncludeSection(options, domain.FeedSectionRentalsArea) {
-		rentalsSection, err := s.getOrBuildHomeFeedSection(
-			ctx,
-			userID,
-			options,
-			domain.FeedSectionRentalsArea,
-			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-				return s.buildListingTypeAreaSection(
-					innerCtx,
-					options,
-					propertydomain.ListingRent,
-					domain.FeedSectionRentalsArea,
-					"Rentals",
-				)
-			},
-		)
-		if err != nil {
-			s.log.Warn("failed to build rentals_in_area section", "error", err)
-		} else if rentalsSection != nil {
-			sections = append(sections, *rentalsSection)
-		}
-	}
+	addSection(4, domain.FeedSectionRentalsArea, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildListingTypeAreaSection(innerCtx, options, propertydomain.ListingRent, domain.FeedSectionRentalsArea, "Rentals")
+	})
 
 	// 6. Shortlets in <city>, <state>
-	if shouldIncludeSection(options, domain.FeedSectionShortletsArea) {
-		shortletsSection, err := s.getOrBuildHomeFeedSection(
-			ctx,
-			userID,
-			options,
-			domain.FeedSectionShortletsArea,
-			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-				return s.buildListingTypeAreaSection(
-					innerCtx,
-					options,
-					propertydomain.ListingShortLet,
-					domain.FeedSectionShortletsArea,
-					"Shortlets",
-				)
-			},
-		)
-		if err != nil {
-			s.log.Warn("failed to build shortlets_in_area section", "error", err)
-		} else if shortletsSection != nil {
-			sections = append(sections, *shortletsSection)
-		}
-	}
+	addSection(5, domain.FeedSectionShortletsArea, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildListingTypeAreaSection(innerCtx, options, propertydomain.ListingShortLet, domain.FeedSectionShortletsArea, "Shortlets")
+	})
 
 	// 7. For Sale in <city>, <state>
-	if shouldIncludeSection(options, domain.FeedSectionForSaleArea) {
-		forSaleSection, err := s.getOrBuildHomeFeedSection(
-			ctx,
-			userID,
-			options,
-			domain.FeedSectionForSaleArea,
-			func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-				return s.buildListingTypeAreaSection(
-					innerCtx,
-					options,
-					propertydomain.ListingSale,
-					domain.FeedSectionForSaleArea,
-					"For Sale",
-				)
-			},
-		)
-		if err != nil {
-			s.log.Warn("failed to build for_sale_in_area section", "error", err)
-		} else if forSaleSection != nil {
-			sections = append(sections, *forSaleSection)
-		}
-	}
+	addSection(6, domain.FeedSectionForSaleArea, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildListingTypeAreaSection(innerCtx, options, propertydomain.ListingSale, domain.FeedSectionForSaleArea, "For Sale")
+	})
 
 	// 8. Recommended section (future implementation)
 	if userID != nil && shouldIncludeSection(options, domain.FeedSectionRecommended) {
 		s.log.Debug("personalized recommendations not yet implemented", "userID", userID)
+	}
+
+	// Wait for all section builds to complete
+	_ = g.Wait()
+
+	// Sort by original display order
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].order < results[j].order
+	})
+
+	sections := make([]domain.HomeFeedSection, len(results))
+	for i, r := range results {
+		sections[i] = r.section
 	}
 
 	return sections, nil
@@ -434,6 +375,9 @@ func normalizeFeedOptions(options FeedOptions) FeedOptions {
 	if options.Limit <= 0 {
 		options.Limit = defaultHomeSectionLimit
 	}
+	if options.Limit > maxSectionLimit {
+		options.Limit = maxSectionLimit
+	}
 
 	options.City = sanitizeTextPtr(options.City)
 	options.State = sanitizeTextPtr(options.State)
@@ -566,26 +510,36 @@ func (s *ServiceImpl) enrichShortletPreviewData(ctx context.Context, rankedListi
 		return
 	}
 
+	g, gCtx := errgroup.WithContext(ctx)
+	g.SetLimit(maxShortletPreviewConcurrency)
+
 	for i := range rankedListings {
+		i := i // capture loop variable
 		listing := rankedListings[i].Listing
 		if listing.ListingType != propertydomain.ListingShortLet || listing.ShortletDetails == nil {
 			continue
 		}
 
-		payload, err := s.buildShortletPreviewPayload(ctx, listing)
-		if err != nil {
-			s.log.Warn("failed to build shortlet preview data", "listingID", listing.ID, "error", err)
-			continue
-		}
-		if payload == nil {
-			continue
-		}
+		g.Go(func() error {
+			payload, err := s.buildShortletPreviewPayload(gCtx, listing)
+			if err != nil {
+				s.log.Warn("failed to build shortlet preview data", "listingID", listing.ID, "error", err)
+				return nil // Don't fail other previews
+			}
+			if payload == nil {
+				return nil
+			}
 
-		if rankedListings[i].Data == nil {
-			rankedListings[i].Data = make(map[string]any)
-		}
-		rankedListings[i].Data[shortletPreviewPayloadFieldName] = payload
+			// Safe: each goroutine writes to a unique index
+			if rankedListings[i].Data == nil {
+				rankedListings[i].Data = make(map[string]any)
+			}
+			rankedListings[i].Data[shortletPreviewPayloadFieldName] = payload
+			return nil
+		})
 	}
+
+	_ = g.Wait()
 }
 
 func (s *ServiceImpl) buildShortletPreviewPayload(
