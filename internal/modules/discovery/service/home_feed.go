@@ -18,6 +18,7 @@ import (
 const defaultHomeSectionLimit = 10
 const maxSectionLimit = 50
 const maxShortletPreviewConcurrency = 5
+const minSectionResults = 9 // Minimum results to consider a section "populated enough" (fills largest screen slide)
 
 const (
 	defaultShortletPreviewGuests    = 2
@@ -65,17 +66,17 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 
 	// 1. Featured section
 	addSection(0, domain.FeedSectionFeatured, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-		return s.buildFeaturedSection(innerCtx, options.Limit)
+		return s.buildFeaturedSection(innerCtx, options)
 	})
 
 	// 2. Premium section
 	addSection(1, domain.FeedSectionPremium, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-		return s.buildPremiumSection(innerCtx, options.Limit)
+		return s.buildPremiumSection(innerCtx, options)
 	})
 
 	// 3. Recent section
 	addSection(2, domain.FeedSectionRecent, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-		return s.buildRecentSection(innerCtx, options.Limit)
+		return s.buildRecentSection(innerCtx, options)
 	})
 
 	// 4. Near you section
@@ -83,20 +84,25 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 		return s.buildNearYouSection(innerCtx, options)
 	})
 
-	// 5. Rentals in <city>, <state>
-	addSection(4, domain.FeedSectionRentalsArea, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-		return s.buildListingTypeAreaSection(innerCtx, options, propertydomain.ListingRent, domain.FeedSectionRentalsArea, "Rentals")
-	})
+	// 5-7. Area sections — only build the relevant one when listingType is set,
+	// otherwise build all three for the mixed feed.
+	if options.ListingType == nil || *options.ListingType == string(propertydomain.ListingRent) {
+		addSection(4, domain.FeedSectionRentalsArea, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+			return s.buildListingTypeAreaSection(innerCtx, options, propertydomain.ListingRent, domain.FeedSectionRentalsArea, "Rentals")
+		})
+	}
 
-	// 6. Shortlets in <city>, <state>
-	addSection(5, domain.FeedSectionShortletsArea, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-		return s.buildListingTypeAreaSection(innerCtx, options, propertydomain.ListingShortLet, domain.FeedSectionShortletsArea, "Shortlets")
-	})
+	if options.ListingType == nil || *options.ListingType == string(propertydomain.ListingShortLet) {
+		addSection(5, domain.FeedSectionShortletsArea, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+			return s.buildListingTypeAreaSection(innerCtx, options, propertydomain.ListingShortLet, domain.FeedSectionShortletsArea, "Shortlets")
+		})
+	}
 
-	// 7. For Sale in <city>, <state>
-	addSection(6, domain.FeedSectionForSaleArea, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
-		return s.buildListingTypeAreaSection(innerCtx, options, propertydomain.ListingSale, domain.FeedSectionForSaleArea, "For Sale")
-	})
+	if options.ListingType == nil || *options.ListingType == string(propertydomain.ListingSale) {
+		addSection(6, domain.FeedSectionForSaleArea, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+			return s.buildListingTypeAreaSection(innerCtx, options, propertydomain.ListingSale, domain.FeedSectionForSaleArea, "For Sale")
+		})
+	}
 
 	// 8. Recommended section (future implementation)
 	if userID != nil && shouldIncludeSection(options, domain.FeedSectionRecommended) {
@@ -182,8 +188,15 @@ func (s *ServiceImpl) getOrBuildHomeFeedSection(
 }
 
 // buildFeaturedSection builds the featured listings section.
-func (s *ServiceImpl) buildFeaturedSection(ctx context.Context, limit int) (*domain.HomeFeedSection, error) {
-	featuredIDs, err := s.promotionHooks.GetFeaturedListings(ctx, limit)
+// When options.ListingType is set, only listings matching that type are included.
+func (s *ServiceImpl) buildFeaturedSection(ctx context.Context, options FeedOptions) (*domain.HomeFeedSection, error) {
+	// Fetch more than needed when filtering by type, since we post-filter.
+	fetchLimit := options.Limit
+	if options.ListingType != nil {
+		fetchLimit = options.Limit * 3
+	}
+
+	featuredIDs, err := s.promotionHooks.GetFeaturedListings(ctx, fetchLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -195,30 +208,46 @@ func (s *ServiceImpl) buildFeaturedSection(ctx context.Context, limit int) (*dom
 	if err != nil {
 		return nil, err
 	}
+
+	listings = filterListingsByType(listings, options.ListingType)
 	if len(listings) == 0 {
 		return nil, nil
 	}
 
-	promotions, err := s.promotionHooks.GetActivePromotionForListings(ctx, featuredIDs)
+	promotions, err := s.promotionHooks.GetActivePromotionForListings(ctx, extractListingIDsFromSlice(listings))
 	if err != nil {
 		s.log.Warn("failed to fetch promotion info for featured listings", "error", err)
 		promotions = make(map[uuid.UUID]*PromotionInfo)
 	}
 
 	rankedListings := s.rankListings(convertToScoredListings(listings, 1.0), promotions, s.rankingConfig, nil)
+	if len(rankedListings) > options.Limit {
+		rankedListings = rankedListings[:options.Limit]
+	}
 	s.enrichShortletPreviewData(ctx, rankedListings)
+
+	title := "Featured Properties"
+	if options.ListingType != nil {
+		title = fmt.Sprintf("Featured %s", listingTypeLabel(*options.ListingType))
+	}
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionFeatured,
-		Title:       "Featured Properties",
+		Title:       title,
 		Listings:    rankedListings,
 		TotalCount:  len(rankedListings),
 	}, nil
 }
 
 // buildPremiumSection builds the premium listings section.
-func (s *ServiceImpl) buildPremiumSection(ctx context.Context, limit int) (*domain.HomeFeedSection, error) {
-	premiumIDs, err := s.promotionHooks.GetPremiumListings(ctx, limit)
+// When options.ListingType is set, only listings matching that type are included.
+func (s *ServiceImpl) buildPremiumSection(ctx context.Context, options FeedOptions) (*domain.HomeFeedSection, error) {
+	fetchLimit := options.Limit
+	if options.ListingType != nil {
+		fetchLimit = options.Limit * 3
+	}
+
+	premiumIDs, err := s.promotionHooks.GetPremiumListings(ctx, fetchLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -230,33 +259,51 @@ func (s *ServiceImpl) buildPremiumSection(ctx context.Context, limit int) (*doma
 	if err != nil {
 		return nil, err
 	}
+
+	listings = filterListingsByType(listings, options.ListingType)
 	if len(listings) == 0 {
 		return nil, nil
 	}
 
-	promotions, err := s.promotionHooks.GetActivePromotionForListings(ctx, premiumIDs)
+	promotions, err := s.promotionHooks.GetActivePromotionForListings(ctx, extractListingIDsFromSlice(listings))
 	if err != nil {
 		s.log.Warn("failed to fetch promotion info for premium listings", "error", err)
 		promotions = make(map[uuid.UUID]*PromotionInfo)
 	}
 
 	rankedListings := s.rankListings(convertToScoredListings(listings, 1.0), promotions, s.rankingConfig, nil)
+	if len(rankedListings) > options.Limit {
+		rankedListings = rankedListings[:options.Limit]
+	}
 	s.enrichShortletPreviewData(ctx, rankedListings)
+
+	title := "Premium Listings"
+	if options.ListingType != nil {
+		title = fmt.Sprintf("Premium %s", listingTypeLabel(*options.ListingType))
+	}
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionPremium,
-		Title:       "Premium Listings",
+		Title:       title,
 		Listings:    rankedListings,
 		TotalCount:  len(rankedListings),
 	}, nil
 }
 
 // buildRecentSection builds the recent listings section.
-func (s *ServiceImpl) buildRecentSection(ctx context.Context, limit int) (*domain.HomeFeedSection, error) {
-	recentListings, err := s.propertyHooks.GetRecentListings(ctx, limit)
+// When options.ListingType is set, only listings matching that type are included.
+func (s *ServiceImpl) buildRecentSection(ctx context.Context, options FeedOptions) (*domain.HomeFeedSection, error) {
+	fetchLimit := options.Limit
+	if options.ListingType != nil {
+		fetchLimit = options.Limit * 3
+	}
+
+	recentListings, err := s.propertyHooks.GetRecentListings(ctx, fetchLimit)
 	if err != nil {
 		return nil, err
 	}
+
+	recentListings = filterListingsByType(recentListings, options.ListingType)
 	if len(recentListings) == 0 {
 		return nil, nil
 	}
@@ -269,22 +316,36 @@ func (s *ServiceImpl) buildRecentSection(ctx context.Context, limit int) (*domai
 	}
 
 	rankedListings := s.rankListings(convertToScoredListings(recentListings, 1.0), promotions, s.rankingConfig, nil)
+	if len(rankedListings) > options.Limit {
+		rankedListings = rankedListings[:options.Limit]
+	}
 	s.enrichShortletPreviewData(ctx, rankedListings)
+
+	title := "Recently Added"
+	if options.ListingType != nil {
+		title = fmt.Sprintf("Recently Added %s", listingTypeLabel(*options.ListingType))
+	}
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionRecent,
-		Title:       "Recently Added",
+		Title:       title,
 		Listings:    rankedListings,
 		TotalCount:  len(rankedListings),
-		SearchData:  buildDiscoverSearchData(domain.FeedSectionRecent, SearchFilter{}, limit),
+		SearchData:  buildDiscoverSearchData(domain.FeedSectionRecent, SearchFilter{}, options.Limit),
 	}, nil
 }
 
 // buildNearYouSection builds the near_you section from location and/or area filters.
+// When options.ListingType is set, the search is scoped to that listing type.
 func (s *ServiceImpl) buildNearYouSection(ctx context.Context, options FeedOptions) (*domain.HomeFeedSection, error) {
 	filter, ok := buildNearYouFilter(options)
 	if !ok {
 		return nil, nil
+	}
+
+	// Scope by listing type if specified.
+	if options.ListingType != nil {
+		filter.ListingTypes = []string{*options.ListingType}
 	}
 
 	rankedListings, err := s.searchAndRankSection(ctx, filter, options.Limit, options.Location)
@@ -296,6 +357,14 @@ func (s *ServiceImpl) buildNearYouSection(ctx context.Context, options FeedOptio
 	if label := formatAreaLabel(options.City, options.State); label != "" {
 		title = fmt.Sprintf("Near You in %s", label)
 	}
+	if options.ListingType != nil {
+		typeLabel := listingTypeLabel(*options.ListingType)
+		if areaLabel := formatAreaLabel(options.City, options.State); areaLabel != "" {
+			title = fmt.Sprintf("%s Near You in %s", typeLabel, areaLabel)
+		} else {
+			title = fmt.Sprintf("%s Near You", typeLabel)
+		}
+	}
 
 	return &domain.HomeFeedSection{
 		SectionType: domain.FeedSectionNearYou,
@@ -306,6 +375,10 @@ func (s *ServiceImpl) buildNearYouSection(ctx context.Context, options FeedOptio
 	}, nil
 }
 
+// buildListingTypeAreaSection builds an area section for a specific listing type
+// with geo fallback widening: City+State → State → National.
+// If the most specific scope doesn't have enough results (minSectionResults),
+// it widens progressively and adapts the title accordingly.
 func (s *ServiceImpl) buildListingTypeAreaSection(
 	ctx context.Context,
 	options FeedOptions,
@@ -313,32 +386,54 @@ func (s *ServiceImpl) buildListingTypeAreaSection(
 	sectionType domain.FeedSectionType,
 	titlePrefix string,
 ) (*domain.HomeFeedSection, error) {
-	label := formatAreaLabel(options.City, options.State)
-	if label == "" {
-		return nil, nil
+	levels := buildFallbackLevels(options.City, options.State, titlePrefix)
+	if len(levels) == 0 {
+		// No area context at all — build a national fallback directly.
+		levels = []fallbackLevel{
+			{city: nil, state: nil, title: fmt.Sprintf("Popular %s", titlePrefix)},
+		}
 	}
 
-	filter := SearchFilter{
-		ListingTypes: []string{string(listingType)},
-		City:         options.City,
-		State:        options.State,
+	for _, level := range levels {
+		filter := SearchFilter{
+			ListingTypes: []string{string(listingType)},
+			City:         level.city,
+			State:        level.state,
+		}
+
+		rankedListings, err := s.searchAndRankSection(ctx, filter, options.Limit, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(rankedListings) >= minSectionResults {
+			return &domain.HomeFeedSection{
+				SectionType: sectionType,
+				Title:       level.title,
+				Listings:    rankedListings,
+				TotalCount:  len(rankedListings),
+				SearchData:  buildDiscoverSearchData(sectionType, filter, options.Limit),
+			}, nil
+		}
+
+		// If this level returned any results but not enough, keep them
+		// as a fallback in case all wider levels also lack data.
+		if len(rankedListings) > 0 {
+			// Check if this is the last level — if so, return what we have.
+			if isLastFallbackLevel(levels, level) {
+				return &domain.HomeFeedSection{
+					SectionType: sectionType,
+					Title:       level.title,
+					Listings:    rankedListings,
+					TotalCount:  len(rankedListings),
+					SearchData:  buildDiscoverSearchData(sectionType, filter, options.Limit),
+				}, nil
+			}
+		}
 	}
 
-	rankedListings, err := s.searchAndRankSection(ctx, filter, options.Limit, nil)
-	if err != nil {
-		return nil, err
-	}
-	if len(rankedListings) == 0 {
-		return nil, nil
-	}
-
-	return &domain.HomeFeedSection{
-		SectionType: sectionType,
-		Title:       fmt.Sprintf("%s in %s", titlePrefix, label),
-		Listings:    rankedListings,
-		TotalCount:  len(rankedListings),
-		SearchData:  buildDiscoverSearchData(sectionType, filter, options.Limit),
-	}, nil
+	// No results at any level.
+	return nil, nil
 }
 
 func (s *ServiceImpl) searchAndRankSection(
@@ -441,6 +536,120 @@ func formatAreaLabel(city, state *string) string {
 	default:
 		return ""
 	}
+}
+
+// ===== LISTING TYPE HELPERS =====
+
+// listingTypeLabel returns a human-readable plural label for a listing type.
+func listingTypeLabel(lt string) string {
+	switch propertydomain.ListingType(lt) {
+	case propertydomain.ListingShortLet:
+		return "Shortlets"
+	case propertydomain.ListingRent:
+		return "Rentals"
+	case propertydomain.ListingSale:
+		return "For Sale"
+	default:
+		return strings.Title(lt) //nolint:staticcheck // acceptable for display labels
+	}
+}
+
+// filterListingsByType returns only listings matching the given listing type.
+// If listingType is nil, all listings are returned unchanged.
+func filterListingsByType(listings []propertydomain.Listing, listingType *string) []propertydomain.Listing {
+	if listingType == nil {
+		return listings
+	}
+
+	lt := propertydomain.ListingType(*listingType)
+	filtered := make([]propertydomain.Listing, 0, len(listings))
+	for _, l := range listings {
+		if l.ListingType == lt {
+			filtered = append(filtered, l)
+		}
+	}
+	return filtered
+}
+
+// extractListingIDsFromSlice extracts listing IDs from a slice of listings.
+func extractListingIDsFromSlice(listings []propertydomain.Listing) []uuid.UUID {
+	ids := make([]uuid.UUID, len(listings))
+	for i, l := range listings {
+		ids[i] = l.ID
+	}
+	return ids
+}
+
+// ===== GEO FALLBACK HELPERS =====
+
+type fallbackLevel struct {
+	city  *string
+	state *string
+	title string
+}
+
+// buildFallbackLevels generates the fallback ladder for geo widening.
+// City+State → State-only → National (no geo filter).
+func buildFallbackLevels(city, state *string, titlePrefix string) []fallbackLevel {
+	var levels []fallbackLevel
+
+	// Level 1: City + State (most specific)
+	if city != nil {
+		label := formatAreaLabel(city, state)
+		levels = append(levels, fallbackLevel{
+			city:  city,
+			state: state,
+			title: fmt.Sprintf("%s in %s", titlePrefix, label),
+		})
+	}
+
+	// Level 2: State only
+	if state != nil {
+		// Only add if it's different from level 1 (i.e., city was also set).
+		if city != nil {
+			levels = append(levels, fallbackLevel{
+				city:  nil,
+				state: state,
+				title: fmt.Sprintf("%s in %s", titlePrefix, *state),
+			})
+		} else {
+			// Only state was provided — this is already level 1.
+			levels = append(levels, fallbackLevel{
+				city:  nil,
+				state: state,
+				title: fmt.Sprintf("%s in %s", titlePrefix, *state),
+			})
+		}
+	}
+
+	// Level 3: National fallback (no geo filter)
+	levels = append(levels, fallbackLevel{
+		city:  nil,
+		state: nil,
+		title: fmt.Sprintf("Popular %s", titlePrefix),
+	})
+
+	return levels
+}
+
+// isLastFallbackLevel checks if the given level is the last in the ladder.
+func isLastFallbackLevel(levels []fallbackLevel, current fallbackLevel) bool {
+	if len(levels) == 0 {
+		return true
+	}
+	last := levels[len(levels)-1]
+	return ptrStringEqual(current.city, last.city) &&
+		ptrStringEqual(current.state, last.state)
+}
+
+func ptrStringEqual(a, b *string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
 }
 
 func buildDiscoverSearchData(

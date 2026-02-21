@@ -90,12 +90,13 @@ func homeFeedSectionCacheKey(
 	}
 
 	return fmt.Sprintf(
-		"discovery:home:section:v1:%s:limit:%d:city:%s:state:%s:loc:%s:user:%s",
+		"discovery:home:section:v2:%s:limit:%d:city:%s:state:%s:loc:%s:lt:%s:user:%s",
 		sectionType.String(),
 		options.Limit,
 		normalizeCacheText(options.City),
 		normalizeCacheText(options.State),
 		locationCacheKey(options.Location),
+		normalizeCacheText(options.ListingType),
 		userKey,
 	)
 }

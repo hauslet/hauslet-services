@@ -85,6 +85,7 @@ type FeedOptions struct {
 	City              *string                  // Optional city context for location-aware home sections
 	State             *string                  // Optional state context for location-aware home sections
 	Limit             int                      // Default limit per section
+	ListingType       *string                  // Optional listing type filter (e.g., "shortlet", "rent", "sale")
 	SectionsToInclude []domain.FeedSectionType // Specific sections to include (empty = all)
 }
 

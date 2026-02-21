@@ -13953,6 +13953,7 @@ input FeedOptionsInput {
   city: String
   state: String
   limit: Int
+  listingType: ListingType
   sectionsToInclude: [FeedSectionType!]
 }
 
@@ -63926,7 +63927,7 @@ func (ec *executionContext) unmarshalInputFeedOptionsInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"location", "city", "state", "limit", "sectionsToInclude"}
+	fieldsInOrder := [...]string{"location", "city", "state", "limit", "listingType", "sectionsToInclude"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -63961,6 +63962,13 @@ func (ec *executionContext) unmarshalInputFeedOptionsInput(ctx context.Context, 
 				return it, err
 			}
 			it.Limit = data
+		case "listingType":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("listingType"))
+			data, err := ec.unmarshalOListingType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingType(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ListingType = data
 		case "sectionsToInclude":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sectionsToInclude"))
 			data, err := ec.unmarshalOFeedSectionType2ᚕhausletᚋinternalᚋmodulesᚋdiscoveryᚋdomainᚐFeedSectionTypeᚄ(ctx, v)
@@ -87466,6 +87474,25 @@ func (ec *executionContext) marshalOListingType2ᚕhausletᚋinternalᚋmodules�
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalOListingType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingType(ctx context.Context, v any) (*domain11.ListingType, error) {
+	if v == nil {
+		return nil, nil
+	}
+	tmp, err := graphql.UnmarshalString(v)
+	res := domain11.ListingType(tmp)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOListingType2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐListingType(ctx context.Context, sel ast.SelectionSet, v *domain11.ListingType) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalString(string(*v))
+	return res
 }
 
 func (ec *executionContext) marshalOLocation2ᚖhausletᚋinternalᚋmodulesᚋpropertyᚋdomainᚐLocation(ctx context.Context, sel ast.SelectionSet, v *domain11.Location) graphql.Marshaler {

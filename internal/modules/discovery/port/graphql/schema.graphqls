@@ -118,6 +118,7 @@ input FeedOptionsInput {
   city: String
   state: String
   limit: Int
+  listingType: ListingType
   sectionsToInclude: [FeedSectionType!]
 }
 

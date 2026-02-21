@@ -216,6 +216,10 @@ func mapToFeedOptions(input *graphmodel.FeedOptionsInput) service.FeedOptions {
 		if input.Limit != nil {
 			options.Limit = *input.Limit
 		}
+		if input.ListingType != nil {
+			lt := string(*input.ListingType)
+			options.ListingType = &lt
+		}
 		if len(input.SectionsToInclude) > 0 {
 			options.SectionsToInclude = input.SectionsToInclude
 		}

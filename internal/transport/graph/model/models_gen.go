@@ -128,6 +128,7 @@ type FeedOptionsInput struct {
 	City              *string                   `json:"city,omitempty"`
 	State             *string                   `json:"state,omitempty"`
 	Limit             *int                      `json:"limit,omitempty"`
+	ListingType       *domain.ListingType       `json:"listingType,omitempty"`
 	SectionsToInclude []domain1.FeedSectionType `json:"sectionsToInclude,omitempty"`
 }
 
