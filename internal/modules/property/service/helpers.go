@@ -97,6 +97,7 @@ type ListingFilter struct {
 	CreatedBefore      *time.Time
 	IncludeDeleted     bool
 	ExcludeSuspended   bool
+	IsVerified         *bool
 	SortBy             ListingSortBy
 	SortOrder          SortOrder
 	City               *string
@@ -201,6 +202,7 @@ func mapListingFilterToRepo(filter ListingFilter) repository.ListingFilter {
 		Longitude:          filter.Longitude,
 		RadiusMeters:       filter.RadiusMeters,
 		ExcludedListingIDs: filter.ExcludedListingIDs,
+		IsVerified:         filter.IsVerified,
 	}
 
 	if len(filter.OwnerTypes) > 0 {

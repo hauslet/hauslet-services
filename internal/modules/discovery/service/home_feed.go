@@ -104,7 +104,34 @@ func (s *ServiceImpl) GetHomeFeed(ctx context.Context, userID *uuid.UUID, option
 		})
 	}
 
-	// 8. Recommended section (future implementation)
+	// 8. Trending section
+	addSection(7, domain.FeedSectionTrending, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildTrendingSection(innerCtx, options)
+	})
+
+	// 9. Top rated section
+	addSection(8, domain.FeedSectionTopRated, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildTopRatedSection(innerCtx, options)
+	})
+
+	// 10. Budget friendly section
+	addSection(9, domain.FeedSectionBudgetFriendly, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildBudgetFriendlySection(innerCtx, options)
+	})
+
+	// 11. Verified only section
+	addSection(10, domain.FeedSectionVerifiedOnly, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+		return s.buildVerifiedOnlySection(innerCtx, options)
+	})
+
+	// 12. Large groups section (shortlet only)
+	if options.ListingType == nil || *options.ListingType == string(propertydomain.ListingShortLet) {
+		addSection(11, domain.FeedSectionLargeGroups, func(innerCtx context.Context) (*domain.HomeFeedSection, error) {
+			return s.buildLargeGroupsSection(innerCtx, options)
+		})
+	}
+
+	// 13. Recommended section (future implementation)
 	if userID != nil && shouldIncludeSection(options, domain.FeedSectionRecommended) {
 		s.log.Debug("personalized recommendations not yet implemented", "userID", userID)
 	}
@@ -434,6 +461,266 @@ func (s *ServiceImpl) buildListingTypeAreaSection(
 
 	// No results at any level.
 	return nil, nil
+}
+
+// ===== NEW SECTION BUILDERS =====
+
+// buildTrendingSection builds the "Trending" section from interaction_aggregates.
+func (s *ServiceImpl) buildTrendingSection(ctx context.Context, options FeedOptions) (*domain.HomeFeedSection, error) {
+	if s.analyticsHooks == nil {
+		return nil, nil
+	}
+
+	// Fetch more when filtering by type since we post-filter.
+	fetchLimit := options.Limit
+	if options.ListingType != nil {
+		fetchLimit = options.Limit * 3
+	}
+
+	trendingIDs, err := s.analyticsHooks.GetTrendingListingIDs(ctx, fetchLimit)
+	if err != nil {
+		return nil, err
+	}
+	if len(trendingIDs) == 0 {
+		return nil, nil
+	}
+
+	listings, err := s.propertyHooks.GetListingsByIDs(ctx, trendingIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	listings = filterListingsByType(listings, options.ListingType)
+	if len(listings) == 0 {
+		return nil, nil
+	}
+
+	promotions, err := s.promotionHooks.GetActivePromotionForListings(ctx, extractListingIDsFromSlice(listings))
+	if err != nil {
+		s.log.Warn("failed to fetch promotions for trending", "error", err)
+		promotions = make(map[uuid.UUID]*PromotionInfo)
+	}
+
+	scoredListings := convertToScoredListings(listings, 1.0)
+	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig, nil)
+	if len(rankedListings) > options.Limit {
+		rankedListings = rankedListings[:options.Limit]
+	}
+	s.enrichShortletPreviewData(ctx, rankedListings)
+
+	title := "Trending Now"
+	if options.ListingType != nil {
+		title = fmt.Sprintf("Trending %s", listingTypeLabel(*options.ListingType))
+	}
+
+	return &domain.HomeFeedSection{
+		SectionType: domain.FeedSectionTrending,
+		Title:       title,
+		Listings:    rankedListings,
+		TotalCount:  len(rankedListings),
+	}, nil
+}
+
+// buildTopRatedSection builds the "Top Rated" section from listing_stats.
+func (s *ServiceImpl) buildTopRatedSection(ctx context.Context, options FeedOptions) (*domain.HomeFeedSection, error) {
+	if s.analyticsHooks == nil {
+		return nil, nil
+	}
+
+	fetchLimit := options.Limit
+	if options.ListingType != nil {
+		fetchLimit = options.Limit * 3
+	}
+
+	topRatedIDs, err := s.analyticsHooks.GetTopRatedListingIDs(ctx, fetchLimit)
+	if err != nil {
+		return nil, err
+	}
+	if len(topRatedIDs) == 0 {
+		return nil, nil
+	}
+
+	listings, err := s.propertyHooks.GetListingsByIDs(ctx, topRatedIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	listings = filterListingsByType(listings, options.ListingType)
+	if len(listings) == 0 {
+		return nil, nil
+	}
+
+	promotions, err := s.promotionHooks.GetActivePromotionForListings(ctx, extractListingIDsFromSlice(listings))
+	if err != nil {
+		s.log.Warn("failed to fetch promotions for top rated", "error", err)
+		promotions = make(map[uuid.UUID]*PromotionInfo)
+	}
+
+	scoredListings := convertToScoredListings(listings, 1.0)
+	rankedListings := s.rankListings(scoredListings, promotions, s.rankingConfig, nil)
+	if len(rankedListings) > options.Limit {
+		rankedListings = rankedListings[:options.Limit]
+	}
+	s.enrichShortletPreviewData(ctx, rankedListings)
+
+	title := "Top Rated"
+	if options.ListingType != nil {
+		title = fmt.Sprintf("Top Rated %s", listingTypeLabel(*options.ListingType))
+	}
+
+	return &domain.HomeFeedSection{
+		SectionType: domain.FeedSectionTopRated,
+		Title:       title,
+		Listings:    rankedListings,
+		TotalCount:  len(rankedListings),
+	}, nil
+}
+
+// budgetThresholds defines the max price (in base currency units, e.g. Naira)
+// for a listing to be considered "budget-friendly" per listing type.
+// These are static thresholds — intentionally simple.
+var budgetThresholds = map[propertydomain.ListingType]float64{
+	propertydomain.ListingShortLet: 30000,    // ₦30k/night
+	propertydomain.ListingRent:     200000,   // ₦200k/month
+	propertydomain.ListingSale:     30000000, // ₦30M
+}
+
+// buildBudgetFriendlySection builds the "Budget-Friendly" section using a price ceiling.
+func (s *ServiceImpl) buildBudgetFriendlySection(ctx context.Context, options FeedOptions) (*domain.HomeFeedSection, error) {
+	// Determine which listing type(s) to query.
+	listingTypes := []string{
+		string(propertydomain.ListingShortLet),
+		string(propertydomain.ListingRent),
+		string(propertydomain.ListingSale),
+	}
+	if options.ListingType != nil {
+		listingTypes = []string{*options.ListingType}
+	}
+
+	// Use the budget threshold for the target type (or the lowest if mixed).
+	maxPrice := budgetThresholds[propertydomain.ListingShortLet] // default
+	if options.ListingType != nil {
+		if threshold, ok := budgetThresholds[propertydomain.ListingType(*options.ListingType)]; ok {
+			maxPrice = threshold
+		}
+	}
+
+	maxPriceCents := int64(maxPrice * 100) // Convert to cents
+
+	filter := SearchFilter{
+		ListingTypes: listingTypes,
+		City:         options.City,
+		State:        options.State,
+		PriceRange: &PriceRangeFilter{
+			Max: &maxPriceCents,
+		},
+	}
+
+	rankedListings, err := s.searchAndRankSection(ctx, filter, options.Limit, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(rankedListings) == 0 {
+		return nil, nil
+	}
+
+	title := "Budget-Friendly"
+	if options.ListingType != nil {
+		title = fmt.Sprintf("Budget-Friendly %s", listingTypeLabel(*options.ListingType))
+	}
+	if area := formatAreaLabel(options.City, options.State); area != "" {
+		title = fmt.Sprintf("%s in %s", title, area)
+	}
+
+	return &domain.HomeFeedSection{
+		SectionType: domain.FeedSectionBudgetFriendly,
+		Title:       title,
+		Listings:    rankedListings,
+		TotalCount:  len(rankedListings),
+		SearchData:  buildDiscoverSearchData(domain.FeedSectionBudgetFriendly, filter, options.Limit),
+	}, nil
+}
+
+// buildVerifiedOnlySection builds the "Verified" section using the is_verified filter.
+func (s *ServiceImpl) buildVerifiedOnlySection(ctx context.Context, options FeedOptions) (*domain.HomeFeedSection, error) {
+	verified := true
+
+	listingTypes := []string{
+		string(propertydomain.ListingShortLet),
+		string(propertydomain.ListingRent),
+		string(propertydomain.ListingSale),
+	}
+	if options.ListingType != nil {
+		listingTypes = []string{*options.ListingType}
+	}
+
+	filter := SearchFilter{
+		ListingTypes: listingTypes,
+		City:         options.City,
+		State:        options.State,
+		IsVerified:   &verified,
+	}
+
+	rankedListings, err := s.searchAndRankSection(ctx, filter, options.Limit, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(rankedListings) == 0 {
+		return nil, nil
+	}
+
+	title := "Verified Properties"
+	if options.ListingType != nil {
+		title = fmt.Sprintf("Verified %s", listingTypeLabel(*options.ListingType))
+	}
+	if area := formatAreaLabel(options.City, options.State); area != "" {
+		title = fmt.Sprintf("%s in %s", title, area)
+	}
+
+	return &domain.HomeFeedSection{
+		SectionType: domain.FeedSectionVerifiedOnly,
+		Title:       title,
+		Listings:    rankedListings,
+		TotalCount:  len(rankedListings),
+		SearchData:  buildDiscoverSearchData(domain.FeedSectionVerifiedOnly, filter, options.Limit),
+	}, nil
+}
+
+// largeGroupMinGuests is the minimum max_guests threshold for "large groups".
+const largeGroupMinGuests = 6
+
+// buildLargeGroupsSection builds the "Large Groups" section for shortlets
+// with high guest capacity.
+func (s *ServiceImpl) buildLargeGroupsSection(ctx context.Context, options FeedOptions) (*domain.HomeFeedSection, error) {
+	guestCount := largeGroupMinGuests
+
+	filter := SearchFilter{
+		ListingTypes: []string{string(propertydomain.ListingShortLet)},
+		City:         options.City,
+		State:        options.State,
+		GuestCount:   &guestCount,
+	}
+
+	rankedListings, err := s.searchAndRankSection(ctx, filter, options.Limit, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(rankedListings) == 0 {
+		return nil, nil
+	}
+
+	title := "Perfect for Large Groups"
+	if area := formatAreaLabel(options.City, options.State); area != "" {
+		title = fmt.Sprintf("%s in %s", title, area)
+	}
+
+	return &domain.HomeFeedSection{
+		SectionType: domain.FeedSectionLargeGroups,
+		Title:       title,
+		Listings:    rankedListings,
+		TotalCount:  len(rankedListings),
+		SearchData:  buildDiscoverSearchData(domain.FeedSectionLargeGroups, filter, options.Limit),
+	}, nil
 }
 
 func (s *ServiceImpl) searchAndRankSection(

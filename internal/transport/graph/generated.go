@@ -13892,6 +13892,11 @@ enum FeedSectionType {
   rentals_in_area
   shortlets_in_area
   for_sale_in_area
+  trending
+  top_rated
+  budget_friendly
+  large_groups
+  verified_only
 }
 
 # ===========================

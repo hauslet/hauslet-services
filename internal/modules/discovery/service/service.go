@@ -23,6 +23,7 @@ type ServiceImpl struct {
 	promotionHooks PromotionDiscoveryHooks
 	calendarHooks  CalendarDiscoveryHooks
 	bookingHooks   BookingDiscoveryHooks
+	analyticsHooks AnalyticsDiscoveryHooks
 	cache          platformredis.RedisClient
 	rankingConfig  domain.RankingConfig
 	homeFeedGroup  singleflight.Group
@@ -54,6 +55,11 @@ func NewDiscoveryService(
 // SetBookingHooks attaches optional booking hooks used for shortlet preview enrichment.
 func (s *ServiceImpl) SetBookingHooks(bookingHooks BookingDiscoveryHooks) {
 	s.bookingHooks = bookingHooks
+}
+
+// SetAnalyticsHooks attaches optional analytics hooks for trending/top-rated sections.
+func (s *ServiceImpl) SetAnalyticsHooks(analyticsHooks AnalyticsDiscoveryHooks) {
+	s.analyticsHooks = analyticsHooks
 }
 
 // SearchListings performs semantic search with promotion-aware ranking

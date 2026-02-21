@@ -176,6 +176,12 @@ func main() {
 		})
 	}
 
+	if shouldSeed("interactions", moduleList) {
+		runSeeder("Interactions", func() error {
+			return seeders.SeedInteractions(context)
+		})
+	}
+
 	elapsed := time.Since(startTime)
 	fmt.Println(strings.Repeat("-", 50))
 	fmt.Printf("\n✅ Seeding completed successfully in %v\n", elapsed)
@@ -222,6 +228,8 @@ func runSeeder(name string, seeder func() error) {
 func clearData(db *gorm.DB) error {
 	// Order matters due to foreign keys - delete children first
 	tables := []string{
+		"interaction_aggregates",
+		"interactions",
 		"listing_stats",
 		"host_stats",
 		"listing_promotions",
@@ -274,6 +282,8 @@ func printSummary(db *gorm.DB) {
 		{"Promotions", "listing_promotions"},
 		{"Bookings", "bookings"},
 		{"Reviews", "reviews"},
+		{"Interactions", "interactions"},
+		{"Interaction Aggregates", "interaction_aggregates"},
 		{"Transactions", "transactions"},
 	}
 

@@ -106,6 +106,7 @@ type ListingFilter struct {
 	Longitude          *float64
 	RadiusMeters       *float64
 	ExcludedListingIDs []uuid.UUID
+	IsVerified         *bool
 	PublishedAfter     *time.Time
 	PublishedBefore    *time.Time
 	CreatedAfter       *time.Time
@@ -311,6 +312,9 @@ func applyListingFilter(db *gorm.DB, f ListingFilter) *gorm.DB {
 	}
 	if f.ExcludeSuspended {
 		db = db.Where("suspended_until IS NULL OR suspended_until < ?", time.Now())
+	}
+	if f.IsVerified != nil {
+		db = db.Where("is_verified = ?", *f.IsVerified)
 	}
 
 	return db

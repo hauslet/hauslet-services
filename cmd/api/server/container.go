@@ -596,6 +596,7 @@ func (c *Container) initDiscovery() error {
 	propertyHooks := discoveryhooks.NewPropertyDiscoveryAdapter(c.PropertySvc)
 	promotionHooks := discoveryhooks.NewPromotionDiscoveryAdapter(c.PromotionSvc)
 	calendarHooks := discoveryhooks.NewCalendarDiscoveryAdapter(c.CalendarSvc)
+	analyticsHooks := discoveryhooks.NewAnalyticsDiscoveryAdapter(c.DB)
 
 	// Initialize discovery service
 	c.DiscoverySvc = discoveryservice.NewDiscoveryService(
@@ -606,6 +607,11 @@ func (c *Container) initDiscovery() error {
 		*c.Redis,
 		c.Logger,
 	)
+
+	// Attach analytics hooks
+	if discoveryImpl, ok := c.DiscoverySvc.(*discoveryservice.ServiceImpl); ok {
+		discoveryImpl.SetAnalyticsHooks(analyticsHooks)
+	}
 
 	return nil
 }

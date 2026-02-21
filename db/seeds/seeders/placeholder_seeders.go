@@ -16,12 +16,6 @@ func SeedBooking(ctx *SeedContext) error {
 	return nil
 }
 
-// SeedReview seeds reviews
-func SeedReview(ctx *SeedContext) error {
-	fmt.Println("    Review seeding skipped (implement as needed)")
-	return nil
-}
-
 // SeedFinance seeds wallets and transactions
 func SeedFinance(ctx *SeedContext) error {
 	fmt.Println("    Finance seeding skipped (implement as needed)")

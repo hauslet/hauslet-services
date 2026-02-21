@@ -186,6 +186,11 @@ func (a *PropertyDiscoveryAdapter) mapToPropertyFilter(filter discoveryservice.S
 		}
 	}
 
+	// Map IsVerified
+	if filter.IsVerified != nil {
+		propertyFilter.IsVerified = filter.IsVerified
+	}
+
 	return propertyFilter
 }
 

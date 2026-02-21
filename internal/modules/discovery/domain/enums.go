@@ -4,14 +4,19 @@ package domain
 type FeedSectionType string
 
 const (
-	FeedSectionFeatured      FeedSectionType = "featured"
-	FeedSectionPremium       FeedSectionType = "premium"
-	FeedSectionRecent        FeedSectionType = "recent"
-	FeedSectionRecommended   FeedSectionType = "recommended"
-	FeedSectionNearYou       FeedSectionType = "near_you"
-	FeedSectionRentalsArea   FeedSectionType = "rentals_in_area"
-	FeedSectionShortletsArea FeedSectionType = "shortlets_in_area"
-	FeedSectionForSaleArea   FeedSectionType = "for_sale_in_area"
+	FeedSectionFeatured       FeedSectionType = "featured"
+	FeedSectionPremium        FeedSectionType = "premium"
+	FeedSectionRecent         FeedSectionType = "recent"
+	FeedSectionRecommended    FeedSectionType = "recommended"
+	FeedSectionNearYou        FeedSectionType = "near_you"
+	FeedSectionRentalsArea    FeedSectionType = "rentals_in_area"
+	FeedSectionShortletsArea  FeedSectionType = "shortlets_in_area"
+	FeedSectionForSaleArea    FeedSectionType = "for_sale_in_area"
+	FeedSectionTrending       FeedSectionType = "trending"
+	FeedSectionTopRated       FeedSectionType = "top_rated"
+	FeedSectionBudgetFriendly FeedSectionType = "budget_friendly"
+	FeedSectionLargeGroups    FeedSectionType = "large_groups"
+	FeedSectionVerifiedOnly   FeedSectionType = "verified_only"
 )
 
 // String returns the string representation of FeedSectionType
@@ -24,7 +29,9 @@ func (f FeedSectionType) IsValid() bool {
 	switch f {
 	case FeedSectionFeatured, FeedSectionPremium, FeedSectionRecent,
 		FeedSectionRecommended, FeedSectionNearYou, FeedSectionRentalsArea,
-		FeedSectionShortletsArea, FeedSectionForSaleArea:
+		FeedSectionShortletsArea, FeedSectionForSaleArea,
+		FeedSectionTrending, FeedSectionTopRated, FeedSectionBudgetFriendly,
+		FeedSectionLargeGroups, FeedSectionVerifiedOnly:
 		return true
 	default:
 		return false

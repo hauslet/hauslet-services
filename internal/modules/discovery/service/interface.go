@@ -48,6 +48,7 @@ type SearchFilter struct {
 	CheckOut           *time.Time
 	Furnishing         []string
 	AccommodationTypes []string
+	IsVerified         *bool // Filter for verified listings only
 	// Additional filters can be added as needed
 }
 
@@ -151,4 +152,16 @@ type ShortletQuote struct {
 	CheckOut   time.Time
 	TotalPrice float64
 	Currency   string
+}
+
+// AnalyticsDiscoveryHooks provides cross-module analytics queries
+// (trending from interaction_aggregates, top-rated from listing_stats).
+type AnalyticsDiscoveryHooks interface {
+	// GetTrendingListingIDs returns listing IDs ordered by engagement score
+	// over the past week.
+	GetTrendingListingIDs(ctx context.Context, limit int) ([]uuid.UUID, error)
+
+	// GetTopRatedListingIDs returns listing IDs with the highest average
+	// ratings, requiring a minimum number of reviews.
+	GetTopRatedListingIDs(ctx context.Context, limit int) ([]uuid.UUID, error)
 }
