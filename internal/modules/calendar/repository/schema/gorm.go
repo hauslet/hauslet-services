@@ -3,6 +3,7 @@ package schema
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,6 +20,31 @@ var (
 	ErrInvalidMaxAttendees    = errors.New("max attendees must be positive")
 	ErrInvalidBufferHours     = errors.New("buffer hours must be non-negative")
 )
+
+func changedField(tx *gorm.DB, field string) bool {
+	if tx == nil || tx.Statement == nil {
+		return true
+	}
+
+	modelValue := tx.Statement.ReflectValue
+	if !modelValue.IsValid() {
+		return true
+	}
+
+	for modelValue.Kind() == reflect.Ptr {
+		if modelValue.IsNil() {
+			return true
+		}
+		modelValue = modelValue.Elem()
+	}
+
+	// GORM v1.31 can panic on Changed(...) for batch creates where destination is a slice.
+	if modelValue.Kind() == reflect.Slice || modelValue.Kind() == reflect.Array {
+		return true
+	}
+
+	return tx.Statement.Changed(field)
+}
 
 // CalendarEvent represents any event in a property's calendar
 type CalendarEvent struct {
@@ -202,7 +228,7 @@ type RecurringEventPattern struct {
 // BeforeSave validates CalendarEvent before saving
 func (e *CalendarEvent) BeforeSave(tx *gorm.DB) error {
 	changed := func(field string) bool {
-		return tx != nil && tx.Statement != nil && tx.Statement.Changed(field)
+		return changedField(tx, field)
 	}
 
 	// 1. Validate EventType
@@ -278,7 +304,7 @@ func (c *CalendarConfig) BeforeSave(tx *gorm.DB) error {
 // BeforeSave validates RecurringEventPattern before saving
 func (r *RecurringEventPattern) BeforeSave(tx *gorm.DB) error {
 	changed := func(field string) bool {
-		return tx != nil && tx.Statement != nil && tx.Statement.Changed(field)
+		return changedField(tx, field)
 	}
 
 	// Validate EventType

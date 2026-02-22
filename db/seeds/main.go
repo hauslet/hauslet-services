@@ -164,6 +164,12 @@ func main() {
 		})
 	}
 
+	if shouldSeed("calendar", moduleList) {
+		runSeeder("Calendar", func() error {
+			return seeders.SeedCalendar(context)
+		})
+	}
+
 	if seedConfig.SeedReviews && shouldSeed("review", moduleList) {
 		runSeeder("Review", func() error {
 			return seeders.SeedReview(context)
@@ -280,6 +286,7 @@ func printSummary(db *gorm.DB) {
 		{"Listings", "listings"},
 		{"Listing Media", "listing_media"},
 		{"Promotions", "listing_promotions"},
+		{"Calendar Events", "calendar_events"},
 		{"Bookings", "bookings"},
 		{"Reviews", "reviews"},
 		{"Interactions", "interactions"},
