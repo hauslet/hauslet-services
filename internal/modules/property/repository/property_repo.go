@@ -145,7 +145,7 @@ func (r *GormRepository) GetDistinctLocations(ctx context.Context) ([]schema.Pro
 		Table("properties").
 		Select("properties.city, properties.state, properties.country").
 		Joins("JOIN listings ON listings.property_id = properties.id").
-		Where("listings.status = 'active' AND listings.deleted_at IS NULL AND properties.deleted_at IS NULL").
+		Where("listings.status = 'active' AND listings.deleted_at IS NULL").
 		Group("properties.city, properties.state, properties.country").
 		Find(&locations).Error
 
