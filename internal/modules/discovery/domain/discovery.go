@@ -85,6 +85,15 @@ type SearchResult struct {
 	ProcessingTime int64           // Processing time in milliseconds
 }
 
+// Destination represents an autocomplete autocomplete result
+type Destination struct {
+	ID          string // Usually city_state_country
+	City        string
+	State       string
+	Country     string
+	DisplayText string // "City, State, Country"
+}
+
 // IsPromoted checks if a listing is currently promoted
 func (r RankedListing) IsPromoted() bool {
 	return r.PromotionBoost != nil

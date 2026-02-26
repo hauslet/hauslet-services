@@ -330,3 +330,27 @@ resource "google_cloud_tasks_queue" "calendar_open_house_reminders" {
     google_project_service.cloudtasks
   ]
 }
+
+# Destination Sync Queue - For synchronizing destinations to Redis
+resource "google_cloud_tasks_queue" "sync_destinations" {
+  name     = "sync-destinations-queue"
+  location = "europe-west2"
+
+  rate_limits {
+    max_dispatches_per_second = 5
+    max_concurrent_dispatches = 2
+  }
+
+  retry_config {
+    max_attempts       = 3
+    max_retry_duration = "600s"
+    min_backoff        = "10s"
+    max_backoff        = "120s"
+    max_doublings      = 3
+  }
+
+  depends_on = [
+    google_project_service.cloudtasks
+  ]
+}
+

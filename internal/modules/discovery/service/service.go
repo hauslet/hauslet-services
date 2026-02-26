@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"hauslet/internal/modules/discovery/domain"
@@ -11,6 +12,7 @@ import (
 	platformredis "hauslet/internal/platform/redis"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -218,4 +220,117 @@ func (s *ServiceImpl) FindSimilarListings(ctx context.Context, listingID uuid.UU
 	}
 
 	return rankedListings, nil
+}
+
+// SyncDestinationsToRedis updates the autocomplete redis store
+func (s *ServiceImpl) SyncDestinationsToRedis(ctx context.Context) error {
+	redisKey := "discovery:destinations"
+	tmpKey := redisKey + ":tmp"
+
+	locations, err := s.propertyHooks.GetDistinctLocations(ctx)
+	if err != nil {
+		s.log.Error("failed to get distinct locations from property module", "error", err)
+		return fmt.Errorf("could not fetch locations: %w", err)
+	}
+
+	if len(locations) == 0 {
+		return nil
+	}
+
+	// We clear the tmp key first to prevent stale data.
+	s.cache.Del(ctx, tmpKey)
+
+	// Push distinct locations to Redis for autocomplete search
+
+	members := make([]redis.Z, len(locations))
+	for i, loc := range locations {
+		// Store string format: lowercase_search_key|City|State|Country|DisplayText
+		// Using city as primary search key (add state/country variations if needed)
+		displayText := fmt.Sprintf("%s, %s", loc.City, loc.State)
+		searchKey := strings.ToLower(loc.City)
+
+		// Create entry string
+		entry := fmt.Sprintf("%s|%s|%s|%s|%s", searchKey, loc.City, loc.State, loc.Country, displayText)
+
+		members[i] = redis.Z{
+			Score:  0, // We keep score as 0 so redis sorts them lexicographically by value
+			Member: entry,
+		}
+	}
+
+	cmd := s.cache.ZAdd(ctx, tmpKey, members...)
+	if cmd.Err() != nil {
+		s.log.Error("failed to sync locations to redis tmp key", "error", cmd.Err())
+		return fmt.Errorf("failed to save locations to redis: %w", cmd.Err())
+	}
+
+	// Atomically swap the tmp key with the live key
+	if err := s.cache.Rename(ctx, tmpKey, redisKey).Err(); err != nil {
+		s.log.Error("failed to swap tmp key to live discovery locations", "error", err)
+		return fmt.Errorf("failed to publish locations to redis: %w", err)
+	}
+
+	// Set TTL as a safety measure
+	s.cache.Expire(ctx, redisKey, 24*time.Hour)
+
+	s.log.Info("Successfully synced distinct destinations to redis", "count", len(locations))
+	return nil
+}
+
+// SearchDestinations provides autocomplete suggestions for destinations using Redis Lexicographical Search
+func (s *ServiceImpl) SearchDestinations(ctx context.Context, query string, limit int) ([]*domain.Destination, error) {
+	if len(query) < 3 {
+		return []*domain.Destination{}, nil // Require over 2 chars as per requirement
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	redisKey := "discovery:destinations" // Redis key for destinations sorted set
+
+	// For Redis Lexical search, we maintain a lowercase prefix followed by our data delimiter.
+	// e.g. "lagos|Lagos|Lagos State|NG|Lagos, Lagos State"
+	searchQuery := strings.ToLower(query)
+	start := "[" + searchQuery
+	end := "[" + searchQuery + "\xff"
+
+	redisOpt := redis.ZRangeArgs{
+		Key:    redisKey,
+		Start:  start,
+		Stop:   end,
+		ByLex:  true,
+		Offset: 0,
+		Count:  int64(limit),
+	}
+
+	resultCmd := s.cache.ZRangeArgs(ctx, redisOpt)
+	if err := resultCmd.Err(); err != nil && err != redis.Nil {
+		s.log.Error("failed to query redis for destinations", "error", err)
+		return nil, fmt.Errorf("failed to search destinations: %w", err)
+	}
+
+	results := resultCmd.Val()
+
+	destinations := make([]*domain.Destination, 0, len(results))
+	for _, res := range results {
+		// Data format: lowercase_search_key|City|State|Country|DisplayText
+		// e.g. "abuja|Abuja|FCT|NG|Abuja, FCT"
+		parts := strings.Split(res, "|")
+		if len(parts) >= 5 {
+			city := parts[1]
+			state := parts[2]
+			country := parts[3]
+			displayText := parts[4]
+
+			destinations = append(destinations, &domain.Destination{
+				ID:          city + "|" + state + "|" + country,
+				City:        city,
+				State:       state,
+				Country:     country,
+				DisplayText: displayText,
+			})
+		}
+	}
+
+	return destinations, nil
 }

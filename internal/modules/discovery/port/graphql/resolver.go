@@ -107,6 +107,37 @@ func (r *Resolver) DiscoverSimilar(
 	return toRankedListingPointers(listings), nil
 }
 
+// SearchDestinations provides autocomplete suggestions
+func (r *Resolver) SearchDestinations(
+	ctx context.Context,
+	query string,
+	limit *int,
+) ([]*graphmodel.Destination, error) {
+	limitValue := 10
+	if limit != nil {
+		limitValue = *limit
+	}
+
+	destinations, err := r.discoverySvc.SearchDestinations(ctx, query, limitValue)
+	if err != nil {
+		r.log.Error("search destinations query failed", "error", err)
+		return nil, err
+	}
+
+	result := make([]*graphmodel.Destination, 0, len(destinations))
+	for _, rawDest := range destinations {
+		result = append(result, &graphmodel.Destination{
+			ID:          rawDest.ID,
+			City:        rawDest.City,
+			State:       rawDest.State,
+			Country:     rawDest.Country,
+			DisplayText: rawDest.DisplayText,
+		})
+	}
+
+	return result, nil
+}
+
 // ===== MAPPING FUNCTIONS =====
 
 // mapToServiceFilter converts GraphQL filter to service filter

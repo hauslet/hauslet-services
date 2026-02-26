@@ -44,6 +44,14 @@ type SearchResult {
   processingTime: Int
 }
 
+type Destination {
+  id: String!
+  city: String!
+  state: String!
+  country: String!
+  displayText: String!
+}
+
 # ===========================
 # ENUMS
 # ===========================
@@ -146,4 +154,7 @@ extend type Query {
 
   # Similar listings with ranking (use this for discovery with promotion awareness)
   discoverSimilar(listingId: UUID!, limit: Int): [RankedListing!]!
+
+  # Autocomplete for destinations (typeahead search)
+  searchDestinations(query: String!, limit: Int): [Destination!]!
 }

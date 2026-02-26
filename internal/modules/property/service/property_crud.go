@@ -1,6 +1,7 @@
 package service
 
 import (
+	"slices"
 	"context"
 	"encoding/json"
 
@@ -178,11 +179,9 @@ func (s *ServiceImpl) GetPropertiesByIDs(ctx context.Context, ids []uuid.UUID) (
 	}
 
 	// Validate all IDs
-	for _, id := range ids {
-		if id == uuid.Nil {
+	if slices.Contains(ids, uuid.Nil) {
 			return nil, domain.ErrInvalidPropertyID
 		}
-	}
 
 	schemaProperties, err := s.repo.GetPropertiesByIDs(ctx, ids)
 	if err != nil {
@@ -192,7 +191,28 @@ func (s *ServiceImpl) GetPropertiesByIDs(ctx context.Context, ids []uuid.UUID) (
 	return domain.MapPropertiesFromSchema(schemaProperties), nil
 }
 
+// GetDistinctLocations returns distinct City, State, Country combinations for active properties.
+func (s *ServiceImpl) GetDistinctLocations(ctx context.Context) ([]domain.LocationCombination, error) {
+	locations, err := s.repo.GetDistinctLocations(ctx)
+	if err != nil {
+		s.log.Error("failed to get distinct locations from repo", "error", err)
+		return nil, err
+	}
+
+	result := make([]domain.LocationCombination, 0, len(locations))
+	for _, loc := range locations {
+		result = append(result, domain.LocationCombination{
+			City:    loc.City,
+			State:   loc.State,
+			Country: string(loc.Country),
+		})
+	}
+
+	return result, nil
+}
+
 // ListProperties retrieves properties based on filter and pagination.
+
 func (s *ServiceImpl) ListProperties(ctx context.Context, filter PropertyFilter, page Pagination) ([]domain.Property, int64, error) {
 	repoFilter := mapPropertyFilterToRepo(filter)
 	repoPagination := repository.Pagination{

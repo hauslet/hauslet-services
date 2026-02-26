@@ -35,3 +35,5 @@ queue:
     interactions_aggregator: "interactions-aggregator-queue"
     conversation_cleanup: "conversation-cleanup-queue"
     lead_qualification: "lead-qualification-queue"
+    sync_destinations: "sync-destinations-queue"
+

@@ -21,6 +21,7 @@ type PropertyRepository interface {
 	ListProperties(ctx context.Context, filter PropertyFilter, page Pagination) (*PaginatedResult[schema.Property], error)
 	PropertyExists(ctx context.Context, id uuid.UUID) (bool, error)
 	GetPropertiesByIDs(ctx context.Context, ids []uuid.UUID) ([]schema.Property, error)
+	GetDistinctLocations(ctx context.Context) ([]schema.Property, error)
 	SoftDeleteProperty(ctx context.Context, id uuid.UUID) error
 	HardDeleteProperty(ctx context.Context, id uuid.UUID) error
 }

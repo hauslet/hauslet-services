@@ -792,7 +792,44 @@ resource "google_cloud_scheduler_job" "listing_embedding" {
   ]
 }
 
+# 22. Sync Destinations (every hour)
+resource "google_cloud_scheduler_job" "sync_destinations" {
+  name        = "sync-destinations-scheduler"
+  description = "Synchronizes unique destinations from properties to Redis every hour"
+  schedule    = "0 * * * *" # Every hour at minute 0
+  time_zone   = "UTC"
+  region      = "europe-west1"
+
+  retry_config {
+    retry_count          = 3
+    min_backoff_duration = "10s"
+    max_backoff_duration = "300s"
+  }
+
+  http_target {
+    uri         = "${var.worker_url}/tasks/discovery/sync-destinations"
+    http_method = "POST"
+
+    headers = {
+      "Content-Type" = "application/json"
+    }
+
+    # Job payload
+    body = base64encode(jsonencode({}))
+
+    oidc_token {
+      service_account_email = var.worker_service_account
+      audience              = var.worker_url
+    }
+  }
+
+  depends_on = [
+    google_project_service.cloudscheduler
+  ]
+}
+
 # Enable Cloud Scheduler API
+
 resource "google_project_service" "cloudscheduler" {
   project = var.project_id
   service = "cloudscheduler.googleapis.com"

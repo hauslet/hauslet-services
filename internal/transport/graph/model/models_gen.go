@@ -96,6 +96,14 @@ type CustomFeeInput struct {
 	IsOptional   *bool               `json:"isOptional,omitempty"`
 }
 
+type Destination struct {
+	ID          string `json:"id"`
+	City        string `json:"city"`
+	State       string `json:"state"`
+	Country     string `json:"country"`
+	DisplayText string `json:"displayText"`
+}
+
 type DiscountInput struct {
 	Name       string              `json:"name"`
 	Type       domain.DiscountType `json:"type"`

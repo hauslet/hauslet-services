@@ -24,6 +24,12 @@ type DiscoveryService interface {
 	// FindSimilarListings finds listings similar to the given listing
 	FindSimilarListings(ctx context.Context, listingID uuid.UUID, limit int) ([]domain.RankedListing, error)
 
+	// SearchDestinations provides autocomplete suggestions for destinations
+	SearchDestinations(ctx context.Context, query string, limit int) ([]*domain.Destination, error)
+
+	// SyncDestinationsToRedis pushes distinct property locations to Redis for autocomplete
+	SyncDestinationsToRedis(ctx context.Context) error
+
 	// Future: Recommendations, search history, user preferences
 	// GetRecommendations(ctx context.Context, userID uuid.UUID, limit int) ([]domain.RankedListing, error)
 	// SaveSearch(ctx context.Context, userID uuid.UUID, query string, filters map[string]interface{}, resultCount int) error
@@ -105,6 +111,9 @@ type PropertyDiscoveryHooks interface {
 
 	// GetRecentListings fetches recently published listings
 	GetRecentListings(ctx context.Context, limit int) ([]propertydomain.Listing, error)
+
+	// GetDistinctLocations returns distinct City, State, Country combinations for active listings
+	GetDistinctLocations(ctx context.Context) ([]propertydomain.LocationCombination, error)
 
 	// FindSimilarListings finds listings similar to the given listing
 	FindSimilarListings(ctx context.Context, listingID uuid.UUID, limit int) ([]propertydomain.ScoredListing, error)

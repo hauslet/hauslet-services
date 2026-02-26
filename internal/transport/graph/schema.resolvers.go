@@ -1770,6 +1770,11 @@ func (r *queryResolver) DiscoverSimilar(ctx context.Context, listingID uuid.UUID
 	return r.DiscoveryResolver.DiscoverSimilar(ctx, listingID, limit)
 }
 
+// SearchDestinations is the resolver for the searchDestinations field.
+func (r *queryResolver) SearchDestinations(ctx context.Context, query string, limit *int) ([]*model.Destination, error) {
+	return r.DiscoveryResolver.SearchDestinations(ctx, query, limit)
+}
+
 // OneStar is the resolver for the oneStar field.
 func (r *ratingDistributionResolver) OneStar(ctx context.Context, obj *domain8.RatingDistribution) (int, error) {
 	return obj.OneStarCount, nil

@@ -22,7 +22,10 @@ import (
 	calendarrepository "hauslet/internal/modules/calendar/repository"
 	calendarschema "hauslet/internal/modules/calendar/repository/schema"
 	calendarservice "hauslet/internal/modules/calendar/service"
+	discoveryhooks "hauslet/internal/modules/discovery/port/hooks"
+	discoveryservice "hauslet/internal/modules/discovery/service"
 	financenotification "hauslet/internal/modules/finance/notification"
+
 	financehooks "hauslet/internal/modules/finance/port/hooks"
 	financerepository "hauslet/internal/modules/finance/repository"
 	financeservice "hauslet/internal/modules/finance/service"
@@ -52,6 +55,7 @@ import (
 	propertyrepository "hauslet/internal/modules/property/repository"
 	propertyservice "hauslet/internal/modules/property/service"
 	reviewnotification "hauslet/internal/modules/review/notification"
+
 	reviewhooks "hauslet/internal/modules/review/port/hooks"
 	reviewrepository "hauslet/internal/modules/review/repository"
 	reviewservice "hauslet/internal/modules/review/service"
@@ -63,7 +67,9 @@ import (
 	calendarjobs "hauslet/internal/queue/jobs/calendar"
 	bookingHandler "hauslet/internal/transport/worker/handlers/booking"
 	calendarHandler "hauslet/internal/transport/worker/handlers/calendar"
+	discoveryHandler "hauslet/internal/transport/worker/handlers/discovery"
 	emailHandler "hauslet/internal/transport/worker/handlers/emails"
+
 	financeHandler "hauslet/internal/transport/worker/handlers/finance"
 	interactionHandler "hauslet/internal/transport/worker/handlers/interactions"
 	leadsHandler "hauslet/internal/transport/worker/handlers/leads"
@@ -140,8 +146,60 @@ func RegisterHandlers(infra *Infrastructure, cfg *config.GlobalConfig, log *slog
 		registry.Register(h)
 	}
 
-	// Embedding generator handler
+	// Destination Sync handler
+	hasDestinationSync := qCfg["sync_destinations"] != ""
+	if hasDestinationSync {
+		// Initialize the services required for discovery hooks
+		if propertyRepo == nil {
+			propertyRepo = propertyrepository.NewPropertyRepository(infra.DB)
+		}
+
+		// For syncing, we need propertyservice to pass to discovery adapter
+		// If profileSvc is nil, initialize it
+		if profileSvc == nil {
+			profileRepo = profilerepository.NewProfileRepository(infra.DB)
+			profileSvc = profileservice.NewProfileService(profileRepo, infra.Storage, nil, nil, nil, log)
+		}
+
+		propertyProfileAdapter := profileport.NewPropertyProfileAdapter(profileSvc)
+
+		propertySvc := propertyservice.NewPropertyService(
+			propertyRepo,
+			nil,                    // notification (not needed)
+			propertyProfileAdapter, // profiles needed
+			nil,                    // storage (not needed)
+			nil,                    // queue (not needed)
+			"",                     // thumbnail subject (not needed)
+			nil,                    // moderation hooks (not needed)
+			infra.Cache,
+			nil, // ai embeddings
+			nil, // aiAssist (not needed)
+			log,
+			nil, // fx (not needed)
+			nil, // business auth (not needed)
+			nil, // business svc (not needed)
+			nil, // subscription svc (not needed)
+			nil, // supply gate (not needed)
+		)
+
+		// For syncing, we can use a minimal discovery service with only property hooks
+		propHooks := discoveryhooks.NewPropertyDiscoveryAdapter(propertySvc)
+
+		discoverySvc := discoveryservice.NewDiscoveryService(
+			nil, // repo not needed for sync
+			propHooks,
+			nil, // promotionHooks not needed for sync
+			nil, // calendarHooks not needed for sync
+			infra.Cache,
+			log,
+		)
+
+		h := discoveryHandler.NewSyncDestinationsHandler(propHooks, discoverySvc, log, qCfg["sync_destinations"])
+		registry.Register(h)
+	}
+
 	if qCfg["listing_embedding"] != "" {
+
 		// Initialize PropertyService with minimal dependencies for embedding generation
 		// We only need Repo, Embedding Client, and Logger for this specific task
 		propSvc := propertyservice.NewPropertyService(

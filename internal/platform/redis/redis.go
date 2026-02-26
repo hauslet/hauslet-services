@@ -30,6 +30,10 @@ type RedisClient interface {
 	// List operations
 	RPush(ctx context.Context, key string, values ...any) *redis.IntCmd
 	LPop(ctx context.Context, key string) *redis.StringCmd
+	// Sorted Set operations
+	ZAdd(ctx context.Context, key string, members ...redis.Z) *redis.IntCmd
+	ZRangeArgs(ctx context.Context, args redis.ZRangeArgs) *redis.StringSliceCmd
+	Rename(ctx context.Context, key, newkey string) *redis.StatusCmd
 }
 
 var (

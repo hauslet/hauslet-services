@@ -63,7 +63,13 @@ func (a *PropertyDiscoveryAdapter) GetRecentListings(ctx context.Context, limit 
 	return listings, err
 }
 
+// GetDistinctLocations proxies the request to the property service
+func (a *PropertyDiscoveryAdapter) GetDistinctLocations(ctx context.Context) ([]propertydomain.LocationCombination, error) {
+	return a.propertySvc.GetDistinctLocations(ctx)
+}
+
 // FindSimilarListings finds listings similar to the given listing
+
 func (a *PropertyDiscoveryAdapter) FindSimilarListings(ctx context.Context, listingID uuid.UUID, limit int) ([]propertydomain.ScoredListing, error) {
 	// Use minimum similarity of 0.7 (70% similar)
 	return a.propertySvc.FindSimilarListings(ctx, listingID, limit, 0.7)

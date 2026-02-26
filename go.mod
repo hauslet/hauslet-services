@@ -10,6 +10,7 @@ require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/arran4/golang-ical v0.3.2
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
+	github.com/disintegration/imaging v1.6.2
 	github.com/go-pkgz/auth/v2 v2.1.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
@@ -131,7 +132,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.7
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.1
 	github.com/dghubble/oauth1 v0.7.3 // indirect
-	github.com/disintegration/imaging v1.6.2
 	github.com/go-chi/chi/v5 v5.2.4
 	github.com/go-chi/cors v1.2.2
 	github.com/go-oauth2/oauth2/v4 v4.5.4 // indirect

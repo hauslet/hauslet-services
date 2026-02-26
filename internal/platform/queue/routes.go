@@ -117,6 +117,10 @@ var defaultQueueRoutes = map[string]QueueRoute{
 		Path:    "/tasks/listing/embedding",
 		Timeout: 300 * time.Second, // Allow more time for batch AI processing
 	},
+	"sync_destinations": {
+		Path:    "/tasks/discovery/sync-destinations",
+		Timeout: 120 * time.Second,
+	},
 }
 
 func BuildQueueRoutes(queueNames map[string]string) map[string]QueueRoute {

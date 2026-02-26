@@ -62,6 +62,7 @@ type PropertyService interface {
 	SearchListings(ctx context.Context, filter ListingFilter, limit int) ([]domain.ScoredListing, error)
 	FindSimilarListings(ctx context.Context, listingID uuid.UUID, limit int, minSimilarity float64) ([]domain.ScoredListing, error)
 	GenerateListingEmbeddings(ctx context.Context, batchSize int) (int, error)
+	GetDistinctLocations(ctx context.Context) ([]domain.LocationCombination, error)
 
 	// Composite operations
 	CreatePropertyWithListing(ctx context.Context, p domain.Property, l domain.Listing) (*domain.Property, *domain.Listing, error)

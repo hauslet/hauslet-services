@@ -6,6 +6,13 @@ import (
 	"github.com/google/uuid"
 )
 
+// LocationCombination represents a distinct geographical location
+type LocationCombination struct {
+	City    string
+	State   string
+	Country string
+}
+
 type ContentType string
 type ModerationStatus string
 

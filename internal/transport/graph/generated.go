@@ -395,6 +395,14 @@ type ComplexityRoot struct {
 		FinalRate func(childComplexity int) int
 	}
 
+	Destination struct {
+		City        func(childComplexity int) int
+		Country     func(childComplexity int) int
+		DisplayText func(childComplexity int) int
+		ID          func(childComplexity int) int
+		State       func(childComplexity int) int
+	}
+
 	Disbursement struct {
 		Amount        func(childComplexity int) int
 		Attempts      func(childComplexity int) int
@@ -1246,6 +1254,7 @@ type ComplexityRoot struct {
 		ReviewResponse                 func(childComplexity int, reviewID uuid.UUID) int
 		Reviews                        func(childComplexity int, targetType domain10.ReviewTargetType, targetID uuid.UUID, filter *graphql10.ReviewFilterInput) int
 		SearchBusinesses               func(childComplexity int, query string, limit *int, offset *int) int
+		SearchDestinations             func(childComplexity int, query string, limit *int) int
 		SearchProfiles                 func(childComplexity int, query string, limit *int, offset *int) int
 		Transaction                    func(childComplexity int, id uuid.UUID) int
 		TransactionsByBooking          func(childComplexity int, bookingID uuid.UUID) int
@@ -1937,6 +1946,7 @@ type QueryResolver interface {
 	HomeFeed(ctx context.Context, options *model.FeedOptionsInput) ([]*domain14.HomeFeedSection, error)
 	FeaturedListings(ctx context.Context, limit *int) ([]*domain14.RankedListing, error)
 	DiscoverSimilar(ctx context.Context, listingID uuid.UUID, limit *int) ([]*domain14.RankedListing, error)
+	SearchDestinations(ctx context.Context, query string, limit *int) ([]*model.Destination, error)
 }
 type RatingDistributionResolver interface {
 	OneStar(ctx context.Context, obj *domain10.RatingDistribution) (int, error)
@@ -3326,6 +3336,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.DailyRate.FinalRate(childComplexity), true
+
+	case "Destination.city":
+		if e.complexity.Destination.City == nil {
+			break
+		}
+
+		return e.complexity.Destination.City(childComplexity), true
+	case "Destination.country":
+		if e.complexity.Destination.Country == nil {
+			break
+		}
+
+		return e.complexity.Destination.Country(childComplexity), true
+	case "Destination.displayText":
+		if e.complexity.Destination.DisplayText == nil {
+			break
+		}
+
+		return e.complexity.Destination.DisplayText(childComplexity), true
+	case "Destination.id":
+		if e.complexity.Destination.ID == nil {
+			break
+		}
+
+		return e.complexity.Destination.ID(childComplexity), true
+	case "Destination.state":
+		if e.complexity.Destination.State == nil {
+			break
+		}
+
+		return e.complexity.Destination.State(childComplexity), true
 
 	case "Disbursement.amount":
 		if e.complexity.Disbursement.Amount == nil {
@@ -8452,6 +8493,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.SearchBusinesses(childComplexity, args["query"].(string), args["limit"].(*int), args["offset"].(*int)), true
+	case "Query.searchDestinations":
+		if e.complexity.Query.SearchDestinations == nil {
+			break
+		}
+
+		args, err := ec.field_Query_searchDestinations_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.SearchDestinations(childComplexity, args["query"].(string), args["limit"].(*int)), true
 	case "Query.searchProfiles":
 		if e.complexity.Query.SearchProfiles == nil {
 			break
@@ -13879,6 +13931,14 @@ type SearchResult {
   processingTime: Int
 }
 
+type Destination {
+  id: String!
+  city: String!
+  state: String!
+  country: String!
+  displayText: String!
+}
+
 # ===========================
 # ENUMS
 # ===========================
@@ -13981,6 +14041,9 @@ extend type Query {
 
   # Similar listings with ranking (use this for discovery with promotion awareness)
   discoverSimilar(listingId: UUID!, limit: Int): [RankedListing!]!
+
+  # Autocomplete for destinations (typeahead search)
+  searchDestinations(query: String!, limit: Int): [Destination!]!
 }
 `, BuiltIn: false},
 }
@@ -16469,6 +16532,22 @@ func (ec *executionContext) field_Query_searchBusinesses_args(ctx context.Contex
 		return nil, err
 	}
 	args["offset"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_searchDestinations_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "query", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["query"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
 	return args, nil
 }
 
@@ -23401,6 +23480,151 @@ func (ec *executionContext) fieldContext_DailyRate_finalRate(_ context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Destination_id(ctx context.Context, field graphql.CollectedField, obj *model.Destination) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Destination_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Destination_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Destination",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Destination_city(ctx context.Context, field graphql.CollectedField, obj *model.Destination) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Destination_city,
+		func(ctx context.Context) (any, error) {
+			return obj.City, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Destination_city(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Destination",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Destination_state(ctx context.Context, field graphql.CollectedField, obj *model.Destination) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Destination_state,
+		func(ctx context.Context) (any, error) {
+			return obj.State, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Destination_state(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Destination",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Destination_country(ctx context.Context, field graphql.CollectedField, obj *model.Destination) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Destination_country,
+		func(ctx context.Context) (any, error) {
+			return obj.Country, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Destination_country(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Destination",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Destination_displayText(ctx context.Context, field graphql.CollectedField, obj *model.Destination) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Destination_displayText,
+		func(ctx context.Context) (any, error) {
+			return obj.DisplayText, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Destination_displayText(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Destination",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -52624,6 +52848,59 @@ func (ec *executionContext) fieldContext_Query_discoverSimilar(ctx context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_searchDestinations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_searchDestinations,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().SearchDestinations(ctx, fc.Args["query"].(string), fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalNDestination2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDestinationᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_searchDestinations(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Destination_id(ctx, field)
+			case "city":
+				return ec.fieldContext_Destination_city(ctx, field)
+			case "state":
+				return ec.fieldContext_Destination_state(ctx, field)
+			case "country":
+				return ec.fieldContext_Destination_country(ctx, field)
+			case "displayText":
+				return ec.fieldContext_Destination_displayText(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Destination", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_searchDestinations_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -69472,6 +69749,65 @@ func (ec *executionContext) _DailyRate(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var destinationImplementors = []string{"Destination"}
+
+func (ec *executionContext) _Destination(ctx context.Context, sel ast.SelectionSet, obj *model.Destination) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, destinationImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Destination")
+		case "id":
+			out.Values[i] = ec._Destination_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "city":
+			out.Values[i] = ec._Destination_city(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "state":
+			out.Values[i] = ec._Destination_state(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "country":
+			out.Values[i] = ec._Destination_country(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "displayText":
+			out.Values[i] = ec._Destination_displayText(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var disbursementImplementors = []string{"Disbursement"}
 
 func (ec *executionContext) _Disbursement(ctx context.Context, sel ast.SelectionSet, obj *domain6.Disbursement) graphql.Marshaler {
@@ -77871,6 +78207,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "searchDestinations":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_searchDestinations(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -82437,6 +82795,60 @@ func (ec *executionContext) unmarshalNDayOfWeek2hausletᚋinternalᚋtransport�
 
 func (ec *executionContext) marshalNDayOfWeek2hausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDayOfWeek(ctx context.Context, sel ast.SelectionSet, v model.DayOfWeek) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNDestination2ᚕᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDestinationᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Destination) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNDestination2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDestination(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNDestination2ᚖhausletᚋinternalᚋtransportᚋgraphᚋmodelᚐDestination(ctx context.Context, sel ast.SelectionSet, v *model.Destination) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Destination(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNDisbursement2ᚕᚖhausletᚋinternalᚋmodulesᚋfinanceᚋdomainᚐDisbursementᚄ(ctx context.Context, sel ast.SelectionSet, v []*domain6.Disbursement) graphql.Marshaler {

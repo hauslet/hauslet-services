@@ -135,6 +135,27 @@ func (r *GormRepository) GetPropertiesByIDs(ctx context.Context, ids []uuid.UUID
 	return properties, nil
 }
 
+// GetDistinctLocations returns distinct City, State, Country combinations for active properties.
+func (r *GormRepository) GetDistinctLocations(ctx context.Context) ([]schema.Property, error) {
+	var locations []schema.Property
+	// We want distinct combinations of city, state, and country from properties
+	// Ideally we only want this for properties that have active listings
+
+	err := r.db.WithContext(ctx).
+		Table("properties").
+		Select("properties.city, properties.state, properties.country").
+		Joins("JOIN listings ON listings.property_id = properties.id").
+		Where("listings.status = 'active' AND listings.deleted_at IS NULL AND properties.deleted_at IS NULL").
+		Group("properties.city, properties.state, properties.country").
+		Find(&locations).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get distinct locations: %w", err)
+	}
+
+	return locations, nil
+}
+
 // SoftDeleteProperty marks a property as deleted.
 func (r *GormRepository) SoftDeleteProperty(ctx context.Context, id uuid.UUID) error {
 	result := r.db.WithContext(ctx).Delete(&schema.Property{}, "id = ?", id)
