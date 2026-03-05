@@ -25,6 +25,12 @@ func RunMigrations(db *gorm.DB, log *slog.Logger, models ...interface{}) error {
 		return fmt.Errorf("failed to auto-migrate models: %w", err)
 	}
 
+	// Step 3: Post-migration setup (depends on tables existing)
+	log.Info("Setting up full-text search")
+	if err := setupSearchVector(db); err != nil {
+		log.Info("Skipping search vector setup", "error", err)
+	}
+
 	return nil
 }
 
@@ -45,7 +51,12 @@ func setupExtensions(db *gorm.DB) error {
 		return fmt.Errorf("failed to create vector extension: %w", err)
 	}
 
-	// Add search_vector column for Full Text Search
+	return nil
+}
+
+// setupSearchVector adds the full-text search column and index to listings.
+// Must run after AutoMigrate so the listings table exists.
+func setupSearchVector(db *gorm.DB) error {
 	if err := db.Exec(`
 		ALTER TABLE listings
 		ADD COLUMN IF NOT EXISTS search_vector tsvector
@@ -54,7 +65,6 @@ func setupExtensions(db *gorm.DB) error {
 		return fmt.Errorf("failed to add search_vector column: %w", err)
 	}
 
-	// Add GIN index for search_vector
 	if err := db.Exec(`CREATE INDEX IF NOT EXISTS idx_listings_search_vector ON listings USING GIN(search_vector)`).Error; err != nil {
 		return fmt.Errorf("failed to create search_vector index: %w", err)
 	}

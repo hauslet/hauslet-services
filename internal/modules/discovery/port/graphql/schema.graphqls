@@ -93,6 +93,7 @@ input DiscoverySearchFilterInput {
   amenities: [String!]
   furnishing: [FurnishingType!]
   accommodationTypes: [AccommodationType!]
+  isVerified: Boolean
 }
 
 input LocationFilterInput {

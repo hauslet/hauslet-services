@@ -195,6 +195,27 @@ func mapToServiceFilter(input graphmodel.DiscoverySearchFilterInput) service.Sea
 	filter.Country = input.Country
 	filter.Amenities = input.Amenities
 
+	// Map missing fields
+	filter.GuestCount = input.GuestCount
+	filter.CheckIn = input.CheckIn
+	filter.CheckOut = input.CheckOut
+
+	if len(input.Furnishing) > 0 {
+		filter.Furnishing = make([]string, len(input.Furnishing))
+		for i, f := range input.Furnishing {
+			filter.Furnishing[i] = string(f)
+		}
+	}
+
+	if len(input.AccommodationTypes) > 0 {
+		filter.AccommodationTypes = make([]string, len(input.AccommodationTypes))
+		for i, at := range input.AccommodationTypes {
+			filter.AccommodationTypes[i] = string(at)
+		}
+	}
+
+	filter.IsVerified = input.IsVerified
+
 	return filter
 }
 

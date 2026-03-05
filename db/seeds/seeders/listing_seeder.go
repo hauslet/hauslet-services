@@ -311,27 +311,35 @@ func chooseListingLifecycle(
 	listingType propertySchema.ListingType,
 	activeTracker map[string]bool,
 ) listingLifecycle {
-	roll := utils.RandomInt(1, 100)
-	status := propertySchema.StatusActive
+	var status propertySchema.ListingStatus
 
-	switch {
-	case roll <= 80:
-		status = propertySchema.StatusActive
-	case roll <= 85:
-		status = propertySchema.StatusDraft
-	case roll <= 90:
-		status = propertySchema.StatusUnderReview
-	case roll <= 93:
-		status = propertySchema.StatusInactive
-	case roll <= 96:
-		status = propertySchema.StatusPendingVerification
-	default:
-		if listingType == propertySchema.ListingSale {
-			status = propertySchema.StatusSold
-		} else if listingType == propertySchema.ListingRent {
-			status = propertySchema.StatusRented
+	if listingType == propertySchema.ListingShortLet {
+		if utils.RandomInt(1, 100) <= 98 {
+			status = propertySchema.StatusActive
 		} else {
 			status = propertySchema.StatusInactive
+		}
+	} else {
+		roll := utils.RandomInt(1, 100)
+		switch {
+		case roll <= 80:
+			status = propertySchema.StatusActive
+		case roll <= 85:
+			status = propertySchema.StatusDraft
+		case roll <= 90:
+			status = propertySchema.StatusUnderReview
+		case roll <= 93:
+			status = propertySchema.StatusInactive
+		case roll <= 96:
+			status = propertySchema.StatusPendingVerification
+		default:
+			if listingType == propertySchema.ListingSale {
+				status = propertySchema.StatusSold
+			} else if listingType == propertySchema.ListingRent {
+				status = propertySchema.StatusRented
+			} else {
+				status = propertySchema.StatusInactive
+			}
 		}
 	}
 
@@ -426,9 +434,9 @@ func applyVerification(listing *propertySchema.Listing, property propertySeed) {
 		return
 	}
 
-	verificationChance := 0.35
+	verificationChance := 0.75
 	if strings.EqualFold(property.PropertyClass, string(propertySchema.ClassCommercial)) {
-		verificationChance = 0.55
+		verificationChance = 0.90
 	}
 
 	if !utils.RandomBoolWithProbability(verificationChance) {
@@ -442,12 +450,15 @@ func applyVerification(listing *propertySchema.Listing, property propertySeed) {
 		listing.VerificationLevel = utils.RandomChoice([]propertySchema.VerificationLevel{
 			propertySchema.VerificationLevelPlus,
 			propertySchema.VerificationLevelPremium,
+			propertySchema.VerificationLevelPremium, // Weighted higher
 		})
 	} else {
 		listing.VerificationLevel = utils.RandomChoice([]propertySchema.VerificationLevel{
 			propertySchema.VerificationLevelBasic,
 			propertySchema.VerificationLevelPlus,
+			propertySchema.VerificationLevelPlus,
 			propertySchema.VerificationLevelPremium,
+			propertySchema.VerificationLevelPremium, // Weighted higher
 		})
 	}
 
@@ -935,6 +946,7 @@ func randomAdvanceBooking() propertySchema.AdvanceBooking {
 
 func seedListingMedia(ctx *SeedContext, listing propertySchema.Listing, property propertySeed) error {
 	references := mediaReferencesForPropertyType(property.PropertyType)
+	utils.Shuffle(references)
 	mediaCount := utils.RandomInt(4, 8)
 	now := time.Now()
 

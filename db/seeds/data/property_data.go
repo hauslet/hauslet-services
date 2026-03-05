@@ -56,19 +56,19 @@ var (
 // BedroomDistribution represents typical bedroom counts by property type
 var BedroomDistribution = map[string][]int{
 	"studio":         {0, 1},
-	"apartment":      {1, 2, 3, 4},
-	"flat":           {1, 2, 3},
-	"duplex":         {3, 4, 5},
-	"penthouse":      {2, 3, 4, 5},
-	"house":          {2, 3, 4, 5},
-	"bungalow":       {2, 3, 4},
-	"detached_house": {4, 5, 6},
-	"semi_detached":  {3, 4, 5},
-	"terraced":       {2, 3, 4},
-	"townhouse":      {2, 3, 4},
-	"villa":          {4, 5, 6},
-	"mansion":        {5, 6, 7},
-	"estate":         {3, 4, 5},
+	"apartment":      {1, 1, 2, 2, 2, 3, 3, 4, 5},
+	"flat":           {1, 2, 2, 3, 3, 4},
+	"duplex":         {2, 3, 4, 4, 5, 6},
+	"penthouse":      {2, 3, 4, 4, 5, 6},
+	"house":          {1, 2, 3, 3, 4, 5, 6, 7},
+	"bungalow":       {2, 3, 3, 4, 5},
+	"detached_house": {3, 4, 4, 5, 6, 7},
+	"semi_detached":  {2, 3, 4, 4, 5},
+	"terraced":       {2, 3, 4, 4, 5},
+	"townhouse":      {2, 3, 4, 4, 5},
+	"villa":          {3, 4, 5, 6, 7, 8},
+	"mansion":        {5, 6, 7, 8, 10},
+	"estate":         {3, 4, 5, 6, 7},
 }
 
 // CommercialUnitDistribution represents typical unit capacities for commercial property types.

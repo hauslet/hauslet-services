@@ -129,6 +129,7 @@ type DiscoverySearchFilterInput struct {
 	Amenities          []string                   `json:"amenities,omitempty"`
 	Furnishing         []domain.FurnishingType    `json:"furnishing,omitempty"`
 	AccommodationTypes []domain.AccommodationType `json:"accommodationTypes,omitempty"`
+	IsVerified         *bool                      `json:"isVerified,omitempty"`
 }
 
 type FeedOptionsInput struct {

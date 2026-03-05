@@ -42,7 +42,7 @@ func DefaultConfig() *SeedConfig {
 		UserCount:     getEnvInt("SEED_USERS", 30),
 		BusinessCount: getEnvInt("SEED_BUSINESSES", 5),
 		PropertyCount: getEnvInt("SEED_PROPERTIES", 50),
-		ListingCount:  getEnvInt("SEED_LISTINGS", 75),
+		ListingCount:  getEnvInt("SEED_LISTINGS", 100),
 		BookingCount:  getEnvInt("SEED_BOOKINGS", 100),
 		ReviewCount:   getEnvInt("SEED_REVIEWS", 60),
 
@@ -79,7 +79,7 @@ func TestConfig() *SeedConfig {
 
 		AdminEmails: []string{"admin@hauslet.com"},
 
-		SeedMedia:       false,
+		SeedMedia:       true,
 		SeedReviews:     true,
 		SeedBookings:    true,
 		SeedFinance:     true,

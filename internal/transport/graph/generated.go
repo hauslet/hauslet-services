@@ -13980,6 +13980,7 @@ input DiscoverySearchFilterInput {
   amenities: [String!]
   furnishing: [FurnishingType!]
   accommodationTypes: [AccommodationType!]
+  isVerified: Boolean
 }
 
 input LocationFilterInput {
@@ -64077,7 +64078,7 @@ func (ec *executionContext) unmarshalInputDiscoverySearchFilterInput(ctx context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"query", "location", "priceRange", "propertyTypes", "bedrooms", "bathrooms", "listingTypes", "city", "state", "country", "guestCount", "checkIn", "checkOut", "amenities", "furnishing", "accommodationTypes"}
+	fieldsInOrder := [...]string{"query", "location", "priceRange", "propertyTypes", "bedrooms", "bathrooms", "listingTypes", "city", "state", "country", "guestCount", "checkIn", "checkOut", "amenities", "furnishing", "accommodationTypes", "isVerified"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -64196,6 +64197,13 @@ func (ec *executionContext) unmarshalInputDiscoverySearchFilterInput(ctx context
 				return it, err
 			}
 			it.AccommodationTypes = data
+		case "isVerified":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isVerified"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsVerified = data
 		}
 	}
 
