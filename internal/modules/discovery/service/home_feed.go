@@ -375,9 +375,46 @@ func (s *ServiceImpl) buildNearYouSection(ctx context.Context, options FeedOptio
 		filter.ListingTypes = []string{*options.ListingType}
 	}
 
-	rankedListings, err := s.searchAndRankSection(ctx, filter, options.Limit, options.Location)
-	if err != nil {
-		return nil, err
+	searchDataFilter := filter
+
+	var rankedListings []domain.RankedListing
+	if options.City != nil && options.State != nil {
+		// Prefer exact city+state matches first, then widen to state-only while
+		// preserving location radius filtering in both passes.
+		cityFilter := filter
+		cityFilter.City = options.City
+		cityFilter.State = options.State
+
+		cityRanked, err := s.searchAndRankSection(ctx, cityFilter, options.Limit, options.Location)
+		if err != nil {
+			return nil, err
+		}
+
+		stateFilter := filter
+		stateFilter.City = nil
+		stateFilter.State = options.State
+
+		fallbackLimit := options.Limit * 3
+		if fallbackLimit > maxSectionLimit {
+			fallbackLimit = maxSectionLimit
+		}
+		if fallbackLimit < options.Limit {
+			fallbackLimit = options.Limit
+		}
+
+		stateRanked, err := s.searchAndRankSection(ctx, stateFilter, fallbackLimit, options.Location)
+		if err != nil {
+			return nil, err
+		}
+
+		rankedListings = mergePrioritizedNearYouListings(cityRanked, stateRanked, options.Limit)
+		searchDataFilter = stateFilter
+	} else {
+		var err error
+		rankedListings, err = s.searchAndRankSection(ctx, filter, options.Limit, options.Location)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	title := "Near You"
@@ -398,8 +435,43 @@ func (s *ServiceImpl) buildNearYouSection(ctx context.Context, options FeedOptio
 		Title:       title,
 		Listings:    rankedListings,
 		TotalCount:  len(rankedListings),
-		SearchData:  buildDiscoverSearchData(domain.FeedSectionNearYou, filter, options.Limit),
+		SearchData:  buildDiscoverSearchData(domain.FeedSectionNearYou, searchDataFilter, options.Limit),
 	}, nil
+}
+
+func mergePrioritizedNearYouListings(
+	cityRanked []domain.RankedListing,
+	stateRanked []domain.RankedListing,
+	limit int,
+) []domain.RankedListing {
+	if limit <= 0 {
+		return []domain.RankedListing{}
+	}
+
+	merged := make([]domain.RankedListing, 0, limit)
+	seen := make(map[uuid.UUID]struct{}, len(cityRanked)+len(stateRanked))
+
+	appendUnique := func(listings []domain.RankedListing) {
+		for _, listing := range listings {
+			if len(merged) >= limit {
+				return
+			}
+			if _, exists := seen[listing.Listing.ID]; exists {
+				continue
+			}
+			seen[listing.Listing.ID] = struct{}{}
+			merged = append(merged, listing)
+		}
+	}
+
+	appendUnique(cityRanked)
+	appendUnique(stateRanked)
+
+	for i := range merged {
+		merged[i].Ranking = i + 1
+	}
+
+	return merged
 }
 
 // buildListingTypeAreaSection builds an area section for a specific listing type
