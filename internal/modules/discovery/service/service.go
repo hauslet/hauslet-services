@@ -240,21 +240,27 @@ func (s *ServiceImpl) SyncDestinationsToRedis(ctx context.Context) error {
 	// We clear the tmp key first to prevent stale data.
 	s.cache.Del(ctx, tmpKey)
 
-	// Push distinct locations to Redis for autocomplete search
-
-	members := make([]redis.Z, len(locations))
-	for i, loc := range locations {
-		// Store string format: lowercase_search_key|City|State|Country|DisplayText
-		// Using city as primary search key (add state/country variations if needed)
+	// Push distinct locations to Redis for autocomplete search.
+	// We index each destination twice:
+	// 1) city key:  c|<city_lower>|City|State|Country|Display
+	// 2) state key: s|<state_lower>|City|State|Country|Display
+	// Search can then prioritize city matches and fall back to state matches.
+	members := make([]redis.Z, 0, len(locations)*2)
+	for _, loc := range locations {
 		displayText := fmt.Sprintf("%s, %s", loc.City, loc.State)
-		searchKey := strings.ToLower(loc.City)
 
-		// Create entry string
-		entry := fmt.Sprintf("%s|%s|%s|%s|%s", searchKey, loc.City, loc.State, loc.Country, displayText)
+		cityEntry := fmt.Sprintf("c|%s|%s|%s|%s|%s", strings.ToLower(loc.City), loc.City, loc.State, loc.Country, displayText)
+		members = append(members, redis.Z{
+			Score:  0,
+			Member: cityEntry,
+		})
 
-		members[i] = redis.Z{
-			Score:  0, // We keep score as 0 so redis sorts them lexicographically by value
-			Member: entry,
+		if strings.TrimSpace(loc.State) != "" {
+			stateEntry := fmt.Sprintf("s|%s|%s|%s|%s|%s", strings.ToLower(loc.State), loc.City, loc.State, loc.Country, displayText)
+			members = append(members, redis.Z{
+				Score:  0,
+				Member: stateEntry,
+			})
 		}
 	}
 
@@ -279,7 +285,8 @@ func (s *ServiceImpl) SyncDestinationsToRedis(ctx context.Context) error {
 
 // SearchDestinations provides autocomplete suggestions for destinations using Redis Lexicographical Search
 func (s *ServiceImpl) SearchDestinations(ctx context.Context, query string, limit int) ([]*domain.Destination, error) {
-	if len(query) < 3 {
+	trimmedQuery := strings.TrimSpace(query)
+	if len(trimmedQuery) < 3 {
 		return []*domain.Destination{}, nil // Require over 2 chars as per requirement
 	}
 	if limit <= 0 {
@@ -288,11 +295,37 @@ func (s *ServiceImpl) SearchDestinations(ctx context.Context, query string, limi
 
 	redisKey := "discovery:destinations" // Redis key for destinations sorted set
 
-	// For Redis Lexical search, we maintain a lowercase prefix followed by our data delimiter.
-	// e.g. "lagos|Lagos|Lagos State|NG|Lagos, Lagos State"
-	searchQuery := strings.ToLower(query)
-	start := "[" + searchQuery
-	end := "[" + searchQuery + "\xff"
+	searchQuery := strings.ToLower(trimmedQuery)
+
+	cityMatches, err := s.searchDestinationEntries(ctx, redisKey, "c", searchQuery, limit)
+	if err != nil {
+		s.log.Error("failed to query redis city destinations", "error", err)
+		return nil, fmt.Errorf("failed to search destinations: %w", err)
+	}
+
+	fallbackCount := max(limit*3, limit)
+	stateMatches, err := s.searchDestinationEntries(ctx, redisKey, "s", searchQuery, fallbackCount)
+	if err != nil {
+		s.log.Error("failed to query redis state destinations", "error", err)
+		return nil, fmt.Errorf("failed to search destinations: %w", err)
+	}
+
+	return mergeDestinationMatches(cityMatches, stateMatches, limit), nil
+}
+
+func (s *ServiceImpl) searchDestinationEntries(
+	ctx context.Context,
+	redisKey string,
+	keyType string,
+	query string,
+	limit int,
+) ([]*domain.Destination, error) {
+	if limit <= 0 {
+		return []*domain.Destination{}, nil
+	}
+
+	start := "[" + keyType + "|" + query
+	end := "[" + keyType + "|" + query + "\xff"
 
 	redisOpt := redis.ZRangeArgs{
 		Key:    redisKey,
@@ -305,32 +338,71 @@ func (s *ServiceImpl) SearchDestinations(ctx context.Context, query string, limi
 
 	resultCmd := s.cache.ZRangeArgs(ctx, redisOpt)
 	if err := resultCmd.Err(); err != nil && err != redis.Nil {
-		s.log.Error("failed to query redis for destinations", "error", err)
-		return nil, fmt.Errorf("failed to search destinations: %w", err)
+		return nil, err
 	}
 
 	results := resultCmd.Val()
-
 	destinations := make([]*domain.Destination, 0, len(results))
 	for _, res := range results {
-		// Data format: lowercase_search_key|City|State|Country|DisplayText
-		// e.g. "abuja|Abuja|FCT|NG|Abuja, FCT"
-		parts := strings.Split(res, "|")
-		if len(parts) >= 5 {
-			city := parts[1]
-			state := parts[2]
-			country := parts[3]
-			displayText := parts[4]
-
-			destinations = append(destinations, &domain.Destination{
-				ID:          city + "|" + state + "|" + country,
-				City:        city,
-				State:       state,
-				Country:     country,
-				DisplayText: displayText,
-			})
+		if dest, ok := parseDestinationEntry(res); ok {
+			destinations = append(destinations, dest)
 		}
 	}
 
 	return destinations, nil
+}
+
+func parseDestinationEntry(entry string) (*domain.Destination, bool) {
+	parts := strings.Split(entry, "|")
+
+	// Format: keyType|search_key|City|State|Country|DisplayText
+	if len(parts) >= 6 {
+		city := parts[2]
+		state := parts[3]
+		country := parts[4]
+		displayText := parts[5]
+		return &domain.Destination{
+			ID:          city + "|" + state + "|" + country,
+			City:        city,
+			State:       state,
+			Country:     country,
+			DisplayText: displayText,
+		}, true
+	}
+
+	return nil, false
+}
+
+func mergeDestinationMatches(
+	cityMatches []*domain.Destination,
+	stateMatches []*domain.Destination,
+	limit int,
+) []*domain.Destination {
+	if limit <= 0 {
+		return []*domain.Destination{}
+	}
+
+	merged := make([]*domain.Destination, 0, limit)
+	seen := make(map[string]struct{}, len(cityMatches)+len(stateMatches))
+
+	appendUnique := func(items []*domain.Destination) {
+		for _, item := range items {
+			if item == nil {
+				continue
+			}
+			if len(merged) >= limit {
+				return
+			}
+			if _, exists := seen[item.ID]; exists {
+				continue
+			}
+			seen[item.ID] = struct{}{}
+			merged = append(merged, item)
+		}
+	}
+
+	appendUnique(cityMatches)
+	appendUnique(stateMatches)
+
+	return merged
 }
