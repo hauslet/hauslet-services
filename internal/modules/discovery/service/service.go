@@ -296,6 +296,26 @@ func (s *ServiceImpl) SearchDestinations(ctx context.Context, query string, limi
 	redisKey := "discovery:destinations" // Redis key for destinations sorted set
 
 	searchQuery := strings.ToLower(trimmedQuery)
+	if cityPart, statePart, ok := parseCityStateQuery(searchQuery); ok {
+		fallbackCount := max(limit*3, limit)
+
+		cityMatches, err := s.searchDestinationEntries(ctx, redisKey, "c", cityPart, fallbackCount)
+		if err != nil {
+			s.log.Error("failed to query redis city destinations for city,state query", "error", err)
+			return nil, fmt.Errorf("failed to search destinations: %w", err)
+		}
+
+		stateMatches, err := s.searchDestinationEntries(ctx, redisKey, "s", statePart, fallbackCount)
+		if err != nil {
+			s.log.Error("failed to query redis state destinations for city,state query", "error", err)
+			return nil, fmt.Errorf("failed to search destinations: %w", err)
+		}
+
+		combined := mergeCityStateDestinationMatches(cityMatches, stateMatches, limit)
+		if len(combined) > 0 {
+			return combined, nil
+		}
+	}
 
 	cityMatches, err := s.searchDestinationEntries(ctx, redisKey, "c", searchQuery, limit)
 	if err != nil {
@@ -311,6 +331,25 @@ func (s *ServiceImpl) SearchDestinations(ctx context.Context, query string, limi
 	}
 
 	return mergeDestinationMatches(cityMatches, stateMatches, limit), nil
+}
+
+func parseCityStateQuery(query string) (cityPart string, statePart string, ok bool) {
+	if !strings.Contains(query, ",") {
+		return "", "", false
+	}
+
+	parts := strings.SplitN(query, ",", 2)
+	if len(parts) != 2 {
+		return "", "", false
+	}
+
+	cityPart = strings.TrimSpace(parts[0])
+	statePart = strings.TrimSpace(parts[1])
+	if cityPart == "" || statePart == "" {
+		return "", "", false
+	}
+
+	return cityPart, statePart, true
 }
 
 func (s *ServiceImpl) searchDestinationEntries(
@@ -405,4 +444,53 @@ func mergeDestinationMatches(
 	appendUnique(stateMatches)
 
 	return merged
+}
+
+func mergeCityStateDestinationMatches(
+	cityMatches []*domain.Destination,
+	stateMatches []*domain.Destination,
+	limit int,
+) []*domain.Destination {
+	if limit <= 0 {
+		return []*domain.Destination{}
+	}
+
+	stateByID := make(map[string]*domain.Destination, len(stateMatches))
+	for _, item := range stateMatches {
+		if item == nil {
+			continue
+		}
+		stateByID[item.ID] = item
+	}
+
+	both := make([]*domain.Destination, 0, len(cityMatches))
+	cityOnly := make([]*domain.Destination, 0, len(cityMatches))
+	for _, item := range cityMatches {
+		if item == nil {
+			continue
+		}
+		if _, ok := stateByID[item.ID]; ok {
+			both = append(both, item)
+			delete(stateByID, item.ID)
+			continue
+		}
+		cityOnly = append(cityOnly, item)
+	}
+
+	stateOnly := make([]*domain.Destination, 0, len(stateByID))
+	for _, item := range stateMatches {
+		if item == nil {
+			continue
+		}
+		if _, ok := stateByID[item.ID]; ok {
+			stateOnly = append(stateOnly, item)
+		}
+	}
+
+	firstPass := mergeDestinationMatches(both, cityOnly, limit)
+	if len(firstPass) >= limit {
+		return firstPass
+	}
+
+	return mergeDestinationMatches(firstPass, stateOnly, limit)
 }
